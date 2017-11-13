@@ -18,8 +18,8 @@ files.
 
 The configuration files are saved using the TOML file format.
 
-Modules need not to worry about dealing with configuration files. They simplify
-need to implement the Configurable interface.
+Modules need not worry about dealing with configuration files. They simply need
+to implement the Configurable interface.
 */
 package cfg
 

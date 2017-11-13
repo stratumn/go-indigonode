@@ -57,7 +57,7 @@ var (
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
 
-	// ErrWrongPeerID is returned when ther router returns addresses for
+	// ErrWrongPeerID is returned when the router returns addresses for
 	// a different peer ID.
 	ErrWrongPeerID = errors.New("addresses do not match peer ID")
 )

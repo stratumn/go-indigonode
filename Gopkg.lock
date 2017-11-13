@@ -135,12 +135,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/stratumn/alice"
-  packages = ["cli","cmd","core","core/cfg","core/log","core/manager","core/service/bootstrap","core/service/connmgr","core/service/grpcapi","core/service/host","core/service/identify","core/service/kaddht","core/service/metrics","core/service/mssmux","core/service/natmgr","core/service/ping","core/service/pruner","core/service/relay","core/service/signal","core/service/swarm","core/service/yamux","grpc/ext","grpc/grpcapi","grpc/host","grpc/manager","grpc/metrics","grpc/ping","grpc/swarm","release","test/it"]
-  revision = "17e68fd2cfe01b172a48d06f6949789d23e9b1d3"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
   revision = "c73622c77280266305273cb545f54516ced95b93"
@@ -196,6 +190,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "82b1779be1294519e577008207fc8d875bfd175bd3bc44810349eb6cc1b15a60"
+  inputs-digest = "90ef3c19cc3dc80202842c7d933f06cd7475566931f85b7ca8c5c34084b57c3c"
   solver-name = "gps-cdcl"
   solver-version = 1

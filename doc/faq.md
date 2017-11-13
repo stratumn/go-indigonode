@@ -16,4 +16,4 @@ if we need them without risking of conflicting with other applications.
 Because the CLI uses reflection to automatically create commands from the API.
 It is possible that the API has functions the `alice` binary doesn't know
 about when it's compiled, so it cannot have commands for them. You can use
-`alice -c command` though.
+`alice cli -c command` though.

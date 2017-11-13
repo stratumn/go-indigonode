@@ -1,0 +1,11 @@
+*.DS_Store
+*.swp
+dist
+coverage.txt
+coverhtml.txt
+vendor
+tmp
+data
+./log
+alice.*
+server.*

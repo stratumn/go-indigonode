@@ -1,0 +1,47 @@
+// Copyright © 2017 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
+package stratumn.alice.grpc.ping;
+
+option go_package = "github.com/stratumn/alice/grpc/ping;ping";
+
+// The ping service definition.
+service Ping {
+  // Pings an address and streams responses.
+  rpc Ping (PingReq) returns (stream Response) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Ping a peer";
+  }
+}
+
+// The ping request message.
+message PingReq {
+  bytes peer_id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  uint32 times = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "The number of pings"
+  ];
+}
+
+// The response message containing the ID of the peer.
+message Response {
+  int64 latency = 1 [(stratumn.alice.grpc.ext.field_duration) = true];
+}
+

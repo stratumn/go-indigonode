@@ -2,7 +2,7 @@
 
 Integration testing is key to developing reliable peer-to-peer applications.
 
-The package `github.com/stratumn/alice/it` facilitates creating test networks.
+The package `github.com/stratumn/alice/test/it` facilitates creating test networks.
 It makes it easy to launch nodes in separate processes and interact with them
 via provided API clients.
 

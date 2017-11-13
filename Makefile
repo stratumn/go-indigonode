@@ -50,6 +50,8 @@ COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc')
 COVERAGE_SOURCES=$(shell find . -name '*.go')
 LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v './test')
 BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v '_test.go')
+GRPC_PROTOS=$(shell find grpc -name '*.proto')
+GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
 NIX_EXECS=$(foreach os-arch, $(NIX_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD))
 WIN_EXECS=$(foreach os-arch, $(WIN_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD).exe)
@@ -95,36 +97,12 @@ deps: gx dep gometalinter graphpkg
 
 # == protobuf =================================================================
 
-# TODO: prope target for gRPC and protobuffers.
+protobuf: $(GRPC_GO)
 
-protobuf: grpc/ext/ext.proto grpc/manager/manager.proto grpc/grpcapi/grpcapi.proto
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/ext/ext.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/ext/ext.pb.go
-	rm grpc/ext/ext.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/grpcapi/grpcapi.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/grpcapi/grpcapi.pb.go
-	rm grpc/grpcapi/grpcapi.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/manager/manager.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/manager/manager.pb.go
-	rm grpc/manager/manager.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/swarm/swarm.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/swarm/swarm.pb.go
-	rm grpc/swarm/swarm.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/host/host.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/host/host.pb.go
-	rm grpc/host/host.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/ping/ping.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/ping/ping.pb.go
-	rm grpc/ping/ping.pb.go.bak
-
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/grpc/metrics/metrics.proto --go_out=plugins=grpc:$(GOPATH)/src
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' grpc/metrics/metrics.pb.go
-	rm grpc/metrics/metrics.pb.go.bak
+grpc/%.pb.go: grpc/%.proto
+	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --go_out=plugins=grpc:$(GOPATH)/src
+	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
+	rm $@.bak
 
 # == doc ======================================================================
 
@@ -263,9 +241,7 @@ docker_push:
 	$(DOCKER_PUSH) $(DOCKER_USER)/$(CMD):latest
 
 # == license_headers ==========================================================
-license_headers: $(LICENSED_FILES)
-
-$(LICENSED_FILES): LICENSE_HEADER
+license_headers: $(LICENSED_FILES) LICENSE_HEADER
 	perl -i -0pe 's/\/\/ Copyright .* Stratumn.*\n(\/\/.*\n)*/`cat LICENSE_HEADER`/ge' $@
 
 # == clean ====================================================================

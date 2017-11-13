@@ -197,9 +197,25 @@ func (c *Core) hostInfo() {
 
 	fmt.Printf("\nStarted node %s.\n\n", hst.ID().Pretty())
 
-	for _, addr := range hst.Addrs() {
-		fmt.Printf("Listening on %s.\n", addr)
+	addrs, err := hst.Network().InterfaceListenAddresses()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to get listen addresses: %s.\n", err)
+		return
 	}
+
+	for _, addr := range addrs {
+		fmt.Printf("Listening at %s.\n", addr)
+	}
+
+	if len(addrs) > 0 {
+		fmt.Println()
+	}
+
+	for _, addr := range hst.Addrs() {
+		fmt.Printf("Announcing %s.\n", addr)
+	}
+
+	return
 }
 
 const (

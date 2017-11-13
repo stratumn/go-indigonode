@@ -69,8 +69,6 @@ const (
 	Journald = "journald"
 )
 
-// END taken from github.com/ipfs/go-log
-
 // WriterConfig contains configuration for a log writer.
 type WriterConfig struct {
 	// Type is the type of the writer.

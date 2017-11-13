@@ -26,7 +26,7 @@ func TestInform(t *testing.T) {
 	// Terminate the session if it lasts more than one minute.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
-	err := it.Session(ctx, "/tmp", 16, it.IntegrationCfg(), func(set it.TestNodeSet, conns []*grpc.ClientConn) {
+	err := it.Session(ctx, "/tmp", 16, it.IntegrationCfg(), func(ctx context.Context, set it.TestNodeSet, conns []*grpc.ClientConn) {
 		for i, cx := range conns {
 			// Run tests against each node.
 			c := grpcapi.NewAPIClient(cx)

@@ -104,7 +104,7 @@ $ prometheus
 
 By default, Prometheus is available at `http://localhost:9090`.
 
-To create dashboard, check out [grafana](https://grafana.com).
+To create dashboards, check out [grafana](https://grafana.com).
 
 ## Documentation
 

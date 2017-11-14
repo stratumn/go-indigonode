@@ -21,6 +21,6 @@ USER alice
 
 CMD ["start-alice.sh"]
 
-EXPOSE 5990 5991
+EXPOSE 8903 8904 8905
 
 VOLUME [ "/usr/local/etc/alice", "/usr/local/var/alice" ]

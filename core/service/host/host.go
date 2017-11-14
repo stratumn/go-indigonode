@@ -21,13 +21,14 @@ import (
 	"io"
 	"time"
 
+	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/service/metrics"
 	pb "github.com/stratumn/alice/grpc/host"
 	"google.golang.org/grpc"
 
 	inet "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
 	mstream "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics/stream"
 	madns "gx/ipfs/QmS7xUmsTdVNU2t1bPV6o9aXuXfufAjNGYgh2bcN2z9DAs/go-multiaddr-dns"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -69,9 +70,9 @@ var log = logging.Logger("host")
 type Service struct {
 	config *Config
 
-	netw inet.Network
-	cmgr ifconnmgr.ConnManager
-	bwc  metrics.Reporter
+	netw    inet.Network
+	cmgr    ifconnmgr.ConnManager
+	metrics *metrics.Metrics
 
 	negTimeout time.Duration
 
@@ -174,8 +175,8 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 	}
 
 	if s.config.Metrics != "" {
-		bwc := exposed[s.config.Metrics]
-		if s.bwc, ok = bwc.(metrics.Reporter); !ok {
+		mtrx := exposed[s.config.Metrics]
+		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
 			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
 		}
 	}
@@ -194,11 +195,21 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
-	s.host = NewHost(ctx, s.netw, s.cmgr, s.negTimeout, s.bwc)
+	s.host = NewHost(ctx, s.netw, s.cmgr, s.negTimeout, s.metrics)
+
+	var cancelPeriodicMetrics func()
+
+	if s.metrics != nil {
+		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
+	}
 
 	running <- struct{}{}
 	<-ctx.Done()
 	stopping <- struct{}{}
+
+	if cancelPeriodicMetrics != nil {
+		cancelPeriodicMetrics()
+	}
 
 	h := s.host
 	s.host = nil
@@ -213,6 +224,25 @@ func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) erro
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterHostServer(gs, grpcServer{s})
+}
+
+// periodicMetrics sends bandwidth usage for each protocol.
+func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
+	for _, proto := range s.host.Mux().Protocols() {
+		stats := s.metrics.GetBandwidthForProtocol(protocol.ID(proto))
+		labels := []gometrics.Label{{
+			Name:  "service",
+			Value: s.ID(),
+		}, {
+			Name:  "protocol",
+			Value: proto,
+		}}
+
+		sink.SetGaugeWithLabels([]string{"protocolBandwidthTotalIn"}, float32(stats.TotalIn), labels)
+		sink.SetGaugeWithLabels([]string{"protocolBandwidthTotalOut"}, float32(stats.TotalOut), labels)
+		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateIn"}, float32(stats.RateIn), labels)
+		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateOut"}, float32(stats.RateOut), labels)
+	}
 }
 
 // TODO: address filter, protector.
@@ -243,10 +273,10 @@ type Host struct {
 
 	negTimeout time.Duration
 
-	natmgr bhost.NATManager
-	ids    *identify.IDService
-	router func(context.Context, peer.ID) (pstore.PeerInfo, error)
-	bwc    metrics.Reporter
+	natmgr  bhost.NATManager
+	ids     *identify.IDService
+	router  func(context.Context, peer.ID) (pstore.PeerInfo, error)
+	metrics *metrics.Metrics
 }
 
 // NewHost creates a new host.
@@ -255,7 +285,7 @@ func NewHost(
 	netw inet.Network,
 	cmgr ifconnmgr.ConnManager,
 	negTimeout time.Duration,
-	bwc metrics.Reporter,
+	mtrx *metrics.Metrics,
 ) *Host {
 	h := Host{
 		ctx:        ctx,
@@ -264,7 +294,7 @@ func NewHost(
 		cmgr:       cmgr,
 		resolver:   madns.DefaultResolver,
 		negTimeout: negTimeout,
-		bwc:        bwc,
+		metrics:    mtrx,
 	}
 
 	netw.SetConnHandler(h.newConnHandler)
@@ -353,8 +383,8 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 
 	stream.SetProtocol(protocol.ID(protoID))
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
+	if h.metrics != nil {
+		stream = mstream.WrapStream(stream, h.metrics)
 	}
 
 	// Assumes handle lifecyle is already properly handled.
@@ -665,8 +695,8 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 		return nil, err
 	}
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
+	if h.metrics != nil {
+		stream = mstream.WrapStream(stream, h.metrics)
 	}
 
 	return stream, nil
@@ -704,8 +734,8 @@ func (h *Host) newStream(ctx context.Context, pid peer.ID, proto protocol.ID) (i
 
 	stream.SetProtocol(proto)
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
+	if h.metrics != nil {
+		stream = mstream.WrapStream(stream, h.metrics)
 	}
 
 	lzcon := msmux.NewMSSelect(stream, string(proto))

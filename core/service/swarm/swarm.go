@@ -17,12 +17,13 @@ package swarm
 import (
 	"context"
 
+	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/service/metrics"
 	pb "github.com/stratumn/alice/grpc/swarm"
 	"google.golang.org/grpc"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
 	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
@@ -52,8 +53,8 @@ var (
 type Service struct {
 	config *Config
 
-	bwc    metrics.Reporter
-	smuxer smux.Transport
+	metrics *metrics.Metrics
+	smuxer  smux.Transport
 
 	peerID  peer.ID
 	privKey crypto.PrivKey
@@ -191,8 +192,8 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 	}
 
 	if s.config.Metrics != "" {
-		bwc := exposed[s.config.Metrics]
-		if s.bwc, ok = bwc.(metrics.Reporter); !ok {
+		mtrx := exposed[s.config.Metrics]
+		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
 			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
 		}
 	}
@@ -224,16 +225,26 @@ func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) erro
 	defer swmCancel()
 
 	// TODO: protector and bandwidth reporter.
-	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, nil, s.smuxer, s.bwc)
+	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, nil, s.smuxer, s.metrics)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	s.swarm = swm
 
+	var cancelPeriodicMetrics func()
+
+	if s.metrics != nil {
+		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
+	}
+
 	running <- struct{}{}
 	<-ctx.Done()
 	stopping <- struct{}{}
+
+	if cancelPeriodicMetrics != nil {
+		cancelPeriodicMetrics()
+	}
 
 	swmCancel()
 
@@ -249,4 +260,23 @@ func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) erro
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterSwarmServer(gs, grpcServer{s})
+}
+
+// periodicMetrics sends periodic stats about peers, connections, and total
+// bandwidth usage.
+func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
+	labels := []gometrics.Label{{
+		Name:  "service",
+		Value: s.ID(),
+	}}
+
+	sink.SetGaugeWithLabels([]string{"peers"}, float32(len(s.swarm.Peers())), labels)
+	sink.SetGaugeWithLabels([]string{"connections"}, float32(len(s.swarm.Connections())), labels)
+
+	stats := s.metrics.GetBandwidthTotals()
+
+	sink.SetGaugeWithLabels([]string{"bandwidthTotalIn"}, float32(stats.TotalIn), labels)
+	sink.SetGaugeWithLabels([]string{"bandwidthTotalOut"}, float32(stats.TotalOut), labels)
+	sink.SetGaugeWithLabels([]string{"bandwidthRateIn"}, float32(stats.RateIn), labels)
+	sink.SetGaugeWithLabels([]string{"bandwidthRateOut"}, float32(stats.RateOut), labels)
 }

@@ -32,8 +32,8 @@ type grpcServer struct {
 
 // Bandwidth reports bandwith usage.
 func (s grpcServer) Bandwidth(ctx context.Context, req *pb.BandwidthReq) (*pb.BandwidthStats, error) {
-	bwc := s.service.bwc
-	if bwc == nil {
+	mtrx := s.service.metrics
+	if mtrx == nil {
 		return nil, errors.WithStack(ErrUnavailable)
 	}
 
@@ -44,11 +44,11 @@ func (s grpcServer) Bandwidth(ctx context.Context, req *pb.BandwidthReq) (*pb.Ba
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		stats = bwc.GetBandwidthForPeer(pid)
+		stats = mtrx.GetBandwidthForPeer(pid)
 	} else if req.ProtocolId != "" {
-		stats = bwc.GetBandwidthForProtocol(protocol.ID(req.ProtocolId))
+		stats = mtrx.GetBandwidthForProtocol(protocol.ID(req.ProtocolId))
 	} else {
-		stats = bwc.GetBandwidthTotals()
+		stats = mtrx.GetBandwidthTotals()
 	}
 
 	return &pb.BandwidthStats{

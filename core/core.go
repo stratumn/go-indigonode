@@ -95,8 +95,8 @@ func (c *Core) Boot(ctx context.Context) error {
 	log.Event(ctx, "beginBoot")
 	defer log.Event(ctx, "beginBoot")
 
-	// Also register services as a side-effect. Get them now before
-	// starting to avoid map concurrency issues.
+	// Also registers services as a side-effect. Get them now before
+	// starting to avoid map concurrency issues with the manager.
 	deps, err := Deps("")
 	if err != nil {
 		return err
@@ -214,8 +214,6 @@ func (c *Core) hostInfo() {
 	for _, addr := range hst.Addrs() {
 		fmt.Printf("Announcing %s.\n", addr)
 	}
-
-	return
 }
 
 const (

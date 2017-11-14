@@ -30,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager"
+	"github.com/stratumn/alice/core/netutil"
 	pb "github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
@@ -145,7 +146,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) erro
 	defer func() { s.ctx = nil }()
 
 	// Start the TCP listener.
-	lis, err := listen(s.config.Address)
+	lis, err := netutil.Listen(s.config.Address)
 	if err != nil {
 		return err
 	}

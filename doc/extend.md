@@ -324,7 +324,7 @@ type Runner interface {
 | identify | Identify | Identifies peers. | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht | Kademlia DHT | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT |
 | manager | Service Manager | Manages services. | github.com/stratumn/alice/core/\*manager.Manager |
-| metrics | Metrics | Collects metrics. | github.com/libp2p/go-libp2p-metrics/Reporter |
+| metrics | Metrics | Collects metrics. | github.com/stratumn/alice/core/service/\*metrics.Metrics |
 | mssmux | Stream Muxer Router | Routes protocols to stream muxers. | github.com/libp2p/go-stream-muxer.Transport |
 | natmgr | NAT Manager | Manages NAT port mappings. | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager |
 | network | Network Services | Starts network services. |  |

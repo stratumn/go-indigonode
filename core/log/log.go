@@ -131,7 +131,7 @@ func (h *ConfigHandler) Config() interface{} {
 		panic(errors.WithStack(err))
 	}
 
-	filename, err := filepath.Abs(filepath.Join(cwd, "log"))
+	filename, err := filepath.Abs(filepath.Join(cwd, "log.jsonld"))
 	if err != nil {
 		panic(errors.WithStack(err))
 	}

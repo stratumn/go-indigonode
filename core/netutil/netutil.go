@@ -1,4 +1,4 @@
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017  Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpcapi
+package netutil
 
 import (
 	"net"
@@ -23,9 +23,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// listen returns a listener that is compatible with net.Listener but uses a
+// Listen returns a listener that is compatible with net.Listener but uses a
 // multiaddr listener under the hood.
-func listen(address string) (net.Listener, error) {
+func Listen(address string) (net.Listener, error) {
 	maddr, err := maddr.NewMultiaddr(address)
 	if err != nil {
 		return nil, errors.WithStack(err)

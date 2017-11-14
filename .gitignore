@@ -6,6 +6,6 @@ coverhtml.txt
 vendor
 tmp
 data
-./log
+log.jsonld
 alice.*
 server.*

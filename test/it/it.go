@@ -30,6 +30,7 @@ import (
 	logging "github.com/stratumn/alice/core/log"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/grpcapi"
+	"github.com/stratumn/alice/core/service/metrics"
 )
 
 // NumSeeds is the number of seeds in a bootstrap list.
@@ -60,6 +61,10 @@ func IntegrationCfg() cfg.ConfigSet {
 	bsConf.ConnectionTimeout = "3s"
 	conf["bootstrap"] = bsConf
 
+	metricsConf := conf["metrics"].(metrics.Config)
+	metricsConf.PrometheusEndpoint = ""
+	conf["metrics"] = metricsConf
+
 	return conf
 }
 
@@ -86,6 +91,10 @@ func BenchmarkCfg() cfg.ConfigSet {
 	bsConf.Interval = "5s"
 	bsConf.ConnectionTimeout = "3s"
 	conf["bootstrap"] = bsConf
+
+	metricsConf := conf["metrics"].(metrics.Config)
+	metricsConf.PrometheusEndpoint = ""
+	conf["metrics"] = metricsConf
 
 	return conf
 }

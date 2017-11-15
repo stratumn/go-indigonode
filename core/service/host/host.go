@@ -19,6 +19,7 @@ package host
 import (
 	"context"
 	"io"
+	"math"
 	"time"
 
 	gometrics "github.com/armon/go-metrics"
@@ -262,6 +263,43 @@ func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
 		sink.SetGaugeWithLabels([]string{"protocolBandwidthTotalOut"}, float32(stats.TotalOut), labels)
 		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateIn"}, float32(stats.RateIn), labels)
 		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateOut"}, float32(stats.RateOut), labels)
+	}
+
+	peers := s.host.Network().Peers()
+
+	if l := len(peers); l > 0 {
+		peerstore := s.host.Peerstore()
+
+		minLat, maxLat, sum := float32(math.Inf(1)), float32(math.Inf(-1)), float32(0)
+
+		for _, pid := range peers {
+			latency := float32(peerstore.LatencyEWMA(pid).Nanoseconds())
+			if latency == 0 {
+				continue
+			}
+			if latency < minLat {
+				minLat = latency
+			}
+			if latency > maxLat {
+				maxLat = latency
+			}
+			sum += latency
+		}
+
+		if sum == 0 {
+			return
+		}
+
+		avgLat := sum / float32(l)
+
+		labels := []gometrics.Label{{
+			Name:  "service",
+			Value: s.ID(),
+		}}
+
+		sink.SetGaugeWithLabels([]string{"minLatencyMs"}, minLat/1000000, labels)
+		sink.SetGaugeWithLabels([]string{"maxLatencyMs"}, maxLat/1000000, labels)
+		sink.SetGaugeWithLabels([]string{"avgLatencyMs"}, avgLat/1000000, labels)
 	}
 }
 

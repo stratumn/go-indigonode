@@ -29,8 +29,10 @@ import (
 
 	inet "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	mafilter "gx/ipfs/QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr/go-maddr-filter"
 	mstream "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics/stream"
 	madns "gx/ipfs/QmS7xUmsTdVNU2t1bPV6o9aXuXfufAjNGYgh2bcN2z9DAs/go-multiaddr-dns"
+	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	msmux "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
 	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
@@ -40,6 +42,7 @@ import (
 	swarm "gx/ipfs/QmdQFrFnPrKRQtpeHKjZ3cVNwxmGKKS2TvhJTuN9C9yduh/go-libp2p-swarm"
 	bhost "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/host/basic"
 	identify "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
+	circuit "gx/ipfs/Qmf7GSJ4omRJsvA9uzTqzbnVhq4RWLPzjzW4xJzUta4dKE/go-libp2p-circuit"
 )
 
 var (
@@ -74,7 +77,8 @@ type Service struct {
 	cmgr    ifconnmgr.ConnManager
 	metrics *metrics.Metrics
 
-	negTimeout time.Duration
+	negTimeout   time.Duration
+	addrsFilters *mafilter.Filters
 
 	host *Host
 }
@@ -92,6 +96,9 @@ type Config struct {
 
 	// NegotiationTimeout is the negotiation timeout.
 	NegotiationTimeout string `toml:"negotiation_timeout" comment:"The negotiation timeout."`
+
+	// AddressesNetmasks are CIDR netmasks to filter announced addresses.
+	AddressesNetmasks []string `toml:"addresses_netmasks" comment:"CIDR netmasks to filter announced addresses."`
 }
 
 // ID returns the unique identifier of the service.
@@ -123,6 +130,7 @@ func (s *Service) Config() interface{} {
 		ConnectionManager:  "connmgr",
 		Metrics:            "metrics",
 		NegotiationTimeout: "1m",
+		AddressesNetmasks:  []string{},
 	}
 }
 
@@ -135,7 +143,19 @@ func (s *Service) SetConfig(config interface{}) error {
 		return errors.WithStack(err)
 	}
 
+	addrsFilters := mafilter.NewFilters()
+
+	for _, address := range conf.AddressesNetmasks {
+		mask, err := mamask.NewMask(address)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		addrsFilters.AddDialFilter(mask)
+	}
+
 	s.negTimeout = negTimeout
+	s.addrsFilters = addrsFilters
 	s.config = &conf
 
 	return nil
@@ -195,7 +215,7 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
-	s.host = NewHost(ctx, s.netw, s.cmgr, s.negTimeout, s.metrics)
+	s.host = NewHost(ctx, s.netw, s.cmgr, s.negTimeout, s.addrsFilters, s.metrics)
 
 	var cancelPeriodicMetrics func()
 
@@ -245,8 +265,6 @@ func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
 	}
 }
 
-// TODO: address filter, protector.
-
 /*
 The remaining code is based on:
 
@@ -259,6 +277,12 @@ Which has the license:
 And has the copyright:
 
 	Copyright (c) 2014 Juan Batiz-Benet
+
+It has been modified to:
+
+	- make more service friendly
+	- combine the routed host package for DHT routing
+	- log events
 */
 
 // Host implements the go-libp2p-host.Host interface.
@@ -271,11 +295,13 @@ type Host struct {
 	cmgr     ifconnmgr.ConnManager
 	resolver *madns.Resolver
 
-	negTimeout time.Duration
+	negTimeout   time.Duration
+	addrsFilters *mafilter.Filters
 
-	natmgr  bhost.NATManager
-	ids     *identify.IDService
-	router  func(context.Context, peer.ID) (pstore.PeerInfo, error)
+	natmgr bhost.NATManager
+	ids    *identify.IDService
+	router func(context.Context, peer.ID) (pstore.PeerInfo, error)
+
 	metrics *metrics.Metrics
 }
 
@@ -285,16 +311,18 @@ func NewHost(
 	netw inet.Network,
 	cmgr ifconnmgr.ConnManager,
 	negTimeout time.Duration,
+	addrsFilters *mafilter.Filters,
 	mtrx *metrics.Metrics,
 ) *Host {
 	h := Host{
-		ctx:        ctx,
-		netw:       netw,
-		mux:        msmux.NewMultistreamMuxer(),
-		cmgr:       cmgr,
-		resolver:   madns.DefaultResolver,
-		negTimeout: negTimeout,
-		metrics:    mtrx,
+		ctx:          ctx,
+		netw:         netw,
+		mux:          msmux.NewMultistreamMuxer(),
+		cmgr:         cmgr,
+		resolver:     madns.DefaultResolver,
+		negTimeout:   negTimeout,
+		addrsFilters: addrsFilters,
+		metrics:      mtrx,
 	}
 
 	netw.SetConnHandler(h.newConnHandler)
@@ -406,8 +434,35 @@ func (h *Host) Peerstore() pstore.Peerstore {
 	return h.netw.Peerstore()
 }
 
-// Addrs returns the addresses of this host.
+// Addrs returns the filtered addresses addresses of this host.
 func (h *Host) Addrs() []maddr.Multiaddr {
+	var addrs []maddr.Multiaddr
+
+	allAddrs := h.AllAddrs()
+
+	for _, address := range allAddrs {
+		if h.addrsFilters.AddrBlocked(address) {
+			continue
+		}
+
+		// Filter out relay addresses.
+		// TODO: Should the relay service take care of adding a filter? It
+		// would be worth it if multiple services need to add filters.
+		_, err := address.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
+			continue
+		}
+
+		addrs = append(addrs, address)
+	}
+
+	return addrs
+}
+
+// AllAddrs returns all the addresses of BasicHost at this moment in time.
+//
+// It's ok to not include addresses if they're not available to be used now.
+func (h *Host) AllAddrs() []maddr.Multiaddr {
 	addrs, err := h.netw.InterfaceListenAddresses()
 	if err != nil {
 		log.Event(h.ctx, "addrsError", logging.Metadata{

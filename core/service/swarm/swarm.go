@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package swarm defines a service that maintains a swarm of connections
+// between this node and its peers.
 package swarm
 
 import (
@@ -210,7 +212,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	pstore := pstore.NewPeerstore()
 
 	if err := pstore.AddPrivKey(s.peerID, s.privKey); err != nil {

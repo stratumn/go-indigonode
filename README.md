@@ -37,9 +37,6 @@ unit tests need to be written (things change way too fast at this point).
 
 * `cli/reflect.go`: current code feels hacky, it should be properly designed
   to make it easy to support new types
-* `core/manager/manager.go`: current implementation isn't bad but a lot of
-  functions have high cyclomatic complexity
-
 
 ## Installation
 

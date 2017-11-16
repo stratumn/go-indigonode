@@ -21,36 +21,37 @@ import (
 	"github.com/pkg/errors"
 )
 
-// process is a running service managed by a service manager. Basically it
-// manages a goroutine.
+// process is a running service managed by a service manager.
+//
+// Basically it manages the lifecyle of a goroutine.
 type process struct {
 	// service is the service attached to the process.
 	service Service
 
-	// Prunable is true this process can be pruned. A process will be
-	// pruned only if prunable is true and no active process depend on this
-	// process.
+	// prunable is true this process can be pruned. A process will be
+	// pruned only if prunable is true and no active process depends on
+	// this process.
 	prunable bool
 
 	// Cancel tells the process to shut down.
 	cancel func()
 
-	// Err is the error from when the process stopped.
+	// Err is the error from when the process last stopped, if any.
 	err error
 
 	// mu is used to avoid data races, but the current implementation is
-	// not perfectly concurrently safe. It protects the variables below.
+	// not perfectly concurrently safe. It protects the remaining
+	// variables.
 	mu sync.RWMutex
 
-	// stratus is the status of the process, such as `running`.
+	// status is the status of the process, such as Running.
 	status StatusCode
 
 	// refs is the set of currently active processes that depend on this
-	// process.  It is used to decide if the service can be stopped or
-	// pruned.
+	// process. It is used to decide if the service can be stopped.
 	refs map[string]struct{}
 
-	// These keep track of channels we need to notify when the status
+	// These keep track of channels that need to receive when the status
 	// changes.
 	running  []chan struct{}
 	stopping []chan struct{}
@@ -71,7 +72,9 @@ func (ps *process) Service() Service {
 	return ps.service
 }
 
-// Run calls the starts the service.
+// Run calls the Run function of the service if it has one.
+//
+// If it doesn't have a Run function, it blocks until the context is canceled.
 func (ps *process) Run(ctx context.Context, running chan struct{}, stopping chan struct{}) error {
 	if runner, ok := ps.service.(Runner); ok {
 		return runner.Run(ctx, running, stopping)
@@ -93,6 +96,8 @@ func (ps *process) Status() StatusCode {
 }
 
 // SetStatus sets the status of the process.
+//
+// It will send to any channel that observes the new status.
 func (ps *process) SetStatus(status StatusCode, err error) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
@@ -195,7 +200,7 @@ func (ps *process) SetCancel(cancel func()) {
 }
 
 // Running returns a channel to be notified once the process is running.
-func (ps *process) Running() chan struct{} {
+func (ps *process) Running() <-chan struct{} {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -211,7 +216,7 @@ func (ps *process) Running() chan struct{} {
 }
 
 // Stopped returns a channel to be notified once the process is stopping.
-func (ps *process) Stopping() chan struct{} {
+func (ps *process) Stopping() <-chan struct{} {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -227,7 +232,7 @@ func (ps *process) Stopping() chan struct{} {
 }
 
 // Stopped returns a channel to be notified once the process is stopped.
-func (ps *process) Stopped() chan error {
+func (ps *process) Stopped() <-chan error {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -240,4 +245,18 @@ func (ps *process) Stopped() chan error {
 	}
 
 	return ch
+}
+
+// waitForStableState wait until the process is either running, stopped, or
+// errored.
+func (ps *process) WaitForStableState() {
+	switch ps.status {
+	case Starting:
+		select {
+		case <-ps.Running():
+		case <-ps.Stopped():
+		}
+	case Stopping:
+		<-ps.Stopped()
+	}
 }

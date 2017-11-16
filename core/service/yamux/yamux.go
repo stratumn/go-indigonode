@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package yamux defines a service for the Yamux stream multiplexer.
+//
+// For more information about Yamux, see:
+//
+//  	https://github.com/hashicorp/yamux
 package yamux
 
 import (

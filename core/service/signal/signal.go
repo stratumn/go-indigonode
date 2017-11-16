@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package signal implements the Signal Handler service.
+// Package signal defines a service that deals with exit signals.
 package signal
 
 import (
@@ -112,7 +112,7 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	sigint := make(chan os.Signal, 2)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 

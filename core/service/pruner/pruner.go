@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pruner implements the Service Pruner.
+// Package pruner defines a service that periodically prunes the service
+// manager.
 package pruner
 
 import (
@@ -112,7 +113,7 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	running <- struct{}{}
 
 	for {

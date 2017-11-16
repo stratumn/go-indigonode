@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package connmgr defines a service that manages the number of connections
+// kept open.
 package connmgr
 
 import (
@@ -95,7 +97,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	s.cmgr = connmgr.NewConnManager(s.config.LowWater, s.config.HighWater, s.grace)
 
 	running <- struct{}{}

@@ -19,6 +19,15 @@ The aim of this package is to provide visibility and control over
 long-running goroutines. A goroutine is attached to a service. The manager can
 start and stop services. It also deals with service dependencies and pruning
 unused services.
+
+A service must at least implement the Service interface. It may also implement
+these additional interfaces:
+
+	- Needy if it depends on other services
+	- Pluggable if it needs to access the exposed type of its dependencies
+	- Friendly if it can use but does not need some other services
+	- Exposer if it exposes a type to other services
+	- Runner if it runs a long running function
 */
 package manager
 
@@ -67,6 +76,9 @@ var log = logging.Logger("manager")
 // 	- Stop()
 // 	- Prune()
 //	- StopAll()
+//
+// Before any of these tasks can run the work queue must be started by calling
+// Work().
 type Manager struct {
 	// processes is a map of processes for each registered service.
 	processes map[string]*process
@@ -79,6 +91,9 @@ type Manager struct {
 }
 
 // New creates a new service manager.
+//
+// It also registers the manager service which can be used to control the
+// manager itself.
 func New() *Manager {
 	defer log.EventBegin(context.Background(), "New").Done()
 
@@ -104,7 +119,13 @@ func (m *Manager) Register(serv Service) {
 	m.processes[id] = newProcess(serv)
 	m.friends[id] = map[string]Friendly{}
 
-	// Find already registred friends.
+	m.addFriends(id)
+	m.addToFriends(serv)
+}
+
+// addFriends finds registered services that like the given service ID and adds
+// them to its friend set.
+func (m *Manager) addFriends(id string) {
 	for sid, ps := range m.processes {
 		s := ps.Service()
 
@@ -119,19 +140,24 @@ func (m *Manager) Register(serv Service) {
 			}
 		}
 	}
+}
 
-	// Find services it likes.
+// addToFriends finds services are liked by the given service and adds it to
+// their friend set.
+func (m *Manager) addToFriends(serv Service) {
 	if friendly, ok := serv.(Friendly); ok {
 		likes := friendly.Likes()
 		for sid := range likes {
 			if _, ok := m.friends[sid]; ok {
-				m.friends[sid][id] = friendly
+				m.friends[sid][serv.ID()] = friendly
 			}
 		}
 	}
 }
 
 // Work tells the manager to start and execute tasks in the queue.
+//
+// It blocks until the context is canceled.
 func (m *Manager) Work(ctx context.Context) error {
 	log.Event(ctx, "Work")
 
@@ -165,28 +191,28 @@ func (m *Manager) doErr(task func() error) error {
 	return <-done
 }
 
-// Start starts a registered service and all its dependencies.
+// Start starts a registered service and all its dependencies in topological
+// order.
 //
 // It blocks until all the services have started or after the first failure.
 //
-// After a successful start, the service status will be set to ServiceRunning.
-// If it failed to start a dependency, the status will remain ServiceStopped,
-// but an error will be returned. If all dependencies started, but the service
-// failed to start, its status will be set to ServiceErrored, and an error will
-// be returned.
+// After a successful start, the service status will be set to Running. If it
+// failed to start a dependency, the status will remain Stopped, but an error
+// will be returned. If all dependencies started, but the service failed to
+// start, its status will be set to Errored, and an error will be returned.
 //
 // Starting a service makes it non-prunable, but the dependencies are prunable
 // unless they were started with Start(). Calling Start() on an already running
 // service will make it non-prunable.
-func (m *Manager) Start(serviceID string) error {
+func (m *Manager) Start(servID string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
-		"service": serviceID,
+		"service": servID,
 	})
 	event := log.EventBegin(ctx, "Start")
 	defer event.Done()
 
 	err := m.doErr(func() error {
-		return m.doStart(ctx, serviceID)
+		return m.doStart(ctx, servID)
 	})
 	if err != nil {
 		event.SetError(err)
@@ -195,12 +221,11 @@ func (m *Manager) Start(serviceID string) error {
 	return err
 }
 
-func (m *Manager) doStart(ctx context.Context, serviceID string) error {
+func (m *Manager) doStart(ctx context.Context, servID string) error {
 	event := log.EventBegin(ctx, "doStart")
 	defer event.Done()
 
-	// Find all services required by the service.
-	deps, err := m.Deps(serviceID)
+	deps, err := m.Deps(servID)
 	if err != nil {
 		event.SetError(err)
 		return err
@@ -208,79 +233,12 @@ func (m *Manager) doStart(ctx context.Context, serviceID string) error {
 
 	event.Append(logging.Metadata{"deps": deps})
 
-	// Start the process for the service and its dependencies.
-	for _, sid := range deps {
-		ps := m.processes[sid]
-		status := ps.Status()
-
-		// Deal with temporary states.
-		switch status {
-		case Stopping:
-			// Ignore error, it will be logged. Start it again.
-			log.Event(ctx, "prewaitStop", logging.Metadata{"dependency": sid})
-			<-ps.Stopped()
-		case Starting:
-			log.Event(ctx, "prewaitStart", logging.Metadata{"dependency": sid})
-			select {
-			case <-ps.Running():
-				ps.SetPrunable(ps.Prunable() && sid != serviceID)
-				continue
-			case err := <-ps.Stopped():
-				if err != nil && errors.Cause(err) != context.Canceled {
-					event.Append(logging.Metadata{"dependency": sid})
-					event.SetError(err)
-					return err
-				}
-			}
-		}
-
-		status = ps.Status()
-
-		// Note: it is possible that the status changed if the process
-		// stops, that case is currently not handled so it is not
-		// perfectly concurrently safe. The worse case scenario is that
-		// we think a process is running so we don't start it.
-
-		switch status {
-		case Running:
-			// Make it unprunable if it is the service that was
-			// requested.
-			ps.SetPrunable(ps.Prunable() && sid != serviceID)
-			continue
-		case Stopped:
-			// Keep going
-		default:
-			err := errors.WithStack(ErrInvalidStatus)
-			event.Append(logging.Metadata{"dependency": sid})
-			event.SetError(err)
-			return err
-		}
-
-		ps.SetStatus(Prestarting, nil)
-		ps.SetPrunable(sid != serviceID)
-		ps.ClearRefs()
-
-		// Start it.
-		failed := make(chan error, 1)
-		go func() {
-			if err := m.exec(ctx, sid); err != nil && ps.Status() != Errored {
-				failed <- err
-			}
-		}()
-
-		// Wait for status change.
-		select {
-		case <-ps.Running():
-			continue
-		case err := <-failed:
-			ps.SetStatus(Errored, err)
-			event.Append(logging.Metadata{"dependency": sid})
-			event.SetError(err)
-			return err
-		case err := <-ps.Stopped():
-			ps.SetStatus(Errored, err)
-			event.Append(logging.Metadata{"dependency": sid})
-			event.SetError(err)
+	for _, depID := range deps {
+		if err := m.startDepOf(ctx, servID, depID); err != nil {
+			event.Append(logging.Metadata{
+				"dependency": depID,
+				"error":      err.Error(),
+			})
 			return err
 		}
 	}
@@ -288,23 +246,158 @@ func (m *Manager) doStart(ctx context.Context, serviceID string) error {
 	return nil
 }
 
-// exec starts a service but not its dependencies.
-func (m *Manager) exec(ctx context.Context, serviceID string) error {
-	ctx = logging.ContextWithLoggable(ctx, logging.Metadata{
-		"service": serviceID,
-	})
+// startDepOf starts a dependency of a service if it isn't already running. It
+// returns once the process is running or if it stopped unexpectedly before
+// getting to the running state.
+func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
+	ps := m.processes[depID]
+	ps.WaitForStableState()
+	status := ps.Status()
 
-	ps := m.processes[serviceID]
-	ps.SetStatus(Starting, nil)
+	switch status {
+	case Running:
+		// Make it unprunable if it is the service that was requested.
+		ps.SetPrunable(ps.Prunable() && servID != depID)
+		return nil
+	case Stopped:
+		// Keep going
+	case Errored:
+		// Keep going
+	default:
+		return errors.WithStack(ErrInvalidStatus)
+	}
+
+	ps.SetPrunable(servID != depID)
+
+	return m.waitForStart(ctx, ps)
+}
+
+// waitForStart waits for a service to either start or exit with an error.
+func (m *Manager) waitForStart(ctx context.Context, ps *process) error {
+	done := make(chan error, 1)
+	go func() {
+		done <- m.exec(ctx, ps.Service().ID())
+	}()
+
+	select {
+	case <-ps.Running():
+		return nil
+	case err := <-done:
+		if err == nil {
+			err = ErrInvalidStatus
+		}
+		return err
+	}
+}
+
+// exec starts a service but not its dependencies.
+//
+// It blocks until the service exits.
+func (m *Manager) exec(ctx context.Context, servID string) error {
+	ctx = logging.ContextWithLoggable(ctx, logging.Metadata{
+		"service": servID,
+	})
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	ps := m.processes[servID]
+	ps.SetStatus(Starting, nil)
 	ps.SetCancel(cancel)
-
 	serv := ps.Service()
+	m.addRefs(serv)
 
-	// Plug connected services.
+	if err := m.plugNeeds(serv); err != nil {
+		log.Event(ctx, "plugError", logging.Metadata{
+			"error": err.Error(),
+		})
+	}
+
+	running := make(chan struct{})
+	stopping := make(chan struct{})
+	done := make(chan error)
+
+	go func() {
+		done <- ps.Run(ctx, running, stopping)
+	}()
+
+	return m.observe(ctx, ps, running, stopping, done)
+}
+
+// observe handles the status changes of a process and updates the states
+// accordingly.
+func (m *Manager) observe(
+	ctx context.Context,
+	ps *process,
+	running, stopping chan struct{},
+	done chan error,
+) error {
+	serv := ps.Service()
+	servID := serv.ID()
+
+	for {
+		select {
+		case <-running:
+			log.Event(ctx, "running", logging.Metadata{
+				"dependency": servID,
+			})
+
+			ps.SetStatus(Running, nil)
+			m.befriend(serv)
+
+		case <-stopping:
+			log.Event(ctx, "stopping", logging.Metadata{
+				"dependency": servID,
+			})
+
+			ps.SetStatus(Stopping, nil)
+			m.unfriend(servID)
+
+		case err := <-done:
+			if err != nil && errors.Cause(err) != context.Canceled {
+				log.Event(ctx, "errored", logging.Metadata{
+					"error":      err.Error(),
+					"dependency": servID,
+				})
+				ps.SetStatus(Errored, err)
+			} else {
+				log.Event(ctx, "stopped", logging.Metadata{
+					"dependency": servID,
+				})
+				ps.SetStatus(Stopped, nil)
+			}
+
+			m.removeRefs(serv)
+			ps.SetPrunable(true)
+			ps.ClearRefs()
+
+			return err
+		}
+	}
+}
+
+// addRefs add a reference to the given service to all the services it needs.
+func (m *Manager) addRefs(serv Service) {
+	if needy, ok := serv.(Needy); ok {
+		for depID := range needy.Needs() {
+			m.processes[depID].AddRef(serv.ID())
+		}
+	}
+}
+
+// removeRefs removes the reference to the given service from all the services
+// it needs.
+func (m *Manager) removeRefs(serv Service) {
+	if needy, ok := serv.(Needy); ok {
+		for depID := range needy.Needs() {
+			m.processes[depID].RemoveRef(serv.ID())
+		}
+	}
+}
+
+// plugNeeds finds all the services the given service needs and calls the plug
+// method of the service.
+func (m *Manager) plugNeeds(serv Service) error {
 	if pluggable, ok := serv.(Pluggable); ok {
 		outlets := map[string]interface{}{}
 		for sid := range pluggable.Needs() {
@@ -316,105 +409,55 @@ func (m *Manager) exec(ctx context.Context, serviceID string) error {
 		}
 
 		if err := pluggable.Plug(outlets); err != nil {
-			log.Event(ctx, "plugError", logging.Metadata{
-				"error": err.Error(),
-			})
 			return err
 		}
 	}
 
-	// Handle refs.
-	if needy, ok := serv.(Needy); ok {
-		for sid := range needy.Needs() {
-			m.processes[sid].AddRef(serviceID)
+	return nil
+}
+
+// befriend calls the befriend methods with the given service of all services
+// that like the service.
+func (m *Manager) befriend(serv Service) {
+	servID := serv.ID()
+
+	exposer, ok := serv.(Exposer)
+	for _, friendly := range m.friends[servID] {
+		if ok {
+			friendly.Befriend(servID, exposer.Expose())
+		} else {
+			friendly.Befriend(servID, nil)
 		}
 	}
+}
 
-	running := make(chan struct{})
-	stopping := make(chan struct{})
-	done := make(chan error)
-
-	go func() {
-		done <- ps.Run(ctx, running, stopping)
-	}()
-
-	for {
-		select {
-		case <-running:
-			log.Event(ctx, "running", logging.Metadata{
-				"dependency": serviceID,
-			})
-			ps.SetStatus(Running, nil)
-
-			// Befriend friendly services.
-			exposer, ok := serv.(Exposer)
-			for _, friendly := range m.friends[serviceID] {
-				if ok {
-					friendly.Befriend(serviceID, exposer.Expose())
-				} else {
-					friendly.Befriend(serviceID, nil)
-				}
-			}
-
-		case <-stopping:
-			log.Event(ctx, "stopping", logging.Metadata{
-				"dependency": serviceID,
-			})
-			ps.SetStatus(Stopping, nil)
-
-			// Unfriend friendly services.
-			for _, friendly := range m.friends[serviceID] {
-				friendly.Befriend(serviceID, nil)
-			}
-
-		case err := <-done:
-			if err == nil || errors.Cause(err) == context.Canceled {
-				log.Event(ctx, "stopped", logging.Metadata{
-					"dependency": serviceID,
-				})
-			} else {
-				log.Event(ctx, "errored", logging.Metadata{
-					"error":      err.Error(),
-					"dependency": serviceID,
-				})
-			}
-
-			if needy, ok := serv.(Needy); ok {
-				for sid := range needy.Needs() {
-					m.processes[sid].RemoveRef(serviceID)
-				}
-			}
-			if err == nil || errors.Cause(err) == context.Canceled {
-				err = nil
-				ps.SetStatus(Stopped, nil)
-			} else {
-				ps.SetStatus(Stopped, err)
-			}
-			return err
-		}
+// unfriend calls the befriend methods with nil for the given service ID of all
+// services that like the service.
+func (m *Manager) unfriend(servID string) {
+	for _, friendly := range m.friends[servID] {
+		friendly.Befriend(servID, nil)
 	}
-
 }
 
 // Stop stops a service. Stopping a service will fail if it is a dependency of
-// other running services.
-func (m *Manager) Stop(serviceID string) error {
+// other running services or it isn't running.
+func (m *Manager) Stop(servID string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
-		"service": serviceID,
+		"service": servID,
 	})
 	event := log.EventBegin(ctx, "Stop")
 	defer event.Done()
 
 	return m.doErr(func() error {
-		return m.doStop(ctx, serviceID)
+		return m.doStop(ctx, servID)
 	})
 }
 
-func (m *Manager) doStop(ctx context.Context, serviceID string) error {
+func (m *Manager) doStop(ctx context.Context, servID string) error {
 	event := log.EventBegin(ctx, "doStop")
 	defer event.Done()
 
-	ps, ok := m.processes[serviceID]
+	ps, ok := m.processes[servID]
 	if !ok {
 		err := errors.WithStack(ErrNotFound)
 		event.SetError(err)
@@ -454,22 +497,17 @@ func (m *Manager) doPrune() {
 	for {
 		done := true
 
-		// Find prunable processes in deterministic order.
-	SERVICE_PRUNE_SERVICE_LOOP:
 		for _, sid := range sortedProcessKeys(m.processes) {
 			ps := m.processes[sid]
 
-			if !ps.Prunable() || ps.Status() != Running {
+			if !m.canBePruned(ps) {
 				continue
-			}
-
-			for range ps.Refs() {
-				continue SERVICE_PRUNE_SERVICE_LOOP
 			}
 
 			stopEvent := log.EventBegin(ctx, "stopProcess", logging.Metadata{
 				"service": sid,
 			})
+
 			ps.Cancel()
 			<-ps.Stopped()
 			stopEvent.Done()
@@ -478,12 +516,25 @@ func (m *Manager) doPrune() {
 		}
 
 		if done {
-			break
+			return
 		}
 	}
 }
 
-// StopAll stops all active processes in an order which respects dependencies.
+// canBePruned returns whether a process can be pruned.
+func (m *Manager) canBePruned(ps *process) bool {
+	if !ps.Prunable() || ps.Status() != Running {
+		return false
+	}
+
+	for range ps.Refs() {
+		return false
+	}
+
+	return true
+}
+
+// StopAll stops all active services in an order which respects dependencies.
 func (m *Manager) StopAll() {
 	defer log.EventBegin(context.Background(), "StopAll").Done()
 	m.do(m.doStopAll)
@@ -498,41 +549,50 @@ func (m *Manager) doStopAll() {
 	for {
 		done := true
 
-		// Find active services with no active dependencies in
-		// deterministic order.
-	SERVICE_STOP_ALL_SERVICE_LOOP:
-		for _, sid := range sortedProcessKeys(m.processes) {
-			ps := m.processes[sid]
-			status := ps.Status()
+		for _, servID := range sortedProcessKeys(m.processes) {
+			ps := m.processes[servID]
 
-			if status == Stopped || status == Errored {
+			if !m.canBeStopped(ps) {
 				continue
-			}
-
-			if status == Stopping {
-				<-ps.Stopped()
-				continue
-			}
-
-			done = false
-
-			for range ps.Refs() {
-				continue SERVICE_STOP_ALL_SERVICE_LOOP
 			}
 
 			stopEvent := log.EventBegin(ctx, "stopProcess", logging.Metadata{
-				"service": sid,
+				"service": servID,
 			})
+
 			ps.Cancel()
 			<-ps.Stopped()
 			stopEvent.Done()
 
+			done = false
 		}
 
 		if done {
-			break
+			return
 		}
 	}
+}
+
+// canBeStopped returns whether a process can be stopped.
+//
+// It also waits for the service to stop if it is stopping.
+func (m *Manager) canBeStopped(ps *process) bool {
+	status := ps.Status()
+
+	if status == Stopped || status == Errored {
+		return false
+	}
+
+	if status == Stopping {
+		<-ps.Stopped()
+		return false
+	}
+
+	for range ps.Refs() {
+		return false
+	}
+
+	return true
 }
 
 // List returns all the registered service IDs.
@@ -541,10 +601,10 @@ func (m *Manager) List() []string {
 }
 
 // Find returns a service.
-func (m *Manager) Find(serviceID string) (Service, error) {
-	ps, ok := m.processes[serviceID]
+func (m *Manager) Find(servID string) (Service, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return nil, errors.Wrap(ErrNotFound, serviceID)
+		return nil, errors.Wrap(ErrNotFound, servID)
 	}
 
 	serv := ps.Service()
@@ -553,16 +613,16 @@ func (m *Manager) Find(serviceID string) (Service, error) {
 }
 
 // Proto returns a Protobuf struct for a service.
-func (m *Manager) Proto(serviceID string) (*pb.Service, error) {
-	ps, ok := m.processes[serviceID]
+func (m *Manager) Proto(servID string) (*pb.Service, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return nil, errors.Wrap(ErrNotFound, serviceID)
+		return nil, errors.Wrap(ErrNotFound, servID)
 	}
 
 	serv := ps.Service()
 
 	msg := pb.Service{
-		Id:        serviceID,
+		Id:        servID,
 		Status:    pb.Service_Status(ps.Status()),
 		Stoppable: ps.Stoppable(),
 		Prunable:  ps.Prunable(),
@@ -578,44 +638,45 @@ func (m *Manager) Proto(serviceID string) (*pb.Service, error) {
 }
 
 // Status returns the status of a service.
-func (m *Manager) Status(serviceID string) (StatusCode, error) {
-	ps, ok := m.processes[serviceID]
+func (m *Manager) Status(servID string) (StatusCode, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return Stopped, errors.Wrap(ErrNotFound, serviceID)
+		return Stopped, errors.Wrap(ErrNotFound, servID)
 	}
 
 	return ps.Status(), nil
 }
 
-// Stoppable returns true if a service is stoppable (meaning it has no
-// refs).
-func (m *Manager) Stoppable(serviceID string) (bool, error) {
-	ps, ok := m.processes[serviceID]
+// Stoppable returns true if a service is stoppable (meaning it isn't a
+// dependency of a running service.
+func (m *Manager) Stoppable(servID string) (bool, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return false, errors.Wrap(ErrNotFound, serviceID)
+		return false, errors.Wrap(ErrNotFound, servID)
 	}
 
 	return ps.Stoppable(), nil
 }
 
-// Prunable returns true if a service is prunable.
-func (m *Manager) Prunable(serviceID string) (bool, error) {
-	ps, ok := m.processes[serviceID]
+// Prunable returns true if a service is prunable (meaning it wasn't started
+// explicitly).
+func (m *Manager) Prunable(servID string) (bool, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return false, errors.Wrap(ErrNotFound, serviceID)
+		return false, errors.Wrap(ErrNotFound, servID)
 	}
 
 	return ps.Prunable(), nil
 }
 
-// Expose returns the object returned by the expose method of the service.
+// Expose returns the object returned by the Expose method of the service.
 //
 // It returns nil if the service doesn't implement the Exposer interface or if
 // it exposed nil.
-func (m *Manager) Expose(serviceID string) (interface{}, error) {
-	ps, ok := m.processes[serviceID]
+func (m *Manager) Expose(servID string) (interface{}, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return nil, errors.Wrap(ErrNotFound, serviceID)
+		return nil, errors.Wrap(ErrNotFound, servID)
 	}
 
 	if exposer, ok := ps.Service().(Exposer); ok {
@@ -627,11 +688,11 @@ func (m *Manager) Expose(serviceID string) (interface{}, error) {
 
 // Running returns a channel that will be notified once a service has started.
 //
-// If the services is already running, the channel fires immediately.
-func (m *Manager) Running(serviceID string) (chan struct{}, error) {
-	ps, ok := m.processes[serviceID]
+// If the services is already running, the channel receives immediately.
+func (m *Manager) Running(servID string) (<-chan struct{}, error) {
+	ps, ok := m.processes[servID]
 	if !ok {
-		return nil, errors.Wrap(ErrNotFound, serviceID)
+		return nil, errors.Wrap(ErrNotFound, servID)
 	}
 
 	return ps.Running(), nil
@@ -646,12 +707,12 @@ func (m *Manager) Running(serviceID string) (chan struct{}, error) {
 // It returns an error if the dependency graph is cyclic (meaning there isn't
 // an order in which to properly start dependencies).
 //
-// The dependencies are computed deterministically.
-func (m *Manager) Deps(serviceID string) ([]string, error) {
-	return m.depSort(serviceID, &map[string]bool{})
+// The order of dependencies is deterministic.
+func (m *Manager) Deps(servID string) ([]string, error) {
+	return m.depSort(servID, &map[string]bool{})
 }
 
-// depSort does topological sorting using DFS.
+// depSort does topological sorting using depth first search.
 func (m *Manager) depSort(id string, marks *map[string]bool) ([]string, error) {
 	var deps []string
 
@@ -696,60 +757,94 @@ func (m *Manager) depSort(id string, marks *map[string]bool) ([]string, error) {
 	return deps, nil
 }
 
-// Fgraph prints the dependency graph of a service to a writer.
-func (m *Manager) Fgraph(w io.Writer, serviceID string, prefix string) error {
-	service, err := m.Find(serviceID)
+// Fgraph prints a unicode dependency graph of a service to a writer.
+func (m *Manager) Fgraph(w io.Writer, servID string, prefix string) error {
+	service, err := m.Find(servID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprint(w, service.ID())
+	fmt.Fprint(w, servID)
 
 	if needy, ok := service.(Needy); ok && len(needy.Needs()) > 0 {
-		needs := sortedSetKeys(needy.Needs())
-		l := len(needs)
-		spaces := strings.Repeat(" ", len([]rune(service.ID())))
+		deps := sortedSetKeys(needy.Needs())
+		spaces := strings.Repeat(" ", len([]rune(servID)))
 
-		if l > 1 {
-			fmt.Fprint(w, "┬")
-			err = m.Fgraph(w, needs[0], prefix+spaces+"│")
-			if err != nil {
-				return err
-			}
-		} else {
-			fmt.Fprint(w, "─")
-			err = m.Fgraph(w, needs[0], prefix+spaces+" ")
-			if err != nil {
-				return err
-			}
-		}
-
-		if l > 2 {
-			for _, depID := range needs[1 : l-1] {
-				fmt.Fprintln(w, prefix+spaces+"│")
-				fmt.Fprint(w, prefix+spaces+"├")
-				err = m.Fgraph(w, depID, prefix+spaces+"│")
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		if l > 1 {
-			last := needs[l-1]
-			fmt.Fprintln(w, prefix+spaces+"│")
-			fmt.Fprint(w, prefix+spaces+"└")
-			err = m.Fgraph(w, last, prefix+spaces+" ")
-			if err != nil {
-				return err
-			}
-		}
-
-		// Don't need to print extra newline.
-		return nil
+		return m.fgraphDeps(w, deps, prefix, spaces)
 	}
 
 	fmt.Fprintln(w)
 
 	return nil
+}
+
+// fgraphDeps renders the dependencies of a service.
+func (m *Manager) fgraphDeps(w io.Writer, deps []string, prefix, spaces string) error {
+	l := len(deps)
+
+	if err := m.fgraphFirstDep(w, deps[0], l < 2, prefix, spaces); err != nil {
+		return err
+	}
+
+	if l > 2 {
+		if err := m.fgraphMidDeps(w, deps, prefix, spaces); err != nil {
+			return err
+		}
+	}
+
+	if l > 1 {
+		if err := m.fgraphLastDep(w, deps[l-1], prefix, spaces); err != nil {
+			return err
+		}
+	}
+
+	// Don't need to print extra newline.
+	return nil
+}
+
+// fgraphFirstDep renders the first dependency of a service.
+func (m *Manager) fgraphFirstDep(
+	w io.Writer,
+	depID string,
+	unique bool,
+	prefix, spaces string,
+) error {
+	if unique {
+		fmt.Fprint(w, "─")
+		return m.Fgraph(w, depID, prefix+spaces+" ")
+	}
+
+	fmt.Fprint(w, "┬")
+	return m.Fgraph(w, depID, prefix+spaces+"│")
+}
+
+// fgraphMidDeps renders the middle dependencies of a serivce, meaning not the
+// first nor the last one.
+func (m *Manager) fgraphMidDeps(
+	w io.Writer,
+	deps []string,
+	prefix, spaces string,
+) error {
+	for _, depID := range deps[1 : len(deps)-1] {
+		fmt.Fprintln(w, prefix+spaces+"│")
+		fmt.Fprint(w, prefix+spaces+"├")
+
+		if err := m.Fgraph(w, depID, prefix+spaces+"│"); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// fgraphLastDep renders the last dependency of a service.
+func (m *Manager) fgraphLastDep(
+	w io.Writer,
+	depID string,
+	prefix, spaces string,
+) error {
+	fmt.Fprintln(w, prefix+spaces+"│")
+	fmt.Fprint(w, prefix+spaces+"└")
+
+	return m.Fgraph(w, depID, prefix+spaces+" ")
 }

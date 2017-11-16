@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
+Package kaddht defines a service that runs an instance of a Kademlia
+distributed hash table server or client that can be used to route peer IDs to
+network addresses.
+
+It may also store other key values in addition to node IDs.
+
+For more information on Kademlia DHT, checkout:
+
+	https://en.wikipedia.org/wiki/Kademlia
+*/
 package kaddht
 
 import (
@@ -209,7 +220,7 @@ func (s *Service) Befriend(serviceID string, exposed interface{}) {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	ds, err := levelds.NewDatastore(s.config.LevelDBPath, nil)
 	if err != nil {
 		return errors.WithStack(err)

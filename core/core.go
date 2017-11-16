@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core implements Alice's core functionality.
+// Package core defines Alice's core functionality.
 package core
 
 import (

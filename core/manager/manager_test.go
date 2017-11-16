@@ -15,9 +15,11 @@
 package manager
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -31,194 +33,194 @@ func (s testService) ID() string {
 	return s.id
 }
 
-func (testService) Name() string {
-	return ""
+func (s testService) Name() string {
+	return s.id
 }
 
-func (testService) Desc() string {
-	return ""
+func (s testService) Desc() string {
+	return s.id
 }
 
 func (s testService) Needs() map[string]struct{} {
 	return s.needs
 }
 
-func (s testService) Expose() interface{} {
+type testExposer struct {
+	testService
+}
+
+func (s testExposer) Expose() interface{} {
+	return s.id
+}
+
+type testPluggable struct {
+	testService
+	plugCh chan map[string]interface{}
+}
+
+func (s testPluggable) Plug(exposed map[string]interface{}) error {
+	s.plugCh <- exposed
 	return nil
 }
 
-func (testService) Plug(map[string]interface{}) error {
-	return nil
-}
-
-func (testService) Run(ctx context.Context, running chan struct{}, stopping chan struct{}) error {
-	running <- struct{}{}
-	<-ctx.Done()
-	stopping <- struct{}{}
-
-	return errors.WithStack(ctx.Err())
-}
-
-func TestManagerDeps(t *testing.T) {
-	tests := []struct {
-		name     string
-		services []testService
-		sid      string
-		err      error
-		want     []string
-	}{
-		{
-			"valid dependencies",
-			[]testService{
-				{id: "salt"},
-				{id: "pepper"},
-				{id: "tomatoes"},
-				{id: "strawberries"},
-				{id: "cheese"},
-				{id: "flour"},
-				{id: "icecream"},
-				{id: "milk"},
-				{id: "yeast"},
-				{id: "water"},
-				{id: "sauce", needs: map[string]struct{}{
-					"tomatoes": struct{}{},
-					"salt":     struct{}{},
-					"pepper":   struct{}{},
-				}},
-				{id: "dough", needs: map[string]struct{}{
-					"flour": struct{}{},
-					"yeast": struct{}{},
-					"salt":  struct{}{}}},
-				{id: "pizza", needs: map[string]struct{}{
-					"dough":  struct{}{},
-					"sauce":  struct{}{},
-					"cheese": struct{}{}}},
-				{id: "milkshake", needs: map[string]struct{}{
-					"icecream":     struct{}{},
-					"milk":         struct{}{},
-					"strawberries": struct{}{}}},
-			},
-			"pizza",
-			nil,
-			[]string{
-				"cheese",
-				"flour",
-				"salt",
-				"yeast",
-				"dough",
-				"pepper",
-				"tomatoes",
-				"sauce",
-				"pizza"},
+var depsTT = []struct {
+	name     string
+	services []testService
+	sid      string
+	err      error
+	want     []string
+}{{
+	"valid dependencies",
+	[]testService{
+		{id: "salt"},
+		{id: "pepper"},
+		{id: "tomatoes"},
+		{id: "strawberries"},
+		{id: "cheese"},
+		{id: "flour"},
+		{id: "icecream"},
+		{id: "milk"},
+		{id: "yeast"},
+		{id: "water"},
+		{id: "sauce", needs: map[string]struct{}{
+			"tomatoes": struct{}{},
+			"salt":     struct{}{},
+			"pepper":   struct{}{},
+		}},
+		{id: "dough", needs: map[string]struct{}{
+			"flour": struct{}{},
+			"yeast": struct{}{},
+			"salt":  struct{}{}}},
+		{id: "pizza", needs: map[string]struct{}{
+			"dough":  struct{}{},
+			"sauce":  struct{}{},
+			"cheese": struct{}{}}},
+		{id: "milkshake", needs: map[string]struct{}{
+			"icecream":     struct{}{},
+			"milk":         struct{}{},
+			"strawberries": struct{}{}}},
+	},
+	"pizza",
+	nil,
+	[]string{
+		"cheese",
+		"flour",
+		"salt",
+		"yeast",
+		"dough",
+		"pepper",
+		"tomatoes",
+		"sauce",
+		"pizza"},
+},
+	{
+		"unknown service",
+		[]testService{
+			{id: "salt"},
+			{id: "pepper"},
+			{id: "tomatoes"},
+			{id: "strawberries"},
+			{id: "cheese"},
+			{id: "flour"},
+			{id: "icecream"},
+			{id: "milk"},
+			{id: "yeast"},
+			{id: "water"},
+			{id: "sauce", needs: map[string]struct{}{
+				"tomatoes": struct{}{},
+				"salt":     struct{}{},
+				"pepper":   struct{}{},
+				"garlic":   struct{}{}}},
+			{id: "dough", needs: map[string]struct{}{
+				"flour": struct{}{},
+				"yeast": struct{}{},
+				"salt":  struct{}{}}},
+			{id: "pizza", needs: map[string]struct{}{
+				"dough":  struct{}{},
+				"sauce":  struct{}{},
+				"cheese": struct{}{}}},
+			{id: "milkshake", needs: map[string]struct{}{
+				"icecream":     struct{}{},
+				"milk":         struct{}{},
+				"strawberries": struct{}{}}},
 		},
-		{
-			"unknown service",
-			[]testService{
-				{id: "salt"},
-				{id: "pepper"},
-				{id: "tomatoes"},
-				{id: "strawberries"},
-				{id: "cheese"},
-				{id: "flour"},
-				{id: "icecream"},
-				{id: "milk"},
-				{id: "yeast"},
-				{id: "water"},
-				{id: "sauce", needs: map[string]struct{}{
-					"tomatoes": struct{}{},
-					"salt":     struct{}{},
-					"pepper":   struct{}{},
-					"garlic":   struct{}{}}},
-				{id: "dough", needs: map[string]struct{}{
-					"flour": struct{}{},
-					"yeast": struct{}{},
-					"salt":  struct{}{}}},
-				{id: "pizza", needs: map[string]struct{}{
-					"dough":  struct{}{},
-					"sauce":  struct{}{},
-					"cheese": struct{}{}}},
-				{id: "milkshake", needs: map[string]struct{}{
-					"icecream":     struct{}{},
-					"milk":         struct{}{},
-					"strawberries": struct{}{}}},
-			},
-			"pizza",
-			ErrNotFound,
-			nil,
+		"pizza",
+		ErrNotFound,
+		nil,
+	},
+	{
+		"cyclic dependencies",
+		[]testService{
+			{id: "salt"},
+			{id: "pepper"},
+			{id: "tomatoes"},
+			{id: "strawberries"},
+			{id: "cheese"},
+			{id: "flour"},
+			{id: "icecream"},
+			{id: "milk"},
+			{id: "yeast"},
+			{id: "water"},
+			{id: "sauce", needs: map[string]struct{}{
+				"tomatoes": struct{}{},
+				"salt":     struct{}{},
+				"pepper":   struct{}{}}},
+			{id: "dough", needs: map[string]struct{}{
+				"flour": struct{}{},
+				"yeast": struct{}{},
+				"pizza": struct{}{},
+				"salt":  struct{}{}}},
+			{id: "pizza", needs: map[string]struct{}{
+				"dough":  struct{}{},
+				"sauce":  struct{}{},
+				"cheese": struct{}{}}},
+			{id: "milkshake", needs: map[string]struct{}{
+				"icecream":     struct{}{},
+				"milk":         struct{}{},
+				"strawberries": struct{}{}}},
 		},
-		{
-			"cyclic dependencies",
-			[]testService{
-				{id: "salt"},
-				{id: "pepper"},
-				{id: "tomatoes"},
-				{id: "strawberries"},
-				{id: "cheese"},
-				{id: "flour"},
-				{id: "icecream"},
-				{id: "milk"},
-				{id: "yeast"},
-				{id: "water"},
-				{id: "sauce", needs: map[string]struct{}{
-					"tomatoes": struct{}{},
-					"salt":     struct{}{},
-					"pepper":   struct{}{}}},
-				{id: "dough", needs: map[string]struct{}{
-					"flour": struct{}{},
-					"yeast": struct{}{},
-					"pizza": struct{}{},
-					"salt":  struct{}{}}},
-				{id: "pizza", needs: map[string]struct{}{
-					"dough":  struct{}{},
-					"sauce":  struct{}{},
-					"cheese": struct{}{}}},
-				{id: "milkshake", needs: map[string]struct{}{
-					"icecream":     struct{}{},
-					"milk":         struct{}{},
-					"strawberries": struct{}{}}},
-			},
-			"pizza",
-			ErrCyclic,
-			nil,
+		"pizza",
+		ErrCyclic,
+		nil,
+	},
+	{
+		"self dependency",
+		[]testService{
+			{id: "salt"},
+			{id: "pepper"},
+			{id: "tomatoes"},
+			{id: "strawberries"},
+			{id: "cheese"},
+			{id: "flour"},
+			{id: "icecream"},
+			{id: "milk"},
+			{id: "yeast"},
+			{id: "water"},
+			{id: "sauce", needs: map[string]struct{}{
+				"tomatoes": struct{}{},
+				"salt":     struct{}{},
+				"pepper":   struct{}{}}},
+			{id: "dough", needs: map[string]struct{}{
+				"flour": struct{}{},
+				"yeast": struct{}{},
+				"dough": struct{}{},
+				"salt":  struct{}{}}},
+			{id: "pizza", needs: map[string]struct{}{
+				"dough":  struct{}{},
+				"sauce":  struct{}{},
+				"cheese": struct{}{}}},
+			{id: "milkshake", needs: map[string]struct{}{
+				"icecream":     struct{}{},
+				"milk":         struct{}{},
+				"strawberries": struct{}{}}},
 		},
-		{
-			"self dependency",
-			[]testService{
-				{id: "salt"},
-				{id: "pepper"},
-				{id: "tomatoes"},
-				{id: "strawberries"},
-				{id: "cheese"},
-				{id: "flour"},
-				{id: "icecream"},
-				{id: "milk"},
-				{id: "yeast"},
-				{id: "water"},
-				{id: "sauce", needs: map[string]struct{}{
-					"tomatoes": struct{}{},
-					"salt":     struct{}{},
-					"pepper":   struct{}{}}},
-				{id: "dough", needs: map[string]struct{}{
-					"flour": struct{}{},
-					"yeast": struct{}{},
-					"dough": struct{}{},
-					"salt":  struct{}{}}},
-				{id: "pizza", needs: map[string]struct{}{
-					"dough":  struct{}{},
-					"sauce":  struct{}{},
-					"cheese": struct{}{}}},
-				{id: "milkshake", needs: map[string]struct{}{
-					"icecream":     struct{}{},
-					"milk":         struct{}{},
-					"strawberries": struct{}{}}},
-			},
-			"pizza",
-			ErrCyclic,
-			nil,
-		},
-	}
+		"pizza",
+		ErrCyclic,
+		nil,
+	}}
 
-	for _, test := range tests {
+func TestManager_Deps(t *testing.T) {
+	for _, test := range depsTT {
 		mgr := New()
 
 		for _, serv := range test.services {
@@ -244,14 +246,10 @@ func TestManagerDeps(t *testing.T) {
 	}
 }
 
-func TestManager(t *testing.T) {
+func createTestMgr(ctx context.Context, t *testing.T) *Manager {
 	mgr := New()
-	defer mgr.StopAll()
 
 	go func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
 		err := mgr.Work(ctx)
 		if err != nil && errors.Cause(err) != context.Canceled {
 			t.Errorf(`manager: Work(ctx): error: %s`, err)
@@ -260,117 +258,225 @@ func TestManager(t *testing.T) {
 
 	mgr.Register(testService{id: "net"})
 	mgr.Register(testService{id: "fs"})
-	mgr.Register(testService{id: "crypto"})
+	mgr.Register(testService{
+		id: "crypto",
+		needs: map[string]struct{}{
+			"fs": struct{}{},
+		},
+	})
 	mgr.Register(testService{
 		id: "apps",
 		needs: map[string]struct{}{
 			"net":    struct{}{},
-			"fs":     struct{}{},
 			"crypto": struct{}{},
+			"fs":     struct{}{},
 		},
 	})
-	mgr.Register(testService{id: "api"})
+	mgr.Register(testExposer{testService{id: "api"}})
 
-	err := mgr.Start("sleep")
-	if got, want := errors.Cause(err), errors.Cause(ErrNotFound); got != want {
-		t.Fatalf(`start unexisting: Start("sleep"): error = %s want %s`, got, want)
+	return mgr
+}
+
+var mgrTT = []struct {
+	name   string
+	do     func(*Manager) error
+	err    error
+	status map[string]StatusCode
+}{{
+	"start with deps",
+	func(mgr *Manager) error {
+		return mgr.Start("apps")
+	},
+	nil,
+	map[string]StatusCode{
+		"net":    Running,
+		"fs":     Running,
+		"crypto": Running,
+		"apps":   Running,
+		"api":    Stopped,
+	},
+}, {
+	"Start_inexistent",
+	func(mgr *Manager) error {
+		return mgr.Start("http")
+	},
+	ErrNotFound,
+	nil,
+}, {
+	"Stop",
+	func(mgr *Manager) error {
+		if err := mgr.Start("apps"); err != nil {
+			return err
+		}
+		return mgr.Stop("apps")
+	},
+	nil,
+	map[string]StatusCode{
+		"net":    Running,
+		"fs":     Running,
+		"crypto": Running,
+		"apps":   Stopped,
+		"api":    Stopped,
+	},
+}, {
+	"Stop_needed",
+	func(mgr *Manager) error {
+		if err := mgr.Start("apps"); err != nil {
+			return err
+		}
+		return mgr.Stop("crypto")
+	},
+	ErrNeeded,
+	map[string]StatusCode{
+		"net":    Running,
+		"fs":     Running,
+		"crypto": Running,
+	},
+}, {
+	"Stop_inexistent",
+	func(mgr *Manager) error {
+		return mgr.Stop("http")
+	},
+	ErrNotFound,
+	nil,
+}, {
+	"StopAll",
+	func(mgr *Manager) error {
+		if err := mgr.Start("apps"); err != nil {
+			return err
+		}
+		if err := mgr.Start("fs"); err != nil {
+			return err
+		}
+		mgr.StopAll()
+		return nil
+	},
+	nil,
+	map[string]StatusCode{
+		"net":    Stopped,
+		"fs":     Stopped,
+		"crypto": Stopped,
+		"apps":   Stopped,
+		"api":    Stopped,
+	},
+}, {
+	"Prune",
+	func(mgr *Manager) error {
+		if err := mgr.Start("apps"); err != nil {
+			return err
+		}
+		if err := mgr.Start("fs"); err != nil {
+			return err
+		}
+		if err := mgr.Start("api"); err != nil {
+			return err
+		}
+		if err := mgr.Stop("apps"); err != nil {
+			return err
+		}
+		mgr.Prune()
+		return nil
+	},
+	nil,
+	map[string]StatusCode{
+		"net":    Stopped,
+		"fs":     Running,
+		"crypto": Stopped,
+		"apps":   Stopped,
+		"api":    Running,
+	},
+}}
+
+func TestManager(t *testing.T) {
+	for _, test := range mgrTT {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		mgr := createTestMgr(ctx, t)
+
+		got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
+		if got != want {
+			t.Errorf("%s: do(): err = %q want %q", test.name, got, want)
+		}
+
+		for servID, want := range test.status {
+			got, err := mgr.Status(servID)
+			if err != nil {
+				t.Errorf("%s: mgr.Status(%q): error: %s", test.name, servID, err)
+			}
+
+			if got != want {
+				t.Errorf("%s: mgr.Status(%q) = %s want %s", test.name, servID, got, want)
+			}
+		}
+
+		mgr.StopAll()
+		cancel()
+	}
+}
+
+func TestPluggable(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr := createTestMgr(ctx, t)
+	defer mgr.StopAll()
+
+	plugCh := make(chan map[string]interface{}, 1)
+
+	mgr.Register(testPluggable{
+		testService{
+			id:    "pluggable",
+			needs: map[string]struct{}{"api": struct{}{}},
+		},
+		plugCh,
+	})
+
+	if err := mgr.Start("pluggable"); err != nil {
+		t.Errorf(`mgr.Start("pluggable"): error: %s`, err)
 	}
 
-	if err := mgr.Start("apps"); err != nil {
-		t.Fatalf(`start existing: Start("apps"): error: %s`, err)
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("plugCh didn't receive anything")
+	case exposed := <-plugCh:
+		exp, ok := exposed["api"]
+		if !ok {
+			t.Errorf(`exposed["api"] = %v want %q`, nil, "api")
+		}
+		got, ok := exp.(string)
+		if !ok {
+			t.Errorf(`exposed["api"] = %q want %q`, exp, "api")
+		}
+		if got != "api" {
+			t.Errorf(`exposed["api"] = %q want %q`, got, "api")
+		}
+	}
+}
+
+func TestManager_FGraph(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr := createTestMgr(ctx, t)
+	defer mgr.StopAll()
+
+	w := bytes.NewBuffer(nil)
+	if err := mgr.Fgraph(w, "apps", ""); err != nil {
+		t.Errorf(`mgr.Fgraph(w, "apps", ""): error: %s`, err)
 	}
 
-	got, err := mgr.Status("apps")
-	if err != nil {
-		t.Fatalf(`start status: Status("apps"): error: %s`, err)
-	}
-	if want := Running; got != want {
-		t.Fatalf(`start status: Status("apps") = %q want %q`, got, want)
-	}
+	got := w.String()
+	want := `apps┬crypto─fs
+    │
+    ├fs
+    │
+    └net
+`
 
-	got, err = mgr.Status("fs")
-	if err != nil {
-		t.Fatalf(`dep status: Status("fs"): error: %s`, err)
-	}
-	if want := Running; got != want {
-		t.Fatalf(`dep status: Status("fs") = %q want %q`, got, want)
-	}
+	if got != want {
 
-	err = mgr.Stop("fs")
-	if got, want := errors.Cause(err), errors.Cause(ErrNeeded); got != want {
-		t.Fatalf(`stop with refs: Stop("fs"): error = %s want %s`, got, want)
-	}
-
-	if err := mgr.Stop("apps"); err != nil {
-		t.Fatalf(`stop without refs: Stop("apps"): error: %s`, err)
-	}
-
-	got, err = mgr.Status("apps")
-	if err != nil {
-		t.Fatalf(`stopped status: Status("apps"): error: %s`, err)
-	}
-	if want := Stopped; got != want {
-		t.Fatalf(`stopped status: Status("apps") = %q want %q`, got, want)
-	}
-
-	if err := mgr.Stop("fs"); err != nil {
-		t.Fatalf(`stop no more refs: Stop("fs"): error: %s`, err)
-	}
-
-	if err := mgr.Start("apps"); err != nil {
-		t.Fatalf(`start existing: Start("apps"): error: %s`, err)
-	}
-
-	got, err = mgr.Status("apps")
-	if err != nil {
-		t.Fatalf(`restart status: Status("apps"): error: %s`, err)
-	}
-	if want := Running; got != want {
-		t.Fatalf(`restart status: Status("apps") = %q want %q`, got, want)
-	}
-
-	if err := mgr.Start("crypto"); err != nil {
-		t.Fatalf(`make non-prunable: Start("crypto"): error: %s`, err)
-	}
-
-	if err := mgr.Stop("apps"); err != nil {
-		t.Fatalf(`stop before prune: Stop("apps"): error: %s`, err)
-	}
-
-	mgr.Prune()
-
-	got, err = mgr.Status("fs")
-	if err != nil {
-		t.Fatalf(`pruned status: Status("fs"): error: %s`, err)
-	}
-	if want := Stopped; got != want {
-		t.Fatalf(`pruned status: Status("fs") = %q want %q`, got, want)
-	}
-
-	got, err = mgr.Status("net")
-	if err != nil {
-		t.Fatalf(`pruned status: Status("net"): error: %s`, err)
-	}
-	if want := Stopped; got != want {
-		t.Fatalf(`pruned status: Status("net") = %q want %q`, got, want)
-	}
-
-	got, err = mgr.Status("crypto")
-	if err != nil {
-		t.Fatalf(`pruned status: Status("crypto"): error: %s`, err)
-	}
-	if want := Running; got != want {
-		t.Fatalf(`pruned status: Status("crypto") = %q want %q`, got, want)
-	}
-
-	mgr.StopAll()
-
-	got, err = mgr.Status("crypto")
-	if err != nil {
-		t.Fatalf(`stop all status: Status("crypto"): error: %s`, err)
-	}
-	if want := Stopped; got != want {
-		t.Fatalf(`stop all status: Status("crypto") = %q want %q`, got, want)
+		t.Errorf(`mgr.Fgraph(w, "apps", "") =
+%s want
+%s`, got, want)
 	}
 }
 

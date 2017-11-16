@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Command alice manages an Alice node.
+//
 // Alice is virtual infrastructure for interoperable P2P services.
 package main
 

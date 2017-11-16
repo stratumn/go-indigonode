@@ -99,7 +99,7 @@ func (s grpcServer) Prune(req *pb.PruneReq, srv pb.Manager_PruneServer) error {
 	}
 }
 
-// sendServices sends all the services.
+// sendServices is used to send all the services to a stream.
 func (s grpcServer) sendServices(send func(*pb.Service) error) error {
 	for _, sid := range s.mgr.List() {
 		msg, err := s.mgr.Proto(sid)

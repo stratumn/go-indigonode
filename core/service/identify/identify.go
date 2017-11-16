@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package identify defines a service that identifies peers on the network.
 package identify
 
 import (
@@ -110,7 +111,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	s.ids = identify.NewIDService(s.host)
 	s.host.SetIDService(s.ids)
 

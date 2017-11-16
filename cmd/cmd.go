@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cmd defines the commands of the `alice` executable.
+// Package cmd defines the commands of the alice executable.
 package cmd

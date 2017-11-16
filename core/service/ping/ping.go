@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package ping defines a service that handles ping requests and responses.
 package ping
 
 import (
@@ -109,7 +110,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	s.ping = ping.NewPingService(s.host)
 
 	running <- struct{}{}

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package bootstrap defines a service that bootstraps a host from a set of
+// well known peers.
 package bootstrap
 
 import (
@@ -170,7 +172,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	// Bootstrap until we have at least one connected peer.
 	for {
 		if err := s.round(ctx); err != nil {

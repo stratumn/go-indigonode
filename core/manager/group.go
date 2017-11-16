@@ -14,12 +14,21 @@
 
 package manager
 
-// ServiceGroup represents a group of services. It is implemented as a service.
+// ServiceGroup represents a group of services.
+//
+// It is implemented as a service.
 type ServiceGroup struct {
-	GroupID   string
+	// GroupID is a unique identifier that will be used as the service ID.
+	GroupID string
+
+	// GroupName is a human friendly name for the group.
 	GroupName string
+
+	// GroupDesc is a description of what the group represents.
 	GroupDesc string
-	Services  map[string]struct{}
+
+	// Services are the services that this group starts.
+	Services map[string]struct{}
 }
 
 // ID returns the unique identifier of the service.

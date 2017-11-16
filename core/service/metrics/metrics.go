@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package metrics defines a service that collects metrics and can expose them
+// to a Prometheus server.
+//
+// It exposes the type Metrics which can be used by other services to send
+// metrics.
 package metrics
 
 import (
@@ -133,7 +138,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	bwc := p2pmetrics.NewBandwidthCounter()
 
 	s.metrics = newMetrics(bwc, promSink)

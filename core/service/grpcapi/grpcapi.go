@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /*
-Package grpcapi implements the gRPC API service.
+Package grpcapi defines a service that exposes a gRPC API.
 
 The API allows external applications such as Alice's command line interface
 to interact with the node without having to connect to the P2P network.
@@ -22,6 +22,10 @@ The API is implemented using gRPC. It is possible to automatically generate API
 clients for other programming languages such as Javascript and C++.
 
 The Protobuf types used by the API are defined in the `/grpc` folder.
+
+For more information about gRPC, see:
+
+	https://grpc.io
 */
 package grpcapi
 
@@ -141,7 +145,7 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	s.ctx = ctx
 	defer func() { s.ctx = nil }()
 

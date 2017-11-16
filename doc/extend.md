@@ -105,7 +105,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 
 	// Initialize the service before sending an empty struct to the running
 	// channel.
@@ -275,7 +275,7 @@ type Pluggable interface {
 	Needy
 
 	// Plug is given a map of exposed connected objects, giving the handler
-	// a chance to save them. It must check that the types are correct, or
+	// a chance to use them. It must check that the types are correct, or
 	// return an error.
 	Plug(exposed map[string]interface{}) error
 }
@@ -289,16 +289,16 @@ type Friendly interface {
 	// Befriend is called every time a service it likes just started
 	// running or is about to stop. If it just started running, it is
 	// passed the exposed object. If it is about to stop, nil is given.
-	// It must check that the exposed type is valid before saving it.
+	// It must check that the exposed type is valid before using it.
 	Befriend(serviceID string, exposed interface{})
 }
 
-// Exposer exposes something to other services.
+// Exposer exposes a type to other services.
 type Exposer interface {
-	// Expose exposes the service to other services. Services that depend
-	// on this service will receive the return object in their Plug method.
-	// Services that are friendly with this services will receive the
-	// returned object in their Befriend method.
+	// Expose exposes a type to other services. Services that depend on
+	// this service will receive the return object in their Plug method if
+	// they have one. Services that are friendly with this services will
+	// receive the returned object in their Befriend method.
 	Expose() interface{}
 }
 
@@ -306,8 +306,9 @@ type Exposer interface {
 type Runner interface {
 	// Run should start the service. It should block until the service is
 	// done or the context is canceled. It should send a message to running
-	// once it has started, and to stopping when it begins stopping.
-	Run(ctx context.Context, running chan struct{}, stopping chan struct{}) error
+	// once it has started, and to stopping when it begins stopping. It
+	// should send empty structs to the channels rather than closing them.
+	Run(ctx context.Context, running, stopping chan<- struct{}) error
 }
 ```
 

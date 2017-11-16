@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package relay defines a service for the P2P relay circuit, which enables
+// nodes to send traffic through intermediary nodes in order to reach otherwise
+// inaccessible nodes.
 package relay
 
 import (
@@ -43,8 +46,9 @@ type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
 
-	// Example is an example setting.
-	EnableHop bool `toml:"enable_hop" comment:"Whether to act as an intermediate node in relay circuits."`
+	// EnableHop is whether to act as an intermediary node in relay
+	// circuits.
+	EnableHop bool `toml:"enable_hop" comment:"Whether to act as an intermediary node in relay circuits."`
 }
 
 // ID returns the unique identifier of the service.
@@ -102,7 +106,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
 	relayCtx, cancelRelay := context.WithCancel(ctx)
 	defer cancelRelay()
 

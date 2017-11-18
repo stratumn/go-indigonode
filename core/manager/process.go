@@ -53,9 +53,8 @@ type process struct {
 
 	// These keep track of channels that need to receive when the status
 	// changes.
-	running  []chan struct{}
-	stopping []chan struct{}
-	stopped  []chan error
+	running []chan struct{}
+	stopped []chan error
 }
 
 // newProcess creates a new process for a service.
@@ -115,11 +114,6 @@ func (ps *process) SetStatus(status StatusCode, err error) {
 			ch <- struct{}{}
 		}
 		ps.running = nil
-	case Stopping:
-		for _, ch := range ps.stopping {
-			ch <- struct{}{}
-		}
-		ps.stopping = nil
 	case Stopped:
 		for _, ch := range ps.stopped {
 			ch <- err
@@ -210,22 +204,6 @@ func (ps *process) Running() <-chan struct{} {
 		ch <- struct{}{}
 	} else {
 		ps.running = append(ps.running, ch)
-	}
-
-	return ch
-}
-
-// Stopped returns a channel to be notified once the process is stopping.
-func (ps *process) Stopping() <-chan struct{} {
-	ps.mu.Lock()
-	defer ps.mu.Unlock()
-
-	ch := make(chan struct{}, 1)
-
-	if ps.status == Stopping {
-		ch <- struct{}{}
-	} else {
-		ps.stopping = append(ps.stopping, ch)
 	}
 
 	return ch

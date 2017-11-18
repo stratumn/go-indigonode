@@ -49,3 +49,19 @@ func sortedProcessKeys(set map[string]*process) []string {
 
 	return keys
 }
+
+// sortedFriendlyKeys returns the keys of a friendly map sorted alphabetically.
+func sortedFriendlyKeys(set map[string]Friendly) []string {
+	if set == nil {
+		return nil
+	}
+
+	var keys []string
+	for k := range set {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
+}

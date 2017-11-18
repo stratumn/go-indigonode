@@ -53,16 +53,6 @@ func (s testExposer) Expose() interface{} {
 	return s.id
 }
 
-type testPluggable struct {
-	testService
-	plugCh chan map[string]interface{}
-}
-
-func (s testPluggable) Plug(exposed map[string]interface{}) error {
-	s.plugCh <- exposed
-	return nil
-}
-
 var depsTT = []struct {
 	name     string
 	services []testService
@@ -246,7 +236,7 @@ func TestManager_Deps(t *testing.T) {
 	}
 }
 
-func createTestMgr(ctx context.Context, t *testing.T) *Manager {
+func createTestMgr(ctx context.Context, t testing.TB) *Manager {
 	mgr := New()
 
 	go func() {
@@ -385,6 +375,26 @@ var mgrTT = []struct {
 		"apps":   Stopped,
 		"api":    Running,
 	},
+}, {
+	"group",
+	func(mgr *Manager) error {
+		mgr.Register(&ServiceGroup{
+			GroupID: "group",
+			Services: map[string]struct{}{
+				"net": struct{}{},
+				"api": struct{}{},
+			},
+		})
+		return mgr.Start("group")
+	},
+	nil,
+	map[string]StatusCode{
+		"net":    Running,
+		"fs":     Stopped,
+		"crypto": Stopped,
+		"apps":   Stopped,
+		"api":    Running,
+	},
 }}
 
 func TestManager(t *testing.T) {
@@ -415,6 +425,16 @@ func TestManager(t *testing.T) {
 	}
 }
 
+type testPluggable struct {
+	testService
+	plugCh chan map[string]interface{}
+}
+
+func (s testPluggable) Plug(exposed map[string]interface{}) error {
+	s.plugCh <- exposed
+	return nil
+}
+
 func TestPluggable(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -439,17 +459,92 @@ func TestPluggable(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Errorf("plugCh didn't receive anything")
 	case exposed := <-plugCh:
-		exp, ok := exposed["api"]
-		if !ok {
-			t.Errorf(`exposed["api"] = %v want %q`, nil, "api")
+		if got, want := exposed["api"].(string), "api"; got != want {
+			t.Errorf(`exposed["api"] = %q want %q`, got, want)
 		}
-		got, ok := exp.(string)
-		if !ok {
-			t.Errorf(`exposed["api"] = %q want %q`, exp, "api")
+	}
+}
+
+type testFriendly struct {
+	testService
+	likes      map[string]struct{}
+	befriendCh chan friendlyCouple
+}
+
+func (s testFriendly) Likes() map[string]struct{} {
+	return s.likes
+}
+
+func (s testFriendly) Befriend(id string, exposed interface{}) {
+	s.befriendCh <- friendlyCouple{id, exposed}
+}
+
+type friendlyCouple struct {
+	id      string
+	exposed interface{}
+}
+
+func assertBefriend(t *testing.T, ch chan friendlyCouple, id string, exposed interface{}) {
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("plugCh didn't receive anything")
+	case couple := <-ch:
+		if got, want := couple.id, id; got != want {
+			t.Errorf(`couple.id = %q want %q`, got, want)
 		}
-		if got != "api" {
-			t.Errorf(`exposed["api"] = %q want %q`, got, "api")
+		if got, want := couple.exposed, exposed; got != want {
+			t.Errorf(`couple.exposed = %v want %v`, got, want)
 		}
+	}
+}
+
+func TestFriendly(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr := createTestMgr(ctx, t)
+
+	ch := make(chan friendlyCouple, 1)
+
+	mgr.Register(testFriendly{
+		testService{
+			id: "friendly",
+		},
+		map[string]struct{}{
+			"api":    struct{}{},
+			"crypto": struct{}{},
+		},
+		ch,
+	})
+
+	if err := mgr.Start("crypto"); err != nil {
+		t.Errorf(`mgr.Start("crypto"): error: %s`, err)
+	}
+
+	assertBefriend(t, ch, "crypto", interface{}(nil))
+
+	if err := mgr.Start("friendly"); err != nil {
+		t.Errorf(`mgr.Start("friendly"): error: %s`, err)
+	}
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	assertBefriend(t, ch, "api", "api")
+
+	stoppedCh := make(chan struct{})
+	go func() {
+		mgr.StopAll()
+		close(stoppedCh)
+	}()
+
+	assertBefriend(t, ch, "api", interface{}(nil))
+	assertBefriend(t, ch, "crypto", interface{}(nil))
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("stoppedCh didn't close")
+	case <-stoppedCh:
 	}
 }
 
@@ -480,32 +575,11 @@ func TestManager_FGraph(t *testing.T) {
 	}
 }
 
-func BenchmarkManager(b *testing.B) {
-	mgr := New()
+func BenchmarkManager_StartStop(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mgr := createTestMgr(ctx, b)
 	defer mgr.StopAll()
-
-	go func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		err := mgr.Work(ctx)
-		if err != nil && errors.Cause(err) != context.Canceled {
-			b.Errorf(`manager: mgr.Work(ctx): error: %s`, err)
-		}
-	}()
-
-	mgr.Register(testService{id: "net"})
-	mgr.Register(testService{id: "fs"})
-	mgr.Register(testService{id: "crypto"})
-	mgr.Register(testService{
-		id: "apps",
-		needs: map[string]struct{}{
-			"net":    struct{}{},
-			"fs":     struct{}{},
-			"crypto": struct{}{},
-		},
-	})
-	mgr.Register(testService{id: "api"})
 
 	b.ResetTimer()
 

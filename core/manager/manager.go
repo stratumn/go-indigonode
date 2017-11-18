@@ -126,7 +126,7 @@ func (m *Manager) Register(serv Service) {
 // addFriends finds registered services that like the given service ID and adds
 // them to its friend set.
 func (m *Manager) addFriends(id string) {
-	for sid, ps := range m.processes {
+	for servID, ps := range m.processes {
 		s := ps.Service()
 
 		if friendly, ok := s.(Friendly); ok {
@@ -136,7 +136,7 @@ func (m *Manager) addFriends(id string) {
 			}
 
 			if _, ok := likes[id]; ok {
-				m.friends[id][sid] = friendly
+				m.friends[id][servID] = friendly
 			}
 		}
 	}
@@ -147,9 +147,9 @@ func (m *Manager) addFriends(id string) {
 func (m *Manager) addToFriends(serv Service) {
 	if friendly, ok := serv.(Friendly); ok {
 		likes := friendly.Likes()
-		for sid := range likes {
-			if _, ok := m.friends[sid]; ok {
-				m.friends[sid][serv.ID()] = friendly
+		for servID := range likes {
+			if _, ok := m.friends[servID]; ok {
+				m.friends[servID][serv.ID()] = friendly
 			}
 		}
 	}
@@ -400,11 +400,11 @@ func (m *Manager) removeRefs(serv Service) {
 func (m *Manager) plugNeeds(serv Service) error {
 	if pluggable, ok := serv.(Pluggable); ok {
 		outlets := map[string]interface{}{}
-		for sid := range pluggable.Needs() {
-			if exposer, ok := m.processes[sid].Service().(Exposer); ok {
-				outlets[sid] = exposer.Expose()
+		for servID := range pluggable.Needs() {
+			if exposer, ok := m.processes[servID].Service().(Exposer); ok {
+				outlets[servID] = exposer.Expose()
 			} else {
-				outlets[sid] = nil
+				outlets[servID] = nil
 			}
 		}
 
@@ -422,7 +422,9 @@ func (m *Manager) befriend(serv Service) {
 	servID := serv.ID()
 
 	exposer, ok := serv.(Exposer)
-	for _, friendly := range m.friends[servID] {
+
+	for _, friendlyID := range sortedFriendlyKeys(m.friends[servID]) {
+		friendly := m.friends[servID][friendlyID]
 		if ok {
 			friendly.Befriend(servID, exposer.Expose())
 		} else {
@@ -434,7 +436,8 @@ func (m *Manager) befriend(serv Service) {
 // unfriend calls the befriend methods with nil for the given service ID of all
 // services that like the service.
 func (m *Manager) unfriend(servID string) {
-	for _, friendly := range m.friends[servID] {
+	for _, friendlyID := range sortedFriendlyKeys(m.friends[servID]) {
+		friendly := m.friends[servID][friendlyID]
 		friendly.Befriend(servID, nil)
 	}
 }
@@ -497,15 +500,15 @@ func (m *Manager) doPrune() {
 	for {
 		done := true
 
-		for _, sid := range sortedProcessKeys(m.processes) {
-			ps := m.processes[sid]
+		for _, servID := range sortedProcessKeys(m.processes) {
+			ps := m.processes[servID]
 
 			if !m.canBePruned(ps) {
 				continue
 			}
 
 			stopEvent := log.EventBegin(ctx, "stopProcess", logging.Metadata{
-				"service": sid,
+				"service": servID,
 			})
 
 			ps.Cancel()

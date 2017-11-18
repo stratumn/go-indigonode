@@ -158,7 +158,7 @@ $(LINT_LIST): lint_%:
 # == cyclomatic complexity ====================================================
 cyclo: $(COVERAGE_SOURCES)
 	@for d in $(COVERAGE_PACKAGES); do \
-	    $(GO_CYCLO) $(GOPATH)/src/$$d; \
+	    $(GO_CYCLO) -over 9 $(GOPATH)/src/$$d; \
 	done
 
 # == build ====================================================================

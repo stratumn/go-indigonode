@@ -432,112 +432,109 @@ var mgrDepsTT = []mgrDepsTest{{
 		"tomatoes",
 		"sauce",
 		"pizza"},
-},
-	{
-		"unknown service",
-		[]testService{
-			{id: "salt"},
-			{id: "pepper"},
-			{id: "tomatoes"},
-			{id: "strawberries"},
-			{id: "cheese"},
-			{id: "flour"},
-			{id: "icecream"},
-			{id: "milk"},
-			{id: "yeast"},
-			{id: "water"},
-			{id: "sauce", needs: map[string]struct{}{
-				"tomatoes": struct{}{},
-				"salt":     struct{}{},
-				"pepper":   struct{}{},
-				"garlic":   struct{}{}}},
-			{id: "dough", needs: map[string]struct{}{
-				"flour": struct{}{},
-				"yeast": struct{}{},
-				"salt":  struct{}{}}},
-			{id: "pizza", needs: map[string]struct{}{
-				"dough":  struct{}{},
-				"sauce":  struct{}{},
-				"cheese": struct{}{}}},
-			{id: "milkshake", needs: map[string]struct{}{
-				"icecream":     struct{}{},
-				"milk":         struct{}{},
-				"strawberries": struct{}{}}},
-		},
-		"pizza",
-		ErrNotFound,
-		nil,
+}, {
+	"unknown service",
+	[]testService{
+		{id: "salt"},
+		{id: "pepper"},
+		{id: "tomatoes"},
+		{id: "strawberries"},
+		{id: "cheese"},
+		{id: "flour"},
+		{id: "icecream"},
+		{id: "milk"},
+		{id: "yeast"},
+		{id: "water"},
+		{id: "sauce", needs: map[string]struct{}{
+			"tomatoes": struct{}{},
+			"salt":     struct{}{},
+			"pepper":   struct{}{},
+			"garlic":   struct{}{}}},
+		{id: "dough", needs: map[string]struct{}{
+			"flour": struct{}{},
+			"yeast": struct{}{},
+			"salt":  struct{}{}}},
+		{id: "pizza", needs: map[string]struct{}{
+			"dough":  struct{}{},
+			"sauce":  struct{}{},
+			"cheese": struct{}{}}},
+		{id: "milkshake", needs: map[string]struct{}{
+			"icecream":     struct{}{},
+			"milk":         struct{}{},
+			"strawberries": struct{}{}}},
 	},
-	{
-		"cyclic dependencies",
-		[]testService{
-			{id: "salt"},
-			{id: "pepper"},
-			{id: "tomatoes"},
-			{id: "strawberries"},
-			{id: "cheese"},
-			{id: "flour"},
-			{id: "icecream"},
-			{id: "milk"},
-			{id: "yeast"},
-			{id: "water"},
-			{id: "sauce", needs: map[string]struct{}{
-				"tomatoes": struct{}{},
-				"salt":     struct{}{},
-				"pepper":   struct{}{}}},
-			{id: "dough", needs: map[string]struct{}{
-				"flour": struct{}{},
-				"yeast": struct{}{},
-				"pizza": struct{}{},
-				"salt":  struct{}{}}},
-			{id: "pizza", needs: map[string]struct{}{
-				"dough":  struct{}{},
-				"sauce":  struct{}{},
-				"cheese": struct{}{}}},
-			{id: "milkshake", needs: map[string]struct{}{
-				"icecream":     struct{}{},
-				"milk":         struct{}{},
-				"strawberries": struct{}{}}},
-		},
-		"pizza",
-		ErrCyclic,
-		nil,
+	"pizza",
+	ErrNotFound,
+	nil,
+}, {
+	"cyclic dependencies",
+	[]testService{
+		{id: "salt"},
+		{id: "pepper"},
+		{id: "tomatoes"},
+		{id: "strawberries"},
+		{id: "cheese"},
+		{id: "flour"},
+		{id: "icecream"},
+		{id: "milk"},
+		{id: "yeast"},
+		{id: "water"},
+		{id: "sauce", needs: map[string]struct{}{
+			"tomatoes": struct{}{},
+			"salt":     struct{}{},
+			"pepper":   struct{}{}}},
+		{id: "dough", needs: map[string]struct{}{
+			"flour": struct{}{},
+			"yeast": struct{}{},
+			"pizza": struct{}{},
+			"salt":  struct{}{}}},
+		{id: "pizza", needs: map[string]struct{}{
+			"dough":  struct{}{},
+			"sauce":  struct{}{},
+			"cheese": struct{}{}}},
+		{id: "milkshake", needs: map[string]struct{}{
+			"icecream":     struct{}{},
+			"milk":         struct{}{},
+			"strawberries": struct{}{}}},
 	},
-	{
-		"self dependency",
-		[]testService{
-			{id: "salt"},
-			{id: "pepper"},
-			{id: "tomatoes"},
-			{id: "strawberries"},
-			{id: "cheese"},
-			{id: "flour"},
-			{id: "icecream"},
-			{id: "milk"},
-			{id: "yeast"},
-			{id: "water"},
-			{id: "sauce", needs: map[string]struct{}{
-				"tomatoes": struct{}{},
-				"salt":     struct{}{},
-				"pepper":   struct{}{}}},
-			{id: "dough", needs: map[string]struct{}{
-				"flour": struct{}{},
-				"yeast": struct{}{},
-				"dough": struct{}{},
-				"salt":  struct{}{}}},
-			{id: "pizza", needs: map[string]struct{}{
-				"dough":  struct{}{},
-				"sauce":  struct{}{},
-				"cheese": struct{}{}}},
-			{id: "milkshake", needs: map[string]struct{}{
-				"icecream":     struct{}{},
-				"milk":         struct{}{},
-				"strawberries": struct{}{}}},
-		},
-		"pizza",
-		ErrCyclic,
-		nil,
-	}}
+	"pizza",
+	ErrCyclic,
+	nil,
+}, {
+	"self dependency",
+	[]testService{
+		{id: "salt"},
+		{id: "pepper"},
+		{id: "tomatoes"},
+		{id: "strawberries"},
+		{id: "cheese"},
+		{id: "flour"},
+		{id: "icecream"},
+		{id: "milk"},
+		{id: "yeast"},
+		{id: "water"},
+		{id: "sauce", needs: map[string]struct{}{
+			"tomatoes": struct{}{},
+			"salt":     struct{}{},
+			"pepper":   struct{}{}}},
+		{id: "dough", needs: map[string]struct{}{
+			"flour": struct{}{},
+			"yeast": struct{}{},
+			"dough": struct{}{},
+			"salt":  struct{}{}}},
+		{id: "pizza", needs: map[string]struct{}{
+			"dough":  struct{}{},
+			"sauce":  struct{}{},
+			"cheese": struct{}{}}},
+		{id: "milkshake", needs: map[string]struct{}{
+			"icecream":     struct{}{},
+			"milk":         struct{}{},
+			"strawberries": struct{}{}}},
+	},
+	"pizza",
+	ErrCyclic,
+	nil,
+}}
 
 func testMgrDeps(t *testing.T, test mgrDepsTest) {
 	mgr := New()

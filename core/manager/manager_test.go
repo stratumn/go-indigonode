@@ -108,12 +108,14 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 	return mgr
 }
 
-var mgrTT = []struct {
+type mgrTest struct {
 	name   string
 	do     func(*Manager) error
 	err    error
 	status map[string]StatusCode
-}{{
+}
+
+var mgrTT = []mgrTest{{
 	"Start_deps",
 	func(mgr *Manager) error {
 		return mgr.Start("apps")
@@ -238,38 +240,38 @@ var mgrTT = []struct {
 	},
 }}
 
+func testMgr(t *testing.T, ctrl *gomock.Controller, test mgrTest) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
+	if got != want {
+		t.Errorf("do(): err = %q want %q", got, want)
+	}
+
+	for servID, want := range test.status {
+		got, err := mgr.Status(servID)
+		if err != nil {
+			t.Errorf("mgr.Status(%q): error: %s", servID, err)
+		}
+
+		if got != want {
+			t.Errorf("mgr.Status(%q) = %s want %s", servID, got, want)
+		}
+	}
+}
+
 func TestManager(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	for _, test := range mgrTT {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		mgr := createTestMgr(ctx, t, ctrl)
-
-		got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
-		if got != want {
-			t.Errorf("%s: do(): err = %q want %q", test.name, got, want)
-		}
-
-		for servID, want := range test.status {
-			got, err := mgr.Status(servID)
-			if err != nil {
-				t.Errorf(
-					"%s: mgr.Status(%q): error: %s",
-					test.name, servID, err,
-				)
-			}
-
-			if got != want {
-				t.Errorf(
-					"%s: mgr.Status(%q) = %s want %s",
-					test.name, servID, got, want,
-				)
-			}
-		}
-
-		mgr.StopAll()
-		cancel()
+		t.Run(test.name, func(t *testing.T) {
+			testMgr(t, ctrl, test)
+		})
 	}
 }
 
@@ -379,13 +381,15 @@ func (s testService) Needs() map[string]struct{} {
 	return s.needs
 }
 
-var depsTT = []struct {
+type mgrDepsTest struct {
 	name     string
 	services []testService
 	sid      string
 	err      error
 	want     []string
-}{{
+}
+
+var mgrDepsTT = []mgrDepsTest{{
 	"valid dependencies",
 	[]testService{
 		{id: "salt"},
@@ -535,30 +539,37 @@ var depsTT = []struct {
 		nil,
 	}}
 
+func testMgrDeps(t *testing.T, test mgrDepsTest) {
+	mgr := New()
+
+	for _, serv := range test.services {
+		mgr.Register(serv)
+	}
+
+	got, err := mgr.Deps(test.sid)
+	if err != nil {
+		if got, want := errors.Cause(err), test.err; got != want {
+			t.Errorf(
+				"mgr.Deps(%q): error = %q want %q",
+				test.sid, got, want,
+			)
+		}
+
+		return
+	}
+
+	gots, wants := fmt.Sprintf("%q", got), fmt.Sprintf("%q", test.want)
+
+	if gots != wants {
+		t.Errorf("mgr.Deps(%q) = %s want %s", test.sid, gots, wants)
+	}
+}
+
 func TestManager_Deps(t *testing.T) {
-	for _, test := range depsTT {
-		mgr := New()
-
-		for _, serv := range test.services {
-			mgr.Register(serv)
-		}
-
-		got, err := mgr.Deps(test.sid)
-		if err != nil {
-			if got, want := errors.Cause(err), errors.Cause(test.err); got != want {
-				t.Errorf(
-					"%s: mgr.Deps(%q): error = %q want %q",
-					test.name, test.sid, got, want,
-				)
-			}
-			continue
-		}
-
-		gots, wants := fmt.Sprintf("%q", got), fmt.Sprintf("%q", test.want)
-
-		if gots != wants {
-			t.Errorf("%s: mgr.Deps(%q) = %s want %s", test.name, test.sid, gots, wants)
-		}
+	for _, test := range mgrDepsTT {
+		t.Run(test.name, func(t *testing.T) {
+			testMgrDeps(t, test)
+		})
 	}
 }
 

@@ -26,36 +26,64 @@ import (
 	"github.com/stratumn/alice/core/manager/mock_manager"
 )
 
-type testService struct {
-	id    string
-	needs map[string]struct{}
+func mockService(ctrl *gomock.Controller, id string) Service {
+	serv := mock_manager.NewMockService(ctrl)
+	serv.EXPECT().ID().Return(id).AnyTimes()
+	serv.EXPECT().Name().Return(id).AnyTimes()
+	serv.EXPECT().Desc().Return(id).AnyTimes()
+
+	return serv
 }
 
-func (s testService) ID() string {
-	return s.id
+func mockNeedy(ctrl *gomock.Controller, needs map[string]struct{}) Needy {
+	needy := mock_manager.NewMockNeedy(ctrl)
+	needy.EXPECT().Needs().Return(needs).AnyTimes()
+
+	return needy
 }
 
-func (s testService) Name() string {
-	return s.id
+func mockFriendly(ctrl *gomock.Controller, likes map[string]struct{}) *mock_manager.MockFriendly {
+	friendly := mock_manager.NewMockFriendly(ctrl)
+	friendly.EXPECT().Likes().Return(likes).AnyTimes()
+
+	return friendly
 }
 
-func (s testService) Desc() string {
-	return s.id
+func mockPluggable(ctrl *gomock.Controller, needs map[string]struct{}) *mock_manager.MockPluggable {
+	pluggable := mock_manager.NewMockPluggable(ctrl)
+	pluggable.EXPECT().Needs().Return(needs).AnyTimes()
+
+	return pluggable
 }
 
-func (s testService) Needs() map[string]struct{} {
-	return s.needs
+func mockExposer(ctrl *gomock.Controller, exposed interface{}) Exposer {
+	exposer := mock_manager.NewMockExposer(ctrl)
+	exposer.EXPECT().Expose().Return(exposed).AnyTimes()
+
+	return exposer
 }
 
-type testExposer struct {
-	testService
+func mockNeedyService(ctrl *gomock.Controller, id string, needs map[string]struct{}) Service {
+	return struct {
+		Service
+		Needy
+	}{
+		mockService(ctrl, id),
+		mockNeedy(ctrl, needs),
+	}
 }
 
-func (s testExposer) Expose() interface{} {
-	return s.id
+func mockExposerService(ctrl *gomock.Controller, id string, expose interface{}) Service {
+	return struct {
+		Service
+		Exposer
+	}{
+		mockService(ctrl, id),
+		mockExposer(ctrl, expose),
+	}
 }
 
-func createTestMgr(ctx context.Context, t testing.TB) *Manager {
+func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *Manager {
 	mgr := New()
 
 	go func() {
@@ -65,23 +93,17 @@ func createTestMgr(ctx context.Context, t testing.TB) *Manager {
 		}
 	}()
 
-	mgr.Register(testService{id: "net"})
-	mgr.Register(testService{id: "fs"})
-	mgr.Register(testService{
-		id: "crypto",
-		needs: map[string]struct{}{
-			"fs": struct{}{},
-		},
-	})
-	mgr.Register(testService{
-		id: "apps",
-		needs: map[string]struct{}{
-			"net":    struct{}{},
-			"crypto": struct{}{},
-			"fs":     struct{}{},
-		},
-	})
-	mgr.Register(testExposer{testService{id: "api"}})
+	mgr.Register(mockService(ctrl, "net"))
+	mgr.Register(mockService(ctrl, "fs"))
+	mgr.Register(mockNeedyService(ctrl, "crypto", map[string]struct{}{
+		"fs": struct{}{},
+	}))
+	mgr.Register(mockNeedyService(ctrl, "apps", map[string]struct{}{
+		"net":    struct{}{},
+		"crypto": struct{}{},
+		"fs":     struct{}{},
+	}))
+	mgr.Register(mockExposerService(ctrl, "api", "api"))
 
 	return mgr
 }
@@ -92,7 +114,7 @@ var mgrTT = []struct {
 	err    error
 	status map[string]StatusCode
 }{{
-	"start with deps",
+	"Start_deps",
 	func(mgr *Manager) error {
 		return mgr.Start("apps")
 	},
@@ -195,7 +217,7 @@ var mgrTT = []struct {
 		"api":    Running,
 	},
 }, {
-	"group",
+	"Group",
 	func(mgr *Manager) error {
 		mgr.Register(&ServiceGroup{
 			GroupID: "group",
@@ -217,11 +239,12 @@ var mgrTT = []struct {
 }}
 
 func TestManager(t *testing.T) {
-	for _, test := range mgrTT {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-		mgr := createTestMgr(ctx, t)
+	for _, test := range mgrTT {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		mgr := createTestMgr(ctx, t, ctrl)
 
 		got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
 		if got != want {
@@ -231,11 +254,17 @@ func TestManager(t *testing.T) {
 		for servID, want := range test.status {
 			got, err := mgr.Status(servID)
 			if err != nil {
-				t.Errorf("%s: mgr.Status(%q): error: %s", test.name, servID, err)
+				t.Errorf(
+					"%s: mgr.Status(%q): error: %s",
+					test.name, servID, err,
+				)
 			}
 
 			if got != want {
-				t.Errorf("%s: mgr.Status(%q) = %s want %s", test.name, servID, got, want)
+				t.Errorf(
+					"%s: mgr.Status(%q) = %s want %s",
+					test.name, servID, got, want,
+				)
 			}
 		}
 
@@ -245,27 +274,26 @@ func TestManager(t *testing.T) {
 }
 
 func TestPluggable(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	serv := mock_manager.NewMockService(ctrl)
-	serv.EXPECT().ID().Return("pluggable").AnyTimes()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	pluggable := mock_manager.NewMockPluggable(ctrl)
-	pluggable.EXPECT().Needs().Return(map[string]struct{}{
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	pluggable := mockPluggable(ctrl, map[string]struct{}{
 		"api": struct{}{},
-	}).AnyTimes()
+	})
 
 	mgr.Register(struct {
 		Service
 		Pluggable
 	}{
-		serv,
+		mockNeedyService(ctrl, "pluggable", map[string]struct{}{
+			"api": struct{}{},
+		}),
 		pluggable,
 	})
 
@@ -277,27 +305,24 @@ func TestPluggable(t *testing.T) {
 }
 
 func TestFriendly(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	serv := mock_manager.NewMockService(ctrl)
-	serv.EXPECT().ID().Return("friendly").AnyTimes()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 
-	friendly := mock_manager.NewMockFriendly(ctrl)
-	friendly.EXPECT().Likes().Return(map[string]struct{}{
+	mgr := createTestMgr(ctx, t, ctrl)
+
+	friendly := mockFriendly(ctrl, map[string]struct{}{
 		"api":    struct{}{},
 		"crypto": struct{}{},
-	}).AnyTimes()
+	})
 
 	mgr.Register(struct {
 		Service
 		Friendly
 	}{
-		serv,
+		mockService(ctrl, "friendly"),
 		friendly,
 	})
 
@@ -331,6 +356,27 @@ func TestFriendly(t *testing.T) {
 		t.Errorf("stoppedCh didn't close")
 	case <-stoppedCh:
 	}
+}
+
+type testService struct {
+	id    string
+	needs map[string]struct{}
+}
+
+func (s testService) ID() string {
+	return s.id
+}
+
+func (s testService) Name() string {
+	return s.id
+}
+
+func (s testService) Desc() string {
+	return s.id
+}
+
+func (s testService) Needs() map[string]struct{} {
+	return s.needs
 }
 
 var depsTT = []struct {
@@ -517,9 +563,13 @@ func TestManager_Deps(t *testing.T) {
 }
 
 func TestManager_FGraph(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mgr := createTestMgr(ctx, t)
+
+	mgr := createTestMgr(ctx, t, ctrl)
 	defer mgr.StopAll()
 
 	w := bytes.NewBuffer(nil)
@@ -540,23 +590,5 @@ func TestManager_FGraph(t *testing.T) {
 		t.Errorf(`mgr.Fgraph(w, "apps", "") =
 %s want
 %s`, got, want)
-	}
-}
-
-func BenchmarkManager_StartStop(b *testing.B) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, b)
-	defer mgr.StopAll()
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		if err := mgr.Start("apps"); err != nil {
-			b.Fatalf(`mgr.Start("apps"): error: %s`, err)
-		}
-		if err := mgr.Stop("apps"); err != nil {
-			b.Fatalf(`mgr.Stop("apps"): error: %s`, err)
-		}
 	}
 }

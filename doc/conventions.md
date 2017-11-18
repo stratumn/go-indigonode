@@ -131,6 +131,8 @@ t.Fatalf("MyFunc(): error: %s", err)
 
 Use table-driven tests when possible.
 
+Use [mock](https://github.com/golang/mock) to mock interfaces for unit tests.
+
 Check for data races using the `-race` flag when running tests.
 
 Create packages for domains, not types.

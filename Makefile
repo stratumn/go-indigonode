@@ -45,11 +45,11 @@ DOCKER_BUILD=$(DOCKER_CMD) build
 DOCKER_PUSH=$(DOCKER_CMD) push
 
 PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor)
-TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc')
-COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc')
-COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc')
-LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v './test')
-BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v '_test.go')
+TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_')
+COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_')
+COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock_')
+LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_' | grep -v './test')
+BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock_' | grep -v '_test.go')
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 

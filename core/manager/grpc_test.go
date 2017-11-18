@@ -17,8 +17,11 @@ package manager
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/manager/mock_manager"
 	pb "github.com/stratumn/alice/grpc/manager"
 	"google.golang.org/grpc"
 )
@@ -38,37 +41,59 @@ func (m *mockSS) Context() context.Context {
 }
 
 func TestGRPCServerList(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mock_manager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
+
+	list := []pb.Service{{
+		Id:     "crypto",
+		Status: pb.Service_STOPPED,
+	}, {
+		Id:     "fs",
+		Status: pb.Service_RUNNING,
+	}}
+
+	mgr.EXPECT().List().Return([]string{"crypto", "fs"}).Times(1)
+	mgr.EXPECT().Proto("crypto").Return(&list[0], nil).Times(1)
+	mgr.EXPECT().Proto("fs").Return(&list[1], nil).Times(1)
 
 	req, ss := &pb.ListReq{}, &mockSS{}
 	if err := s.List(req, ss); err != nil {
 		t.Errorf("s.List(req, ss): error: %s", err)
 	}
 
-	list := mgr.List()
-	if got, want := len(ss.Res), len(list); got != want {
-		t.Errorf("len(ss.Res) = %d want %d", got, want)
-	}
-
-	for i, servID := range list {
+	for i, serv := range list {
 		res := ss.Res[i]
 
-		if got, want := res.Id, servID; got != want {
+		if got, want := res.Id, serv.Id; got != want {
+			t.Errorf("res.Id = %q want %q", got, want)
+		}
+
+		if got, want := res.Status, serv.Status; got != want {
 			t.Errorf("res.Id = %q want %q", got, want)
 		}
 	}
 }
 
 func TestGRPCServerStart(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mock_manager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	serv := pb.Service{
+		Id:     "fs",
+		Status: pb.Service_RUNNING,
+	}
+
+	mgr.EXPECT().Start("fs").Return(nil).Times(1)
+	mgr.EXPECT().Proto("fs").Return(&serv, nil).Times(1)
 
 	req := &pb.StartReq{Id: "fs"}
 	res, err := s.Start(ctx, req)
@@ -76,13 +101,21 @@ func TestGRPCServerStart(t *testing.T) {
 		t.Errorf("s.Start(ctx, req): error: %s", err)
 	}
 
-	if got, want := res.Id, "fs"; got != want {
+	if got, want := res.Id, serv.Id; got != want {
 		t.Errorf("res.Id = %q want %q", got, want)
 	}
 
-	if got, want := res.Status, pb.Service_RUNNING; got != want {
-		t.Errorf("res.Status = %d want %d", got, want)
+	if got, want := res.Status, serv.Status; got != want {
+		t.Errorf("res.Status = %q want %q", got, want)
 	}
+
+	req = &pb.StartReq{}
+	_, err = s.Start(ctx, req)
+	if got, want := errors.Cause(err), ErrMissingServiceID; got != want {
+		t.Errorf("s.Start(ctx, req): error = %q want %q", got, want)
+	}
+
+	mgr.EXPECT().Start("404").Return(ErrNotFound).Times(1)
 
 	req = &pb.StartReq{Id: "404"}
 	_, err = s.Start(ctx, req)
@@ -92,15 +125,23 @@ func TestGRPCServerStart(t *testing.T) {
 }
 
 func TestGRPCServerStop(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mock_manager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
-	if err := mgr.Start("fs"); err != nil {
-		t.Fatalf(`mgr.Start("fs"): error: %s`, err)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	serv := pb.Service{
+		Id:     "fs",
+		Status: pb.Service_STOPPED,
 	}
+
+	mgr.EXPECT().Stop("fs").Return(nil).Times(1)
+	mgr.EXPECT().Proto("fs").Return(&serv, nil).Times(1)
+	mgr.EXPECT().Prune().Times(0)
 
 	req := &pb.StopReq{Id: "fs"}
 	res, err := s.Stop(ctx, req)
@@ -108,13 +149,21 @@ func TestGRPCServerStop(t *testing.T) {
 		t.Errorf("s.Stop(ctx, req): error: %s", err)
 	}
 
-	if got, want := res.Id, "fs"; got != want {
+	if got, want := res.Id, serv.Id; got != want {
 		t.Errorf("res.Id = %q want %q", got, want)
 	}
 
-	if got, want := res.Status, pb.Service_STOPPED; got != want {
-		t.Errorf("res.Status = %d want %d", got, want)
+	if got, want := res.Status, serv.Status; got != want {
+		t.Errorf("res.Status = %q want %q", got, want)
 	}
+
+	req = &pb.StopReq{}
+	_, err = s.Stop(ctx, req)
+	if got, want := errors.Cause(err), ErrMissingServiceID; got != want {
+		t.Errorf("s.Stop(ctx, req): error = %q want %q", got, want)
+	}
+
+	mgr.EXPECT().Stop("404").Return(ErrNotFound).Times(1)
 
 	req = &pb.StopReq{Id: "404"}
 	_, err = s.Stop(ctx, req)
@@ -124,75 +173,73 @@ func TestGRPCServerStop(t *testing.T) {
 }
 
 func TestGRPCServerStop_Prune(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mock_manager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
-	if err := mgr.Start("api"); err != nil {
-		t.Fatalf(`mgr.Start("api"): error: %s`, err)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	serv := pb.Service{
+		Id:     "fs",
+		Status: pb.Service_STOPPED,
 	}
 
-	status, err := mgr.Status("crypto")
+	mgr.EXPECT().Stop("fs").Return(nil).Times(1)
+	mgr.EXPECT().Proto("fs").Return(&serv, nil).Times(1)
+	mgr.EXPECT().Prune().Times(1)
+
+	req := &pb.StopReq{Id: "fs", Prune: true}
+	res, err := s.Stop(ctx, req)
 	if err != nil {
-		t.Errorf(`mgr.Status("crypto"): error: %s`, err)
-	}
-
-	if got, want := status, Stopped; got != want {
-		t.Errorf("status = %q want %q", got, want)
-	}
-
-	req := &pb.StopReq{Id: "api", Prune: true}
-	if _, err := s.Stop(ctx, req); err != nil {
 		t.Errorf("s.Stop(ctx, req): error: %s", err)
 	}
 
-	status, err = mgr.Status("crypto")
-	if err != nil {
-		t.Errorf(`mgr.Status("crypto"): error: %s`, err)
+	if got, want := res.Id, serv.Id; got != want {
+		t.Errorf("res.Id = %q want %q", got, want)
 	}
 
-	if got, want := status, Stopped; got != want {
-		t.Errorf("status = %q want %q", got, want)
+	if got, want := res.Status, serv.Status; got != want {
+		t.Errorf("res.Status = %q want %q", got, want)
 	}
 }
 
 func TestGRPCServerPrune(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	mgr := createTestMgr(ctx, t)
-	defer mgr.StopAll()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mock_manager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
-	if err := mgr.Start("api"); err != nil {
-		t.Fatalf(`mgr.Start("api"): error: %s`, err)
-	}
+	list := []pb.Service{{
+		Id:     "crypto",
+		Status: pb.Service_STOPPED,
+	}, {
+		Id:     "fs",
+		Status: pb.Service_RUNNING,
+	}}
 
-	status, err := mgr.Status("crypto")
-	if err != nil {
-		t.Errorf(`mgr.Status("crypto"): error: %s`, err)
-	}
-
-	if got, want := status, Stopped; got != want {
-		t.Errorf("status = %q want %q", got, want)
-	}
-
-	if err := mgr.Stop("api"); err != nil {
-		t.Fatalf(`mgr.Stop("api"): error: %s`, err)
-	}
+	mgr.EXPECT().Prune().Times(1)
+	mgr.EXPECT().List().Return([]string{"crypto", "fs"}).Times(1)
+	mgr.EXPECT().Proto("crypto").Return(&list[0], nil).Times(1)
+	mgr.EXPECT().Proto("fs").Return(&list[1], nil).Times(1)
 
 	req, ss := &pb.PruneReq{}, &mockSS{}
 	if err := s.Prune(req, ss); err != nil {
 		t.Errorf("s.Prune(req, ss): error: %s", err)
 	}
 
-	status, err = mgr.Status("crypto")
-	if err != nil {
-		t.Errorf(`mgr.Status("crypto"): error: %s`, err)
-	}
+	for i, serv := range list {
+		res := ss.Res[i]
 
-	if got, want := status, Stopped; got != want {
-		t.Errorf("status = %q want %q", got, want)
+		if got, want := res.Id, serv.Id; got != want {
+			t.Errorf("res.Id = %q want %q", got, want)
+		}
+
+		if got, want := res.Status, serv.Status; got != want {
+			t.Errorf("res.Id = %q want %q", got, want)
+		}
 	}
 }

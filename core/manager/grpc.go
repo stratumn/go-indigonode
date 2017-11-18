@@ -21,9 +21,18 @@ import (
 	pb "github.com/stratumn/alice/grpc/manager"
 )
 
+// GRPCManager represents a manager that can be used by the gRPC server.
+type GRPCManager interface {
+	Proto(string) (*pb.Service, error)
+	List() []string
+	Start(string) error
+	Stop(string) error
+	Prune()
+}
+
 // grpcServer is a gRPC server for the manager service.
 type grpcServer struct {
-	mgr *Manager
+	mgr GRPCManager
 }
 
 // List lists the available services.

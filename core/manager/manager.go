@@ -83,7 +83,11 @@ type Manager struct {
 	// processes is a map of processes for each registered service.
 	processes map[string]*process
 
-	// friends keeps tracks of services that are friendly with a service.
+	// friends keeps tracks of which services "like" which services (see
+	// the Friendly interface).
+	//
+	// For examples, if service A likes service B, then:
+	//	friends["B"]["A"] = A
 	friends map[string]map[string]Friendly
 
 	// queue is used to queue tasks that need to run sequentially.
@@ -142,8 +146,8 @@ func (m *Manager) addFriends(id string) {
 	}
 }
 
-// addToFriends finds services are liked by the given service and adds it to
-// their friend set.
+// addToFriends finds services that are liked by the given service and adds it
+// to their friend set.
 func (m *Manager) addToFriends(serv Service) {
 	if friendly, ok := serv.(Friendly); ok {
 		likes := friendly.Likes()

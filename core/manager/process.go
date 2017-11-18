@@ -21,9 +21,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// process is a running service managed by a service manager.
-//
-// Basically it manages the lifecyle of a goroutine.
+// process represents a running service managed by a service manager.
 type process struct {
 	// service is the service attached to the process.
 	service Service

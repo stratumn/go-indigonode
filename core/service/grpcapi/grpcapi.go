@@ -162,9 +162,6 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 
 	gs := grpc.NewServer(opts...)
 
-	// Add all registerable services to the server.
-	s.addRegistrables(gs)
-
 	// Add the API service.
 	pb.RegisterAPIServer(gs, s)
 
@@ -172,13 +169,17 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 	// to reflect commands.
 	reflection.Register(gs)
 
+	running <- struct{}{}
+
+	// Add all registerable services to the server.
+	// It must be done after running otherwise it blocks the manager queue.
+	s.addRegistrables(gs)
+
 	// Launch a goroutine for the gRPC server.
 	done := make(chan error, 1)
 	go func() {
 		done <- errors.WithStack(gs.Serve(lis))
 	}()
-
-	running <- struct{}{}
 
 	// Handle exit conditions.
 	select {

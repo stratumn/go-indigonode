@@ -95,8 +95,19 @@ func (c *Core) Boot(ctx context.Context) error {
 	log.Event(ctx, "beginBoot")
 	defer log.Event(ctx, "beginBoot")
 
-	// Also registers services as a side-effect. Get them now before
-	// starting to avoid map concurrency issues with the manager.
+	workCtx, cancelWork := context.WithCancel(context.Background())
+	defer cancelWork()
+
+	// Start manager queue.
+	workDone := make(chan error, 1)
+	go func() {
+		workDone <- c.mgr.Work(workCtx)
+	}()
+
+	// Register the manager service.
+	c.mgr.RegisterService()
+
+	// Also registers services as a side-effect.
 	deps, err := Deps("")
 	if err != nil {
 		return err
@@ -112,15 +123,6 @@ func (c *Core) Boot(ctx context.Context) error {
 			close(bootScreenDone)
 		}()
 	}
-
-	workCtx, cancelWork := context.WithCancel(context.Background())
-	defer cancelWork()
-
-	// Start manager queue.
-	workDone := make(chan error, 1)
-	go func() {
-		workDone <- c.mgr.Work(workCtx)
-	}()
 
 	// Start boot service.
 	if err := c.mgr.Start(configHandler.BootService()); err != nil {
@@ -144,6 +146,22 @@ func (c *Core) Boot(ctx context.Context) error {
 			<-bootScreenDone
 		}
 		return err
+	}
+}
+
+// registerServices registers all the core services with the default service
+// manager.
+//
+// It is safe to call multiple times.
+func registerServices() {
+	// Register all the services.
+	for _, serv := range services {
+		GlobalManager().Register(serv)
+	}
+
+	// Add services for groups.
+	for _, serv := range configHandler.GroupServices() {
+		GlobalManager().Register(serv)
 	}
 }
 
@@ -322,22 +340,6 @@ func Fgraph(w io.Writer, serviceID string) error {
 	}
 
 	return GlobalManager().Fgraph(w, serviceID, "")
-}
-
-// registerServices registers all the core services with the default service
-// manager.
-//
-// It is safe to call multiple times.
-func registerServices() {
-	// Register all the services.
-	for _, serv := range services {
-		GlobalManager().Register(serv)
-	}
-
-	// Add services for groups.
-	for _, serv := range configHandler.GroupServices() {
-		GlobalManager().Register(serv)
-	}
 }
 
 // PrettyLog pretty prints log output.

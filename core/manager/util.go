@@ -34,8 +34,8 @@ func sortedSetKeys(set map[string]struct{}) []string {
 	return keys
 }
 
-// sortedSetKeys returns the keys of a process map sorted alphabetically.
-func sortedProcessKeys(set map[string]*process) []string {
+// sortedStateKeys returns the keys of a state map sorted alphabetically.
+func sortedStateKeys(set map[string]*state) []string {
 	if set == nil {
 		return nil
 	}

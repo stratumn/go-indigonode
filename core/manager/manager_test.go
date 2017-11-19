@@ -537,7 +537,14 @@ var mgrDepsTT = []mgrDepsTest{{
 }}
 
 func testMgrDeps(t *testing.T, test mgrDepsTest) {
-	mgr := New()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
 
 	for _, serv := range test.services {
 		mgr.Register(serv)

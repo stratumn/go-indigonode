@@ -9,3 +9,7 @@ data
 log.jsonld
 alice.*
 server.*
+GPATH
+GRTAGS
+GTAGS
+tags

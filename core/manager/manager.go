@@ -29,7 +29,7 @@ these additional interfaces:
 	- Exposer if it exposes a type to other services
 	- Runner if it runs a long running function
 
-This package is concurrently safe.
+This package is concurrently safe (TODO: formally verify that it is).
 */
 package manager
 
@@ -136,9 +136,6 @@ func New() *Manager {
 // Work tells the manager to start and execute tasks in the queues.
 //
 // It blocks until the context is canceled.
-//
-// It also registers the manager service which can be used to control the
-// manager itself.
 func (m *Manager) Work(ctx context.Context) error {
 	log.Event(ctx, "beginWork")
 	defer log.Event(ctx, "endWork")
@@ -177,6 +174,8 @@ func (m *Manager) stopStateQueues() {
 }
 
 // Register adds a service to the set of known services.
+//
+// It runs a hi-priority task in the manager queue.
 func (m *Manager) Register(serv Service) {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"service": serv.ID(),
@@ -190,6 +189,8 @@ func (m *Manager) Register(serv Service) {
 }
 
 // doRegister must be executed in the manager queue.
+//
+// It launches the service state queue.
 func (m *Manager) doRegister(ctx context.Context, serv Service) {
 	defer log.EventBegin(ctx, "doRegister").Done()
 
@@ -236,7 +237,9 @@ func (m *Manager) addFriends(id string) {
 			}
 
 			if _, ok := likes[id]; ok {
-				s.Friends[servID] = friendly
+				s.Queue.DoHi(func() {
+					s.Friends[servID] = friendly
+				})
 			}
 		}
 	}
@@ -251,13 +254,17 @@ func (m *Manager) addToFriends(serv Service) {
 		likes := friendly.Likes()
 		for servID := range likes {
 			if s, ok := m.states[servID]; ok {
-				s.Friends[serv.ID()] = friendly
+				s.Queue.DoHi(func() {
+					s.Friends[serv.ID()] = friendly
+				})
 			}
 		}
 	}
 }
 
 // safeState safely gets the state of a service.
+//
+// It runs a high-priority task in the manager queue.
 func (m *Manager) safeState(servID string) (state *state, err error) {
 	m.queue.DoHi(func() {
 		var ok bool
@@ -287,6 +294,12 @@ func (m *Manager) safeState(servID string) (state *state, err error) {
 // Starting a service makes it non-prunable, but the dependencies are prunable
 // unless they were started with Start(). Calling Start() on an already running
 // service will make it non-prunable.
+//
+// It:
+//
+//	- safely obtains the dependencies of the service in topological order
+//	- starts the dependencies and the service in order
+//
 func (m *Manager) Start(servID string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"service": servID,
@@ -311,7 +324,15 @@ func (m *Manager) Start(servID string) error {
 	return err
 }
 
-// startDeps starts all the dependencies of a service in order.
+// startDeps starts all the dependencies of a service (including the service)
+// in order.
+//
+// For each dependency it:
+//
+//	- safely obtains its state
+//	- starts it in its state queue
+//	- waits for it to either start or exit (in which case it fails)
+//
 func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) error {
 	for _, depID := range deps {
 		s, err := m.safeState(depID)
@@ -349,7 +370,18 @@ func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) e
 
 // startDepOf starts a dependency of a service if it isn't already running.
 //
+// It:
+//
+//	- makes sure the dependency is either Running, Stopped, or Errored
+//	- updates the prunable state
+//	- sets the status to Starting
+//	- adds references to services it needs
+//	- plugs the needed services
+//	- starts a goroutine to run the service
+//
 // It must be executed in the queue of the dependency state queue.
+//
+// It runes hi-priority tasks in the manager queue.
 func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 	s := m.states[depID]
 
@@ -376,10 +408,12 @@ func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 
 	s.Prunable = depID != servID
 
-	m.doSetStarting(s)
-	m.addRefs(s)
-
-	if err := m.plugNeeds(s); err != nil {
+	err := m.queue.DoErrorHi(func() error {
+		m.doSetStarting(s)
+		m.addRefs(s)
+		return m.plugNeeds(s)
+	})
+	if err != nil {
 		return err
 	}
 
@@ -396,6 +430,12 @@ func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 }
 
 // exec starts a service but not its dependencies.
+//
+// It:
+//
+//  	- creates channels to observe the service
+//	- launches the Run function in a goroutine
+//	- starts observing the service
 //
 // It blocks until the service exits.
 func (m *Manager) exec(ctx context.Context, s *state) error {
@@ -432,7 +472,7 @@ func (m *Manager) run(ctx context.Context, s *state, runningCh, stoppingCh chan 
 	return ctx.Err()
 }
 
-// observe handles the status changes of a service and updates the states
+// observe observers the lifecycle of a service and updates the status
 // accordingly.
 func (m *Manager) observe(
 	ctx context.Context,
@@ -486,6 +526,8 @@ func (m *Manager) doSetStarting(s *state) {
 }
 
 // setRunning sets the status of a service state to Running.
+//
+// It runs a high-priority task in the state queue.
 func (m *Manager) setRunning(s *state) {
 	s.Queue.DoHi(func() {
 		m.doSetRunning(s)
@@ -505,6 +547,8 @@ func (m *Manager) doSetRunning(s *state) {
 }
 
 // setStopping sets the status of a service state to Stopping.
+//
+// It runs a high-priority task in the state queue.
 func (m *Manager) setStopping(s *state) {
 	s.Queue.DoHi(func() {
 		m.doSetStopping(s)
@@ -524,13 +568,15 @@ func (m *Manager) doSetStopping(s *state) {
 }
 
 // setStopped sets the status of a service state to Stopped.
+//
+// It runs a high-priority task in the manager queue.
 func (m *Manager) setStopped(s *state) {
 	s.Queue.DoHi(func() {
 		m.doSetStopped(s)
 	})
 }
 
-// doSetStopped must be executed in the state queue.
+// doSetStopped must be executed in the manager queue.
 func (m *Manager) doSetStopped(s *state) {
 	s.Status = Stopped
 	s.Prunable = true
@@ -545,13 +591,15 @@ func (m *Manager) doSetStopped(s *state) {
 }
 
 // setErrored sets the status of a service state to Errored.
+//
+// It runs a high-priority task in the manager queue.
 func (m *Manager) setErrored(s *state, err error) {
-	s.Queue.DoHi(func() {
+	m.queue.DoHi(func() {
 		m.doSetErrored(s, err)
 	})
 }
 
-// doSetErrored must be executed in the state queue.
+// doSetErrored must be executed in the manager queue.
 func (m *Manager) doSetErrored(s *state, err error) {
 	s.Status = Errored
 	s.Prunable = true
@@ -650,6 +698,12 @@ func (m *Manager) unfriend(s *state) {
 
 // Stop stops a service. Stopping a service will fail if it is a dependency of
 // other running services or it isn't running.
+//
+// It:
+//
+//	- safely obtains the state of the service
+//	- stops the service
+//	- waits for the service to stop or exit with an error
 func (m *Manager) Stop(servID string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"service": servID,
@@ -681,6 +735,12 @@ func (m *Manager) Stop(servID string) error {
 }
 
 // doStop must be executed in the manager queue.
+//
+// It:
+//
+//	- makes sure the service is not needed by other services
+//	- checks that the service is Running
+//	- cancels the Run function
 func (m *Manager) doStop(ctx context.Context, s *state) error {
 	event := log.EventBegin(ctx, "doStop", logging.Metadata{
 		"service": s.Serv.ID(),
@@ -715,12 +775,18 @@ func (m *Manager) Prune() {
 }
 
 // doPrune must be executed in the manager queue.
+//
+// It:
+//
+//	- finds a service that can be pruned
+//	- stops the service
+//	- waits for it to stop or exit with an error
+//	- repeats until no service can be pruned
 func (m *Manager) doPrune() {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "doPrune")
 	defer event.Done()
 
-	// Loop until there are no more prunable services.
 	for {
 		done := true
 
@@ -745,6 +811,13 @@ func (m *Manager) doPrune() {
 }
 
 // pruneIfPrunable prunes a service if it is prunable.
+//
+// It:
+//
+//	- makes sure the service is prunable and running
+//	- makes sure it's not needed by another service
+//	- stops the service
+//	- returns whether it stopped a service
 func (m *Manager) pruneIfPrunable(ctx context.Context, s *state) (pruned bool) {
 	s.Queue.Do(func() {
 		if !s.Prunable || s.Status != Running {
@@ -776,12 +849,18 @@ func (m *Manager) StopAll() {
 }
 
 // doStopAll must be executed in the manager queue.
+//
+// It:
+//
+//	- finds a service that can be stopped
+//	- stops the service
+//	- waits for it to stop or exit with an error
+//	- repeats until no service can be stopped
 func (m *Manager) doStopAll() {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "doStopAll")
 	defer event.Done()
 
-	// Loop until there are no more running processes.
 	for {
 		done := true
 
@@ -806,6 +885,14 @@ func (m *Manager) doStopAll() {
 }
 
 // stopIfStoppable stops a service if it can be stopped.
+//
+// It:
+//
+//	- makes sure the service is not stopped or exited with an error
+//	- returns true if the service is already stopping
+//	- makes sure it's not needed by another service
+//	- stops the service
+//	- returns whether it stopped a service
 func (m *Manager) stopIfStoppable(ctx context.Context, s *state) (stopped bool) {
 	s.Queue.Do(func() {
 		status := s.Status

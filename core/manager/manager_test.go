@@ -93,6 +93,7 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 		}
 	}()
 
+	mgr.RegisterService()
 	mgr.Register(mockService(ctrl, "net"))
 	mgr.Register(mockService(ctrl, "fs"))
 	mgr.Register(mockNeedyService(ctrl, "crypto", map[string]struct{}{
@@ -122,11 +123,12 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"net":    Running,
-		"fs":     Running,
-		"crypto": Running,
-		"apps":   Running,
-		"api":    Stopped,
+		"manager": Stopped,
+		"net":     Running,
+		"fs":      Running,
+		"crypto":  Running,
+		"apps":    Running,
+		"api":     Stopped,
 	},
 }, {
 	"Start_inexistent",
@@ -135,6 +137,15 @@ var mgrTT = []mgrTest{{
 	},
 	ErrNotFound,
 	nil,
+}, {
+	"Start_manager",
+	func(mgr *Manager) error {
+		return mgr.Start("manager")
+	},
+	nil,
+	map[string]StatusCode{
+		"manager": Running,
+	},
 }, {
 	"Stop",
 	func(mgr *Manager) error {
@@ -145,11 +156,12 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"net":    Running,
-		"fs":     Running,
-		"crypto": Running,
-		"apps":   Stopped,
-		"api":    Stopped,
+		"manager": Stopped,
+		"net":     Running,
+		"fs":      Running,
+		"crypto":  Running,
+		"apps":    Stopped,
+		"api":     Stopped,
 	},
 }, {
 	"Stop_needed",
@@ -186,11 +198,12 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"net":    Stopped,
-		"fs":     Stopped,
-		"crypto": Stopped,
-		"apps":   Stopped,
-		"api":    Stopped,
+		"manager": Stopped,
+		"net":     Stopped,
+		"fs":      Stopped,
+		"crypto":  Stopped,
+		"apps":    Stopped,
+		"api":     Stopped,
 	},
 }, {
 	"Prune",
@@ -212,11 +225,12 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"net":    Stopped,
-		"fs":     Running,
-		"crypto": Stopped,
-		"apps":   Stopped,
-		"api":    Running,
+		"manager": Stopped,
+		"net":     Stopped,
+		"fs":      Running,
+		"crypto":  Stopped,
+		"apps":    Stopped,
+		"api":     Running,
 	},
 }, {
 	"Group",

@@ -108,7 +108,7 @@ func (c *Core) Boot(ctx context.Context) error {
 	c.mgr.RegisterService()
 
 	// Also registers services as a side-effect.
-	deps, err := Deps("")
+	deps, err := doDeps("")
 	if err != nil {
 		return err
 	}
@@ -312,34 +312,88 @@ func (c *Core) findMetrics() metrics.Reporter {
 	return nil
 }
 
+// doWithManager runs a function with the global manager started.
+func doWithManager(fn func()) error {
+	workCtx, cancelWork := context.WithCancel(context.Background())
+	defer cancelWork()
+
+	mgr := GlobalManager()
+
+	// Start manager queue.
+	workDone := make(chan error, 1)
+	go func() {
+		workDone <- mgr.Work(workCtx)
+	}()
+
+	// Register the manager service.
+	mgr.RegisterService()
+
+	fn()
+
+	cancelWork()
+	err := <-workDone
+
+	if err != nil && errors.Cause(err) != context.Canceled {
+		return err
+	}
+
+	return nil
+}
+
 // Deps returns the dependencies of a service in the order they would be
 // started given the current configuration.
 //
 // The returned slice ends with the service itself.
 //
 // If no service ID is given, the boot service will be used.
-func Deps(serviceID string) ([]string, error) {
-	registerServices()
+func Deps(servID string) (deps []string, err error) {
+	mgrError := doWithManager(func() {
+		deps, err = doDeps(servID)
+	})
 
-	if serviceID == "" {
-		serviceID = configHandler.BootService()
+	if mgrError != nil {
+		return nil, mgrError
 	}
 
-	return GlobalManager().Deps(serviceID)
+	return
+}
+
+func doDeps(servID string) ([]string, error) {
+	registerServices()
+
+	if servID == "" {
+		servID = configHandler.BootService()
+	}
+
+	return GlobalManager().Deps(servID)
 }
 
 // Fgraph prints the dependency graph of a service given the current
 // configuration to a writer.
 //
 // If no service ID is given, the boot service will be used.
-func Fgraph(w io.Writer, serviceID string) error {
-	registerServices()
+func Fgraph(w io.Writer, servID string) error {
+	var err error
 
-	if serviceID == "" {
-		serviceID = configHandler.BootService()
+	mgrError := doWithManager(func() {
+		err = doFgraph(w, servID)
+	})
+
+	if mgrError != nil {
+		err = mgrError
 	}
 
-	return GlobalManager().Fgraph(w, serviceID, "")
+	return err
+}
+
+func doFgraph(w io.Writer, servID string) error {
+	registerServices()
+
+	if servID == "" {
+		servID = configHandler.BootService()
+	}
+
+	return GlobalManager().Fgraph(w, servID, "")
 }
 
 // PrettyLog pretty prints log output.

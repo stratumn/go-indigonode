@@ -583,7 +583,7 @@ func (m *Manager) setStopped(s *state) {
 // doSetStopped must be executed in the manager queue.
 func (m *Manager) doSetStopped(s *state) {
 	s.Status = Stopped
-	s.Prunable = true
+	s.Prunable = false
 	s.Refs = map[string]struct{}{}
 	m.removeRefs(s)
 

@@ -347,17 +347,17 @@ func testMgr(t *testing.T, ctrl *gomock.Controller, test mgrTest) {
 
 	got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
 	if got != want {
-		t.Errorf("do(): err = %q want %q", got, want)
+		t.Errorf("do(): err = %v want %v", got, want)
 	}
 
 	for servID, want := range test.status {
 		got, err := mgr.Status(servID)
 		if err != nil {
-			t.Errorf("mgr.Status(%q): error: %s", servID, err)
+			t.Errorf("mgr.Status(%v): error: %s", servID, err)
 		}
 
 		if got != want {
-			t.Errorf("mgr.Status(%q) = %s want %s", servID, got, want)
+			t.Errorf("mgr.Status(%v) = %v want %v", servID, got, want)
 		}
 	}
 }
@@ -451,6 +451,397 @@ func TestFriendly_likes(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Errorf("stoppedCh didn't close")
 	case <-stoppedCh:
+	}
+}
+
+func TestManager_List(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	got := fmt.Sprint(mgr.List())
+	want := "[api apps crash-start crash-start-err crash-stop crypto fs manager net]"
+
+	if got != want {
+		t.Errorf("mgr.List() = %v want %v", got, want)
+	}
+}
+
+func TestManager_Find(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	serv, err := mgr.Find("api")
+	if err != nil {
+		t.Errorf(`mgr.Find("api"): error: %s`, err)
+	}
+
+	if got, want := serv.ID(), "api"; got != want {
+		t.Errorf("serv.ID() = %v want %v", got, want)
+	}
+
+	_, err = mgr.Find("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Proto(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	proto, err := mgr.Proto("api")
+	if err != nil {
+		t.Errorf(`mgr.Proto("api"): error: %s`, err)
+	}
+
+	if got, want := proto.Id, "api"; got != want {
+		t.Errorf("proto.Id = %v want %v", got, want)
+	}
+
+	_, err = mgr.Proto("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Status(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	status, err := mgr.Status("api")
+	if err != nil {
+		t.Errorf(`mgr.Status("api"): error: %s`, err)
+	}
+
+	if got, want := status, Stopped; got != want {
+		t.Errorf("status = %v want %v", got, want)
+	}
+
+	_, err = mgr.Status("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Stoppable(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	if err := mgr.Start("apps"); err != nil {
+		t.Errorf(`mgr.Start("apps"): error: %s`, err)
+	}
+
+	stoppable, err := mgr.Stoppable("apps")
+	if err != nil {
+		t.Errorf(`mgr.Stoppable("apps"): error: %s`, err)
+	}
+
+	if got, want := stoppable, true; got != want {
+		t.Errorf("stoppable = %v want %v", got, want)
+	}
+
+	stoppable, err = mgr.Stoppable("crypto")
+	if err != nil {
+		t.Errorf(`mgr.Stoppable("crypto"): error: %s`, err)
+	}
+
+	if got, want := stoppable, false; got != want {
+		t.Errorf("stoppable = %v want %v", got, want)
+	}
+
+	stoppable, err = mgr.Stoppable("api")
+	if err != nil {
+		t.Errorf(`mgr.Stoppable("api"): error: %s`, err)
+	}
+
+	if got, want := stoppable, true; got != want {
+		t.Errorf("stoppable = %v want %v", got, want)
+	}
+
+	_, err = mgr.Stoppable("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Prunable(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	if err := mgr.Start("apps"); err != nil {
+		t.Errorf(`mgr.Start("apps"): error: %s`, err)
+	}
+
+	prunable, err := mgr.Prunable("apps")
+	if err != nil {
+		t.Errorf(`mgr.Prunable("apps"): error: %s`, err)
+	}
+
+	if got, want := prunable, false; got != want {
+		t.Errorf("prunable = %v want %v", got, want)
+	}
+
+	prunable, err = mgr.Prunable("crypto")
+	if err != nil {
+		t.Errorf(`mgr.Prunable("crypto"): error: %s`, err)
+	}
+
+	if got, want := prunable, true; got != want {
+		t.Errorf("prunable = %v want %v", got, want)
+	}
+
+	prunable, err = mgr.Prunable("api")
+	if err != nil {
+		t.Errorf(`mgr.Prunable("api"): error: %s`, err)
+	}
+
+	if got, want := prunable, false; got != want {
+		t.Errorf("prunable = %v want %v", got, want)
+	}
+
+	_, err = mgr.Prunable("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Expose(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	exposed, err := mgr.Expose("apps")
+	if err != nil {
+		t.Errorf(`mgr.Expose("apps"): error: %s`, err)
+	}
+
+	if got, want := exposed, interface{}(nil); got != want {
+		t.Errorf("exposed = %v want %v", got, want)
+	}
+
+	exposed, err = mgr.Expose("api")
+	if err != nil {
+		t.Errorf(`mgr.Expose("api"): error: %s`, err)
+	}
+
+	if got, want := exposed, "api"; got != want {
+		t.Errorf("exposed = %v want %v", got, want)
+	}
+
+	_, err = mgr.Expose("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func assertChan(t *testing.T, ch <-chan struct{}) {
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("channel didn't receive")
+	case <-ch:
+	}
+}
+
+func TestManager_Starting(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	ch, err := mgr.Starting("api")
+	if err != nil {
+		t.Errorf(`mgr.Starting("api"): error: %s`, err)
+	}
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	assertChan(t, ch)
+
+	_, err = mgr.Starting("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Running(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	ch, err := mgr.Running("api")
+	if err != nil {
+		t.Errorf(`mgr.Running("api"): error: %s`, err)
+	}
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	assertChan(t, ch)
+
+	_, err = mgr.Running("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Stopping(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	ch, err := mgr.Stopping("api")
+	if err != nil {
+		t.Errorf(`mgr.Stopping("api"): error: %s`, err)
+	}
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	if err := mgr.Stop("api"); err != nil {
+		t.Errorf(`mgr.Stop("api"): error: %s`, err)
+	}
+
+	assertChan(t, ch)
+
+	_, err = mgr.Stopping("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func TestManager_Stopped(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	ch, err := mgr.Stopped("api")
+	if err != nil {
+		t.Errorf(`mgr.Stopped("api"): error: %s`, err)
+	}
+
+	if err := mgr.Start("api"); err != nil {
+		t.Errorf(`mgr.Start("api"): error: %s`, err)
+	}
+
+	if err := mgr.Stop("api"); err != nil {
+		t.Errorf(`mgr.Stop("api"): error: %s`, err)
+	}
+
+	assertChan(t, ch)
+
+	_, err = mgr.Stopped("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
+	}
+}
+
+func assertChanErr(t *testing.T, ch <-chan error) {
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("channel didn't receive")
+	case err := <-ch:
+		if err == nil {
+			t.Errorf("channel received nil")
+		}
+	}
+}
+
+func TestManager_Errored(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	ch, err := mgr.Errored("crash-stop")
+	if err != nil {
+		t.Errorf(`mgr.Errored("crash-stop"): error: %s`, err)
+	}
+
+	if err := mgr.Start("crash-stop"); err != nil {
+		t.Errorf(`mgr.Start("crash-stop"): error: %s`, err)
+	}
+
+	if got, want := errors.Cause(mgr.Stop("crash-stop")), errMockCrash; got != want {
+		t.Errorf(`mgr.Stop("crash-stop"): error = %v want %v`, got, want)
+	}
+
+	assertChanErr(t, ch)
+
+	_, err = mgr.Errored("http")
+	if got, want := errors.Cause(err), ErrNotFound; got != want {
+		t.Errorf(`err = %v want %v`, got, want)
 	}
 }
 
@@ -692,7 +1083,7 @@ func testMgrDeps(t *testing.T, test mgrDepsTest) {
 	if err != nil {
 		if got, want := errors.Cause(err), test.err; got != want {
 			t.Errorf(
-				"mgr.Deps(%q): error = %q want %q",
+				"mgr.Deps(%v): error = %v want %v",
 				test.sid, got, want,
 			)
 		}
@@ -700,10 +1091,10 @@ func testMgrDeps(t *testing.T, test mgrDepsTest) {
 		return
 	}
 
-	gots, wants := fmt.Sprintf("%q", got), fmt.Sprintf("%q", test.want)
+	gots, wants := fmt.Sprintf("%v", got), fmt.Sprintf("%v", test.want)
 
 	if gots != wants {
-		t.Errorf("mgr.Deps(%q) = %s want %s", test.sid, gots, wants)
+		t.Errorf("mgr.Deps(%v) = %v want %v", test.sid, gots, wants)
 	}
 }
 

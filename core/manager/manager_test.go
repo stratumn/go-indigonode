@@ -63,6 +63,18 @@ func mockExposer(ctrl *gomock.Controller, exposed interface{}) Exposer {
 	return exposer
 }
 
+type mockRunnerFn func(context.Context, chan<- struct{}, chan<- struct{}) error
+
+type testRunner mockRunnerFn
+
+func (r testRunner) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+	return r(ctx, running, stopping)
+}
+
+func mockRunner(run mockRunnerFn) Runner {
+	return testRunner(run)
+}
+
 func mockNeedyService(ctrl *gomock.Controller, id string, needs map[string]struct{}) Service {
 	return struct {
 		Service
@@ -81,6 +93,39 @@ func mockExposerService(ctrl *gomock.Controller, id string, expose interface{}) 
 		mockService(ctrl, id),
 		mockExposer(ctrl, expose),
 	}
+}
+
+func mockRunnerService(ctrl *gomock.Controller, id string, run mockRunnerFn) Service {
+	return struct {
+		Service
+		Runner
+	}{
+		mockService(ctrl, id),
+		mockRunner(run),
+	}
+}
+
+var errMockCrash = errors.New("crashed")
+
+func MockCrashStart(ctrl *gomock.Controller, id string) Service {
+	return mockRunnerService(ctrl, id, func(context.Context, chan<- struct{}, chan<- struct{}) error {
+		return nil
+	})
+}
+
+func MockCrashStartErr(ctrl *gomock.Controller, id string) Service {
+	return mockRunnerService(ctrl, id, func(context.Context, chan<- struct{}, chan<- struct{}) error {
+		return errMockCrash
+	})
+}
+
+func MockCrashStop(ctrl *gomock.Controller, id string) Service {
+	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping chan<- struct{}) error {
+		running <- struct{}{}
+		<-ctx.Done()
+		stopping <- struct{}{}
+		return errMockCrash
+	})
 }
 
 func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *Manager {
@@ -105,6 +150,9 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 		"fs":     struct{}{},
 	}))
 	mgr.Register(mockExposerService(ctrl, "api", "api"))
+	mgr.Register(MockCrashStart(ctrl, "crash-start"))
+	mgr.Register(MockCrashStartErr(ctrl, "crash-start-err"))
+	mgr.Register(MockCrashStop(ctrl, "crash-stop"))
 
 	return mgr
 }
@@ -123,12 +171,15 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"manager": Stopped,
-		"net":     Running,
-		"fs":      Running,
-		"crypto":  Running,
-		"apps":    Running,
-		"api":     Stopped,
+		"manager":         Stopped,
+		"net":             Running,
+		"fs":              Running,
+		"crypto":          Running,
+		"apps":            Running,
+		"api":             Stopped,
+		"crash-start":     Stopped,
+		"crash-start-err": Stopped,
+		"crash-stop":      Stopped,
 	},
 }, {
 	"Start_inexistent",
@@ -147,6 +198,24 @@ var mgrTT = []mgrTest{{
 		"manager": Running,
 	},
 }, {
+	"Start_crash",
+	func(mgr *Manager) error {
+		return mgr.Start("crash-start")
+	},
+	ErrInvalidStatus,
+	map[string]StatusCode{
+		"crash-start": Stopped,
+	},
+}, {
+	"Start_crash_err",
+	func(mgr *Manager) error {
+		return mgr.Start("crash-start-err")
+	},
+	errMockCrash,
+	map[string]StatusCode{
+		"crash-start-err": Errored,
+	},
+}, {
 	"Stop",
 	func(mgr *Manager) error {
 		if err := mgr.Start("apps"); err != nil {
@@ -156,12 +225,15 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"manager": Stopped,
-		"net":     Running,
-		"fs":      Running,
-		"crypto":  Running,
-		"apps":    Stopped,
-		"api":     Stopped,
+		"manager":         Stopped,
+		"net":             Running,
+		"fs":              Running,
+		"crypto":          Running,
+		"apps":            Stopped,
+		"api":             Stopped,
+		"crash-start":     Stopped,
+		"crash-start-err": Stopped,
+		"crash-stop":      Stopped,
 	},
 }, {
 	"Stop_needed",
@@ -184,6 +256,18 @@ var mgrTT = []mgrTest{{
 	},
 	ErrNotFound,
 	nil,
+}, {
+	"Stop_crash",
+	func(mgr *Manager) error {
+		if err := mgr.Start("crash-stop"); err != nil {
+			return err
+		}
+		return mgr.Stop("crash-stop")
+	},
+	errMockCrash,
+	map[string]StatusCode{
+		"crash-stop": Errored,
+	},
 }, {
 	"StopAll",
 	func(mgr *Manager) error {

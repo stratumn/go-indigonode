@@ -231,7 +231,9 @@ func (m *Manager) RegisterService() {
 func (m *Manager) addFriends(s *state) {
 	servID := s.Serv.ID()
 
-	for friendID, friendState := range m.states {
+	for _, friendID := range sortedStateKeys(m.states) {
+		friendState := m.states[friendID]
+
 		if friendly, ok := friendState.Serv.(Friendly); ok {
 			likes := friendly.Likes()
 			if likes == nil {
@@ -254,7 +256,7 @@ func (m *Manager) addFriends(s *state) {
 func (m *Manager) addToFriends(serv Service) {
 	if friendly, ok := serv.(Friendly); ok {
 		likes := friendly.Likes()
-		for servID := range likes {
+		for _, servID := range sortedSetKeys(likes) {
 			if s, ok := m.states[servID]; ok {
 				s.Queue.DoHi(func() {
 					s.Friends[serv.ID()] = friendly
@@ -622,7 +624,7 @@ func (m *Manager) doSetErrored(s *state, err error) {
 // It must be executed in the manager queue.
 func (m *Manager) addRefs(s *state) {
 	if needy, ok := s.Serv.(Needy); ok {
-		for depID := range needy.Needs() {
+		for _, depID := range sortedSetKeys(needy.Needs()) {
 			dep := m.states[depID]
 			dep.Queue.DoHi(func() {
 				dep.Refs[s.Serv.ID()] = struct{}{}
@@ -637,7 +639,7 @@ func (m *Manager) addRefs(s *state) {
 // It must be executed in the manager queue.
 func (m *Manager) removeRefs(s *state) {
 	if needy, ok := s.Serv.(Needy); ok {
-		for depID := range needy.Needs() {
+		for _, depID := range sortedSetKeys(needy.Needs()) {
 			dep := m.states[depID]
 			dep.Queue.DoHi(func() {
 				delete(dep.Refs, s.Serv.ID())
@@ -653,7 +655,7 @@ func (m *Manager) removeRefs(s *state) {
 func (m *Manager) plugNeeds(s *state) error {
 	if pluggable, ok := s.Serv.(Pluggable); ok {
 		outlets := map[string]interface{}{}
-		for depID := range pluggable.Needs() {
+		for _, depID := range sortedSetKeys(pluggable.Needs()) {
 			dep := m.states[depID]
 			if exposer, ok := dep.Serv.(Exposer); ok {
 				outlets[depID] = exposer.Expose()

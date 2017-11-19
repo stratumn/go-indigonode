@@ -67,8 +67,8 @@ type Friendly interface {
 // Exposer exposes a type to other services.
 type Exposer interface {
 	// Expose exposes a type to other services. Services that depend on
-	// this service will receive the return object in their Plug method if
-	// they have one. Services that are friendly with this services will
+	// this service will receive the returned object in their Plug method
+	// if they have one. Services that are friendly with this services will
 	// receive the returned object in their Befriend method.
 	Expose() interface{}
 }

@@ -306,7 +306,7 @@ func TestPluggable(t *testing.T) {
 	}
 }
 
-func TestFriendly(t *testing.T) {
+func TestFriendly_likes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -334,10 +334,6 @@ func TestFriendly(t *testing.T) {
 		t.Errorf(`mgr.Start("crypto"): error: %s`, err)
 	}
 
-	if err := mgr.Start("friendly"); err != nil {
-		t.Errorf(`mgr.Start("friendly"): error: %s`, err)
-	}
-
 	friendly.EXPECT().Befriend("api", "api").Times(1)
 
 	if err := mgr.Start("api"); err != nil {
@@ -346,6 +342,50 @@ func TestFriendly(t *testing.T) {
 
 	friendly.EXPECT().Befriend("api", nil).Times(1)
 	friendly.EXPECT().Befriend("crypto", nil).Times(1)
+
+	stoppedCh := make(chan struct{})
+	go func() {
+		mgr.StopAll()
+		close(stoppedCh)
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("stoppedCh didn't close")
+	case <-stoppedCh:
+	}
+}
+
+func TestFriendly_liked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+
+	friendly := mockFriendly(ctrl, map[string]struct{}{
+		"http": struct{}{},
+	})
+
+	mgr.Register(struct {
+		Service
+		Friendly
+	}{
+		mockService(ctrl, "friendly"),
+		friendly,
+	})
+
+	mgr.Register(mockExposerService(ctrl, "http", "http"))
+
+	friendly.EXPECT().Befriend("http", "http").Times(1)
+
+	if err := mgr.Start("http"); err != nil {
+		t.Errorf(`mgr.Start("http"): error: %s`, err)
+	}
+
+	friendly.EXPECT().Befriend("http", nil).Times(1)
 
 	stoppedCh := make(chan struct{})
 	go func() {

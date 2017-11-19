@@ -196,7 +196,7 @@ func (m *Manager) doRegister(ctx context.Context, serv Service) {
 
 	id := serv.ID()
 
-	s := state{
+	s := &state{
 		Serv:    serv,
 		Status:  Stopped,
 		Refs:    map[string]struct{}{},
@@ -204,7 +204,7 @@ func (m *Manager) doRegister(ctx context.Context, serv Service) {
 		Queue:   NewQueue(),
 	}
 
-	m.states[id] = &s
+	m.states[id] = s
 
 	go func() {
 		err := s.Queue.Work(ctx)
@@ -215,7 +215,7 @@ func (m *Manager) doRegister(ctx context.Context, serv Service) {
 		}
 	}()
 
-	m.addFriends(id)
+	m.addFriends(s)
 	m.addToFriends(serv)
 }
 
@@ -224,21 +224,23 @@ func (m *Manager) RegisterService() {
 	m.Register(managerService{m})
 }
 
-// addFriends finds registered services that like the given service ID and adds
+// addFriends finds registered services that like the given service and adds
 // them to its friend set.
 //
 // It must be executed in the manager queue.
-func (m *Manager) addFriends(id string) {
-	for servID, s := range m.states {
-		if friendly, ok := s.Serv.(Friendly); ok {
+func (m *Manager) addFriends(s *state) {
+	servID := s.Serv.ID()
+
+	for friendID, friendState := range m.states {
+		if friendly, ok := friendState.Serv.(Friendly); ok {
 			likes := friendly.Likes()
 			if likes == nil {
 				continue
 			}
 
-			if _, ok := likes[id]; ok {
+			if _, ok := likes[servID]; ok {
 				s.Queue.DoHi(func() {
-					s.Friends[servID] = friendly
+					s.Friends[friendID] = friendly
 				})
 			}
 		}

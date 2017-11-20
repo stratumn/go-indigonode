@@ -106,7 +106,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	relayCtx, cancelRelay := context.WithCancel(ctx)
 	defer cancelRelay()
 
@@ -124,9 +124,9 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 		return errors.WithStack(err)
 	}
 
-	running <- struct{}{}
+	running()
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	cancelRelay()
 

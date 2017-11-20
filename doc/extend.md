@@ -105,12 +105,12 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	// Initialize the service before sending an empty struct to the running
 	// channel.
 
-	running <- struct{}{}
+    running()
 
 	// Start any long running process with a goroutine here.
 
@@ -120,7 +120,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
     // ...
 	}
 
-	stopping <- struct{}{}
+    stopping()
 
 	// Stop the service after sending an empty struct the the stopping channel.
 
@@ -237,7 +237,7 @@ is only able to reflect very basic gRPC methods.
 The service manager understands the following interfaces:
 
 ```go
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017  Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -296,8 +296,8 @@ type Friendly interface {
 // Exposer exposes a type to other services.
 type Exposer interface {
 	// Expose exposes a type to other services. Services that depend on
-	// this service will receive the return object in their Plug method if
-	// they have one. Services that are friendly with this services will
+	// this service will receive the returned object in their Plug method
+	// if they have one. Services that are friendly with this services will
 	// receive the returned object in their Befriend method.
 	Expose() interface{}
 }
@@ -305,10 +305,9 @@ type Exposer interface {
 // Runner runs a function.
 type Runner interface {
 	// Run should start the service. It should block until the service is
-	// done or the context is canceled. It should send a message to running
-	// once it has started, and to stopping when it begins stopping. It
-	// should send empty structs to the channels rather than closing them.
-	Run(ctx context.Context, running, stopping chan<- struct{}) error
+	// done or the context is canceled. It should call Running once it has
+	// started, and Stopping when it begins stopping.
+	Run(ctx context.Context, running, stopping func()) error
 }
 ```
 

@@ -133,11 +133,11 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
-	running <- struct{}{}
+	running()
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	return errors.WithStack(ctx.Err())
 }

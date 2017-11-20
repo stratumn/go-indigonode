@@ -172,7 +172,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Bootstrap until we have at least one connected peer.
 	for {
 		if err := s.round(ctx); err != nil {
@@ -191,7 +191,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 
 	ticker := time.NewTicker(s.interval)
 
-	running <- struct{}{}
+	running()
 
 RUN_LOOP:
 	for {
@@ -207,7 +207,7 @@ RUN_LOOP:
 		}
 	}
 
-	stopping <- struct{}{}
+	stopping()
 
 	ticker.Stop()
 

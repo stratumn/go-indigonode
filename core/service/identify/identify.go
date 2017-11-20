@@ -111,13 +111,13 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.ids = identify.NewIDService(s.host)
 	s.host.SetIDService(s.ids)
 
-	running <- struct{}{}
+	running()
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	s.host.SetIDService(nil)
 	s.host.RemoveStreamHandler(identify.ID)

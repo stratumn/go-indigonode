@@ -112,11 +112,11 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	sigint := make(chan os.Signal, 2)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 
-	running <- struct{}{}
+	running()
 
 	select {
 	case sig := <-sigint:
@@ -128,7 +128,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 		<-ctx.Done()
 
 	case <-ctx.Done():
-		stopping <- struct{}{}
+		stopping()
 		signal.Stop(sigint)
 	}
 

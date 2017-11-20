@@ -220,7 +220,7 @@ func (s *Service) Befriend(serviceID string, exposed interface{}) {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	ds, err := levelds.NewDatastore(s.config.LevelDBPath, nil)
 	if err != nil {
 		return errors.WithStack(err)
@@ -254,7 +254,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 	bsCtx, closeBS := context.WithCancel(ctx)
 	defer closeBS()
 
-	running <- struct{}{}
+	running()
 
 	select {
 	case <-s.bsChan:
@@ -267,7 +267,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 	}
 
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	s.host.SetRouter(nil)
 

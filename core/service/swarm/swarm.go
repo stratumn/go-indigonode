@@ -212,7 +212,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	pstore := pstore.NewPeerstore()
 
 	if err := pstore.AddPrivKey(s.peerID, s.privKey); err != nil {
@@ -240,9 +240,9 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
 	}
 
-	running <- struct{}{}
+	running()
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	if cancelPeriodicMetrics != nil {
 		cancelPeriodicMetrics()

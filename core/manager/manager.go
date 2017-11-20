@@ -355,6 +355,12 @@ func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) e
 		select {
 		case <-m.safeDoRunning(s):
 
+		case <-m.safeDoStopping(s):
+			err = errors.WithMessage(ErrInvalidStatus, fmt.Sprintf(
+				"service %q is stopping unexpectedly",
+				s.Serv.ID(),
+			))
+
 		case <-m.safeDoStopped(s):
 			err = errors.WithMessage(ErrInvalidStatus, fmt.Sprintf(
 				"service %q quit unexpectedly",
@@ -437,7 +443,7 @@ func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 //
 // It:
 //
-//  	- creates channels to observe the service
+//	- creates channels to observe the service
 //	- launches the Run function in a goroutine
 //	- starts observing the service
 //
@@ -465,13 +471,21 @@ func (m *Manager) exec(ctx context.Context, s *state) error {
 
 // run runs the Run function of a service if it has one or a default one.
 func (m *Manager) run(ctx context.Context, s *state, runningCh, stoppingCh chan struct{}) error {
-	if runner, ok := s.Serv.(Runner); ok {
-		return runner.Run(ctx, runningCh, stoppingCh)
+	running := func() {
+		runningCh <- struct{}{}
 	}
 
-	runningCh <- struct{}{}
+	stopping := func() {
+		stoppingCh <- struct{}{}
+	}
+
+	if runner, ok := s.Serv.(Runner); ok {
+		return runner.Run(ctx, running, stopping)
+	}
+
+	running()
 	<-ctx.Done()
-	stoppingCh <- struct{}{}
+	stopping()
 
 	return ctx.Err()
 }
@@ -572,15 +586,15 @@ func (m *Manager) doSetStopping(s *state) {
 }
 
 // setStopped sets the status of a service state to Stopped.
-//
-// It runs a high-priority task in the manager queue.
 func (m *Manager) setStopped(s *state) {
-	s.Queue.DoHi(func() {
-		m.doSetStopped(s)
+	m.queue.DoHi(func() {
+		s.Queue.DoHi(func() {
+			m.doSetStopped(s)
+		})
 	})
 }
 
-// doSetStopped must be executed in the manager queue.
+// doSetStopped must be executed in both the manager and state queues.
 func (m *Manager) doSetStopped(s *state) {
 	s.Status = Stopped
 	s.Prunable = false
@@ -595,15 +609,15 @@ func (m *Manager) doSetStopped(s *state) {
 }
 
 // setErrored sets the status of a service state to Errored.
-//
-// It runs a high-priority task in the manager queue.
 func (m *Manager) setErrored(s *state, err error) {
 	m.queue.DoHi(func() {
-		m.doSetErrored(s, err)
+		s.Queue.DoHi(func() {
+			m.doSetErrored(s, err)
+		})
 	})
 }
 
-// doSetErrored must be executed in the manager queue.
+// doSetErrored must be executed in both the manager and state queues.
 func (m *Manager) doSetErrored(s *state, err error) {
 	s.Status = Errored
 	s.Prunable = true
@@ -773,12 +787,6 @@ func (m *Manager) doStop(ctx context.Context, s *state) error {
 
 // Prune stops all active services that are prunable and don't have services
 // that depend on it.
-func (m *Manager) Prune() {
-	defer log.EventBegin(context.Background(), "Prune").Done()
-	m.queue.Do(m.doPrune)
-}
-
-// doPrune must be executed in the manager queue.
 //
 // It:
 //
@@ -786,16 +794,28 @@ func (m *Manager) Prune() {
 //	- stops the service
 //	- waits for it to stop or exit with an error
 //	- repeats until no service can be pruned
-func (m *Manager) doPrune() {
+func (m *Manager) Prune() {
 	ctx := context.Background()
-	event := log.EventBegin(ctx, "doPrune")
+	event := log.EventBegin(ctx, "Prune")
 	defer event.Done()
+
+	var servIDs []string
+	m.queue.DoHi(func() {
+		servIDs = sortedStateKeys(m.states)
+	})
 
 	for {
 		done := true
 
-		for _, servID := range sortedStateKeys(m.states) {
-			s := m.states[servID]
+		for _, servID := range servIDs {
+			s, err := m.safeState(servID)
+			if err != nil {
+				log.Event(ctx, "safeStateError", logging.Metadata{
+					"error": err.Error(),
+				})
+				continue
+			}
+
 			pruned := m.pruneIfPrunable(ctx, s)
 
 			if pruned {
@@ -847,12 +867,6 @@ func (m *Manager) pruneIfPrunable(ctx context.Context, s *state) (pruned bool) {
 }
 
 // StopAll stops all active services in an order which respects dependencies.
-func (m *Manager) StopAll() {
-	defer log.EventBegin(context.Background(), "StopAll").Done()
-	m.queue.Do(m.doStopAll)
-}
-
-// doStopAll must be executed in the manager queue.
 //
 // It:
 //
@@ -860,16 +874,28 @@ func (m *Manager) StopAll() {
 //	- stops the service
 //	- waits for it to stop or exit with an error
 //	- repeats until no service can be stopped
-func (m *Manager) doStopAll() {
+func (m *Manager) StopAll() {
 	ctx := context.Background()
-	event := log.EventBegin(ctx, "doStopAll")
+	event := log.EventBegin(ctx, "Prune")
 	defer event.Done()
+
+	var servIDs []string
+	m.queue.DoHi(func() {
+		servIDs = sortedStateKeys(m.states)
+	})
 
 	for {
 		done := true
 
-		for _, servID := range sortedStateKeys(m.states) {
-			s := m.states[servID]
+		for _, servID := range servIDs {
+			s, err := m.safeState(servID)
+			if err != nil {
+				log.Event(ctx, "safeStateError", logging.Metadata{
+					"error": err.Error(),
+				})
+				continue
+			}
+
 			stopped := m.stopIfStoppable(ctx, s)
 
 			if stopped {

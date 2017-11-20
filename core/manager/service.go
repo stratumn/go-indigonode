@@ -76,10 +76,9 @@ type Exposer interface {
 // Runner runs a function.
 type Runner interface {
 	// Run should start the service. It should block until the service is
-	// done or the context is canceled. It should send a message to running
-	// once it has started, and to stopping when it begins stopping. It
-	// should send empty structs to the channels rather than closing them.
-	Run(ctx context.Context, running, stopping chan<- struct{}) error
+	// done or the context is canceled. It should call Running once it has
+	// started, and Stopping when it begins stopping.
+	Run(ctx context.Context, running, stopping func()) error
 }
 
 // StatusCode represents the status of a service.

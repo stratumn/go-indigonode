@@ -216,7 +216,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.host = NewHost(ctx, s.netw, s.cmgr, s.negTimeout, s.addrsFilters, s.metrics)
 
 	var cancelPeriodicMetrics func()
@@ -225,9 +225,9 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
 	}
 
-	running <- struct{}{}
+	running()
 	<-ctx.Done()
-	stopping <- struct{}{}
+	stopping()
 
 	if cancelPeriodicMetrics != nil {
 		cancelPeriodicMetrics()

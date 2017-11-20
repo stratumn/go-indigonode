@@ -145,7 +145,7 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.ctx = ctx
 	defer func() { s.ctx = nil }()
 
@@ -169,7 +169,7 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 	// to reflect commands.
 	reflection.Register(gs)
 
-	running <- struct{}{}
+	running()
 
 	// Add all registerable services to the server.
 	// It must be done after running otherwise it blocks the manager queue.
@@ -184,10 +184,10 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 	// Handle exit conditions.
 	select {
 	case err = <-done:
-		stopping <- struct{}{}
+		stopping()
 		return err
 	case <-ctx.Done():
-		stopping <- struct{}{}
+		stopping()
 		gs.GracefulStop()
 		err = <-done
 	}

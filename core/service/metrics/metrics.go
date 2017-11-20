@@ -138,7 +138,7 @@ func (s *Service) Expose() interface{} {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	bwc := p2pmetrics.NewBandwidthCounter()
 
 	s.metrics = newMetrics(bwc, promSink)
@@ -162,16 +162,16 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 		}()
 	}
 
-	running <- struct{}{}
+	running()
 
 	var err error
 
 	select {
 	case err = <-promDone:
-		stopping <- struct{}{}
+		stopping()
 
 	case <-ctx.Done():
-		stopping <- struct{}{}
+		stopping()
 		if s.config.PrometheusEndpoint != "" {
 			cancelProm()
 			err = <-promDone

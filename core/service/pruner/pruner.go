@@ -113,8 +113,8 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) error {
-	running <- struct{}{}
+func (s *Service) Run(ctx context.Context, running, stopping func()) error {
+	running()
 
 	for {
 		select {
@@ -131,11 +131,11 @@ func (s *Service) Run(ctx context.Context, running, stopping chan<- struct{}) er
 				// We're still alive!
 			case <-ctx.Done():
 				// We stopped ourself.
-				stopping <- struct{}{}
+				stopping()
 				return errors.WithStack(ctx.Err())
 			}
 		case <-ctx.Done():
-			stopping <- struct{}{}
+			stopping()
 			return errors.WithStack(ctx.Err())
 		}
 	}

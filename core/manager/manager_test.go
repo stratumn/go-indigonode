@@ -63,11 +63,11 @@ func mockExposer(ctrl *gomock.Controller, exposed interface{}) Exposer {
 	return exposer
 }
 
-type mockRunnerFn func(context.Context, chan<- struct{}, chan<- struct{}) error
+type mockRunnerFn func(context.Context, func(), func()) error
 
 type testRunner mockRunnerFn
 
-func (r testRunner) Run(ctx context.Context, running, stopping chan<- struct{}) error {
+func (r testRunner) Run(ctx context.Context, running, stopping func()) error {
 	return r(ctx, running, stopping)
 }
 
@@ -108,22 +108,22 @@ func mockRunnerService(ctrl *gomock.Controller, id string, run mockRunnerFn) Ser
 var errMockCrash = errors.New("crashed")
 
 func MockCrashStart(ctrl *gomock.Controller, id string) Service {
-	return mockRunnerService(ctrl, id, func(context.Context, chan<- struct{}, chan<- struct{}) error {
+	return mockRunnerService(ctrl, id, func(context.Context, func(), func()) error {
 		return nil
 	})
 }
 
 func MockCrashStartErr(ctrl *gomock.Controller, id string) Service {
-	return mockRunnerService(ctrl, id, func(context.Context, chan<- struct{}, chan<- struct{}) error {
+	return mockRunnerService(ctrl, id, func(context.Context, func(), func()) error {
 		return errMockCrash
 	})
 }
 
 func MockCrashStop(ctrl *gomock.Controller, id string) Service {
-	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping chan<- struct{}) error {
-		running <- struct{}{}
+	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping func()) error {
+		running()
 		<-ctx.Done()
-		stopping <- struct{}{}
+		stopping()
 		return errMockCrash
 	})
 }

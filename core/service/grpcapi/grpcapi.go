@@ -169,10 +169,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// to reflect commands.
 	reflection.Register(gs)
 
-	running()
-
 	// Add all registerable services to the server.
-	// It must be done after running otherwise it blocks the manager queue.
 	s.addRegistrables(gs)
 
 	// Launch a goroutine for the gRPC server.
@@ -180,6 +177,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	go func() {
 		done <- errors.WithStack(gs.Serve(lis))
 	}()
+
+	running()
 
 	// Handle exit conditions.
 	select {

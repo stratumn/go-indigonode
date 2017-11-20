@@ -49,12 +49,12 @@ func logRequest(
 	addr := pr.Addr.String()
 	event.Append(logging.Metadata{"netaddr": addr})
 
-	maddr, err := manet.FromNetAddr(pr.Addr)
+	ma, err := manet.FromNetAddr(pr.Addr)
 	if err != nil {
 		event.SetError(err)
 		return nil, errors.WithStack(err)
 	}
-	event.Append(logging.Metadata{"multiaddr": maddr})
+	event.Append(logging.Metadata{"multiaddr": ma})
 
 	// Pass the request to the handler.
 	res, err := handler(ctx, req)
@@ -92,12 +92,12 @@ func logStream(
 	addr := pr.Addr.String()
 	event.Append(logging.Metadata{"netaddr": addr})
 
-	maddr, err := manet.FromNetAddr(pr.Addr)
+	ma, err := manet.FromNetAddr(pr.Addr)
 	if err != nil {
 		event.SetError(err)
 		return errors.WithStack(err)
 	}
-	event.Append(logging.Metadata{"multiaddr": maddr})
+	event.Append(logging.Metadata{"multiaddr": ma})
 
 	// Pass the stream to the handler.
 	err = handler(srv, ss)

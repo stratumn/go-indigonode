@@ -37,7 +37,7 @@ import (
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	msmux "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -474,8 +474,8 @@ func (h *Host) Peerstore() pstore.Peerstore {
 }
 
 // Addrs returns the filtered addresses addresses of this host.
-func (h *Host) Addrs() []maddr.Multiaddr {
-	var addrs []maddr.Multiaddr
+func (h *Host) Addrs() []ma.Multiaddr {
+	var addrs []ma.Multiaddr
 
 	allAddrs := h.AllAddrs()
 
@@ -501,7 +501,7 @@ func (h *Host) Addrs() []maddr.Multiaddr {
 // AllAddrs returns all the addresses of BasicHost at this moment in time.
 //
 // It's ok to not include addresses if they're not available to be used now.
-func (h *Host) AllAddrs() []maddr.Multiaddr {
+func (h *Host) AllAddrs() []ma.Multiaddr {
 	addrs, err := h.netw.InterfaceListenAddresses()
 	if err != nil {
 		log.Event(h.ctx, "addrsError", logging.Metadata{
@@ -583,7 +583,7 @@ func (h *Host) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 }
 
 // findPeerAddrs finds addresses for a peer ID using the router.
-func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]maddr.Multiaddr, error) {
+func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multiaddr, error) {
 	pi, err := h.router(ctx, id)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -598,19 +598,19 @@ func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]maddr.Multiaddr
 
 // resolveAddrs resolves the multiaddresses of a peer using the DNS if
 // necessary.
-func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]maddr.Multiaddr, error) {
+func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multiaddr, error) {
 	event := log.EventBegin(ctx, "resolveAddrs", logging.Metadata(pi.Loggable()))
 	defer event.Done()
 
 	// Create the IPFS P2P address of the peer.
-	protocol := maddr.ProtocolWithCode(maddr.P_IPFS).Name
-	p2pAddr, err := maddr.NewMultiaddr("/" + protocol + "/" + pi.ID.Pretty())
+	protocol := ma.ProtocolWithCode(ma.P_IPFS).Name
+	p2pAddr, err := ma.NewMultiaddr("/" + protocol + "/" + pi.ID.Pretty())
 	if err != nil {
 		event.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
-	var addrs []maddr.Multiaddr
+	var addrs []ma.Multiaddr
 
 	for _, addr := range pi.Addrs {
 		addrs = append(addrs, addr)

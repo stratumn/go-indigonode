@@ -26,7 +26,7 @@ import (
 	"google.golang.org/grpc"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -60,7 +60,7 @@ type Service struct {
 
 	peerID  peer.ID
 	privKey crypto.PrivKey
-	addrs   []maddr.Multiaddr
+	addrs   []ma.Multiaddr
 	swarm   *swarm.Swarm
 }
 
@@ -156,10 +156,10 @@ func (s *Service) SetConfig(config interface{}) error {
 		return errors.WithStack(ErrPeerIDMismatch)
 	}
 
-	addrs := make([]maddr.Multiaddr, len(conf.Addresses))
+	addrs := make([]ma.Multiaddr, len(conf.Addresses))
 
 	for i, address := range conf.Addresses {
-		addrs[i], err = maddr.NewMultiaddr(address)
+		addrs[i], err = ma.NewMultiaddr(address)
 		if err != nil {
 			return errors.WithStack(err)
 		}

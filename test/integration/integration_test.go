@@ -28,7 +28,7 @@ import (
 	"github.com/stratumn/alice/test/it"
 	"google.golang.org/grpc"
 
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 // test wrap it.Session with a context and handles errors.
@@ -67,9 +67,9 @@ func TestRouter_Connect(t *testing.T) {
 
 		for _, node := range set[1:] {
 			address := "/ipfs/" + node.PeerID().Pretty()
-			addr, err := maddr.NewMultiaddr(address)
+			addr, err := ma.NewMultiaddr(address)
 			if err != nil {
-				t.Errorf("maddr.NewMultiaddr(%q): error: %+v", address, err)
+				t.Errorf("ma.NewMultiaddr(%q): error: %+v", address, err)
 				continue
 			}
 
@@ -95,9 +95,9 @@ func TestRouter_Connect(t *testing.T) {
 						msgs = append(msgs, msg)
 					}
 
-					remoteAddr, err := maddr.NewMultiaddrBytes(msgs[0].RemoteAddress)
+					remoteAddr, err := ma.NewMultiaddrBytes(msgs[0].RemoteAddress)
 					if err != nil {
-						t.Errorf("maddr.NewMultiaddr(%q): error: %+v", msgs[0].RemoteAddress, err)
+						t.Errorf("ma.NewMultiaddr(%q): error: %+v", msgs[0].RemoteAddress, err)
 						continue
 					}
 					fmt.Fprintf(os.Stderr, "Success: %s.\n", remoteAddr)

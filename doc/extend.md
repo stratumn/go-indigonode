@@ -110,7 +110,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Initialize the service before sending an empty struct to the running
 	// channel.
 
-    running()
+	running()
 
 	// Start any long running process with a goroutine here.
 
@@ -120,7 +120,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
     // ...
 	}
 
-    stopping()
+	stopping()
 
 	// Stop the service after sending an empty struct the the stopping channel.
 

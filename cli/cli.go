@@ -57,7 +57,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 // List all the builtin CLI commands here.
@@ -263,7 +263,7 @@ func (c *CLI) dialOpts(ctx context.Context, address string) ([]grpc.DialOption, 
 		grpc.WithBlock(),
 		// Use multiaddr dialer.
 		grpc.WithDialer(func(string, time.Duration) (net.Conn, error) {
-			addr, err := maddr.NewMultiaddr(address)
+			addr, err := ma.NewMultiaddr(address)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}

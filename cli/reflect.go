@@ -40,7 +40,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 /*
@@ -563,7 +563,7 @@ func prettyDynamicVal(msg *dynamic.Message, field *desc.FieldDescriptor) string 
 			// Multiaddr.
 			ex, err = proto.GetExtension(options, ext.E_FieldMultiaddr)
 			if err == nil && *ex.(*bool) {
-				addr, err := maddr.NewMultiaddrBytes(v)
+				addr, err := ma.NewMultiaddrBytes(v)
 				if err == nil {
 					return addr.String()
 				}
@@ -626,7 +626,7 @@ func reflectBytesValue(field *desc.FieldDescriptor, value string) ([]byte, error
 		if len(b) < 1 {
 			ex, err = proto.GetExtension(options, ext.E_FieldMultiaddr)
 			if err == nil && *ex.(*bool) {
-				addr, err := maddr.NewMultiaddr(value)
+				addr, err := ma.NewMultiaddr(value)
 				if err != nil {
 					return nil, errors.WithStack(err)
 				}

@@ -42,7 +42,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
@@ -261,7 +261,7 @@ func (h *TestNode) conn(ctx context.Context) (*grpc.ClientConn, error) {
 		h.apiAddr,
 		// Use multiaddr dialier.
 		grpc.WithDialer(func(addr string, t time.Duration) (net.Conn, error) {
-			a, err := maddr.NewMultiaddr(addr)
+			a, err := ma.NewMultiaddr(addr)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}

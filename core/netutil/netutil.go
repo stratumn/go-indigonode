@@ -19,7 +19,7 @@ import (
 	"net"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 
 	"github.com/pkg/errors"
 )
@@ -27,17 +27,17 @@ import (
 // Listen returns a listener that is compatible with net.Listener but uses a
 // multiaddr listener under the hood.
 func Listen(address string) (net.Listener, error) {
-	maddr, err := maddr.NewMultiaddr(address)
+	ma, err := ma.NewMultiaddr(address)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	addr, err := manet.ToNetAddr(maddr)
+	addr, err := manet.ToNetAddr(ma)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	lis, err := manet.Listen(maddr)
+	lis, err := manet.Listen(ma)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

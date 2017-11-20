@@ -21,7 +21,7 @@ import (
 	pb "github.com/stratumn/alice/grpc/host"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 // grpcServer is a gRPC server for the host service.
@@ -62,7 +62,7 @@ func (s grpcServer) Connect(req *pb.ConnectReq, ss pb.Host_ConnectServer) error 
 		return errors.WithStack(ErrUnavailable)
 	}
 
-	addr, err := maddr.NewMultiaddrBytes(req.Address)
+	addr, err := ma.NewMultiaddrBytes(req.Address)
 	if err != nil {
 		return errors.WithStack(err)
 	}

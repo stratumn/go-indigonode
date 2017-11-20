@@ -36,7 +36,7 @@ import (
 
 	p2pmetrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	maddr "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 var (
@@ -117,7 +117,7 @@ func (s *Service) SetConfig(config interface{}) error {
 	}
 
 	if conf.PrometheusEndpoint != "" {
-		_, err = maddr.NewMultiaddr(conf.PrometheusEndpoint)
+		_, err = ma.NewMultiaddr(conf.PrometheusEndpoint)
 		if err != nil {
 			return errors.WithStack(err)
 		}

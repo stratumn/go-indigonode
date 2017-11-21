@@ -42,7 +42,7 @@ var initCmd = &cobra.Command{
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename)
 		fmt.Println("Keep this file private!!!")
 
-		if err := cli.InitConfig(cliCfgFilename, initRecreate); err != nil {
+		if err := cli.InitConfig(cli.NewConfigSet(), cliCfgFilename, initRecreate); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the command line interface configuration file: %s.\n", err)
 			cfgExists(err)
 			os.Exit(1)

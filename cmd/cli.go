@@ -34,9 +34,9 @@ var cliCmd = &cobra.Command{
 	Use:   "cli",
 	Short: "Launch command line interface client",
 	Run: func(cmd *cobra.Command, args []string) {
-		requireCLIConfig()
+		config := requireCLIConfigSet().Configs()
 
-		c, err := cli.New(nil)
+		c, err := cli.New(config)
 		fail(err)
 
 		ctx := context.Background()

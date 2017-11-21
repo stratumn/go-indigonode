@@ -75,8 +75,10 @@ func requireCoreConfigSet() core.ConfigSet {
 }
 
 // requireCLIConfig loads the CLI's configuration file and exits on failure.
-func requireCLIConfig() {
-	if err := cli.LoadConfig(cliCfgFilename); err != nil {
+func requireCLIConfigSet() cli.ConfigSet {
+	set := cli.NewConfigSet()
+
+	if err := cli.LoadConfig(set, cliCfgFilename); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not the load command line interface configuration file %q: %s.\n", cliCfgFilename, err)
 
 		if os.IsNotExist(errors.Cause(err)) {
@@ -85,4 +87,6 @@ func requireCLIConfig() {
 
 		os.Exit(1)
 	}
+
+	return set
 }

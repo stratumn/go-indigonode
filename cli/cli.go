@@ -52,6 +52,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -91,6 +92,9 @@ const art = "      .o.       oooo   o8o\n" +
 	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
 
 var (
+	// ErrInvalidConfig is returns when the configuration is invalid.
+	ErrInvalidConfig = errors.New("the configuration is invalid")
+
 	// ErrPromptNotFound is returned when the requested prompt backend was
 	// not found.
 	ErrPromptNotFound = errors.New("the requested prompt was not found")
@@ -208,9 +212,10 @@ type CLI struct {
 }
 
 // New create a new command line interface.
-func New(config *Config) (*CLI, error) {
-	if config == nil {
-		config = configHandler.conf
+func New(configSet cfg.ConfigSet) (*CLI, error) {
+	config, ok := configSet["cli"].(Config)
+	if !ok {
+		return nil, errors.WithStack(ErrInvalidConfig)
 	}
 
 	prompt, ok := prompts[config.PromptBackend]
@@ -219,7 +224,7 @@ func New(config *Config) (*CLI, error) {
 	}
 
 	c := CLI{
-		conf:    *config,
+		conf:    config,
 		cons:    NewConsole(os.Stdout, config.EnableColorOutput),
 		prompt:  prompt,
 		cmds:    cmds,

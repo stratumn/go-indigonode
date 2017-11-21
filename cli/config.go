@@ -30,13 +30,41 @@ var DefaultConfig = Config{
 	EnableDebugOutput:  false,
 }
 
-// configSet is the global configuration set.
-var configSet = cfg.Set{
-	"cli": configHandler,
+// ConfigSet represents a set of configurables.
+//
+// This avoids packages depending on the core package to have to depend on the
+// cfg package.
+type ConfigSet = cfg.Set
+
+// NewConfigSet creates a new set of configurables.
+func NewConfigSet() ConfigSet {
+	return cfg.Set{
+		"cli": &ConfigHandler{},
+	}
 }
 
-// configHandler is the core configuration handler.
-var configHandler = &ConfigHandler{}
+// InitConfig creates or recreates the configuration file.
+//
+// It fails if the file already exists, unless recreate is true, in which
+// case it will load the configuration file then save it. This is useful to
+// add new or missing settings to a configuration file.
+func InitConfig(set ConfigSet, filename string, recreate bool) error {
+	if recreate {
+		if err := LoadConfig(set, filename); err != nil {
+			return err
+		}
+	}
+
+	return cfg.Save(set, filename, 0600, recreate)
+}
+
+// LoadConfig loads the configuration file.
+//
+// This avoids packages depending on the core package to have to depend on the
+// cfg package.
+func LoadConfig(set ConfigSet, filename string) error {
+	return cfg.Load(set, filename)
+}
 
 // Config contains configuration options for the CLI.
 type Config struct {
@@ -68,29 +96,6 @@ type Config struct {
 
 	// EnableDebugOutput if whether to display debug output.
 	EnableDebugOutput bool `toml:"enable_debug_output" comment:"Whether to display debug output."`
-}
-
-// InitConfig creates or recreates the configuration file.
-//
-// It fails if the file already exists, unless recreate is true, in which
-// case it will load the configuration file then save it. This is useful to
-// add new or missing settings to a configuration file.
-func InitConfig(filename string, recreate bool) error {
-	if recreate {
-		if err := LoadConfig(filename); err != nil {
-			return err
-		}
-	}
-
-	return cfg.Save(configSet, filename, 0600, recreate)
-}
-
-// LoadConfig loads the configuration file.
-//
-// This avoids packages depending on the core package to have to depend on the
-// cfg package.
-func LoadConfig(filename string) error {
-	return cfg.Load(configSet, filename)
 }
 
 // ConfigHandler implements cfg.Configurable for easy configuration

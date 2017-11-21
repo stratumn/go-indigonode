@@ -53,7 +53,7 @@ func expectHost(host *mockidentify.MockHost) {
 	host.EXPECT().RemoveStreamHandler(protocol.ID(identify.ID))
 }
 
-func TestServiceExpose(t *testing.T) {
+func TestService_Expose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -72,7 +72,7 @@ func TestServiceExpose(t *testing.T) {
 	}
 }
 
-func TestServiceRun(t *testing.T) {
+func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

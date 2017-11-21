@@ -61,7 +61,7 @@ func TestService_Run(t *testing.T) {
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
 
-func TestService_job(t *testing.T) {
+func TestService_Run_prune(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

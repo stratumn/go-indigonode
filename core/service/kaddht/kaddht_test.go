@@ -62,7 +62,7 @@ func expectHost(ctx context.Context, t *testing.T, host *mockkaddht.MockHost) {
 	host.EXPECT().RemoveStreamHandler(kaddht.ProtocolDHTOld)
 }
 
-func TestServiceExpose(t *testing.T) {
+func TestService_Expose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -81,7 +81,7 @@ func TestServiceExpose(t *testing.T) {
 	}
 }
 
-func TestServiceRun(t *testing.T) {
+func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -95,7 +95,7 @@ func TestServiceRun(t *testing.T) {
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
 
-func TestServiceRun_bootstrap(t *testing.T) {
+func TestService_Run_bootstrap(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

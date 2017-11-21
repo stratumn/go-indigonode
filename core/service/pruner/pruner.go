@@ -29,8 +29,8 @@ var (
 	ErrNotManager = errors.New("connected service is not a manager")
 )
 
-// manager represents a service manager.
-type manager interface {
+// Manager represents a service manager.
+type Manager interface {
 	Prune()
 }
 
@@ -38,7 +38,7 @@ type manager interface {
 type Service struct {
 	config   *Config
 	interval time.Duration
-	mgr      manager
+	mgr      Manager
 }
 
 // Config contains configuration options for the Service Pruner service.
@@ -105,7 +105,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(handlers map[string]interface{}) error {
 	var ok bool
 
-	if s.mgr, ok = handlers[s.config.Manager].(manager); !ok {
+	if s.mgr, ok = handlers[s.config.Manager].(Manager); !ok {
 		return errors.Wrap(ErrNotManager, s.config.Manager)
 	}
 

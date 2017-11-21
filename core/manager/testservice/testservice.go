@@ -31,18 +31,20 @@ func Expose(ctx context.Context, t *testing.T, serv manager.Exposer, timeout tim
 	defer cancel()
 
 	exposedCh := make(chan interface{}, 1)
-	doneCh := make(chan struct{}, 1)
+	doneCh := make(chan error, 1)
 
 	if runner, ok := serv.(manager.Runner); ok {
 		go func() {
-			defer close(doneCh)
 			err := runner.Run(ctx, func() {
 				exposedCh <- serv.Expose()
 			}, func() {})
 
 			if err != nil && errors.Cause(err) != context.Canceled {
-				t.Fatalf("service errored: %s", err)
+				doneCh <- err
+				return
 			}
+
+			doneCh <- nil
 		}()
 	} else {
 		exposedCh <- serv.Expose()
@@ -59,7 +61,11 @@ func Expose(ctx context.Context, t *testing.T, serv manager.Exposer, timeout tim
 	cancel()
 
 	select {
-	case <-doneCh:
+	case err := <-doneCh:
+		if err != nil {
+			t.Fatalf("service errored: %s", err)
+
+		}
 	case <-time.After(timeout):
 		t.Fatal("service did not exit in time")
 	}
@@ -70,16 +76,19 @@ func Expose(ctx context.Context, t *testing.T, serv manager.Exposer, timeout tim
 // TestRun makes sure the Run function of a service calls the running and
 // stopping functions properly, and that it doesn't return an error.
 func TestRun(ctx context.Context, t *testing.T, serv manager.Runner, timeout time.Duration) {
+	TestRunning(ctx, t, serv, timeout, nil)
+}
+
+// TestRunning runs a function while the service is running.
+func TestRunning(ctx context.Context, t *testing.T, serv manager.Runner, timeout time.Duration, fn func()) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	runningCh := make(chan struct{}, 1)
 	stoppingCh := make(chan struct{}, 1)
-	doneCh := make(chan struct{}, 1)
+	doneCh := make(chan error, 1)
 
 	go func() {
-		defer close(doneCh)
-
 		err := serv.Run(ctx, func() {
 			close(runningCh)
 		}, func() {
@@ -87,14 +96,31 @@ func TestRun(ctx context.Context, t *testing.T, serv manager.Runner, timeout tim
 		})
 
 		if err != nil && errors.Cause(err) != context.Canceled {
-			t.Fatalf("service errored: %s", err)
+			doneCh <- err
+			return
 		}
+
+		doneCh <- nil
 	}()
 
 	select {
 	case <-runningCh:
 	case <-time.After(timeout):
 		t.Fatal("service did not call running in time")
+	}
+
+	if fn != nil {
+		fnCh := make(chan struct{}, 1)
+		go func() {
+			fn()
+			close(fnCh)
+		}()
+
+		select {
+		case <-fnCh:
+		case <-time.After(timeout):
+			t.Fatal("function did not complete in time")
+		}
 	}
 
 	cancel()
@@ -106,7 +132,11 @@ func TestRun(ctx context.Context, t *testing.T, serv manager.Runner, timeout tim
 	}
 
 	select {
-	case <-doneCh:
+	case err := <-doneCh:
+		if err != nil {
+			t.Fatalf("service errored: %s", err)
+
+		}
 	case <-time.After(timeout):
 		t.Fatal("service did not exit in time")
 	}

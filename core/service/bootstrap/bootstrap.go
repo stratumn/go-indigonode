@@ -29,7 +29,7 @@ import (
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-	host "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
+	ihost "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 )
 
 var (
@@ -43,13 +43,16 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("bootstrap")
 
+// Host represents an Alice host.
+type Host ihost.Host
+
 // Service is the Bootstrap service.
 type Service struct {
 	config   *Config
 	peers    []pstore.PeerInfo
 	interval time.Duration
 	timeout  time.Duration
-	host     host.Host
+	host     Host
 }
 
 // Config contains configuration options for the Bootstrap service.
@@ -159,7 +162,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host.Host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 

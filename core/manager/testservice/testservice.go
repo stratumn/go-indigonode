@@ -48,6 +48,7 @@ func Expose(ctx context.Context, t *testing.T, serv manager.Exposer, timeout tim
 		}()
 	} else {
 		exposedCh <- serv.Expose()
+		doneCh <- nil
 	}
 
 	var exposed interface{}

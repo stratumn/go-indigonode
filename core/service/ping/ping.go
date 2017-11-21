@@ -22,7 +22,7 @@ import (
 	pb "github.com/stratumn/alice/grpc/ping"
 	"google.golang.org/grpc"
 
-	host "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
+	ihost "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 	ping "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/ping"
 )
 
@@ -35,10 +35,13 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
+// Host represents an Alice host.
+type Host = ihost.Host
+
 // Service is the Ping service.
 type Service struct {
 	config *Config
-	host   host.Host
+	host   Host
 	ping   *ping.PingService
 }
 
@@ -94,7 +97,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host.Host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 

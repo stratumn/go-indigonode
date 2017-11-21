@@ -51,12 +51,15 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
+// Transport represents a transport.
+type Transport = smux.Transport
+
 // Service is the Swarm service.
 type Service struct {
 	config *Config
 
 	metrics *metrics.Metrics
-	smuxer  smux.Transport
+	smuxer  Transport
 
 	peerID  peer.ID
 	privKey crypto.PrivKey
@@ -189,7 +192,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.smuxer, ok = exposed[s.config.StreamMuxer].(smux.Transport); !ok {
+	if s.smuxer, ok = exposed[s.config.StreamMuxer].(Transport); !ok {
 		return errors.WithStack(ErrNotStreamMuxer)
 	}
 

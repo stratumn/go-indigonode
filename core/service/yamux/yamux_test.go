@@ -13,3 +13,37 @@
 // limitations under the License.
 
 package yamux
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/stratumn/alice/core/manager/testservice"
+
+	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
+)
+
+func testService(ctx context.Context, t *testing.T) *Service {
+	serv := &Service{}
+	config := serv.Config().(Config)
+
+	if err := serv.SetConfig(config); err != nil {
+		t.Fatalf("serv.SetConfig(config): error: %s", err)
+	}
+
+	return serv
+}
+
+func TestService_Expose(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	serv := testService(ctx, t)
+	exposed := testservice.Expose(ctx, t, serv, time.Second)
+
+	_, ok := exposed.(smux.Transport)
+	if got, want := ok, true; got != want {
+		t.Errorf("ok = %v want %v", got, want)
+	}
+}

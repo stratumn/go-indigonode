@@ -29,8 +29,8 @@ var (
 	ErrNotHost = errors.New("connected service is not a host")
 )
 
-// host represents an Alice host.
-type host interface {
+// Host represents an Alice host.
+type Host interface {
 	ihost.Host
 
 	SetIDService(*identify.IDService)
@@ -39,7 +39,7 @@ type host interface {
 // Service is the Identify service.
 type Service struct {
 	config *Config
-	host   host
+	host   Host
 	ids    *identify.IDService
 }
 
@@ -95,7 +95,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 

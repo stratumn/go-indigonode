@@ -50,8 +50,8 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("kaddht")
 
-// host represents an Alice host.
-type host interface {
+// Host represents an Alice host.
+type Host interface {
 	ihost.Host
 
 	SetRouter(func(context.Context, peer.ID) (pstore.PeerInfo, error))
@@ -60,7 +60,7 @@ type host interface {
 // Service is the Kademlia DHT service.
 type Service struct {
 	config *Config
-	host   host
+	host   Host
 	dht    *kaddht.IpfsDHT
 
 	bsMu           sync.Mutex
@@ -174,7 +174,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
@@ -270,6 +270,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	stopping()
 
 	s.host.SetRouter(nil)
+	s.host.RemoveStreamHandler(kaddht.ProtocolDHT)
+	s.host.RemoveStreamHandler(kaddht.ProtocolDHTOld)
 
 	closeBS()
 	closeDHT()

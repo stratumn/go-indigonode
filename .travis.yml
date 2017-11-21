@@ -8,7 +8,7 @@ install:
   - make deps
 
 script:
-  - go install && make coverage lint
+  - go install && make coverage integration lint
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t 12714e73-1809-4587-987d-2da57de8cbbb

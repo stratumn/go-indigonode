@@ -23,11 +23,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/manager/mock_manager"
+	"github.com/stratumn/alice/core/manager/mockmanager"
 )
 
 func mockService(ctrl *gomock.Controller, id string) Service {
-	serv := mock_manager.NewMockService(ctrl)
+	serv := mockmanager.NewMockService(ctrl)
 	serv.EXPECT().ID().Return(id).AnyTimes()
 	serv.EXPECT().Name().Return(id).AnyTimes()
 	serv.EXPECT().Desc().Return(id).AnyTimes()
@@ -36,28 +36,28 @@ func mockService(ctrl *gomock.Controller, id string) Service {
 }
 
 func mockNeedy(ctrl *gomock.Controller, needs map[string]struct{}) Needy {
-	needy := mock_manager.NewMockNeedy(ctrl)
+	needy := mockmanager.NewMockNeedy(ctrl)
 	needy.EXPECT().Needs().Return(needs).AnyTimes()
 
 	return needy
 }
 
-func mockFriendly(ctrl *gomock.Controller, likes map[string]struct{}) *mock_manager.MockFriendly {
-	friendly := mock_manager.NewMockFriendly(ctrl)
+func mockFriendly(ctrl *gomock.Controller, likes map[string]struct{}) *mockmanager.MockFriendly {
+	friendly := mockmanager.NewMockFriendly(ctrl)
 	friendly.EXPECT().Likes().Return(likes).AnyTimes()
 
 	return friendly
 }
 
-func mockPluggable(ctrl *gomock.Controller, needs map[string]struct{}) *mock_manager.MockPluggable {
-	pluggable := mock_manager.NewMockPluggable(ctrl)
+func mockPluggable(ctrl *gomock.Controller, needs map[string]struct{}) *mockmanager.MockPluggable {
+	pluggable := mockmanager.NewMockPluggable(ctrl)
 	pluggable.EXPECT().Needs().Return(needs).AnyTimes()
 
 	return pluggable
 }
 
 func mockExposer(ctrl *gomock.Controller, exposed interface{}) Exposer {
-	exposer := mock_manager.NewMockExposer(ctrl)
+	exposer := mockmanager.NewMockExposer(ctrl)
 	exposer.EXPECT().Expose().Return(exposed).AnyTimes()
 
 	return exposer

@@ -21,22 +21,22 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/manager/mock_manager"
+	"github.com/stratumn/alice/core/manager/mockmanager"
 	pb "github.com/stratumn/alice/grpc/manager"
-	mock_pb "github.com/stratumn/alice/grpc/manager/mock_manager"
+	mockpb "github.com/stratumn/alice/grpc/manager/mockmanager"
 )
 
 func TestGRPCServerList(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mock_manager.NewMockGRPCManager(ctrl)
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
 	serv1 := &pb.Service{Id: "serv1", Status: pb.Service_STOPPED}
 	serv2 := &pb.Service{Id: "serv2", Status: pb.Service_RUNNING}
 
-	req, ss := &pb.ListReq{}, mock_pb.NewMockManager_ListServer(ctrl)
+	req, ss := &pb.ListReq{}, mockpb.NewMockManager_ListServer(ctrl)
 
 	mgr.EXPECT().List().Return([]string{"serv1", "serv2"}).Times(1)
 	mgr.EXPECT().Proto("serv1").Return(serv1, nil).Times(1)
@@ -54,7 +54,7 @@ func TestGRPCServerStart(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mock_manager.NewMockGRPCManager(ctrl)
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -101,7 +101,7 @@ func TestGRPCServerStop(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mock_manager.NewMockGRPCManager(ctrl)
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -149,7 +149,7 @@ func TestGRPCServerStop_Prune(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mock_manager.NewMockGRPCManager(ctrl)
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -183,7 +183,7 @@ func TestGRPCServerPrune(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mock_manager.NewMockGRPCManager(ctrl)
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
 	s := grpcServer{mgr}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -192,7 +192,7 @@ func TestGRPCServerPrune(t *testing.T) {
 	serv1 := &pb.Service{Id: "serv1", Status: pb.Service_STOPPED}
 	serv2 := &pb.Service{Id: "serv2", Status: pb.Service_STOPPED}
 
-	req, ss := &pb.PruneReq{}, mock_pb.NewMockManager_ListServer(ctrl)
+	req, ss := &pb.PruneReq{}, mockpb.NewMockManager_ListServer(ctrl)
 
 	mgr.EXPECT().Prune().Times(1)
 	mgr.EXPECT().List().Return([]string{"serv1", "serv2"}).Times(1)

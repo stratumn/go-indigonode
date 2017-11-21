@@ -45,11 +45,11 @@ DOCKER_BUILD=$(DOCKER_CMD) build
 DOCKER_PUSH=$(DOCKER_CMD) push
 
 PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor)
-TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_')
-COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_')
-COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock_')
-LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock_' | grep -v './test')
-BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock_' | grep -v '_test.go')
+TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
+COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
+COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
+LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
+BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
@@ -115,10 +115,15 @@ $(DEPGRAPH_FILE): $(BUILD_SOURCES)
 release: test lint clean build git_tag github_draft github_upload github_publish docker_image docker_push
 
 # == test =====================================================================
-test: $(TEST_LIST)
+test: unit integration
+
+unit: $(TEST_LIST)
 
 $(TEST_LIST): test_%:
-	@$(GO_TEST) -race $*
+	@$(GO_TEST) $*
+
+integration:
+	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/integration/...
 
 # == coverage =================================================================
 coverage: $(COVERAGE_FILE)
@@ -148,6 +153,7 @@ benchmark: $(BENCHMARK_LIST)
 
 $(BENCHMARK_LIST): benchmark_%:
 	@$(GO_BENCHMARK) -benchmem $*
+	@$(GO_BENCHMARK) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/benchmark/...
 
 # == list =====================================================================
 lint: $(LINT_LIST)

@@ -13,3 +13,53 @@
 // limitations under the License.
 
 package mssmux
+
+import (
+	"context"
+	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
+	mssmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
+	"testing"
+	"time"
+
+	"github.com/stratumn/alice/core/manager/testservice"
+)
+
+func testService(ctx context.Context, t *testing.T) *Service {
+	serv := &Service{}
+	config := serv.Config().(Config)
+
+	if err := serv.SetConfig(config); err != nil {
+		t.Fatalf("serv.SetConfig(config): error: %s", err)
+	}
+
+	deps := map[string]interface{}{
+		"yamux": yamux.DefaultTransport,
+	}
+
+	if err := serv.Plug(deps); err != nil {
+		t.Fatalf("serv.Plug(deps): error: %s", err)
+	}
+
+	return serv
+}
+
+func TestServiceExpose(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	serv := testService(ctx, t)
+	exposed := testservice.Expose(ctx, t, serv, time.Second)
+
+	_, ok := exposed.(*mssmux.Transport)
+	if got, want := ok, true; got != want {
+		t.Errorf("ok = %v want %v", got, want)
+	}
+}
+
+func TestServiceRun(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	serv := testService(ctx, t)
+	testservice.TestRun(ctx, t, serv, time.Second)
+}

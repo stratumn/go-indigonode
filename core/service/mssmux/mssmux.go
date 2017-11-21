@@ -134,10 +134,11 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-
 	running()
 	<-ctx.Done()
 	stopping()
+
+	s.tpt = nil
 
 	return errors.WithStack(ctx.Err())
 }

@@ -167,7 +167,10 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Network] = struct{}{}
-	needs[s.config.ConnectionManager] = struct{}{}
+
+	if s.config.ConnectionManager != "" {
+		needs[s.config.ConnectionManager] = struct{}{}
+	}
 
 	if s.config.Metrics != "" {
 		needs[s.config.Metrics] = struct{}{}
@@ -191,9 +194,11 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		s.netw = (*swarm.Network)(swm)
 	}
 
-	cmgr := exposed[s.config.ConnectionManager]
-	if s.cmgr, ok = cmgr.(ifconnmgr.ConnManager); !ok {
-		return errors.Wrap(ErrNotConnManager, s.config.ConnectionManager)
+	if s.config.ConnectionManager != "" {
+		cmgr := exposed[s.config.ConnectionManager]
+		if s.cmgr, ok = cmgr.(ifconnmgr.ConnManager); !ok {
+			return errors.Wrap(ErrNotConnManager, s.config.ConnectionManager)
+		}
 	}
 
 	if s.config.Metrics != "" {
@@ -353,6 +358,10 @@ func NewHost(
 	addrsFilters *mafilter.Filters,
 	mtrx *metrics.Metrics,
 ) *Host {
+	if cmgr == nil {
+		cmgr = ifconnmgr.NullConnMgr{}
+	}
+
 	h := Host{
 		ctx:          ctx,
 		netw:         netw,

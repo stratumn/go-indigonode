@@ -107,8 +107,7 @@ func (s *Service) Expose() interface{} {
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
-	// Initialize the service before sending an empty struct to the running
-	// channel.
+	// Initialize the service before calling running().
 
 	running()
 
@@ -117,12 +116,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Handle exit conditions.
 	select {
 	case <-ctx.Done():
-    // ...
+	// ...
 	}
 
 	stopping()
 
-	// Stop the service after sending an empty struct the the stopping channel.
+	// Stop the service after calling stopping().
 
 	return errors.WithStack(ctx.Err())
 }
@@ -224,8 +223,8 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 }
 ```
 
-The `grpcapi` service automatically looks for services that expose a
-`Registrable` and adds them to the gRPC server.
+The `grpcapi` service automatically looks for services that implement
+`Registrable` and registers them on the gRPC server.
 
 You don't need to manually add commands to the CLI. Using `reflection`, the CLI
 inspects the services available on the gRPC server, and automatically creates
@@ -305,8 +304,8 @@ type Exposer interface {
 // Runner runs a function.
 type Runner interface {
 	// Run should start the service. It should block until the service is
-	// done or the context is canceled. It should call Running once it has
-	// started, and Stopping when it begins stopping.
+	// done or the context is canceled. It should call running() once it
+	// has started, and stopping() when it begins stopping.
 	Run(ctx context.Context, running, stopping func()) error
 }
 ```
@@ -316,8 +315,8 @@ type Runner interface {
 | ID | NAME | DESC | EXPOSES |
 | --- | --- | --- | --- |
 | api | API Services | Starts API services. |  |
-| boot | Boot Services | Starts boot services. | struct{}{} |
-| bootstrap | Bootstrap | Periodically connects to known peers. |  |
+| boot | Boot Services | Starts boot services. |  |
+| bootstrap | Bootstrap | Periodically connects to known peers. | struct{}{} |
 | connmgr | Connection Manager | Manages connections to peers. | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr |
 | grpcapi | gRPC API | Starts a gRPC API server. |  |
 | host | Host | Starts a P2P host. | github.com/stratumn/alice/core/service/\*host.Host |

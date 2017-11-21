@@ -62,7 +62,7 @@ type ConfigSet map[string]interface{}
 
 // Load loads a TOML file and sets the configurations of a set of
 // configurables.
-func Load(filename string, set Set) error {
+func Load(set Set, filename string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename": filename,
 		"set":      set,
@@ -105,7 +105,7 @@ func Load(filename string, set Set) error {
 }
 
 // Save saves the configurations of a set of configurables to a TOML file.
-func Save(filename string, set Set, perms os.FileMode, overwrite bool) error {
+func Save(set Set, filename string, perms os.FileMode, overwrite bool) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,

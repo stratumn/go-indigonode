@@ -66,7 +66,7 @@ func TestCfg(t *testing.T) {
 		"tar": &tarSave,
 	}
 
-	if err := Save(filename, setSave, 0644, false); err != nil {
+	if err := Save(setSave, filename, 0644, false); err != nil {
 		t.Fatalf("Save(filename): error: %+v", err)
 	}
 
@@ -77,7 +77,7 @@ func TestCfg(t *testing.T) {
 		"tar": &tarLoad,
 	}
 
-	if err := Load(filename, setLoad); err != nil {
+	if err := Load(setLoad, filename); err != nil {
 		t.Fatalf("Load(filename): error: %+v", err)
 	}
 

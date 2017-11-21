@@ -38,7 +38,7 @@ const NumSeeds = 5
 
 // IntegrationCfg returns a base configuration for integration testing.
 func IntegrationCfg() cfg.ConfigSet {
-	conf := deepcopy.Copy(core.GlobalConfigSet().Configs()).(cfg.ConfigSet)
+	conf := deepcopy.Copy(core.NewConfigSet().Configs()).(cfg.ConfigSet)
 
 	coreConf := conf["core"].(core.Config)
 	coreConf.EnableBootScreen = false
@@ -70,7 +70,7 @@ func IntegrationCfg() cfg.ConfigSet {
 
 // BenchmarkCfg returns a base configuration for benchmarking.
 func BenchmarkCfg() cfg.ConfigSet {
-	conf := deepcopy.Copy(core.GlobalConfigSet().Configs()).(cfg.ConfigSet)
+	conf := deepcopy.Copy(core.NewConfigSet().Configs()).(cfg.ConfigSet)
 
 	coreConf := conf["core"].(core.Config)
 	coreConf.EnableBootScreen = false

@@ -17,7 +17,6 @@ package core
 import (
 	"github.com/stratumn/alice/core/cfg"
 	logging "github.com/stratumn/alice/core/log"
-	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/release"
 )
 
@@ -54,28 +53,27 @@ var DefaultConfig = Config{
 	EnableBootScreen: true,
 }
 
-// Register all the configurable services.
-func init() {
+// ConfigSet represents a set of configurables.
+//
+// This avoids packages depending on the core package to have to depend on the
+// cfg package.
+type ConfigSet = cfg.Set
+
+// NewConfigSet creates a new set of configurables.
+func NewConfigSet() ConfigSet {
+	set := cfg.Set{
+		"core": &ConfigHandler{},
+		"log":  &logging.ConfigHandler{},
+	}
+
 	for _, serv := range services {
 		// Register configurable if it is one.
 		if configurable, ok := serv.(cfg.Configurable); ok {
-			configSet[configurable.ID()] = configurable
+			set[configurable.ID()] = configurable
 		}
 	}
-}
 
-// configSet is the global configuration set.
-var configSet = cfg.Set{
-	"core": configHandler,
-	"log":  &logging.ConfigHandler{},
-}
-
-// configHandler is the core configuration handler.
-var configHandler = &ConfigHandler{}
-
-// GlobalConfigSet returns the global configuration set.
-func GlobalConfigSet() cfg.Set {
-	return configSet
+	return set
 }
 
 // InitConfig creates or recreates the configuration file.
@@ -83,22 +81,22 @@ func GlobalConfigSet() cfg.Set {
 // It fails if the file already exists, unless recreate is true, in which
 // case it will load the configuration file then save it. This is useful to
 // add new or missing settings to a configuration file.
-func InitConfig(filename string, recreate bool) error {
+func InitConfig(set ConfigSet, filename string, recreate bool) error {
 	if recreate {
-		if err := LoadConfig(filename); err != nil {
+		if err := LoadConfig(set, filename); err != nil {
 			return err
 		}
 	}
 
-	return cfg.Save(filename, configSet, 0600, recreate)
+	return cfg.Save(set, filename, 0600, recreate)
 }
 
 // LoadConfig loads the configuration file.
 //
 // This avoids packages depending on the core package to have to depend on the
 // cfg package.
-func LoadConfig(filename string) error {
-	return cfg.Load(filename, configSet)
+func LoadConfig(set ConfigSet, filename string) error {
+	return cfg.Load(set, filename)
 }
 
 // ServiceGroupConfig contains settings for a service group.
@@ -162,31 +160,4 @@ func (c *ConfigHandler) SetConfig(config interface{}) error {
 	c.config.GeneratedByVersion = release.Version
 
 	return nil
-}
-
-// BootService returns the ID of the boot service.
-func (c *ConfigHandler) BootService() string {
-	return c.config.BootService
-}
-
-// GroupServices returns services that start the service groups.
-func (c *ConfigHandler) GroupServices() []manager.Service {
-	var services []manager.Service
-
-	for _, config := range c.config.ServiceGroups {
-		group := manager.ServiceGroup{
-			GroupID:   config.ID,
-			GroupName: config.Name,
-			GroupDesc: config.Desc,
-			Services:  map[string]struct{}{},
-		}
-
-		for _, dep := range config.Services {
-			group.Services[dep] = struct{}{}
-		}
-
-		services = append(services, &group)
-	}
-
-	return services
 }

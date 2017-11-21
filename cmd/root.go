@@ -57,9 +57,11 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 }
 
-// requireCoreConfig loads the core's configuration file and exits on failure.
-func requireCoreConfig() {
-	if err := core.LoadConfig(coreCfgFilename); err != nil {
+// requireCoreConfigSet loads the core's configuration file and exits on failure.
+func requireCoreConfigSet() core.ConfigSet {
+	set := core.NewConfigSet()
+
+	if err := core.LoadConfig(set, coreCfgFilename); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename, err)
 
 		if os.IsNotExist(errors.Cause(err)) {
@@ -68,6 +70,8 @@ func requireCoreConfig() {
 
 		os.Exit(1)
 	}
+
+	return set
 }
 
 // requireCLIConfig loads the CLI's configuration file and exits on failure.

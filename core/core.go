@@ -27,6 +27,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/cfg"
 	logger "github.com/stratumn/alice/core/log"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/service/host"
@@ -42,26 +43,13 @@ func init() {
 	identify.ClientVersion = "alice/" + release.Version + "/" + release.GitCommit
 }
 
+var (
+	// ErrInvalidConfig is returns when the configuration is invalid.
+	ErrInvalidConfig = errors.New("the configuration is invalid")
+)
+
 // log is the logger for the core module.
 var log = logging.Logger("core")
-
-// globalManagerMu guards globalManager against data races.
-var globalManagerMu sync.Mutex
-
-// globalManager is the global service manager.
-var globalManager *manager.Manager
-
-// GlobalManager returns the global service manager.
-func GlobalManager() *manager.Manager {
-	globalManagerMu.Lock()
-	defer globalManagerMu.Unlock()
-
-	if globalManager == nil {
-		globalManager = manager.New()
-	}
-
-	return globalManager
-}
 
 // art is shown upon booting.
 const art = "\033[0;34m      .o.       oooo   o8o\n" +
@@ -75,16 +63,18 @@ const art = "\033[0;34m      .o.       oooo   o8o\n" +
 // Core manages a node. It wraps a service manager, and can display a
 // boot screen showing services being started and node metrics.
 type Core struct {
-	mgr *manager.Manager
+	mgr    *manager.Manager
+	config Config
 }
 
 // New creates a new core.
-func New(mgr *manager.Manager) *Core {
-	if mgr == nil {
-		mgr = GlobalManager()
+func New(configSet cfg.ConfigSet) (*Core, error) {
+	config, ok := configSet["core"].(Config)
+	if !ok {
+		return nil, errors.WithStack(ErrInvalidConfig)
 	}
 
-	return &Core{mgr}
+	return &Core{manager.New(), config}, nil
 }
 
 // Boot starts the node and runs until an exit signal or a fatal error occurs.
@@ -99,75 +89,57 @@ func (c *Core) Boot(ctx context.Context) error {
 	defer cancelWork()
 
 	// Start manager queue.
-	workDone := make(chan error, 1)
+	workCh := make(chan error, 1)
 	go func() {
-		workDone <- c.mgr.Work(workCtx)
+		workCh <- c.mgr.Work(workCtx)
 	}()
 
-	// Register the manager service.
-	c.mgr.RegisterService()
-
-	// Also registers services as a side-effect.
-	deps, err := doDeps("")
-	if err != nil {
-		return err
-	}
+	registerServices(c.mgr, &c.config)
 
 	bootScreenCtx, cancelBootScreen := context.WithCancel(context.Background())
 	defer cancelBootScreen()
 
-	bootScreenDone := make(chan struct{})
-	if configHandler.config.EnableBootScreen {
+	bootScreenCh := make(chan error, 1)
+	if c.config.EnableBootScreen {
 		go func() {
-			c.bootScreen(bootScreenCtx, deps)
-			close(bootScreenDone)
+			bootScreenCh <- c.bootScreen(bootScreenCtx)
 		}()
 	}
 
 	// Start boot service.
-	if err := c.mgr.Start(configHandler.BootService()); err != nil {
+	if err := c.mgr.Start(c.config.BootService); err != nil {
 		return err
 	}
 
 	select {
 	case <-ctx.Done():
-		if configHandler.config.EnableBootScreen {
+		if c.config.EnableBootScreen {
 			cancelBootScreen()
-			<-bootScreenDone
+			<-bootScreenCh
 		}
 		fmt.Println("\n\nStopping...")
 		c.mgr.StopAll()
 		cancelWork()
-		return <-workDone
+		return <-workCh
 
-	case err := <-workDone:
-		if configHandler.config.EnableBootScreen {
+	case err := <-bootScreenCh:
+		c.mgr.StopAll()
+		cancelWork()
+		<-workCh
+		return err
+
+	case err := <-workCh:
+		if c.config.EnableBootScreen {
 			cancelBootScreen()
-			<-bootScreenDone
+			<-bootScreenCh
 		}
 		return err
 	}
 }
 
-// registerServices registers all the core services with the default service
-// manager.
-//
-// It is safe to call multiple times.
-func registerServices() {
-	// Register all the services.
-	for _, serv := range services {
-		GlobalManager().Register(serv)
-	}
-
-	// Add services for groups.
-	for _, serv := range configHandler.GroupServices() {
-		GlobalManager().Register(serv)
-	}
-}
-
 // bootScreen displays the boot screen, which shows information about the
 // services being started and metrics.
-func (c *Core) bootScreen(ctx context.Context, deps []string) {
+func (c *Core) bootScreen(ctx context.Context) error {
 	fmt.Println()
 	fmt.Println(art)
 	fmt.Println()
@@ -175,14 +147,24 @@ func (c *Core) bootScreen(ctx context.Context, deps []string) {
 	fmt.Println(" -- Copyright © 2017 Stratumn SAS")
 	fmt.Println()
 
-	c.bootStatus(ctx, deps)
+	if err := c.bootStatus(ctx); err != nil {
+		return err
+	}
+
 	c.hostInfo()
 	fmt.Println("\nPress Ctrl^C to shutdown.")
 	c.stats(ctx)
+
+	return nil
 }
 
 // bootStatus shows the services being started.
-func (c *Core) bootStatus(ctx context.Context, deps []string) {
+func (c *Core) bootStatus(ctx context.Context) error {
+	deps, err := doDeps(c.mgr, c.config.BootService)
+	if err != nil {
+		return err
+	}
+
 	for i, sid := range deps {
 		line := fmt.Sprintf("Starting %s (%d/%d)...", sid, i+1, len(deps))
 		fmt.Print(line)
@@ -195,7 +177,7 @@ func (c *Core) bootStatus(ctx context.Context, deps []string) {
 
 		select {
 		case <-ctx.Done():
-			return
+			return errors.WithStack(ctx.Err())
 		case <-running:
 		}
 
@@ -204,6 +186,8 @@ func (c *Core) bootStatus(ctx context.Context, deps []string) {
 		fmt.Print(status)
 		fmt.Println()
 	}
+
+	return nil
 }
 
 // hostInfo shows the peer ID and the listen addresses of the host.
@@ -312,26 +296,25 @@ func (c *Core) findMetrics() metrics.Reporter {
 	return nil
 }
 
-// doWithManager runs a function with the global manager started.
-func doWithManager(fn func()) error {
+// doWithManager runs a function with with a freshly created service manager.
+func doWithManager(config *Config, fn func(*manager.Manager)) error {
 	workCtx, cancelWork := context.WithCancel(context.Background())
 	defer cancelWork()
 
-	mgr := GlobalManager()
+	mgr := manager.New()
 
 	// Start manager queue.
-	workDone := make(chan error, 1)
+	ch := make(chan error, 1)
 	go func() {
-		workDone <- mgr.Work(workCtx)
+		ch <- mgr.Work(workCtx)
 	}()
 
-	// Register the manager service.
-	mgr.RegisterService()
+	registerServices(mgr, config)
 
-	fn()
+	fn(mgr)
 
 	cancelWork()
-	err := <-workDone
+	err := <-ch
 
 	if err != nil && errors.Cause(err) != context.Canceled {
 		return err
@@ -346,9 +329,18 @@ func doWithManager(fn func()) error {
 // The returned slice ends with the service itself.
 //
 // If no service ID is given, the boot service will be used.
-func Deps(servID string) (deps []string, err error) {
-	mgrError := doWithManager(func() {
-		deps, err = doDeps(servID)
+func Deps(configSet cfg.ConfigSet, servID string) (deps []string, err error) {
+	config, ok := configSet["core"].(Config)
+	if !ok {
+		return nil, errors.WithStack(ErrInvalidConfig)
+	}
+
+	if servID == "" {
+		servID = config.BootService
+	}
+
+	mgrError := doWithManager(&config, func(mgr *manager.Manager) {
+		deps, err = doDeps(mgr, servID)
 	})
 
 	if mgrError != nil {
@@ -358,25 +350,28 @@ func Deps(servID string) (deps []string, err error) {
 	return
 }
 
-func doDeps(servID string) ([]string, error) {
-	registerServices()
-
-	if servID == "" {
-		servID = configHandler.BootService()
-	}
-
-	return GlobalManager().Deps(servID)
+func doDeps(mgr *manager.Manager, servID string) ([]string, error) {
+	return mgr.Deps(servID)
 }
 
 // Fgraph prints the dependency graph of a service given the current
 // configuration to a writer.
 //
 // If no service ID is given, the boot service will be used.
-func Fgraph(w io.Writer, servID string) error {
+func Fgraph(w io.Writer, configSet cfg.ConfigSet, servID string) error {
+	config, ok := configSet["core"].(Config)
+	if !ok {
+		return errors.WithStack(ErrInvalidConfig)
+	}
+
+	if servID == "" {
+		servID = config.BootService
+	}
+
 	var err error
 
-	mgrError := doWithManager(func() {
-		err = doFgraph(w, servID)
+	mgrError := doWithManager(&config, func(mgr *manager.Manager) {
+		err = doFgraph(w, mgr, servID)
 	})
 
 	if mgrError != nil {
@@ -386,14 +381,8 @@ func Fgraph(w io.Writer, servID string) error {
 	return err
 }
 
-func doFgraph(w io.Writer, servID string) error {
-	registerServices()
-
-	if servID == "" {
-		servID = configHandler.BootService()
-	}
-
-	return GlobalManager().Fgraph(w, servID, "")
+func doFgraph(w io.Writer, mgr *manager.Manager, servID string) error {
+	return mgr.Fgraph(w, servID, "")
 }
 
 // PrettyLog pretty prints log output.
@@ -424,9 +413,8 @@ func PrettyLog(filename, level, system string, follow, json, color bool) error {
 	}
 
 	t, err := tail.TailFile(filename, tail.Config{
-		MustExist: true,
-		Follow:    follow,
-		Logger:    tail.DiscardingLogger,
+		Follow: follow,
+		Logger: tail.DiscardingLogger,
 	})
 	if err != nil {
 		return errors.WithStack(err)

@@ -107,19 +107,19 @@ func mockRunnerService(ctrl *gomock.Controller, id string, run mockRunnerFn) Ser
 
 var errMockCrash = errors.New("crashed")
 
-func MockCrashStart(ctrl *gomock.Controller, id string) Service {
+func mockCrashStart(ctrl *gomock.Controller, id string) Service {
 	return mockRunnerService(ctrl, id, func(context.Context, func(), func()) error {
 		return nil
 	})
 }
 
-func MockCrashStartErr(ctrl *gomock.Controller, id string) Service {
+func mockCrashStartErr(ctrl *gomock.Controller, id string) Service {
 	return mockRunnerService(ctrl, id, func(context.Context, func(), func()) error {
 		return errMockCrash
 	})
 }
 
-func MockCrashStop(ctrl *gomock.Controller, id string) Service {
+func mockCrashStop(ctrl *gomock.Controller, id string) Service {
 	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping func()) error {
 		running()
 		<-ctx.Done()
@@ -150,9 +150,9 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 		"fs":     struct{}{},
 	}))
 	mgr.Register(mockExposerService(ctrl, "api", "api"))
-	mgr.Register(MockCrashStart(ctrl, "crash-start"))
-	mgr.Register(MockCrashStartErr(ctrl, "crash-start-err"))
-	mgr.Register(MockCrashStop(ctrl, "crash-stop"))
+	mgr.Register(mockCrashStart(ctrl, "crash-start"))
+	mgr.Register(mockCrashStartErr(ctrl, "crash-start-err"))
+	mgr.Register(mockCrashStop(ctrl, "crash-stop"))
 
 	return mgr
 }
@@ -440,6 +440,50 @@ func TestFriendly_likes(t *testing.T) {
 
 	friendly.EXPECT().Befriend("api", nil).Times(1)
 	friendly.EXPECT().Befriend("crypto", nil).Times(1)
+
+	stoppedCh := make(chan struct{})
+	go func() {
+		mgr.StopAll()
+		close(stoppedCh)
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("stoppedCh didn't close")
+	case <-stoppedCh:
+	}
+}
+
+func TestFriendly_liked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+
+	friendly := mockFriendly(ctrl, map[string]struct{}{
+		"http": struct{}{},
+	})
+
+	mgr.Register(struct {
+		Service
+		Friendly
+	}{
+		mockService(ctrl, "friendly"),
+		friendly,
+	})
+
+	mgr.Register(mockExposerService(ctrl, "http", "http"))
+
+	friendly.EXPECT().Befriend("http", "http").Times(1)
+
+	if err := mgr.Start("http"); err != nil {
+		t.Errorf(`mgr.Start("http"): error: %s`, err)
+	}
+
+	friendly.EXPECT().Befriend("http", nil).Times(1)
 
 	stoppedCh := make(chan struct{})
 	go func() {
@@ -842,50 +886,6 @@ func TestManager_Errored(t *testing.T) {
 	_, err = mgr.Errored("http")
 	if got, want := errors.Cause(err), ErrNotFound; got != want {
 		t.Errorf(`err = %v want %v`, got, want)
-	}
-}
-
-func TestFriendly_liked(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	mgr := createTestMgr(ctx, t, ctrl)
-
-	friendly := mockFriendly(ctrl, map[string]struct{}{
-		"http": struct{}{},
-	})
-
-	mgr.Register(struct {
-		Service
-		Friendly
-	}{
-		mockService(ctrl, "friendly"),
-		friendly,
-	})
-
-	mgr.Register(mockExposerService(ctrl, "http", "http"))
-
-	friendly.EXPECT().Befriend("http", "http").Times(1)
-
-	if err := mgr.Start("http"); err != nil {
-		t.Errorf(`mgr.Start("http"): error: %s`, err)
-	}
-
-	friendly.EXPECT().Befriend("http", nil).Times(1)
-
-	stoppedCh := make(chan struct{})
-	go func() {
-		mgr.StopAll()
-		close(stoppedCh)
-	}()
-
-	select {
-	case <-time.After(time.Second):
-		t.Errorf("stoppedCh didn't close")
-	case <-stoppedCh:
 	}
 }
 

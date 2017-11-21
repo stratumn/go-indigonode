@@ -30,14 +30,16 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Start a node",
 	Run: func(cmd *cobra.Command, args []string) {
-		requireCoreConfig()
+		config := requireCoreConfigSet().Configs()
 
-		c := core.New(nil)
 		ctx, cancel := context.WithCancel(context.Background())
 		done := make(chan struct{}, 1)
 
 		start := func() {
-			err := c.Boot(ctx)
+			c, err := core.New(config)
+			fail(err)
+
+			err = c.Boot(ctx)
 			if errors.Cause(err) != context.Canceled {
 				fail(err)
 			}
@@ -55,7 +57,7 @@ var upCmd = &cobra.Command{
 			cancel()
 			<-done
 			ctx, cancel = context.WithCancel(context.Background())
-			requireCoreConfig()
+			config = requireCoreConfigSet().Configs()
 			go start()
 		}
 

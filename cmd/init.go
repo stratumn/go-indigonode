@@ -33,7 +33,7 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := core.InitConfig(coreCfgFilename, initRecreate); err != nil {
+		if err := core.InitConfig(core.NewConfigSet(), coreCfgFilename, initRecreate); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the core configuration file: %s.\n", err)
 			cfgExists(err)
 			os.Exit(1)

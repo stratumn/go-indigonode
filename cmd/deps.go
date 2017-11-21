@@ -34,14 +34,14 @@ var depsCmd = &cobra.Command{
 	Use:   "deps",
 	Short: "Display the dependencies of services",
 	Run: func(cmd *cobra.Command, args []string) {
-		requireCoreConfig()
+		config := requireCoreConfigSet().Configs()
 
 		if depsGraph {
-			fail(core.Fgraph(os.Stdout, depsService))
+			fail(core.Fgraph(os.Stdout, config, depsService))
 			return
 		}
 
-		deps, err := core.Deps(depsService)
+		deps, err := core.Deps(config, depsService)
 		fail(err)
 
 		fmt.Println(strings.Join(deps, "\n"))

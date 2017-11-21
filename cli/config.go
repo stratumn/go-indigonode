@@ -82,7 +82,7 @@ func InitConfig(filename string, recreate bool) error {
 		}
 	}
 
-	return cfg.Save(filename, configSet, 0600, recreate)
+	return cfg.Save(configSet, filename, 0600, recreate)
 }
 
 // LoadConfig loads the configuration file.
@@ -90,7 +90,7 @@ func InitConfig(filename string, recreate bool) error {
 // This avoids packages depending on the core package to have to depend on the
 // cfg package.
 func LoadConfig(filename string) error {
-	return cfg.Load(filename, configSet)
+	return cfg.Load(configSet, filename)
 }
 
 // ConfigHandler implements cfg.Configurable for easy configuration

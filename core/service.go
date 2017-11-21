@@ -51,3 +51,34 @@ var services = []manager.Service{
 	&kaddht.Service{},
 	&ping.Service{},
 }
+
+// registerServices registers all the core services on the given manager.
+//
+// It assumes that the manager's Work function has been called.
+//
+// It is safe to call multiple times.
+func registerServices(mgr *manager.Manager, config *Config) {
+	// Register the manager service.
+	mgr.RegisterService()
+
+	// Register all the services.
+	for _, serv := range services {
+		mgr.Register(serv)
+	}
+
+	// Add services for groups.
+	for _, config := range config.ServiceGroups {
+		group := manager.ServiceGroup{
+			GroupID:   config.ID,
+			GroupName: config.Name,
+			GroupDesc: config.Desc,
+			Services:  map[string]struct{}{},
+		}
+
+		for _, dep := range config.Services {
+			group.Services[dep] = struct{}{}
+		}
+
+		mgr.Register(&group)
+	}
+}

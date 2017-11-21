@@ -76,8 +76,8 @@ type Exposer interface {
 // Runner runs a function.
 type Runner interface {
 	// Run should start the service. It should block until the service is
-	// done or the context is canceled. It should call Running once it has
-	// started, and Stopping when it begins stopping.
+	// done or the context is canceled. It should call running() once it
+	// has started, and stopping() when it begins stopping.
 	Run(ctx context.Context, running, stopping func()) error
 }
 

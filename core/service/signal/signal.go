@@ -37,15 +37,15 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("signal")
 
-// manager represents a service manager.
-type manager interface {
+// Manager represents a service manager.
+type Manager interface {
 	StopAll()
 }
 
 // Service is the Signal Handler service.
 type Service struct {
 	config *Config
-	mgr    manager
+	mgr    Manager
 }
 
 // Config contains configuration options for the Signal Handler service.
@@ -104,7 +104,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(handlers map[string]interface{}) error {
 	var ok bool
 
-	if s.mgr, ok = handlers[s.config.Manager].(manager); !ok {
+	if s.mgr, ok = handlers[s.config.Manager].(Manager); !ok {
 		return errors.Wrap(ErrNotManager, s.config.Manager)
 	}
 

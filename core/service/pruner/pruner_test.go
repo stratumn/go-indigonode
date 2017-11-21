@@ -44,9 +44,6 @@ func testService(ctx context.Context, t *testing.T, mgr *mockpruner.MockManager)
 	return serv
 }
 
-func expectManager(mgr *mockpruner.MockManager) {
-}
-
 func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -55,8 +52,6 @@ func TestService_Run(t *testing.T) {
 	defer ctrl.Finish()
 
 	mgr := mockpruner.NewMockManager(ctrl)
-	expectManager(mgr)
-
 	serv := testService(ctx, t, mgr)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
@@ -69,8 +64,6 @@ func TestService_Run_prune(t *testing.T) {
 	defer ctrl.Finish()
 
 	mgr := mockpruner.NewMockManager(ctrl)
-	expectManager(mgr)
-
 	serv := testService(ctx, t, mgr)
 
 	testservice.TestRunning(ctx, t, serv, time.Second, func() {

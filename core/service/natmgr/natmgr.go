@@ -30,8 +30,8 @@ var (
 	ErrNotHost = errors.New("connected service is not a host")
 )
 
-// host represents an Alice host.
-type host interface {
+// Host represents an Alice host.
+type Host interface {
 	ihost.Host
 
 	SetNATManager(bhost.NATManager)
@@ -40,7 +40,7 @@ type host interface {
 // Service is the NAT Manager service.
 type Service struct {
 	config *Config
-	host   host
+	host   Host
 	mgr    bhost.NATManager
 }
 
@@ -96,7 +96,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
@@ -125,6 +125,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	if err := s.mgr.Close(); err != nil {
 		return errors.WithStack(err)
 	}
+
+	s.mgr = nil
 
 	return errors.WithStack(ctx.Err())
 }

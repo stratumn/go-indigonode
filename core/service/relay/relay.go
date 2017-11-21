@@ -23,7 +23,8 @@ import (
 	"github.com/pkg/errors"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	host "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	ihost "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 	circuit "gx/ipfs/Qmf7GSJ4omRJsvA9uzTqzbnVhq4RWLPzjzW4xJzUta4dKE/go-libp2p-circuit"
 )
 
@@ -35,10 +36,13 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("relay")
 
+// Host represents an Alice host.
+type Host = ihost.Host
+
 // Service is the Relay service.
 type Service struct {
 	config *Config
-	host   host.Host
+	host   Host
 }
 
 // Config contains configuration options for the Relay service.
@@ -98,7 +102,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed[s.config.Host].(host.Host); !ok {
+	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
@@ -127,6 +131,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	running()
 	<-ctx.Done()
 	stopping()
+
+	s.host.RemoveStreamHandler(protocol.ID(circuit.ProtoID))
 
 	cancelRelay()
 

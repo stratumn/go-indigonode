@@ -22,6 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/metrics"
 
 	testutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
@@ -56,7 +57,7 @@ func TestService_Expose(t *testing.T) {
 	serv := testService(ctx, t)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
-	_, ok := exposed.(*Host)
+	_, ok := exposed.(*p2p.Host)
 	if got, want := ok, true; got != want {
 		t.Errorf("ok = %v want %v", got, want)
 	}

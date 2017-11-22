@@ -20,10 +20,10 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/pkg/errors"
+
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-
-	"github.com/pkg/errors"
 )
 
 // Listen returns a listener that is compatible with net.Listener but uses a
@@ -75,11 +75,11 @@ func (l *listenerWrapper) Addr() net.Addr {
 var port = int32(4000)
 
 // RandomPort returns a random port.
-func RandomPort() int32 {
+func RandomPort() uint16 {
 	for {
 		p := atomic.AddInt32(&port, 1)
 		if p >= 65535 {
-			// TODO: handl this better.
+			// TODO: handle this better.
 			panic("no more ports")
 		}
 
@@ -88,7 +88,7 @@ func RandomPort() int32 {
 			if err := l.Close(); err != nil {
 				continue
 			}
-			return p
+			return uint16(p)
 		}
 	}
 }

@@ -319,7 +319,7 @@ type Runner interface {
 | bootstrap | Bootstrap | Periodically connects to known peers. | struct{}{} |
 | connmgr | Connection Manager | Manages connections to peers. | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr |
 | grpcapi | gRPC API | Starts a gRPC API server. |  |
-| host | Host | Starts a P2P host. | github.com/stratumn/alice/core/service/\*host.Host |
+| host | Host | Starts a P2P host. | github.com/stratumn/alice/core/\*p2p.Host |
 | identify | Identify | Identifies peers. | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht | Kademlia DHT | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT |
 | manager | Service Manager | Manages services. | github.com/stratumn/alice/core/\*manager.Manager |

@@ -30,7 +30,7 @@ import (
 	"github.com/stratumn/alice/core/cfg"
 	logger "github.com/stratumn/alice/core/log"
 	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/service/host"
+	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/release"
 
 	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
@@ -269,13 +269,13 @@ func (c *Core) stats(ctx context.Context) {
 }
 
 // findHost finds the host service.
-func (c *Core) findHost() *host.Host {
+func (c *Core) findHost() *p2p.Host {
 	exposed, err := c.mgr.Expose("host")
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error:%s.\n", err)
 	}
 
-	if hst, ok := exposed.(*host.Host); ok {
+	if hst, ok := exposed.(*p2p.Host); ok {
 		return hst
 	}
 

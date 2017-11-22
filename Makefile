@@ -50,6 +50,7 @@ COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' |
 COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
 LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
 BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
+CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
@@ -64,14 +65,13 @@ ZIP_FILES=$(NIX_ZIP_FILES) $(WIN_ZIP_FILES)
 LICENSED_FILES=$(shell find . -name '*.go' | grep -v vendor)
 
 TEST_LIST=$(foreach package, $(TEST_PACKAGES), test_$(package))
-BENCHMARK_LIST=$(foreach package, $(TEST_PACKAGES), benchmark_$(package))
 LINT_LIST=$(foreach package, $(LINT_PACKAGES), lint_$(package))
 GITHUB_UPLOAD_LIST=$(foreach file, $(ZIP_FILES), github_upload_$(firstword $(subst ., ,$(file))))
 CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps protobuf test coverage benchmark lint cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep gometalinter graphpck deps protobuf unit integration test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -149,10 +149,7 @@ coverhtml:
 	$(GO_CMD) tool cover -html $(COVERHTML_FILE)
 
 # == benchmark ================================================================
-benchmark: $(BENCHMARK_LIST)
-
-$(BENCHMARK_LIST): benchmark_%:
-	@$(GO_BENCHMARK) -benchmem $*
+benchmark:
 	@$(GO_BENCHMARK) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/benchmark/...
 
 # == list =====================================================================
@@ -162,10 +159,8 @@ $(LINT_LIST): lint_%:
 	GOROOT=$(shell go env GOROOT) $(GO_LINT) $(GOPATH)/src/$*
 
 # == cyclomatic complexity ====================================================
-cyclo: $(COVERAGE_SOURCES)
-	@for d in $(COVERAGE_PACKAGES); do \
-	    $(GO_CYCLO) -over 9 $(GOPATH)/src/$$d; \
-	done
+cyclo: $(CYCLO_SOURCES)
+	@$(GO_CYCLO) -over 9 $(CYCLO_SOURCES)
 
 # == build ====================================================================
 build: $(EXECS)

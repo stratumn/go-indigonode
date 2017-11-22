@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
@@ -45,5 +46,40 @@ func TestService_Expose(t *testing.T) {
 	_, ok := exposed.(smux.Transport)
 	if got, want := ok, true; got != want {
 		t.Errorf("ok = %v want %v", got, want)
+	}
+}
+
+func TestService_SetConfig(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		err  error
+	}{{
+		"invalid connection write timeout",
+		func(c *Config) { c.ConnectionWriteTimeout = "1" },
+		errAny,
+	}, {
+		"invalid keep alive interval",
+		func(c *Config) { c.KeepAliveInterval = "1" },
+		errAny,
+	}, {
+		"invalid max stream window size",
+		func(c *Config) { c.MaxStreamWindowSize = "1" },
+		errAny,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		err := errors.Cause(serv.SetConfig(config))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
 	}
 }

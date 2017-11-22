@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 
 	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
@@ -54,4 +55,31 @@ func TestService_Run(t *testing.T) {
 
 	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_SetConfig(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		err  error
+	}{{
+		"invalid grace period",
+		func(c *Config) { c.GracePeriod = "1" },
+		errAny,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		err := errors.Cause(serv.SetConfig(config))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
 }

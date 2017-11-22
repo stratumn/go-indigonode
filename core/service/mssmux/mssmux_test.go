@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 )
 
@@ -62,4 +63,77 @@ func TestServiceRun(t *testing.T) {
 
 	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_Needs(t *testing.T) {
+	tt := []struct {
+		name  string
+		set   func(*Config)
+		needs []string
+	}{{
+		"routes",
+		func(c *Config) { c.Routes = map[string]string{"/test": "test"} },
+		[]string{"test"},
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		needs := serv.Needs()
+		for _, n := range test.needs {
+			if _, ok := needs[n]; !ok {
+				t.Errorf("%s: needs[%q] = nil want struct{}{}", test.name, n)
+			}
+		}
+	}
+}
+
+func TestService_Plug(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		deps map[string]interface{}
+		err  error
+	}{{
+		"valid stream muxer",
+		func(c *Config) { c.Routes = map[string]string{"/yamux/v1.0.0": "yamux"} },
+		map[string]interface{}{
+			"yamux": yamux.DefaultTransport,
+		},
+		nil,
+	}, {
+		"invalid stream muxer",
+		func(c *Config) { c.Routes = map[string]string{"/yamux/v1.0.0": "yamux"} },
+		map[string]interface{}{
+			"yamux": struct{}{},
+		},
+		ErrNotStreamMuxer,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		err := errors.Cause(serv.Plug(test.deps))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
 }

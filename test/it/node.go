@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -32,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core"
 	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/grpcapi"
 	"github.com/stratumn/alice/core/service/kaddht"
@@ -46,23 +46,6 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
-
-// port is atomically incremented each time a port is assigned.
-var port = int32(4000)
-
-// randPort returns a random port.
-func randPort() int32 {
-	for {
-		p := atomic.AddInt32(&port, 1)
-		l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err != nil {
-			if err := l.Close(); err != nil {
-				continue
-			}
-			return p
-		}
-	}
-}
 
 // TestNode represents a test node.
 type TestNode struct {
@@ -97,8 +80,8 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	swarmAddr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", atomic.AddInt32(&port, 1))
-	apiAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", atomic.AddInt32(&port, 1))
+	swarmAddr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", netutil.RandomPort())
+	apiAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
 
 	// Don't mutate the given config.
 	config = deepcopy.Copy(config).(cfg.ConfigSet)

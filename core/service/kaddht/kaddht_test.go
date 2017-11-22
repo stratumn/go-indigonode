@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/kaddht/mockkaddht"
 
@@ -108,4 +109,143 @@ func TestService_Run_bootstrap(t *testing.T) {
 	serv := testService(ctx, t, host)
 	serv.Befriend("bootstrap", true)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_SetConfig(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		err  error
+	}{{
+		"invalid bootstrap interval",
+		func(c *Config) { c.BootstrapInterval = "1" },
+		errAny,
+	}, {
+		"invalid bootstrap timeout",
+		func(c *Config) { c.BootstrapTimeout = "ten" },
+		errAny,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		err := errors.Cause(serv.SetConfig(config))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
+}
+
+func TestService_Needs(t *testing.T) {
+	tt := []struct {
+		name  string
+		set   func(*Config)
+		needs []string
+	}{{
+		"host",
+		func(c *Config) { c.Host = "myhost" },
+		[]string{"myhost"},
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		needs := serv.Needs()
+		for _, n := range test.needs {
+			if _, ok := needs[n]; !ok {
+				t.Errorf("%s: needs[%q] = nil want struct{}{}", test.name, n)
+			}
+		}
+	}
+}
+
+func TestService_Plug(t *testing.T) {
+	errAny := errors.New("any error")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	host := mockkaddht.NewMockHost(ctrl)
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		deps map[string]interface{}
+		err  error
+	}{{
+		"valid host",
+		func(c *Config) { c.Host = "myhost" },
+		map[string]interface{}{
+			"myhost": host,
+		},
+		nil,
+	}, {
+		"invalid host",
+		func(c *Config) { c.Host = "myhost" },
+		map[string]interface{}{
+			"myhost": struct{}{},
+		},
+		ErrNotHost,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		err := errors.Cause(serv.Plug(test.deps))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
+}
+
+func TestService_Likes(t *testing.T) {
+	tt := []struct {
+		name  string
+		set   func(*Config)
+		likes []string
+	}{{
+		"host",
+		func(c *Config) { c.Bootstrap = "mybootstrap" },
+		[]string{"mybootstrap"},
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		likes := serv.Likes()
+		for _, l := range test.likes {
+			if _, ok := likes[l]; !ok {
+				t.Errorf("%s: likes[%q] = nil want struct{}{}", test.name, l)
+			}
+		}
+	}
 }

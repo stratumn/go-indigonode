@@ -16,7 +16,9 @@
 package netutil
 
 import (
+	"fmt"
 	"net"
+	"sync/atomic"
 
 	manet "gx/ipfs/QmX3U3YXCQ6UYBxq2LVWF8dARS1hPUTEYLrSx654Qyxyw6/go-multiaddr-net"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
@@ -67,4 +69,26 @@ func (l *listenerWrapper) Close() error {
 // Addr returns the listener's network address.
 func (l *listenerWrapper) Addr() net.Addr {
 	return l.addr
+}
+
+// port is atomically incremented each time a port is assigned.
+var port = int32(4000)
+
+// RandomPort returns a random port.
+func RandomPort() int32 {
+	for {
+		p := atomic.AddInt32(&port, 1)
+		if p >= 65535 {
+			// TODO: handl this better.
+			panic("no more ports")
+		}
+
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			if err := l.Close(); err != nil {
+				continue
+			}
+			return p
+		}
+	}
 }

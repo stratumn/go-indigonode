@@ -215,26 +215,40 @@ func (s *Service) startProm(ctx context.Context) error {
 		close(done)
 	}()
 
+	shutdown := func() error {
+		shutdownCtx, cancelShutdown := context.WithTimeout(
+			context.Background(),
+			time.Second/2,
+		)
+		defer cancelShutdown()
+
+		return srv.Shutdown(shutdownCtx)
+	}
+
 	select {
 	case err := <-done:
 		return errors.WithStack(err)
 
 	case <-ctx.Done():
-		shutdownCtx, cancelShutdown := context.WithTimeout(
-			context.Background(),
-			time.Second,
-		)
-		defer cancelShutdown()
+		for {
+			if err := shutdown(); err != nil {
+				return errors.WithStack(err)
+			}
 
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			return errors.WithStack(err)
+			select {
+			case err := <-done:
+				if err != nil {
+					return errors.WithStack(err)
+				}
+			case <-time.After(time.Second / 2):
+				// Serve will not stop if we call Shutdown
+				// before Serve, so in case this happens we
+				// try again (for instance during tests.).
+				continue
+			}
+
+			return errors.WithStack(ctx.Err())
 		}
-
-		if err := <-done; err != nil {
-			return errors.WithStack(err)
-		}
-
-		return errors.WithStack(ctx.Err())
 	}
 }
 

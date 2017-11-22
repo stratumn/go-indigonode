@@ -16,16 +16,20 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/netutil"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
-	config.PrometheusEndpoint = ""
+	config.PrometheusEndpoint = fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
 
 	if err := serv.SetConfig(config); err != nil {
 		t.Fatalf("serv.SetConfig(config): error: %s", err)
@@ -53,4 +57,73 @@ func TestService_Run(t *testing.T) {
 
 	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_SetConfig(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		err  error
+	}{{
+		"invalid interval",
+		func(c *Config) { c.Interval = "1" },
+		errAny,
+	}, {
+		"invalid Prometheus endpoint",
+		func(c *Config) { c.PrometheusEndpoint = "http://example.com" },
+		errAny,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		err := errors.Cause(serv.SetConfig(config))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
+}
+
+func TestMetrics_AddPeriodicHandler(t *testing.T) {
+	mtrx := newMetrics(nil, nil)
+
+	ch := make(chan struct{}, 1)
+	remove := mtrx.AddPeriodicHandler(func(metrics.MetricSink) {
+		ch <- struct{}{}
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doneCh := make(chan struct{})
+	go func() {
+		mtrx.start(ctx, 100*time.Millisecond)
+		close(doneCh)
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("periodic function not called")
+	case <-ch:
+	}
+
+	remove()
+
+	select {
+	case <-time.After(200 * time.Millisecond):
+	case <-ch:
+		t.Errorf("periodic function called")
+	}
+
+	cancel()
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("metrics did not stop")
+	case <-doneCh:
+	}
 }

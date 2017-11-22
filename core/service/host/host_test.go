@@ -19,9 +19,13 @@ import (
 	"testing"
 	"time"
 
-	testutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
+	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/service/metrics"
 
-	testservice "github.com/stratumn/alice/core/manager/testservice"
+	testutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
+	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {
@@ -64,4 +68,153 @@ func TestService_Run(t *testing.T) {
 
 	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_SetConfig(t *testing.T) {
+	errAny := errors.New("any error")
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		err  error
+	}{{
+		"invalid negotiation timeout",
+		func(c *Config) { c.NegotiationTimeout = "1" },
+		errAny,
+	}, {
+		"invalid address netmasks",
+		func(c *Config) { c.AddressesNetmasks = []string{"http://example.com"} },
+		errAny,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		err := errors.Cause(serv.SetConfig(config))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
+}
+
+func TestService_Needs(t *testing.T) {
+	tt := []struct {
+		name  string
+		set   func(*Config)
+		needs []string
+	}{{
+		"network",
+		func(c *Config) { c.Network = "myswarm" },
+		[]string{"myswarm"},
+	}, {
+		"connmgr",
+		func(c *Config) { c.ConnectionManager = "myconnmgr" },
+		[]string{"myconnmgr"},
+	}, {
+		"metrics",
+		func(c *Config) { c.Metrics = "mymetrics" },
+		[]string{"mymetrics"},
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		needs := serv.Needs()
+		for _, n := range test.needs {
+			if _, ok := needs[n]; !ok {
+				t.Errorf("%s: needs[%q] = nil want struct{}{}", test.name, n)
+			}
+		}
+	}
+}
+
+func TestService_Plug(t *testing.T) {
+	errAny := errors.New("any error")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tt := []struct {
+		name string
+		set  func(*Config)
+		deps map[string]interface{}
+		err  error
+	}{{
+		"valid network",
+		func(c *Config) { c.Network = "myswarm" },
+		map[string]interface{}{
+			"myswarm": testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		nil,
+	}, {
+		"invalid network",
+		func(c *Config) { c.Network = "myswarm" },
+		map[string]interface{}{
+			"myswarm": struct{}{},
+		},
+		ErrNotNetwork,
+	}, {
+		"valid connmgr",
+		func(c *Config) { c.ConnectionManager = "myconnmgr" },
+		map[string]interface{}{
+			"myconnmgr": ifconnmgr.NullConnMgr{},
+			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		nil,
+	}, {
+		"invalid connmgr",
+		func(c *Config) { c.ConnectionManager = "myconnmgr" },
+		map[string]interface{}{
+			"myconnmgr": struct{}{},
+			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		ErrNotConnManager,
+	}, {
+		"valid metrics",
+		func(c *Config) { c.Metrics = "mymetrics" },
+		map[string]interface{}{
+			"mymetrics": &metrics.Metrics{},
+			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		nil,
+	}, {
+		"invalid metrics",
+		func(c *Config) { c.Metrics = "mymetrics" },
+		map[string]interface{}{
+			"mymetrics": struct{}{},
+			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		ErrNotMetrics,
+	}}
+
+	for _, test := range tt {
+		serv := Service{}
+		config := serv.Config().(Config)
+		config.ConnectionManager = ""
+		config.Metrics = ""
+		test.set(&config)
+
+		if err := serv.SetConfig(config); err != nil {
+			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			continue
+		}
+
+		err := errors.Cause(serv.Plug(test.deps))
+		switch {
+		case err != nil && test.err == errAny:
+		case err != test.err:
+			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		}
+	}
 }

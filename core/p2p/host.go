@@ -72,39 +72,73 @@ type Host struct {
 	bwc metrics.Reporter
 }
 
+// HostOption configures a host.
+type HostOption func(*Host)
+
+// OptConnManager adds a connection manager to a host.
+func OptConnManager(cmgr ifconnmgr.ConnManager) HostOption {
+	return func(h *Host) {
+		h.cmgr = cmgr
+	}
+}
+
+// OptResolver adds a resolver to a host.
+func OptResolver(resolver *madns.Resolver) HostOption {
+	return func(h *Host) {
+		h.resolver = resolver
+	}
+}
+
+// OptNegTimeout sets the negotiation timeout of a host.
+func OptNegTimeout(timeout time.Duration) HostOption {
+	return func(h *Host) {
+		h.negTimeout = timeout
+	}
+}
+
+// OptAddrsFilters adds addresses filters to a host.
+func OptAddrsFilters(filter *mafilter.Filters) HostOption {
+	return func(h *Host) {
+		h.addrsFilters = filter
+	}
+}
+
+// OptBandwidthReporter adds a bandwidth reporter to a host.
+func OptBandwidthReporter(bwc metrics.Reporter) HostOption {
+	return func(h *Host) {
+		h.bwc = bwc
+	}
+}
+
+// DefHostOpts are the default options for a host.
+//
+// These options are set before the options passed to NewHost are processed.
+var DefHostOpts = []HostOption{
+	OptConnManager(ifconnmgr.NullConnMgr{}),
+	OptResolver(madns.DefaultResolver),
+	OptNegTimeout(time.Minute),
+}
+
 // NewHost creates a new host.
-func NewHost(
-	ctx context.Context,
-	netw inet.Network,
-	cmgr ifconnmgr.ConnManager,
-	resolver *madns.Resolver,
-	negTimeout time.Duration,
-	addrsFilters *mafilter.Filters,
-	bwc metrics.Reporter,
-) *Host {
-	if cmgr == nil {
-		cmgr = ifconnmgr.NullConnMgr{}
+func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
+	h := &Host{
+		ctx:  ctx,
+		netw: netw,
+		mux:  msmux.NewMultistreamMuxer(),
 	}
 
-	if resolver == nil {
-		resolver = madns.DefaultResolver
+	for _, o := range DefHostOpts {
+		o(h)
 	}
 
-	h := Host{
-		ctx:          ctx,
-		netw:         netw,
-		mux:          msmux.NewMultistreamMuxer(),
-		cmgr:         cmgr,
-		resolver:     resolver,
-		negTimeout:   negTimeout,
-		addrsFilters: addrsFilters,
-		bwc:          bwc,
+	for _, o := range opts {
+		o(h)
 	}
 
 	netw.SetConnHandler(h.newConnHandler)
 	netw.SetStreamHandler(h.newStreamHandler)
 
-	return &h
+	return h
 }
 
 // newConnHandler is the remote-opened conn handler for network.
@@ -216,12 +250,8 @@ func (h *Host) Addrs() []ma.Multiaddr {
 
 	allAddrs := h.AllAddrs()
 
-	if h.addrsFilters == nil {
-		return allAddrs
-	}
-
 	for _, address := range allAddrs {
-		if h.addrsFilters.AddrBlocked(address) {
+		if h.addrsFilters != nil && h.addrsFilters.AddrBlocked(address) {
 			continue
 		}
 

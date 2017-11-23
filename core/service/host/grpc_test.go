@@ -32,15 +32,7 @@ import (
 )
 
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
-	h := p2p.NewHost(
-		ctx,
-		testutil.GenSwarmNetwork(t, ctx),
-		nil,
-		nil,
-		time.Second,
-		nil,
-		nil,
-	)
+	h := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 
 	return grpcServer{func() *p2p.Host { return h }}
 }
@@ -161,15 +153,7 @@ func TestGRPCServer_Connect(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	h2 := p2p.NewHost(
-		ctx,
-		testutil.GenSwarmNetwork(t, ctx),
-		nil,
-		nil,
-		time.Second,
-		nil,
-		nil,
-	)
+	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 
 	addr := h2.Addrs()[0].String() + "/ipfs/" + h2.ID().Pretty()
 	maddr, err := ma.NewMultiaddr(addr)

@@ -82,18 +82,8 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 }
 
 func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
-	h := p2p.NewHost(
-		ctx,
-		testutil.GenSwarmNetwork(t, ctx),
-		nil,
-		nil,
-		time.Second,
-		nil,
-		nil,
-	)
-
+	h := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 	network := (*swarm.Network)(srv.GetSwarm())
-
 	pi := network.Peerstore().PeerInfo(network.LocalPeer())
 
 	err := h.Connect(ctx, pi)

@@ -24,53 +24,18 @@ import (
 
 	inet "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	mafilter "gx/ipfs/QmQBB2dQLmQHJgs2gqZ3iqL2XiuCtUCvXzWt5kMXDf5Zcr/go-maddr-filter"
 	testutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
-	metrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
 	madns "gx/ipfs/QmS7xUmsTdVNU2t1bPV6o9aXuXfufAjNGYgh2bcN2z9DAs/go-multiaddr-dns"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
-	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	host "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 	identify "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
 )
 
-func newHost(ctx context.Context, network inet.Network, opts ...interface{}) *Host {
-	var (
-		cmgr         ifconnmgr.ConnManager
-		resolver     *madns.Resolver
-		addrsFilters *mafilter.Filters
-		bwc          metrics.Reporter
-	)
-
-	for _, o := range opts {
-		switch v := o.(type) {
-		case ifconnmgr.ConnManager:
-			cmgr = v
-		case *madns.Resolver:
-			resolver = v
-		case *mafilter.Filters:
-			addrsFilters = v
-		case metrics.Reporter:
-			bwc = v
-		}
-	}
-
-	return NewHost(
-		ctx,
-		network,
-		cmgr,
-		resolver,
-		5*time.Second,
-		addrsFilters,
-		bwc,
-	)
-}
-
 func TestHostSimple(t *testing.T) {
 	ctx := context.Background()
-	h1 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 	defer h1.Close()
 	defer h2.Close()
 
@@ -117,8 +82,8 @@ func TestHostSimple(t *testing.T) {
 }
 
 func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
-	h1 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	if err := h1.Connect(ctx, h2pi); err != nil {
@@ -223,8 +188,8 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := newHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 
 	h1.SetIDService(identify.NewIDService(h1))
 	h2.SetIDService(identify.NewIDService(h2))
@@ -391,7 +356,7 @@ func TestAddrResolution(t *testing.T) {
 	}
 	resolver := &madns.Resolver{Backend: backend}
 
-	h := newHost(ctx, testutil.GenSwarmNetwork(t, ctx), resolver)
+	h := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx), OptResolver(resolver))
 	defer h.Close()
 
 	pi, err := pstore.InfoFromP2pAddr(p2paddr1)

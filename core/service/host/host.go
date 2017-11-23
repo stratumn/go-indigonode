@@ -126,19 +126,22 @@ func (s *Service) SetConfig(config interface{}) error {
 		return errors.WithStack(err)
 	}
 
-	addrsFilters := mafilter.NewFilters()
+	if len(conf.AddressesNetmasks) > 0 {
+		addrsFilters := mafilter.NewFilters()
 
-	for _, address := range conf.AddressesNetmasks {
-		mask, err := mamask.NewMask(address)
-		if err != nil {
-			return errors.WithStack(err)
+		for _, address := range conf.AddressesNetmasks {
+			mask, err := mamask.NewMask(address)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+
+			addrsFilters.AddDialFilter(mask)
 		}
 
-		addrsFilters.AddDialFilter(mask)
+		s.addrsFilters = addrsFilters
 	}
 
 	s.negTimeout = negTimeout
-	s.addrsFilters = addrsFilters
 	s.config = &conf
 
 	return nil
@@ -203,15 +206,21 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.host = p2p.NewHost(
-		ctx,
-		s.netw,
-		s.cmgr,
-		nil,
-		s.negTimeout,
-		s.addrsFilters,
-		s.metrics,
-	)
+	opts := []p2p.HostOption{p2p.OptNegTimeout(s.negTimeout)}
+
+	if s.cmgr != nil {
+		opts = append(opts, p2p.OptConnManager(s.cmgr))
+	}
+
+	if s.addrsFilters != nil {
+		opts = append(opts, p2p.OptAddrsFilters(s.addrsFilters))
+	}
+
+	if s.metrics != nil {
+		opts = append(opts, p2p.OptBandwidthReporter(s.metrics))
+	}
+
+	s.host = p2p.NewHost(ctx, s.netw, opts...)
 
 	var cancelPeriodicMetrics func()
 

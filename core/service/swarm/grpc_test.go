@@ -172,7 +172,7 @@ func (c connMatcher) String() string {
 }
 
 func TestGRPCServer_Connections(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)
@@ -195,7 +195,7 @@ func TestGRPCServer_Connections(t *testing.T) {
 }
 
 func TestGRPCServer_Connections_peer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)

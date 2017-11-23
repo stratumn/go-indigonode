@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package integration defines integration tests for Alice.
+// Package system defines system tests for Alice.
 //
 // The tests are done by connecting via the API to Alice nodes launched in
 // separate processes.
-package integration
+package system
 
 import "time"
 

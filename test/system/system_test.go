@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integration
+package system
 
 import (
 	"context"
@@ -25,26 +25,26 @@ import (
 	"github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/grpc/host"
 	"github.com/stratumn/alice/release"
-	"github.com/stratumn/alice/test/it"
+	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
-// test wrap it.Session with a context and handles errors.
-func test(t *testing.T, fn it.SessionFunc) {
+// test wrap session.Session with a context and handles errors.
+func test(t *testing.T, fn session.Tester) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
 	defer cancel()
 
-	err := it.Session(ctx, SessionDir, NumNodes, it.IntegrationCfg(), fn)
+	err := session.Run(ctx, SessionDir, NumNodes, session.SystemCfg(), fn)
 	if err != nil {
 		t.Errorf("Session(): error: %+v", err)
 	}
 }
 
 func TestGrcpAPI_Inform(t *testing.T) {
-	test(t, func(ctx context.Context, set it.TestNodeSet, conns []*grpc.ClientConn) {
-		it.PerCPU(func(i int) {
+	test(t, func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+		session.PerCPU(func(i int) {
 			client := grpcapi.NewAPIClient(conns[i])
 
 			res, err := client.Inform(ctx, &grpcapi.InformReq{})
@@ -62,7 +62,7 @@ func TestGrcpAPI_Inform(t *testing.T) {
 
 // TestRouter_Connect checks that the DHT router is working.
 func TestRouter_Connect(t *testing.T) {
-	test(t, func(ctx context.Context, set it.TestNodeSet, conns []*grpc.ClientConn) {
+	test(t, func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		client := host.NewHostClient(conns[0])
 
 		for _, node := range set[1:] {

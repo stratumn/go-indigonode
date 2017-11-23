@@ -21,7 +21,7 @@ unit tests need to be written (things change way too fast at this point).
 * P2P bootstrapping from seed nodes
 * gRPC API
 * CLI with gRPC command reflection
-* integration test framework
+* system test framework
 * nice logs
 * Prometheus metrics
 

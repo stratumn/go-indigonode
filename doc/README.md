@@ -9,6 +9,6 @@
 
 * [Conventions](conventions.md)
 * [Extend Alice](extend.md)
-* [Integration](integration.md)
+* [System Testing](system.md)
 * [Libp2p Overview](libp2p.md)
 * [Internal Dependency Graph](depgraph.md)

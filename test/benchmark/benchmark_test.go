@@ -21,12 +21,15 @@ import (
 
 	"github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/grpc/manager"
-	"github.com/stratumn/alice/test/it"
+	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 )
 
 func BenchmarkAPIInform(b *testing.B) {
-	fn := func(ctx context.Context, set it.TestNodeSet, conns []*grpc.ClientConn) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		client := grpcapi.NewAPIClient(conns[0])
 		b.ResetTimer()
 
@@ -40,19 +43,19 @@ func BenchmarkAPIInform(b *testing.B) {
 		})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
-	defer cancel()
+	config := session.WithServices(session.BenchmarkCfg(), "grpcapi")
 
-	config := it.WithServices(it.BenchmarkCfg(), "grpcapi")
-
-	err := it.Session(ctx, SessionDir, 1, config, fn)
+	err := session.Run(ctx, SessionDir, 1, config, tester)
 	if err != nil {
 		b.Errorf("Session(): error: %+v", err)
 	}
 }
 
 func BenchmarkAPIListServices(b *testing.B) {
-	fn := func(ctx context.Context, set it.TestNodeSet, conns []*grpc.ClientConn) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		client := manager.NewManagerClient(conns[0])
 		b.ResetTimer()
 
@@ -75,12 +78,9 @@ func BenchmarkAPIListServices(b *testing.B) {
 		})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
-	defer cancel()
+	config := session.WithServices(session.BenchmarkCfg(), "grpcapi")
 
-	config := it.WithServices(it.BenchmarkCfg(), "grpcapi")
-
-	err := it.Session(ctx, SessionDir, 1, config, fn)
+	err := session.Run(ctx, SessionDir, 1, config, tester)
 	if err != nil {
 		b.Errorf("Session(): error: %+v", err)
 	}

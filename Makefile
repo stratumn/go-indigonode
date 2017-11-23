@@ -71,7 +71,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps protobuf unit integration test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep gometalinter graphpck deps protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -115,15 +115,15 @@ $(DEPGRAPH_FILE): $(BUILD_SOURCES)
 release: test lint clean build git_tag github_draft github_upload github_publish docker_image docker_push
 
 # == test =====================================================================
-test: unit integration
+test: unit system
 
 unit: $(TEST_LIST)
 
 $(TEST_LIST): test_%:
 	@$(GO_TEST) $*
 
-integration:
-	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/integration/...
+system:
+	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system/...
 
 # == coverage =================================================================
 coverage: $(COVERAGE_FILE)

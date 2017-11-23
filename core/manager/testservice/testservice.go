@@ -47,7 +47,7 @@ func CheckStrings(t *testing.T, serv manager.Service) {
 	}
 
 	if strings.Title(name) != name {
-		t.Error("serv.ID() should be a title with words beginning with an uppercase")
+		t.Error("serv.Name() should be a title with words beginning with an uppercase")
 	}
 
 	if len(desc) > 0 {

@@ -134,7 +134,7 @@ func assertWait(t *testing.T, c chan protocol.ID, exp protocol.ID) {
 		if proto != exp {
 			t.Fatal("should have connected on ", exp)
 		}
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second * 10):
 		t.Fatal("timeout waiting for stream")
 	}
 }

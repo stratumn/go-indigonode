@@ -42,6 +42,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 var (
@@ -57,6 +58,12 @@ var (
 // log is the logger the the gRPC API service.
 var log = logging.Logger("grpcapi")
 
+// Manager represents a service manager.
+type Manager interface {
+	List() []string
+	Find(string) (manager.Service, error)
+}
+
 // Registrable represents something that can add itself to the gRPC server, so
 // that other services can add functions to the API.
 type Registrable interface {
@@ -66,7 +73,7 @@ type Registrable interface {
 // Service is the gRPC API service.
 type Service struct {
 	config *Config
-	mgr    *manager.Manager
+	mgr    Manager
 	ctx    context.Context
 }
 
@@ -96,7 +103,7 @@ func (s *Service) ID() string {
 
 // Name returns the human friendly name of the service.
 func (s *Service) Name() string {
-	return "gRPC API"
+	return "GRPC API"
 }
 
 // Desc returns a description of what the service does.
@@ -121,6 +128,11 @@ func (s *Service) Config() interface{} {
 // SetConfig configures the service handler.
 func (s *Service) SetConfig(config interface{}) error {
 	conf := config.(Config)
+
+	if _, err := ma.NewMultiaddr(conf.Address); err != nil {
+		return errors.WithStack(err)
+	}
+
 	s.config = &conf
 	return nil
 }
@@ -137,7 +149,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(handlers map[string]interface{}) error {
 	var ok bool
 
-	if s.mgr, ok = handlers[s.config.Manager].(*manager.Manager); !ok {
+	if s.mgr, ok = handlers[s.config.Manager].(Manager); !ok {
 		return errors.Wrap(ErrNotManager, s.config.Manager)
 	}
 
@@ -191,7 +203,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		err = <-done
 	}
 
-	if isGRPCShutdownBug(errors.Cause(err)) {
+	cause := errors.Cause(err)
+
+	if isGRPCShutdownBug(cause) || cause == grpc.ErrServerStopped {
 		err = nil
 	}
 

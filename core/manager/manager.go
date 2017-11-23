@@ -74,7 +74,7 @@ type state struct {
 	// Serv is the service attached to the state.
 	Serv Service
 
-	// Prunable is true this process can be pruned. A service will be
+	// Prunable is true if this process can be pruned. A service will be
 	// pruned only if prunable is true and no active process depends on
 	// this process.
 	Prunable bool
@@ -174,14 +174,12 @@ func (m *Manager) stopStateQueues() {
 }
 
 // Register adds a service to the set of known services.
-//
-// It runs a hi-priority task in the manager queue.
 func (m *Manager) Register(serv Service) {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"service": serv.ID(),
 	})
 
-	defer log.EventBegin(ctx, "register")
+	defer log.EventBegin(ctx, "register").Done()
 
 	m.queue.DoHi(func() {
 		m.doRegister(ctx, serv)
@@ -267,8 +265,6 @@ func (m *Manager) addToFriends(serv Service) {
 }
 
 // safeState safely gets the state of a service.
-//
-// It runs a high-priority task in the manager queue.
 func (m *Manager) safeState(servID string) (state *state, err error) {
 	m.queue.DoHi(func() {
 		var ok bool
@@ -296,8 +292,8 @@ func (m *Manager) safeState(servID string) (state *state, err error) {
 // start, its status will be set to Errored, and an error will be returned.
 //
 // Starting a service makes it non-prunable, but the dependencies are prunable
-// unless they were started with Start(). Calling Start() on an already running
-// service will make it non-prunable.
+// (but not stoppable) unless they were started with Start(). Calling Start()
+// on an already running service will make it non-prunable.
 //
 // It:
 //
@@ -390,8 +386,6 @@ func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) e
 //	- starts a goroutine to run the service
 //
 // It must be executed in the queue of the dependency state queue.
-//
-// It runes hi-priority tasks in the manager queue.
 func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 	s := m.states[depID]
 
@@ -600,6 +594,7 @@ func (m *Manager) doSetStopped(s *state) {
 	s.Prunable = false
 	s.Refs = map[string]struct{}{}
 	m.removeRefs(s)
+	s.Err = nil
 
 	for _, ch := range s.StoppedChs {
 		close(ch)

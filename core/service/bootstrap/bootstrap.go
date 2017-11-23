@@ -60,19 +60,22 @@ type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
 
-	// Needs are services that should be started in addition to the host before bootstrapping.
+	// Needs are services that should be started in addition to the host
+	// before bootstrapping.
 	Needs []string `toml:"needs" comment:"Services that should be started in addition to the host before bootstrapping."`
 
 	// Addresses is a list of known peer addresses.
 	Addresses []string `toml:"addresses" comment:"A list of known peer addresses."`
 
-	// MinPeerThreshold is the number of peers under which to bootstrap connections.
+	// MinPeerThreshold is the number of peers under which to bootstrap
+	// connections.
 	MinPeerThreshold int `toml:"min_peer_threshold" comment:"The number of peers under which to bootstrap connections."`
 
 	// Interval is the duration of the interval between bootstrap jobs.
 	Interval string `toml:"interval" comment:"Interval between bootstrap jobs."`
 
-	// ConnectionTimeout is the connection timeout. It should be less than the interval.
+	// ConnectionTimeout is the connection timeout. It should be less than
+	// the interval.
 	ConnectionTimeout string `toml:"connection_timeout" comment:"The connection timeout. It should be less than the interval."`
 }
 

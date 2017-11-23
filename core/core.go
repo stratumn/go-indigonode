@@ -44,7 +44,7 @@ func init() {
 }
 
 var (
-	// ErrInvalidConfig is returns when the configuration is invalid.
+	// ErrInvalidConfig is returned when the configuration is invalid.
 	ErrInvalidConfig = errors.New("the configuration is invalid")
 )
 
@@ -79,11 +79,11 @@ func New(configSet cfg.ConfigSet) (*Core, error) {
 
 // Boot starts the node and runs until an exit signal or a fatal error occurs.
 //
-// It fails if it failed starting the boot service. Otherwise it never returns
-// unless the context is canceled.
+// It returns an error early if it failed to start the boot service. Otherwise
+// it never returns unless the context is canceled.
 func (c *Core) Boot(ctx context.Context) error {
 	log.Event(ctx, "beginBoot")
-	defer log.Event(ctx, "beginBoot")
+	defer log.Event(ctx, "endBoot")
 
 	workCtx, cancelWork := context.WithCancel(context.Background())
 	defer cancelWork()

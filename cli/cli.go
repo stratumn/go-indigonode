@@ -92,7 +92,7 @@ const art = "      .o.       oooo   o8o\n" +
 	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
 
 var (
-	// ErrInvalidConfig is returns when the configuration is invalid.
+	// ErrInvalidConfig is returned when the configuration is invalid.
 	ErrInvalidConfig = errors.New("the configuration is invalid")
 
 	// ErrPromptNotFound is returned when the requested prompt backend was

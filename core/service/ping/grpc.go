@@ -16,6 +16,7 @@ package ping
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/ping"
@@ -29,16 +30,12 @@ const DefaultPingTimes = 5
 
 // grpcServer is a gRPC server for the ping service.
 type grpcServer struct {
-	service *Service
+	PingPeer func(context.Context, peer.ID) (<-chan time.Duration, error)
+	Connect  func(context.Context, pstore.PeerInfo) error
 }
 
 // Ping does a ping request to the specified address.
 func (s grpcServer) Ping(req *pb.PingReq, ss pb.Ping_PingServer) error {
-	ping := s.service.ping
-	if ping == nil {
-		return errors.WithStack(ErrUnavailable)
-	}
-
 	pid, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
 		return errors.WithStack(err)
@@ -47,14 +44,14 @@ func (s grpcServer) Ping(req *pb.PingReq, ss pb.Ping_PingServer) error {
 	pi := pstore.PeerInfo{ID: pid}
 
 	// Make sure there is a connection to the peer.
-	if err := s.service.host.Connect(ss.Context(), pi); err != nil {
+	if err := s.Connect(ss.Context(), pi); err != nil {
 		return err
 	}
 
 	pingCtx, cancelPing := context.WithCancel(ss.Context())
 	defer cancelPing()
 
-	pong, err := ping.Ping(pingCtx, pi.ID)
+	pong, err := s.PingPeer(pingCtx, pi.ID)
 	if err != nil {
 		return errors.WithStack(err)
 	}

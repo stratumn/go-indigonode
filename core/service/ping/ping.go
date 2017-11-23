@@ -17,11 +17,14 @@ package ping
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/ping"
 	"google.golang.org/grpc"
 
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 	ihost "gx/ipfs/Qmc1XhrFEiSeBNn3mpfg6gEuYCt5im2gYmNVmncsvmpeAk/go-libp2p-host"
 	ping "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/ping"
 )
@@ -128,5 +131,20 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterPingServer(gs, grpcServer{s})
+	pb.RegisterPingServer(gs, grpcServer{
+		func(ctx context.Context, pid peer.ID) (<-chan time.Duration, error) {
+			if s.ping == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.ping.Ping(ctx, pid)
+		},
+		func(ctx context.Context, pi pstore.PeerInfo) error {
+			if s.host == nil {
+				return ErrUnavailable
+			}
+
+			return s.host.Connect(ctx, pi)
+		},
+	})
 }

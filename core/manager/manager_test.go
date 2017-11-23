@@ -119,6 +119,13 @@ func mockCrashStartErr(ctrl *gomock.Controller, id string) Service {
 	})
 }
 
+func mockCrashStartStatus(ctrl *gomock.Controller, id string) Service {
+	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping func()) error {
+		stopping()
+		return nil
+	})
+}
+
 func mockCrashStop(ctrl *gomock.Controller, id string) Service {
 	return mockRunnerService(ctrl, id, func(ctx context.Context, running, stopping func()) error {
 		running()
@@ -126,6 +133,20 @@ func mockCrashStop(ctrl *gomock.Controller, id string) Service {
 		stopping()
 		return errMockCrash
 	})
+}
+
+func mockPluggableErr(ctrl *gomock.Controller, id string, needs map[string]struct{}) Service {
+	pluggable := mockmanager.NewMockPluggable(ctrl)
+	pluggable.EXPECT().Needs().Return(needs).AnyTimes()
+	pluggable.EXPECT().Plug(gomock.Any()).Return(errMockCrash).AnyTimes()
+
+	return struct {
+		Service
+		Pluggable
+	}{
+		mockService(ctrl, id),
+		pluggable,
+	}
 }
 
 func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *Manager {
@@ -152,7 +173,11 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 	mgr.Register(mockExposerService(ctrl, "api", "api"))
 	mgr.Register(mockCrashStart(ctrl, "crash-start"))
 	mgr.Register(mockCrashStartErr(ctrl, "crash-start-err"))
+	mgr.Register(mockCrashStartStatus(ctrl, "crash-start-status"))
 	mgr.Register(mockCrashStop(ctrl, "crash-stop"))
+	mgr.Register(mockPluggableErr(ctrl, "crash-plug", map[string]struct{}{
+		"fs": struct{}{},
+	}))
 
 	return mgr
 }
@@ -171,15 +196,17 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"manager":         Stopped,
-		"net":             Running,
-		"fs":              Running,
-		"crypto":          Running,
-		"apps":            Running,
-		"api":             Stopped,
-		"crash-start":     Stopped,
-		"crash-start-err": Stopped,
-		"crash-stop":      Stopped,
+		"manager":            Stopped,
+		"net":                Running,
+		"fs":                 Running,
+		"crypto":             Running,
+		"apps":               Running,
+		"api":                Stopped,
+		"crash-start":        Stopped,
+		"crash-start-err":    Stopped,
+		"crash-start-status": Stopped,
+		"crash-stop":         Stopped,
+		"crash-plug":         Stopped,
 	},
 }, {
 	"Start_inexistent",
@@ -204,7 +231,7 @@ var mgrTT = []mgrTest{{
 	},
 	ErrInvalidStatus,
 	map[string]StatusCode{
-		"crash-start": Stopped,
+		"crash-start": Errored,
 	},
 }, {
 	"Start_crash_err",
@@ -216,6 +243,24 @@ var mgrTT = []mgrTest{{
 		"crash-start-err": Errored,
 	},
 }, {
+	"Start_crash_status",
+	func(mgr *Manager) error {
+		return mgr.Start("crash-start-status")
+	},
+	ErrInvalidStatus,
+	map[string]StatusCode{
+		"crash-start-status": Errored,
+	},
+}, {
+	"Start_crash_plug",
+	func(mgr *Manager) error {
+		return mgr.Start("crash-plug")
+	},
+	errMockCrash,
+	map[string]StatusCode{
+		"crash-plug": Errored,
+	},
+}, {
 	"Stop",
 	func(mgr *Manager) error {
 		if err := mgr.Start("apps"); err != nil {
@@ -225,15 +270,17 @@ var mgrTT = []mgrTest{{
 	},
 	nil,
 	map[string]StatusCode{
-		"manager":         Stopped,
-		"net":             Running,
-		"fs":              Running,
-		"crypto":          Running,
-		"apps":            Stopped,
-		"api":             Stopped,
-		"crash-start":     Stopped,
-		"crash-start-err": Stopped,
-		"crash-stop":      Stopped,
+		"manager":            Stopped,
+		"net":                Running,
+		"fs":                 Running,
+		"crypto":             Running,
+		"apps":               Stopped,
+		"api":                Stopped,
+		"crash-start":        Stopped,
+		"crash-start-err":    Stopped,
+		"crash-start-status": Stopped,
+		"crash-stop":         Stopped,
+		"crash-plug":         Stopped,
 	},
 }, {
 	"Stop_needed",
@@ -404,6 +451,37 @@ func TestPluggable(t *testing.T) {
 	}
 }
 
+func TestPluggable_nil(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+	defer mgr.StopAll()
+
+	pluggable := mockPluggable(ctrl, map[string]struct{}{
+		"fs": struct{}{},
+	})
+
+	mgr.Register(struct {
+		Service
+		Pluggable
+	}{
+		mockNeedyService(ctrl, "pluggable", map[string]struct{}{
+			"fs": struct{}{},
+		}),
+		pluggable,
+	})
+
+	pluggable.EXPECT().Plug(map[string]interface{}{"fs": nil}).Times(1)
+
+	if err := mgr.Start("pluggable"); err != nil {
+		t.Errorf(`mgr.Start("pluggable"): error: %s`, err)
+	}
+}
+
 func TestFriendly_likes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -440,6 +518,38 @@ func TestFriendly_likes(t *testing.T) {
 
 	friendly.EXPECT().Befriend("api", nil).Times(1)
 	friendly.EXPECT().Befriend("crypto", nil).Times(1)
+
+	stoppedCh := make(chan struct{})
+	go func() {
+		mgr.StopAll()
+		close(stoppedCh)
+	}()
+
+	select {
+	case <-time.After(time.Second):
+		t.Errorf("stoppedCh didn't close")
+	case <-stoppedCh:
+	}
+}
+
+func TestFriendly_nil(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	mgr := createTestMgr(ctx, t, ctrl)
+
+	friendly := mockFriendly(ctrl, nil)
+
+	mgr.Register(struct {
+		Service
+		Friendly
+	}{
+		mockService(ctrl, "friendly"),
+		friendly,
+	})
 
 	stoppedCh := make(chan struct{})
 	go func() {
@@ -509,7 +619,7 @@ func TestManager_List(t *testing.T) {
 	defer mgr.StopAll()
 
 	got := fmt.Sprint(mgr.List())
-	want := "[api apps crash-start crash-start-err crash-stop crypto fs manager net]"
+	want := "[api apps crash-plug crash-start crash-start-err crash-start-status crash-stop crypto fs manager net]"
 
 	if got != want {
 		t.Errorf("mgr.List() = %v want %v", got, want)

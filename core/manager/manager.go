@@ -356,12 +356,18 @@ func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) e
 				"service %q is stopping unexpectedly",
 				s.Serv.ID(),
 			))
+			s.Queue.DoHi(func() {
+				m.doSetErrored(s, err)
+			})
 
 		case <-m.safeDoStopped(s):
 			err = errors.WithMessage(ErrInvalidStatus, fmt.Sprintf(
 				"service %q quit unexpectedly",
 				s.Serv.ID(),
 			))
+			s.Queue.DoHi(func() {
+				m.doSetErrored(s, err)
+			})
 
 		case err = <-m.safeDoErrored(s):
 		}
@@ -418,6 +424,7 @@ func (m *Manager) startDepOf(ctx context.Context, servID, depID string) error {
 		return m.plugNeeds(s)
 	})
 	if err != nil {
+		m.doSetErrored(s, err)
 		return err
 	}
 

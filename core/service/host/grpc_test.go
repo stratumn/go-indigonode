@@ -147,7 +147,12 @@ func (c connMatcher) Matches(x interface{}) bool {
 }
 
 func (c connMatcher) String() string {
-	return "protbuf connection"
+	msg := pb.Connection{
+		PeerId:        []byte(c.PeerID),
+		RemoteAddress: c.Addr.Bytes(),
+	}
+
+	return msg.String()
 }
 
 func TestGRPCServer_Connect(t *testing.T) {

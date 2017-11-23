@@ -264,7 +264,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterSwarmServer(gs, grpcServer{s})
+	pb.RegisterSwarmServer(gs, grpcServer{func() *swarm.Swarm {
+		return s.swarm
+	}})
 }
 
 // periodicMetrics sends periodic stats about peers, connections, and total

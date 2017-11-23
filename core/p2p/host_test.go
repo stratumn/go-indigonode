@@ -61,7 +61,7 @@ func newHost(ctx context.Context, network inet.Network, opts ...interface{}) *Ho
 		network,
 		cmgr,
 		resolver,
-		time.Second,
+		5*time.Second,
 		addrsFilters,
 		bwc,
 	)

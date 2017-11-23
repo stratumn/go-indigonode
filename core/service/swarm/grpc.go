@@ -27,12 +27,12 @@ import (
 
 // grpcServer is a gRPC server for the swarm service.
 type grpcServer struct {
-	service *Service
+	GetSwarm func() *swarm.Swarm
 }
 
 // LocalPeer returns the local peer.
 func (s grpcServer) LocalPeer(ctx context.Context, req *pb.LocalPeerReq) (*pb.Peer, error) {
-	swm := s.service.swarm
+	swm := s.GetSwarm()
 	if swm == nil {
 		return nil, errors.WithStack(ErrUnavailable)
 	}
@@ -42,7 +42,7 @@ func (s grpcServer) LocalPeer(ctx context.Context, req *pb.LocalPeerReq) (*pb.Pe
 
 // Peers lists the peers connected to the local peer.
 func (s grpcServer) Peers(req *pb.PeersReq, ss pb.Swarm_PeersServer) error {
-	swm := s.service.swarm
+	swm := s.GetSwarm()
 	if swm == nil {
 		return errors.WithStack(ErrUnavailable)
 	}
@@ -58,7 +58,7 @@ func (s grpcServer) Peers(req *pb.PeersReq, ss pb.Swarm_PeersServer) error {
 
 // Peers lists the connections of the swarm.
 func (s grpcServer) Connections(req *pb.ConnectionsReq, ss pb.Swarm_ConnectionsServer) error {
-	swm := s.service.swarm
+	swm := s.GetSwarm()
 	if swm == nil {
 		return errors.WithStack(ErrUnavailable)
 	}

@@ -17,12 +17,52 @@ package testservice
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager"
 )
+
+// CheckStrings checks that the strings returned by a service follow the
+// convention.
+func CheckStrings(t *testing.T, serv manager.Service) {
+	id, name, desc := serv.ID(), serv.Name(), serv.Desc()
+
+	if id == "" {
+		t.Error("serv.ID() is blank")
+	}
+
+	if name == "" {
+		t.Error("serv.Name() is blank")
+	}
+
+	if desc == "" {
+		t.Error("serv.Desc() is blank")
+	}
+
+	if strings.ToLower(id) != id {
+		t.Error("serv.ID() should be lowercase")
+	}
+
+	if strings.Title(name) != name {
+		t.Error("serv.ID() should be a title with words beginning with an uppercase")
+	}
+
+	if len(desc) > 0 {
+		runes := []rune(desc)
+		first, last := string(runes[0]), runes[len(runes)-1]
+
+		if strings.ToUpper(first) != first {
+			t.Error("serv.Desc() should be a sentence that begins with an uppercase")
+		}
+
+		if last != '.' {
+			t.Error("serv.Desc() should be a sentence that ends with a period")
+		}
+	}
+}
 
 // Expose call the run function of the service and returns the exposed object
 // after the service is running.

@@ -45,6 +45,10 @@ func testService(ctx context.Context, t *testing.T, mgr *mockpruner.MockManager)
 	return serv
 }
 
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
+}
+
 func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

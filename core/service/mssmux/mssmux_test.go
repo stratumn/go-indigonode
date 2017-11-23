@@ -44,7 +44,11 @@ func testService(ctx context.Context, t *testing.T) *Service {
 	return serv
 }
 
-func TestServiceExpose(t *testing.T) {
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
+}
+
+func TestService_Expose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -57,7 +61,7 @@ func TestServiceExpose(t *testing.T) {
 	}
 }
 
-func TestServiceRun(t *testing.T) {
+func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

@@ -57,6 +57,10 @@ func expectHost(ctx context.Context, t *testing.T, host *mockrelay.MockHost) {
 	host.EXPECT().RemoveStreamHandler(protocol.ID(circuit.ProtoID))
 }
 
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
+}
+
 func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

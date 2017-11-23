@@ -52,6 +52,10 @@ func expectHost(ctx context.Context, t *testing.T, host *mockping.MockHost) {
 	host.EXPECT().RemoveStreamHandler(protocol.ID(ping.ID))
 }
 
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
+}
+
 func TestService_Expose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

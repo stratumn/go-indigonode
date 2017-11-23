@@ -49,7 +49,8 @@ func testService(ctx context.Context, t *testing.T, smuxer Transport) *Service {
 	return serv
 }
 
-func expectTransport(smuxer *mockswarm.MockTransport) {
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
 }
 
 func TestService_Expose(t *testing.T) {
@@ -60,8 +61,6 @@ func TestService_Expose(t *testing.T) {
 	defer ctrl.Finish()
 
 	smuxer := mockswarm.NewMockTransport(ctrl)
-	expectTransport(smuxer)
-
 	serv := testService(ctx, t, smuxer)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
@@ -79,8 +78,6 @@ func TestService_Run(t *testing.T) {
 	defer ctrl.Finish()
 
 	smuxer := mockswarm.NewMockTransport(ctrl)
-	expectTransport(smuxer)
-
 	serv := testService(ctx, t, smuxer)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }

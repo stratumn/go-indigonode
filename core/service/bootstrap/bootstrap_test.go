@@ -72,6 +72,10 @@ func expectHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwor
 	net.EXPECT().Peers().Return([]peer.ID{seedID})
 }
 
+func TestService_strings(t *testing.T) {
+	testservice.CheckStrings(t, &Service{})
+}
+
 func TestService_Expose(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

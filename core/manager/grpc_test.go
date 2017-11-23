@@ -26,7 +26,7 @@ import (
 	mockpb "github.com/stratumn/alice/grpc/manager/mockmanager"
 )
 
-func TestGRPCServerList(t *testing.T) {
+func TestGRPCServer_List(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -50,7 +50,7 @@ func TestGRPCServerList(t *testing.T) {
 	}
 }
 
-func TestGRPCServerStart(t *testing.T) {
+func TestGRPCServer_Start(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -97,7 +97,7 @@ func TestGRPCServerStart(t *testing.T) {
 	}
 }
 
-func TestGRPCServerStop(t *testing.T) {
+func TestGRPCServer_Stop(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -145,7 +145,7 @@ func TestGRPCServerStop(t *testing.T) {
 	}
 }
 
-func TestGRPCServerStop_Prune(t *testing.T) {
+func TestGRPCServer_Stop_Prune(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -179,7 +179,7 @@ func TestGRPCServerStop_Prune(t *testing.T) {
 	}
 }
 
-func TestGRPCServerPrune(t *testing.T) {
+func TestGRPCServer_Prune(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

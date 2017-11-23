@@ -27,12 +27,12 @@ import (
 
 // grpcServer is a gRPC server for the metrics service.
 type grpcServer struct {
-	service *Service
+	GetMetrics func() *Metrics
 }
 
 // Bandwidth reports bandwith usage.
 func (s grpcServer) Bandwidth(ctx context.Context, req *pb.BandwidthReq) (*pb.BandwidthStats, error) {
-	mtrx := s.service.metrics
+	mtrx := s.GetMetrics()
 	if mtrx == nil {
 		return nil, errors.WithStack(ErrUnavailable)
 	}

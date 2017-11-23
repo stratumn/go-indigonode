@@ -192,7 +192,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterMetricsServer(gs, grpcServer{s})
+	pb.RegisterMetricsServer(gs, grpcServer{func() *Metrics { return s.metrics }})
 }
 
 // startProm starts exposing Prometheus metrics on an HTTP endpoint.

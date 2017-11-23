@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Investigate data races durings tests when built with -race.
-
 // Package host defines a service the wraps a P2P host.
 package host
 
@@ -241,7 +239,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterHostServer(gs, grpcServer{s})
+	pb.RegisterHostServer(gs, grpcServer{func() *p2p.Host { return s.host }})
 }
 
 // periodicMetrics sends bandwidth usage for each protocol.

@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/p2p"
 	pb "github.com/stratumn/alice/grpc/host"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -26,12 +27,12 @@ import (
 
 // grpcServer is a gRPC server for the host service.
 type grpcServer struct {
-	service *Service
+	GetHost func() *p2p.Host
 }
 
 // ID returns the ID of the host.
 func (s grpcServer) ID(ctx context.Context, req *pb.IdReq) (*pb.HostId, error) {
-	host := s.service.host
+	host := s.GetHost()
 	if host == nil {
 		return nil, errors.WithStack(ErrUnavailable)
 	}
@@ -41,7 +42,7 @@ func (s grpcServer) ID(ctx context.Context, req *pb.IdReq) (*pb.HostId, error) {
 
 // Addresses lists all the host's addresses.
 func (s grpcServer) Addresses(req *pb.AddressesReq, ss pb.Host_AddressesServer) error {
-	host := s.service.host
+	host := s.GetHost()
 	if host == nil {
 		return errors.WithStack(ErrUnavailable)
 	}
@@ -57,7 +58,7 @@ func (s grpcServer) Addresses(req *pb.AddressesReq, ss pb.Host_AddressesServer) 
 
 // Connect ensures there is a connection to the peer's address.
 func (s grpcServer) Connect(req *pb.ConnectReq, ss pb.Host_ConnectServer) error {
-	host := s.service.host
+	host := s.GetHost()
 	if host == nil {
 		return errors.WithStack(ErrUnavailable)
 	}

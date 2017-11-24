@@ -201,6 +201,8 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 		return
 	}
 
+	event.Append(logging.Metadata{"protocol": protoID})
+
 	stream = &streamWrapper{
 		Stream: stream,
 		rw:     lzc,

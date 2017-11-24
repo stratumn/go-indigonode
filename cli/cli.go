@@ -33,10 +33,6 @@ current text and returns a slice suggestions with the type Suggest.
 
 BasicCmd is a type that allows creating simple commands that cover most use
 cases.
-
-This package does not implement a Console or a Prompt. There is an
-implementation in the vt100 subpackage for VT100 compatible terminals that
-renders color output.
 */
 package cli
 

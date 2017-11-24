@@ -83,7 +83,7 @@ func RandomPort() uint16 {
 			panic("no more ports")
 		}
 
-		l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", p))
 		if err == nil {
 			if err := l.Close(); err != nil {
 				continue

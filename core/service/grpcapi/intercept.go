@@ -76,8 +76,9 @@ func logStream(
 	handler grpc.StreamHandler,
 ) error {
 	event := log.EventBegin(ss.Context(), "request", logging.Metadata{
-		"request": srv,
-		"method":  info.FullMethod,
+		"method":       info.FullMethod,
+		"serverStream": info.IsServerStream,
+		"clientStream": info.IsClientStream,
 	})
 	defer event.Done()
 

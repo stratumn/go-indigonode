@@ -71,8 +71,9 @@ func TestService_Run_prune(t *testing.T) {
 	mgr := mockpruner.NewMockManager(ctrl)
 	serv := testService(ctx, t, mgr)
 
+	mgr.EXPECT().Prune().MinTimes(1).MaxTimes(5)
+
 	testservice.TestRunning(ctx, t, serv, time.Second, func() {
-		mgr.EXPECT().Prune().MinTimes(1).MaxTimes(5)
 		time.Sleep(500 * time.Millisecond)
 	})
 }

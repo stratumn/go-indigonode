@@ -134,6 +134,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 				stopping()
 				return errors.WithStack(ctx.Err())
 			}
+
 		case <-ctx.Done():
 			stopping()
 			return errors.WithStack(ctx.Err())

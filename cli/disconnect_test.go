@@ -24,14 +24,14 @@ import (
 
 func TestDisconnect(t *testing.T) {
 	tt := []ExecTest{{
-		"disconnect",
+		"api-disconnect",
 		"Disconnected.\n",
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Disconnect()
 		},
 	}, {
-		"disconnect earth",
+		"api-disconnect earth",
 		"",
 		ErrUse,
 		nil,

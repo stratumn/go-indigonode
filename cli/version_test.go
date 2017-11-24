@@ -24,12 +24,12 @@ import (
 
 func TestVersion(t *testing.T) {
 	tt := []ExecTest{{
-		"version",
+		"cli-version",
 		release.Version + "@0000000000000000000000000000000000000000\n",
 		nil,
 		nil,
 	}, {
-		"version earth",
+		"cli-version earth",
 		"",
 		ErrUse,
 		nil,

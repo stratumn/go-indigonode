@@ -400,7 +400,7 @@ func (c *cli) Disconnect() error {
 func (c *cli) Run(ctx context.Context) {
 	defer func() {
 		if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
-			c.cons.Debugf("Could disconnect: %s.", err)
+			c.cons.Debugf("Could not disconnect: %s.", err)
 		}
 	}()
 
@@ -412,7 +412,7 @@ func (c *cli) Run(ctx context.Context) {
 	cons.Println(release.Version + "@" + release.GitCommit[:7] + " -- Copyright © 2017 Stratumn SAS")
 	cons.Println()
 
-	// Will only be displayed in debug output is enabled.
+	// Will only be displayed if debug output is enabled.
 	cons.Debugln("Debug output is enabled.\n")
 
 	// Connect to the API.

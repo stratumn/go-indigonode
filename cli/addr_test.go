@@ -19,16 +19,21 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/mockcli"
 )
 
-func TestExit(t *testing.T) {
+func TestAddr(t *testing.T) {
+	addr := "/ip4/127.0.0.1/tcp/8904"
+
 	tt := []ExecTest{{
-		"exit earth",
-		"",
-		ErrAny,
+		"api-address",
+		addr + "\n",
 		nil,
+		func(c *mockcli.MockCLI) {
+			c.EXPECT().Address().Return(addr)
+		},
 	}, {
-		"exit 1 2",
+		"api-address earth",
 		"",
 		ErrUse,
 		nil,
@@ -36,7 +41,7 @@ func TestExit(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Exit.Exec)
+			test.Test(t, cli.Addr.Exec)
 		})
 	}
 }

@@ -29,7 +29,7 @@ func TestConnect(t *testing.T) {
 	err := errors.New("could not connect")
 
 	tt := []ExecTest{{
-		"connect",
+		"api-connect",
 		`Connecting to "` + addr + `"...
 Connected to "` + addr + `".
 `,
@@ -39,7 +39,7 @@ Connected to "` + addr + `".
 			c.EXPECT().Connect(gomock.Any(), addr).Return(nil)
 		},
 	}, {
-		"connect " + addr,
+		"api-connect " + addr,
 		`Connecting to "` + addr + `"...
 Connected to "` + addr + `".
 `,
@@ -49,12 +49,12 @@ Connected to "` + addr + `".
 			c.EXPECT().Connect(gomock.Any(), addr).Return(nil)
 		},
 	}, {
-		"connect earth moon",
+		"api-connect earth moon",
 		"",
 		ErrUse,
 		nil,
 	}, {
-		"connect",
+		"api-connect",
 		`Connecting to "` + addr + `"...
 Could not connect to "` + addr + `".
 `,

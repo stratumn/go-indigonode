@@ -186,7 +186,7 @@ func TestCli_Eval(t *testing.T) {
 	}
 
 	got := buf.String()
-	want := release.Version + "@0000000000000000000000000000000000000000\n"
+	want := release.Version + "@" + release.GitCommit + "\n"
 
 	if got != want {
 		t.Errorf("c.Exec(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)
@@ -222,7 +222,7 @@ func TestCli_Exec(t *testing.T) {
 	c.Exec(ctx, "cli-version")
 
 	got := buf.String()
-	want := release.Version + "@0000000000000000000000000000000000000000\n"
+	want := release.Version + "@" + release.GitCommit + "\n"
 
 	if got != want {
 		t.Errorf("c.Exec(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)

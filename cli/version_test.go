@@ -25,7 +25,7 @@ import (
 func TestVersion(t *testing.T) {
 	tt := []ExecTest{{
 		"cli-version",
-		release.Version + "@0000000000000000000000000000000000000000\n",
+		release.Version + "@" + release.GitCommit + "\n",
 		nil,
 		nil,
 	}, {

@@ -154,7 +154,7 @@ func reflectMethod(conn *grpc.ClientConn, method *desc.MethodDescriptor) (Cmd, e
 		return reflectFlags(method.GetFullyQualifiedName(), optional)
 	}
 
-	c.Exec = func(ctx context.Context, cli *CLI, args []string, flags *pflag.FlagSet) error {
+	c.Exec = func(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
 		return reflectExec(ctx, cli, args, flags, method, required, optional, conn)
 	}
 
@@ -269,7 +269,7 @@ func reflectFieldDesc(field *desc.FieldDescriptor) string {
 // reflectExec uses reflection to execute a command.
 func reflectExec(
 	ctx context.Context,
-	cli *CLI,
+	cli CLI,
 	args []string,
 	flags *pflag.FlagSet,
 	method *desc.MethodDescriptor,

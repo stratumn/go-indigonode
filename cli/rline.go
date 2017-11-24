@@ -26,7 +26,7 @@ import (
 
 // Register the prompt.
 func init() {
-	registerPrompt("readline", func(ctx context.Context, cli *CLI) {
+	registerPrompt("readline", func(ctx context.Context, cli CLI) {
 		p := rline{c: cli}
 		p.Run(ctx)
 	})
@@ -34,7 +34,7 @@ func init() {
 
 // rline implements a quick-and-dirty prompt using readline.
 type rline struct {
-	c     *CLI
+	c     CLI
 	line  []rune
 	pos   int
 	start int

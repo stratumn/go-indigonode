@@ -73,10 +73,10 @@ var cmds = []Cmd{
 
 // Available prompts.
 var promptsMu sync.Mutex
-var prompts = map[string]func(context.Context, *CLI){}
+var prompts = map[string]func(context.Context, CLI){}
 
 // registerPrompt registers a prompt.
-func registerPrompt(name string, run func(context.Context, *CLI)) {
+func registerPrompt(name string, run func(context.Context, CLI)) {
 	promptsMu.Lock()
 	prompts[name] = run
 	promptsMu.Unlock()
@@ -158,7 +158,7 @@ type Cmd interface {
 	Match(string) bool
 
 	// Exec executes the command.
-	Exec(context.Context, *CLI, string) error
+	Exec(context.Context, CLI, string) error
 }
 
 // Suggest implements a suggestion.
@@ -195,11 +195,51 @@ func (err *UseError) Use() string {
 	return err.use
 }
 
-// CLI implements the command line interface.
-type CLI struct {
+// CLI represents a command line interface.
+type CLI interface {
+	// Config returns the configuration.
+	Config() Config
+
+	// Console returns the console.
+	Console() *Console
+
+	// Commands returns all the commands.
+	Commands() []Cmd
+
+	// Address returns the address of the API server.
+	Address() string
+
+	// Connect connects to the API server.
+	Connect(ctx context.Context, addr string) error
+
+	// Disconnect closes the API client connection.
+	Disconnect() error
+
+	// Run runs the command line interface until the user kills it.
+	Run(context.Context)
+
+	// Eval executes the given input, but does not handle errors or exit
+	// signals.
+	Eval(ctx context.Context, in string) error
+
+	// Exec executes a command.
+	// It handles signals to cancel the command if the user presses Ctrl-C.
+	Exec(ctx context.Context, in string)
+
+	// Suggest finds all command suggestions.
+	Suggest(cnt Content) []Suggest
+
+	// DidJustExecute returns true the first time it is called after a command
+	// executed. This is a hack used by the VT100 prompt to hide suggestions
+	// after a command was executed.
+	DidJustExecute() bool
+}
+
+// cli implements the command line interface.
+type cli struct {
 	conf   Config
 	cons   *Console
-	prompt func(context.Context, *CLI)
+	prompt func(context.Context, CLI)
 
 	cmds    []Cmd
 	allCmds []Cmd
@@ -212,7 +252,7 @@ type CLI struct {
 }
 
 // New create a new command line interface.
-func New(configSet cfg.ConfigSet) (*CLI, error) {
+func New(configSet cfg.ConfigSet) (CLI, error) {
 	config, ok := configSet["cli"].(Config)
 	if !ok {
 		return nil, errors.WithStack(ErrInvalidConfig)
@@ -223,7 +263,7 @@ func New(configSet cfg.ConfigSet) (*CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
-	c := CLI{
+	c := cli{
 		conf:    config,
 		cons:    NewConsole(os.Stdout, config.EnableColorOutput),
 		prompt:  prompt,
@@ -242,27 +282,27 @@ func New(configSet cfg.ConfigSet) (*CLI, error) {
 }
 
 // Config returns the configuration.
-func (c *CLI) Config() Config {
+func (c *cli) Config() Config {
 	return c.conf
 }
 
 // Console returns the console.
-func (c *CLI) Console() *Console {
+func (c *cli) Console() *Console {
 	return c.cons
 }
 
 // Commands returns all the commands.
-func (c *CLI) Commands() []Cmd {
+func (c *cli) Commands() []Cmd {
 	return c.allCmds
 }
 
 // Address returns the address of the API server.
-func (c *CLI) Address() string {
+func (c *cli) Address() string {
 	return c.addr
 }
 
 // dialOpts builds the options to dial the API.
-func (c *CLI) dialOpts(ctx context.Context, address string) ([]grpc.DialOption, error) {
+func (c *cli) dialOpts(ctx context.Context, address string) ([]grpc.DialOption, error) {
 	opts := []grpc.DialOption{
 		// Makes the call block till the connection is made.
 		grpc.WithBlock(),
@@ -298,7 +338,7 @@ func (c *CLI) dialOpts(ctx context.Context, address string) ([]grpc.DialOption, 
 }
 
 // Connect connects to the API server.
-func (c *CLI) Connect(ctx context.Context, addr string) error {
+func (c *cli) Connect(ctx context.Context, addr string) error {
 	if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
 		return err
 	}
@@ -348,7 +388,7 @@ func (c *CLI) Connect(ctx context.Context, addr string) error {
 }
 
 // Disconnect closes the API client connection.
-func (c *CLI) Disconnect() error {
+func (c *cli) Disconnect() error {
 	if c.conn == nil {
 		return errors.WithStack(ErrDisconnected)
 	}
@@ -361,7 +401,7 @@ func (c *CLI) Disconnect() error {
 }
 
 // Run runs the command line interface until the user kills it.
-func (c *CLI) Run(ctx context.Context) {
+func (c *cli) Run(ctx context.Context) {
 	defer func() {
 		if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
 			c.cons.Debugf("Could disconnect: %s.", err)
@@ -393,7 +433,7 @@ func (c *CLI) Run(ctx context.Context) {
 }
 
 // Eval executes the given input, but does not handle errors or exit signals.
-func (c *CLI) Eval(ctx context.Context, in string) error {
+func (c *cli) Eval(ctx context.Context, in string) error {
 	// Allow multiple commands separated by new lines and semicolons.
 	var instrs []string
 	for _, l1 := range strings.Split(in, "\n") {
@@ -435,7 +475,7 @@ EXEC_INSTRS:
 
 // Exec executes a command.
 // It handles signals to cancel the command if the user presses Ctrl-C.
-func (c *CLI) Exec(ctx context.Context, in string) {
+func (c *cli) Exec(ctx context.Context, in string) {
 	defer func() { c.executed = true }()
 
 	execCtx, cancel := context.WithCancel(ctx)
@@ -486,7 +526,7 @@ func (c *CLI) Exec(ctx context.Context, in string) {
 }
 
 // Suggest finds all command suggestions.
-func (c *CLI) Suggest(cnt Content) []Suggest {
+func (c *cli) Suggest(cnt Content) []Suggest {
 	var sug []Suggest
 
 	for _, v := range c.allCmds {
@@ -504,7 +544,7 @@ func (c *CLI) Suggest(cnt Content) []Suggest {
 // DidJustExecute returns true the first time it is called after a command
 // executed. This is a hack used by the VT100 prompt to hide suggestions
 // after a command was executed.
-func (c *CLI) didJustExecute() bool {
+func (c *cli) DidJustExecute() bool {
 	defer func() { c.executed = false }()
 
 	return c.executed

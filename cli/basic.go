@@ -41,7 +41,7 @@ type BasicCmd struct {
 	Flags func() *pflag.FlagSet
 
 	// Exec is a function that must be defined to execute the command.
-	Exec func(context.Context, *CLI, []string, *pflag.FlagSet) error
+	Exec func(context.Context, CLI, []string, *pflag.FlagSet) error
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -181,7 +181,7 @@ func (cmd BasicCmdWrapper) Match(in string) bool {
 }
 
 // Exec executes the basic command.
-func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli *CLI, in string) error {
+func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, in string) error {
 	argv := strings.Split(in, " ")
 	for i, v := range argv {
 		argv[i] = strings.TrimSpace(v)

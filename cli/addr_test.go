@@ -1,4 +1,4 @@
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017  Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli
+package cli_test
 
 import (
-	"context"
-	"strings"
+	"fmt"
+	"testing"
 
-	"github.com/spf13/pflag"
+	"github.com/stratumn/alice/cli"
 )
 
-// Addr is a command that displays the API server's address.
-var Addr = BasicCmdWrapper{BasicCmd{
-	Name:  "api-address",
-	Short: "Display API server address",
-	Exec:  addrExec,
-}}
+func TestExit(t *testing.T) {
+	tt := []ExecTest{{
+		"exit earth",
+		"",
+		ErrAny,
+		nil,
+	}, {
+		"exit 1 2",
+		"",
+		ErrUse,
+		nil,
+	}}
 
-func addrExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
-	if len(args) > 0 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
+	for i, test := range tt {
+		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
+			test.Test(t, cli.Exit.Exec)
+		})
 	}
-
-	cli.Console().Println(cli.Address())
-
-	return nil
 }

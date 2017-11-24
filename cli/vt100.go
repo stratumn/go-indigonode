@@ -29,7 +29,7 @@ func init() {
 }
 
 // vt100Run launches the prompt until it is killed.
-func vt100Run(ctx context.Context, c *CLI) {
+func vt100Run(ctx context.Context, c CLI) {
 	prompt.New(
 		func(in string) {
 			c.Exec(ctx, in)
@@ -37,7 +37,7 @@ func vt100Run(ctx context.Context, c *CLI) {
 		func(d prompt.Document) []prompt.Suggest {
 			// Don't show suggestions right after a command was
 			// executed.
-			if c.didJustExecute() {
+			if c.DidJustExecute() {
 				return nil
 			}
 

@@ -1,0 +1,126 @@
+// Copyright © 2017 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
+package stratumn.alice.grpc.test;
+
+option go_package = "github.com/stratumn/alice/grpc/test;test";
+
+service Test {
+  rpc UnaryReq (Message) returns (Message) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Unary request";
+  }
+
+  rpc ServerStream (Message) returns (stream Message) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Server stream";
+  }
+
+  rpc NoExt (Message) returns (Message) {}
+}
+
+message Message {
+  string noext = 1;
+
+  string req = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "required field",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+
+  string str = 10 [
+    (stratumn.alice.grpc.ext.field_desc) = "string field"
+  ];
+  repeated string str_repeated = 11 [
+    (stratumn.alice.grpc.ext.field_desc) = "string repeated field"
+  ];
+
+  bool boolean = 12 [
+    (stratumn.alice.grpc.ext.field_desc) = "bool field"
+  ];
+  repeated bool boolean_repeated = 13 [
+    (stratumn.alice.grpc.ext.field_desc) = "bool repeated field"
+  ];
+
+  uint32 u32 = 14 [
+    (stratumn.alice.grpc.ext.field_desc) = "uint32 field"
+  ];
+  repeated uint32 u32_repeated = 15 [
+    (stratumn.alice.grpc.ext.field_desc) = "uint32 repeated field"
+  ];
+
+  bytes buf = 18 [
+    (stratumn.alice.grpc.ext.field_desc) = "bytes field"
+  ];
+  repeated bytes buf_repeated = 19 [
+    (stratumn.alice.grpc.ext.field_desc) = "bytes repeated field"
+  ];
+
+  enum Enum {
+    A = 0;
+    B = 1;
+  }
+  Enum enumeration = 20 [
+    (stratumn.alice.grpc.ext.field_desc) = "enum field"
+  ];
+  repeated Enum enumeration_repeated = 21 [
+    (stratumn.alice.grpc.ext.field_desc) = "enum repeated field"
+  ];
+
+  bytes base58 = 50 [
+    (stratumn.alice.grpc.ext.field_desc) = "base58 field",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  repeated bytes base58_repeated = 51 [
+    (stratumn.alice.grpc.ext.field_desc) = "base58 repeated field",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+
+  bytes multiaddr = 52 [
+    (stratumn.alice.grpc.ext.field_desc) = "multiaddr field",
+    (stratumn.alice.grpc.ext.field_multiaddr) = true
+  ];
+  repeated bytes multiaddr_repeated = 53 [
+    (stratumn.alice.grpc.ext.field_desc) = "multiaddr repeated field",
+    (stratumn.alice.grpc.ext.field_multiaddr) = true
+  ];
+
+  int64 duration = 54 [
+    (stratumn.alice.grpc.ext.field_desc) = "duration field",
+    (stratumn.alice.grpc.ext.field_duration) = true
+  ];
+  repeated int64 duration_repeated = 55 [
+    (stratumn.alice.grpc.ext.field_desc) = "duration repeated field",
+    (stratumn.alice.grpc.ext.field_duration) = true
+  ];
+
+  uint64 bytesize = 56 [
+    (stratumn.alice.grpc.ext.field_desc) = "bytesize field",
+    (stratumn.alice.grpc.ext.field_bytesize) = true
+  ];
+  repeated uint64 bytesize_repeated = 57 [
+    (stratumn.alice.grpc.ext.field_desc) = "bytesize repeated field",
+    (stratumn.alice.grpc.ext.field_bytesize) = true
+  ];
+
+  uint64 byterate = 58 [
+    (stratumn.alice.grpc.ext.field_desc) = "byterate field",
+    (stratumn.alice.grpc.ext.field_byterate) = true
+  ];
+  repeated uint64 byterate_repeated = 59 [
+    (stratumn.alice.grpc.ext.field_desc) = "byterate repeated field",
+    (stratumn.alice.grpc.ext.field_byterate) = true
+  ];
+}

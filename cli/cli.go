@@ -113,8 +113,8 @@ var (
 	// supported by reflection.
 	ErrUnsupportedReflectType = errors.New("the type is not currently supported by reflection")
 
-	// ErrInvalidBase58 is returned when a value is not base58 encoded.
-	ErrInvalidBase58 = errors.New("the value is not base58 encoded")
+	// ErrParse is returned when a value could not be parsed.
+	ErrParse = errors.New("could not parse value")
 )
 
 // Content represents console content used to find suggestions.
@@ -237,8 +237,9 @@ type cli struct {
 	cons   *Console
 	prompt func(context.Context, CLI)
 
-	cmds    []Cmd
-	allCmds []Cmd
+	reflector ServerReflector
+	cmds      []Cmd
+	allCmds   []Cmd
 
 	addr string
 	conn *grpc.ClientConn
@@ -254,18 +255,21 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrInvalidConfig)
 	}
 
+	cons := NewConsole(os.Stdout, config.EnableColorOutput)
+
 	prompt, ok := prompts[config.PromptBackend]
 	if !ok {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
 	c := cli{
-		conf:    config,
-		cons:    NewConsole(os.Stdout, config.EnableColorOutput),
-		prompt:  prompt,
-		cmds:    cmds,
-		allCmds: cmds,
-		addr:    config.APIAddress,
+		conf:      config,
+		cons:      cons,
+		prompt:    prompt,
+		reflector: NewServerReflector(cons, 0),
+		cmds:      cmds,
+		allCmds:   cmds,
+		addr:      config.APIAddress,
 	}
 
 	sort.Slice(c.cmds, func(i, j int) bool {
@@ -365,7 +369,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return errors.WithStack(err)
 	}
 
-	apiCmds, err := reflectAPI(ctx, conn, c.cons)
+	apiCmds, err := c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			c.cons.Debugf("Could not close connection: %s.", err)

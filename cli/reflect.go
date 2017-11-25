@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -29,7 +30,7 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/jbenet/go-base58"
+	base58 "github.com/jbenet/go-base58"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
@@ -43,161 +44,29 @@ import (
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
-/*
-Assuming server reflection is enabled on the gRPC server, the functions in this
-file attempt to create commands dynamically by inspecting the available
-services. It also looks for Alice protobuf extensions to get help strings for
-the commands.
-
-At the moment it only supports string and bool fields in the request message,
-and only works with unary requests and server streams.
-
-This is a bit complex, have a look at the photoreflect package documentation.
-*/
-
-// reflectAPI uses reflection to automatically create commands from a gRPC
-// server.
-func reflectAPI(ctx context.Context, conn *grpc.ClientConn, cons *Console) ([]Cmd, error) {
-	cons.Debugln("Reflecting API commands...")
-
-	stub := grpc_reflection_v1alpha.NewServerReflectionClient(conn)
-	client := grpcreflect.NewClient(ctx, stub)
-
-	services, err := client.ListServices()
-	if err != nil {
-		return nil, err
+// ReflectFieldDesc returns a description a the gRPC field.
+//
+// It will look for the field description extension if available.
+func ReflectFieldDesc(d *desc.FieldDescriptor) string {
+	opts := d.GetFieldOptions()
+	if opts != nil {
+		ex, err := proto.GetExtension(opts, ext.E_FieldDesc)
+		if err == nil {
+			return *ex.(*string)
+		}
 	}
 
-	var cmds []Cmd
-
-	for _, name := range services {
-		// Ignore the server reflection service.
-		if strings.HasPrefix(name, "grpc.reflection") {
-			cons.Debugf("Ignoring %q.\n", name)
-			continue
-		}
-
-		c, err := reflectService(client, conn, name, cons)
-		if err != nil {
-			return nil, err
-		}
-
-		cmds = append(cmds, c...)
-	}
-
-	client.Reset()
-
-	cons.Debugln("Reflected API commands.")
-
-	return cmds, nil
+	return strings.Replace(d.GetName(), "_", " ", -1)
 }
 
-// reflectService automatically creates commands for a service of a gRPC
-// server.
-func reflectService(client *grpcreflect.Client, conn *grpc.ClientConn, name string, cons *Console) ([]Cmd, error) {
-	cons.Debugf("Reflecting service %q...\n", name)
+// ReflectMethodDesc returns a description a the gRPC method.
+//
+// It will look for the method description extension if available.
+func ReflectMethodDesc(d *desc.MethodDescriptor) string {
+	opts := d.GetMethodOptions()
 
-	serv, err := client.ResolveService(name)
-	if err != nil {
-		return nil, err
-	}
-
-	var cmds []Cmd
-	methods := serv.GetMethods()
-
-	for _, method := range methods {
-		c, err := reflectMethod(conn, method)
-		if err != nil {
-			cons.Warningf("Could not reflect %q: %s.\n", method.GetFullyQualifiedName(), err)
-			continue
-		}
-		if c != nil {
-			cmds = append(cmds, c)
-		}
-	}
-
-	cons.Debugf("Reflected service %q.\n", name)
-	return cmds, nil
-}
-
-// reflectMethod automatically creates a command for a method of a gRPC server.
-func reflectMethod(conn *grpc.ClientConn, method *desc.MethodDescriptor) (Cmd, error) {
-	if method.IsClientStreaming() {
-		return nil, errors.WithStack(ErrUnsupportedReflectType)
-	}
-
-	serviceName := strings.ToLower(method.GetService().GetName())
-	methodName := strings.ToLower(method.GetName())
-	name := methodName
-
-	if serviceName != methodName {
-		name = serviceName + "-" + name
-	}
-
-	c := BasicCmd{
-		Name:  name,
-		Use:   name,
-		Short: reflectShort(method),
-	}
-
-	fields := method.GetInputType().GetFields()
-	required, optional, err := filterDynamicFields(fields)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, field := range required {
-		c.Use += " <" + reflectFieldDesc(field) + ">"
-	}
-
-	c.Flags = func() *pflag.FlagSet {
-		return reflectFlags(method.GetFullyQualifiedName(), optional)
-	}
-
-	c.Exec = func(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
-		return reflectExec(ctx, cli, args, flags, method, required, optional, conn)
-	}
-
-	return BasicCmdWrapper{c}, nil
-}
-
-// filterDynamicFields filters the required and optional fields of a method.
-func filterDynamicFields(fields []*desc.FieldDescriptor) ([]*desc.FieldDescriptor, []*desc.FieldDescriptor, error) {
-	var required []*desc.FieldDescriptor
-	var optional []*desc.FieldDescriptor
-
-	for _, field := range fields {
-		if field.IsRepeated() {
-			return nil, nil, errors.WithStack(ErrUnsupportedReflectType)
-		}
-
-		switch field.GetType() {
-		case descriptor.FieldDescriptorProto_TYPE_STRING:
-		case descriptor.FieldDescriptorProto_TYPE_BOOL:
-		case descriptor.FieldDescriptorProto_TYPE_BYTES:
-		case descriptor.FieldDescriptorProto_TYPE_INT64:
-		case descriptor.FieldDescriptorProto_TYPE_UINT32:
-		default:
-			return nil, nil, errors.WithStack(ErrUnsupportedReflectType)
-		}
-
-		if reflectFieldRequired(field) {
-			required = append(required, field)
-			continue
-		}
-
-		optional = append(optional, field)
-	}
-
-	return required, optional, nil
-}
-
-// reflectShort uses reflection to get the short string of a command.
-func reflectShort(method *desc.MethodDescriptor) string {
-	options := method.GetMethodOptions()
-
-	if options != nil {
-		ex, err := proto.GetExtension(options, ext.E_MethodDesc)
+	if opts != nil {
+		ex, err := proto.GetExtension(opts, ext.E_MethodDesc)
 		if err == nil {
 			return *ex.(*string)
 		}
@@ -205,47 +74,21 @@ func reflectShort(method *desc.MethodDescriptor) string {
 
 	return fmt.Sprintf(
 		"Call the %s method of the %s service",
-		method.GetName(),
-		method.GetService().GetFullyQualifiedName(),
+		d.GetName(),
+		d.GetService().GetFullyQualifiedName(),
 	)
 }
 
-// reflectFlags uses reflection to create a flag set.
-func reflectFlags(name string, fields []*desc.FieldDescriptor) *pflag.FlagSet {
-	flags := pflag.NewFlagSet(name, pflag.ContinueOnError)
-
-	flags.Bool("no-truncate", false, "Disable truncating rows")
-	flags.Bool("no-borders", false, "Disable table borders")
-
-	for _, field := range fields {
-		fieldName := field.GetName()
-		use := reflectFieldDesc(field)
-
-		switch field.GetType() {
-		case descriptor.FieldDescriptorProto_TYPE_STRING:
-			flags.String(fieldName, "", use)
-		case descriptor.FieldDescriptorProto_TYPE_BOOL:
-			flags.Bool(fieldName, false, use)
-		case descriptor.FieldDescriptorProto_TYPE_BYTES:
-			flags.String(fieldName, "", use)
-		case descriptor.FieldDescriptorProto_TYPE_INT64:
-			flags.Int64(fieldName, 0, use)
-		case descriptor.FieldDescriptorProto_TYPE_UINT32:
-			flags.Uint32(fieldName, 0, use)
-		}
-	}
-
-	return flags
-}
-
-// reflectFieldRequired uses reflection to check if a field is required.
-func reflectFieldRequired(field *desc.FieldDescriptor) bool {
-	options := field.GetFieldOptions()
-	if options == nil {
+// ReflectFieldRequired returns whether a gRPC field is required.
+//
+// It will look for the field required extension if available.
+func ReflectFieldRequired(d *desc.FieldDescriptor) bool {
+	opts := d.GetFieldOptions()
+	if opts == nil {
 		return false
 	}
 
-	ex, err := proto.GetExtension(options, ext.E_FieldRequired)
+	ex, err := proto.GetExtension(opts, ext.E_FieldRequired)
 	if err != nil {
 		return false
 	}
@@ -253,21 +96,687 @@ func reflectFieldRequired(field *desc.FieldDescriptor) bool {
 	return *ex.(*bool)
 }
 
-// reflectFieldDesc uses reflection to get a field's description.
-func reflectFieldDesc(field *desc.FieldDescriptor) string {
-	options := field.GetFieldOptions()
-	if options != nil {
-		ex, err := proto.GetExtension(options, ext.E_FieldDesc)
-		if err == nil {
-			return *ex.(*string)
+// Reflector reflects gRPC fields.
+type Reflector interface {
+	// Supports returns whether it can handle this field.
+	Supports(*desc.FieldDescriptor) bool
+}
+
+// ArgReflector reflects values for a gRPC request from a command argument.
+type ArgReflector interface {
+	Reflector
+
+	// Parse parses the value for the field from a string.
+	Parse(*desc.FieldDescriptor, string) (interface{}, error)
+}
+
+// FlagReflector reflects values for a gRPC request from a command flag.
+type FlagReflector interface {
+	Reflector
+
+	// Flag adds a flag for the value to a flag set.
+	Flag(*desc.FieldDescriptor, *pflag.FlagSet)
+
+	// ParseFlag parses the value of the flag.
+	ParseFlag(*desc.FieldDescriptor, *pflag.FlagSet) (interface{}, error)
+}
+
+// ResponseReflector reflects values of a gRPC request.
+type ResponseReflector interface {
+	Reflector
+
+	// Pretty returns a human friendly representation of the value.
+	Pretty(*desc.FieldDescriptor, interface{}) (string, error)
+}
+
+// ReflectChecker checks if a field is supported by a reflector
+type ReflectChecker func(*desc.FieldDescriptor) bool
+
+// ReflectEncoder encodes a value to a string
+type ReflectEncoder func(*desc.FieldDescriptor, interface{}) (string, error)
+
+// ReflectDecoder decodes a value from a string.
+type ReflectDecoder func(*desc.FieldDescriptor, string) (interface{}, error)
+
+// GenericReflector is a generic reflector that covers most use cases.
+type GenericReflector struct {
+	// Zero is the zero value of the primitive type in a protocol buffer.
+	Zero interface{}
+
+	Checker ReflectChecker
+	Encoder ReflectEncoder
+	Decoder ReflectDecoder
+}
+
+// Supports returns whether it can handle this type of field.
+func (r GenericReflector) Supports(d *desc.FieldDescriptor) bool {
+	return r.Checker(d)
+}
+
+// Parse parses the value for the field from a string.
+func (r GenericReflector) Parse(d *desc.FieldDescriptor, s string) (interface{}, error) {
+	s = strings.TrimSpace(s)
+
+	if d.IsRepeated() {
+		vals := strings.Split(s, ",")
+		l := len(vals)
+		t := reflect.SliceOf(reflect.TypeOf(r.Zero))
+		res := reflect.MakeSlice(t, l, l)
+
+		for i, v := range vals {
+			decoded, err := r.Decoder(d, strings.TrimSpace(v))
+			if err != nil {
+				return reflect.MakeSlice(t, 0, 0).Interface(), err
+			}
+			res.Index(i).Set(reflect.ValueOf(decoded))
+		}
+
+		return res.Interface(), nil
+	}
+
+	return r.Decoder(d, s)
+}
+
+// Flag adds a flag for the value to a flag set.
+func (r GenericReflector) Flag(d *desc.FieldDescriptor, f *pflag.FlagSet) {
+	help := ReflectFieldDesc(d)
+
+	if d.IsRepeated() {
+		f.StringSlice(d.GetName(), []string{}, help)
+		return
+	}
+
+	f.String(d.GetName(), "", help)
+}
+
+// ParseFlag parses the value of the flag.
+func (r GenericReflector) ParseFlag(d *desc.FieldDescriptor, f *pflag.FlagSet) (interface{}, error) {
+	if d.IsRepeated() {
+		v, err := f.GetStringSlice(d.GetName())
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		l := len(v)
+		t := reflect.SliceOf(reflect.TypeOf(r.Zero))
+		res := reflect.MakeSlice(t, l, l)
+
+		for i, s := range v {
+			decoded, err := r.Decoder(d, strings.TrimSpace(s))
+			if err != nil {
+				return reflect.MakeSlice(t, 0, 0).Interface(), err
+			}
+			res.Index(i).Set(reflect.ValueOf(decoded))
+		}
+
+		return res.Interface(), nil
+	}
+
+	v, err := f.GetString(d.GetName())
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+	if v == "" {
+		return r.Zero, nil
+	}
+	return r.Decoder(d, strings.TrimSpace(v))
+}
+
+// Pretty returns a human friendly representation of the value.
+func (r GenericReflector) Pretty(d *desc.FieldDescriptor, v interface{}) (string, error) {
+	if d.IsRepeated() {
+		v := reflect.ValueOf(v)
+		l := v.Len()
+		s := make([]string, l)
+
+		for i := range s {
+			encoded, err := r.Encoder(d, v.Index(i).Interface())
+			if err != nil {
+				return "", err
+			}
+
+			s[i] = encoded
+		}
+
+		return strings.Join(s, ","), nil
+	}
+
+	return r.Encoder(d, v)
+}
+
+// NewStringReflector creates a new string reflector.
+func NewStringReflector() Reflector {
+	return GenericReflector{
+		Zero: "",
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_STRING
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return v.(string), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			return s, nil
+		},
+	}
+}
+
+// NewBoolReflector creates a new bool reflector.
+func NewBoolReflector() Reflector {
+	return GenericReflector{
+		Zero: false,
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_BOOL
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return fmt.Sprintf("%v", v), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			switch strings.ToLower(s) {
+			case "true":
+				return true, nil
+			case "false":
+				return false, nil
+			}
+
+			return false, errors.WithStack(ErrParse)
+		},
+	}
+}
+
+// NewUint32Reflector creates a new uint32 reflector.
+func NewUint32Reflector() Reflector {
+	return GenericReflector{
+		Zero: uint32(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_UINT32
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return fmt.Sprintf("%d", v), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			i, err := strconv.ParseUint(s, 10, 32)
+			return uint32(i), errors.WithStack(err)
+		},
+	}
+}
+
+// NewBytesReflector creates a new bytes reflector.
+func NewBytesReflector() Reflector {
+	return GenericReflector{
+		Zero: []byte{},
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_BYTES
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return hex.EncodeToString(v.([]byte)), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v, err := hex.DecodeString(s)
+			if err != nil {
+				return []byte{}, errors.WithStack(err)
+			}
+
+			return v, nil
+		},
+	}
+}
+
+// NewEnumReflector creates a new enum reflector.
+func NewEnumReflector() Reflector {
+	return GenericReflector{
+		Zero: int32(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_ENUM
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			t := d.GetEnumType()
+			return t.FindValueByNumber(v.(int32)).GetName(), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			s = strings.ToLower(s)
+			t := d.GetEnumType()
+			for _, vt := range t.GetValues() {
+				if s == strings.ToLower(vt.GetName()) {
+					return vt.GetNumber(), nil
+				}
+			}
+
+			return int32(0), errors.WithStack(ErrParse)
+		},
+	}
+}
+
+// NewDurationReflector creates a new duration reflector.
+func NewDurationReflector() Reflector {
+	return GenericReflector{
+		Zero: int64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_INT64 {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldDuration)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return time.Duration(v.(int64)).String(), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v, err := time.ParseDuration(s)
+			return int64(v), errors.WithStack(err)
+		},
+	}
+}
+
+// NewBase58Reflector creates a new base58 reflector.
+func NewBase58Reflector() Reflector {
+	return GenericReflector{
+		Zero: []byte{},
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_BYTES {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldBase58)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return base58.Encode(v.([]byte)), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v := base58.Decode(s)
+			if len(v) < 1 {
+				return []byte{}, errors.WithStack(ErrParse)
+			}
+
+			return v, nil
+		},
+	}
+}
+
+// NewBytesizeReflector creates a new bytesize reflector.
+func NewBytesizeReflector() Reflector {
+	return GenericReflector{
+		Zero: uint64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_UINT64 {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldBytesize)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return bytefmt.ByteSize(v.(uint64)), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v, err := bytefmt.ToBytes(s)
+			return v, errors.WithStack(err)
+		},
+	}
+}
+
+// NewByterateReflector creates a new byterate reflector.
+func NewByterateReflector() Reflector {
+	return GenericReflector{
+		Zero: uint64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_UINT64 {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldByterate)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return bytefmt.ByteSize(v.(uint64)) + "/s", nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			s = strings.TrimSuffix(s, "/s")
+			v, err := bytefmt.ToBytes(s)
+			return v, errors.WithStack(err)
+		},
+	}
+}
+
+// NewMaddrReflector creates a new multiaddr reflector.
+func NewMaddrReflector() Reflector {
+	return GenericReflector{
+		Zero: []byte{},
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_BYTES {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldMultiaddr)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			maddr, err := ma.NewMultiaddrBytes(v.([]byte))
+			if err != nil {
+				return "", errors.WithStack(err)
+			}
+
+			return maddr.String(), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v, err := ma.NewMultiaddr(s)
+			if err != nil {
+				return []byte{}, errors.WithStack(err)
+			}
+
+			return v.Bytes(), nil
+		},
+	}
+}
+
+// DefReflectors are the default reflectors used by NewServerReflector.
+var DefReflectors = []Reflector{
+	NewDurationReflector(),
+	NewBase58Reflector(),
+	NewBytesizeReflector(),
+	NewByterateReflector(),
+	NewMaddrReflector(),
+	NewStringReflector(),
+	NewBoolReflector(),
+	NewUint32Reflector(),
+	NewBytesReflector(),
+	NewEnumReflector(),
+}
+
+// ServerReflector reflects commands from a gRPC server.
+//
+// The server must have the reflection service enabled.
+type ServerReflector struct {
+	cons           *Console
+	argReflectors  []ArgReflector
+	flagReflectors []FlagReflector
+	resReflectors  []ResponseReflector
+	width          int
+}
+
+// NewServerReflector reflects commands from a gRPC server.
+//
+// When reflecting fields, the first reflector that supports it is used. This
+// means that the more specific reflectors should be passed first.
+//
+// If no reflectors are given, DefReflectors is used.
+func NewServerReflector(cons *Console, termWidth int, reflectors ...Reflector) ServerReflector {
+	if len(reflectors) < 1 {
+		reflectors = DefReflectors
+	}
+
+	if termWidth == 0 {
+		termWidth = readline.GetScreenWidth()
+	}
+
+	r := ServerReflector{cons: cons, width: termWidth}
+
+	for _, reflector := range reflectors {
+		if v, ok := reflector.(ArgReflector); ok {
+			r.argReflectors = append(r.argReflectors, v)
+		}
+
+		if v, ok := reflector.(FlagReflector); ok {
+			r.flagReflectors = append(r.flagReflectors, v)
+		}
+
+		if v, ok := reflector.(ResponseReflector); ok {
+			r.resReflectors = append(r.resReflectors, v)
 		}
 	}
 
-	return field.GetName() + " field of the API request"
+	return r
 }
 
-// reflectExec uses reflection to execute a command.
-func reflectExec(
+// Reflect reflects the command of a server and returns commands for them.
+func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]Cmd, error) {
+	r.cons.Debugln("Reflecting API commands...")
+
+	stub := grpc_reflection_v1alpha.NewServerReflectionClient(conn)
+	c := grpcreflect.NewClient(ctx, stub)
+	defer c.Reset()
+
+	servNames, err := c.ListServices()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var cmds []Cmd
+	for _, d := range r.getServiceDescs(c, servNames) {
+		cmds = append(cmds, r.reflectService(conn, d)...)
+	}
+
+	r.cons.Debugln("Reflected API commands.")
+
+	return cmds, err
+}
+
+// getServicesDescs gets the service descriptors for the given service names.
+func (r ServerReflector) getServiceDescs(c *grpcreflect.Client, servNames []string) []*desc.ServiceDescriptor {
+	var descs []*desc.ServiceDescriptor
+
+	for _, name := range servNames {
+		// Ignore the server reflection service.
+		if strings.HasPrefix(name, "grpc.reflection") {
+			r.cons.Debugf("Ignoring %q.\n", name)
+			continue
+		}
+
+		d, err := c.ResolveService(name)
+		if err != nil {
+			if err != nil {
+				r.cons.Warningf("Could not get service descriptor for %q: %s\n", name, err)
+				continue
+			}
+			continue
+		}
+
+		descs = append(descs, d)
+	}
+
+	return descs
+}
+
+// reflectService reflect commands for the given service descriptor.
+func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDescriptor) []Cmd {
+	methodDescs := d.GetMethods()
+
+	var cmds []Cmd
+	for _, methodDesc := range methodDescs {
+		c, err := r.reflectMethod(conn, methodDesc)
+		if err != nil {
+			r.cons.Warningf("Could not reflect %q: %s.\n", methodDesc.GetFullyQualifiedName(), err)
+			continue
+		}
+
+		if c != nil {
+			cmds = append(cmds, c)
+		}
+	}
+
+	return cmds
+}
+
+// reflectMethods reflect the command for the given methods descriptor.
+func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDescriptor) (Cmd, error) {
+	if d.IsClientStreaming() {
+		return nil, errors.WithStack(ErrUnsupportedReflectType)
+	}
+
+	servName := strings.ToLower(d.GetService().GetName())
+	methodName := strings.ToLower(d.GetName())
+	name := methodName
+
+	if servName != methodName {
+		name = servName + "-" + name
+	}
+
+	cmd := BasicCmd{
+		Name:  name,
+		Use:   name,
+		Short: ReflectMethodDesc(d),
+	}
+
+	for _, f := range d.GetOutputType().GetFields() {
+		if r.findResReflector(f) == nil {
+			return nil, ErrUnsupportedReflectType
+		}
+	}
+
+	inputDescs := d.GetInputType().GetFields()
+
+	required, err := r.findRequiredFields(inputDescs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range required {
+		cmd.Use += " <" + ReflectFieldDesc(f) + ">"
+	}
+
+	optional, err := r.findOptionalFields(inputDescs)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Flags = func() *pflag.FlagSet {
+		return r.flags(d.GetFullyQualifiedName(), optional)
+	}
+
+	cmd.Exec = func(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+		return r.reflectExec(ctx, cli, args, flags, d, required, optional, conn)
+	}
+
+	return BasicCmdWrapper{cmd}, nil
+}
+
+// findRequiredFields finds all the required fields.
+func (r ServerReflector) findRequiredFields(
+	descs []*desc.FieldDescriptor,
+) ([]*desc.FieldDescriptor, error) {
+	var required []*desc.FieldDescriptor
+
+	for _, d := range descs {
+		if ReflectFieldRequired(d) {
+			if r.findArgReflector(d) == nil {
+				return nil, ErrUnsupportedReflectType
+			}
+
+			required = append(required, d)
+		}
+	}
+
+	return required, nil
+}
+
+// findOptionalFields finds all the optional fields.
+func (r ServerReflector) findOptionalFields(
+	descs []*desc.FieldDescriptor,
+) ([]*desc.FieldDescriptor, error) {
+	var optional []*desc.FieldDescriptor
+
+	for _, d := range descs {
+		if !ReflectFieldRequired(d) {
+			if r.findFlagReflector(d) == nil {
+				return nil, ErrUnsupportedReflectType
+			}
+
+			optional = append(optional, d)
+		}
+	}
+
+	return optional, nil
+}
+
+// findArgReflector finds the first argument reflector that supports a field.
+func (r ServerReflector) findArgReflector(d *desc.FieldDescriptor) ArgReflector {
+	for _, reflector := range r.argReflectors {
+		if reflector.Supports(d) {
+			return reflector
+		}
+	}
+
+	return nil
+}
+
+// findFlagReflector finds the first flag reflector that supports a field.
+func (r ServerReflector) findFlagReflector(d *desc.FieldDescriptor) FlagReflector {
+	for _, reflector := range r.flagReflectors {
+		if reflector.Supports(d) {
+			return reflector
+		}
+	}
+
+	return nil
+}
+
+// findResReflector finds the first response reflector that supports a field.
+func (r ServerReflector) findResReflector(d *desc.FieldDescriptor) ResponseReflector {
+	for _, reflector := range r.resReflectors {
+		if reflector.Supports(d) {
+			return reflector
+		}
+	}
+
+	return nil
+}
+
+// flags adds flags to a command.
+func (r ServerReflector) flags(name string, descs []*desc.FieldDescriptor) *pflag.FlagSet {
+	flags := pflag.NewFlagSet(name, pflag.ContinueOnError)
+
+	flags.Bool("no-truncate", false, "Disable truncating rows")
+	flags.Bool("no-borders", false, "Disable table borders")
+
+	for _, d := range descs {
+		reflector := r.findFlagReflector(d)
+		if reflector == nil {
+			r.cons.Errorf(
+				"Could not find reflector for %q (this shouldn't happen).\n",
+				d.GetName(),
+			)
+			continue
+		}
+
+		reflector.Flag(d, flags)
+	}
+
+	return flags
+}
+
+// reflectExec executes a command.
+func (r ServerReflector) reflectExec(
 	ctx context.Context,
 	cli CLI,
 	args []string,
@@ -289,10 +798,10 @@ func reflectExec(
 
 	req := dynamic.NewMessage(method.GetInputType())
 
-	if err := setDynamicFlags(req, optional, flags); err != nil {
+	if err := r.setArgs(req, required, args); err != nil {
 		return err
 	}
-	if err := setDynamicArgs(req, required, args); err != nil {
+	if err := r.setFlags(req, optional, flags); err != nil {
 		return err
 	}
 
@@ -323,7 +832,7 @@ func reflectExec(
 			return errors.WithStack(err)
 		}
 
-		return printDynamicStream(w, ss, !noTrunc, !noBord)
+		return r.printStream(w, ss, !noTrunc, !noBord)
 	}
 
 	res, err := stub.InvokeRpc(reqCtx, method, req)
@@ -331,121 +840,82 @@ func reflectExec(
 		return errors.WithStack(err)
 	}
 
-	return printDynamicMsg(w, res.(*dynamic.Message))
+	return r.printMsg(w, res.(*dynamic.Message))
 }
 
-// setDynamicFlags sets the dynamic request values from flags.
-func setDynamicFlags(req *dynamic.Message, fields []*desc.FieldDescriptor, flags *pflag.FlagSet) error {
-	for _, field := range fields {
-		fieldName := field.GetName()
-
-		switch field.GetType() {
-		case descriptor.FieldDescriptorProto_TYPE_STRING:
-			value, err := flags.GetString(fieldName)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, value)
-		case descriptor.FieldDescriptorProto_TYPE_BOOL:
-			value, err := flags.GetBool(fieldName)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, value)
-		case descriptor.FieldDescriptorProto_TYPE_BYTES:
-			value, err := flags.GetString(fieldName)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			if value == "" {
-				continue
-			}
-
-			b, err := reflectBytesValue(field, value)
-			if err != nil {
-				return err
-			}
-
-			req.SetFieldByName(fieldName, b)
-		case descriptor.FieldDescriptorProto_TYPE_INT64:
-			// TODO: handle duration.
-			value, err := flags.GetInt64(fieldName)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, value)
-		case descriptor.FieldDescriptorProto_TYPE_UINT32:
-			value, err := flags.GetUint32(fieldName)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, value)
+// setArgs sets argument values.
+func (r ServerReflector) setArgs(req *dynamic.Message, descs []*desc.FieldDescriptor, args []string) error {
+	for i, d := range descs {
+		reflector := r.findArgReflector(d)
+		if reflector == nil {
+			// Not possible.
+			return ErrUnsupportedReflectType
 		}
+
+		v, err := reflector.Parse(d, args[i])
+		if err != nil {
+			return err
+		}
+
+		req.SetFieldByName(d.GetName(), v)
 	}
 
 	return nil
 }
 
-// setDymanicArgs sets the dynamic request values from arguments.
-func setDynamicArgs(req *dynamic.Message, fields []*desc.FieldDescriptor, args []string) error {
-	for i, field := range fields {
-		fieldName := field.GetName()
-		value := args[i]
-
-		switch field.GetType() {
-		case descriptor.FieldDescriptorProto_TYPE_STRING:
-			req.SetFieldByName(fieldName, value)
-		case descriptor.FieldDescriptorProto_TYPE_BOOL:
-			switch value {
-			case "true":
-				req.SetFieldByName(fieldName, true)
-			case "false":
-				req.SetFieldByName(fieldName, false)
-			default:
-				return NewUseError("invalid bool value: " + value)
-			}
-		case descriptor.FieldDescriptorProto_TYPE_BYTES:
-			b, err := reflectBytesValue(field, value)
-			if err != nil {
-				return err
-			}
-			req.SetFieldByName(fieldName, b)
-		case descriptor.FieldDescriptorProto_TYPE_INT64:
-			// TODO: handle duration.
-			i, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, i)
-		case descriptor.FieldDescriptorProto_TYPE_UINT32:
-			i, err := strconv.ParseUint(value, 10, 32)
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			req.SetFieldByName(fieldName, i)
+// setFlags sets flag values.
+func (r ServerReflector) setFlags(req *dynamic.Message, descs []*desc.FieldDescriptor, flags *pflag.FlagSet) error {
+	for _, d := range descs {
+		reflector := r.findFlagReflector(d)
+		if reflector == nil {
+			// Not possible.
+			return ErrUnsupportedReflectType
 		}
+
+		v, err := reflector.ParseFlag(d, flags)
+		if err != nil {
+			return err
+		}
+
+		req.SetFieldByName(d.GetName(), v)
 	}
 
 	return nil
 }
 
-// printDynamicMsg prints a unary dynamic message received from the API.
-func printDynamicMsg(w io.Writer, msg *dynamic.Message) error {
+// printMsg prints a message received from the server.
+func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
+	descs := msg.GetKnownFields()
+
+	if len(descs) == 1 {
+		value, err := r.pretty(descs[0], msg.GetField(descs[0]))
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(value)
+		return nil
+	}
+
 	tw := new(tabwriter.Writer)
 	tw.Init(w, 0, 8, 2, ' ', 0)
 
-	for _, field := range msg.GetKnownFields() {
-		name := field.GetName()
-		label := strings.ToUpper(name)
-		value := prettyDynamicVal(msg, field)
+	for _, d := range descs {
+		label := strings.ToUpper(ReflectFieldDesc(d))
+
+		value, err := r.pretty(d, msg.GetField(d))
+		if err != nil {
+			return err
+		}
+
 		fmt.Fprintf(tw, "%s\t%v\n", label, value)
 	}
 
 	return errors.WithStack(tw.Flush())
 }
 
-// printDynamicStream prints a dynamic stream received from the API.
-func printDynamicStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, borders bool) error {
+// printDynamicStream prints the messages of a server stream.
+func (r ServerReflector) printStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, borders bool) error {
 	var b bytes.Buffer
 	var numCols int
 
@@ -453,7 +923,7 @@ func printDynamicStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, bor
 	tw.Init(&b, 0, 8, 1, ' ', 0)
 
 	// Used to check if it should print the table header.
-	firstRow := true
+	first := true
 
 	for {
 		res, err := ss.RecvMsg()
@@ -465,47 +935,18 @@ func printDynamicStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, bor
 		}
 
 		msg := res.(*dynamic.Message)
-		fields := msg.GetKnownFields()
-		numCols = len(fields)
+		descs := msg.GetKnownFields()
+		numCols = len(descs)
 
-		if firstRow && numCols > 1 {
-			for i, field := range fields {
-				label := strings.ToUpper(field.GetName())
-
-				if i < numCols-1 {
-					if borders {
-						fmt.Fprintf(tw, "%s\t| ", label)
-					} else {
-						fmt.Fprintf(tw, "%s\t", label)
-					}
-				} else {
-					fmt.Fprintf(tw, "%s", label)
-				}
-			}
-
-			fmt.Fprintln(tw, "")
-
-			if borders {
-				for range fields[:numCols-1] {
-					fmt.Fprint(tw, "\t+")
-				}
-
-				fmt.Fprintln(tw, "\t")
-			}
+		if first && numCols > 1 {
+			r.printTableHeader(tw, descs, borders)
 		}
 
-		for i, field := range fields {
-			value := prettyDynamicVal(msg, field)
-
-			if borders && i < numCols-1 {
-				fmt.Fprintf(tw, "%s\t| ", value)
-			} else {
-				fmt.Fprintf(tw, "%s\t", value)
-			}
+		if err := r.printTableRow(tw, descs, msg, borders); err != nil {
+			return err
 		}
 
-		fmt.Fprintln(tw, "")
-		firstRow = false
+		first = false
 
 	}
 
@@ -514,135 +955,113 @@ func printDynamicStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, bor
 	}
 
 	// Truncate output.
-	width := readline.GetScreenWidth()
-
 	for i, row := range strings.Split(b.String(), "\n") {
-		if borders && numCols > 1 && i == 1 {
-			row = strings.Replace(row, " ", "-", width)
-			l := len(row) - 1
-			if l > width {
-				l = width
-			}
-			row = row[:l]
-			fmt.Fprintln(w, row)
+		if row == "" {
 			continue
 		}
 
-		row := strings.TrimSpace(row)
-		runes := []rune(row)
+		if borders && numCols > 1 && i == 1 {
+			// Print the horizontal line.
+			row = strings.Replace(row, " ", "-", r.width)
 
-		if truncate && width > 0 && len(runes) > width {
-			fmt.Fprintln(w, string(runes[:width-3])+"...")
-		} else if row != "" {
+			l := len(row) - 1
+			if l > r.width {
+				l = r.width
+			}
+
+			row = row[:l]
 			fmt.Fprintln(w, row)
+
+			continue
+		}
+
+		if truncate {
+			r.printTruncated(w, row)
+		} else {
+			fmt.Fprintf(w, row)
 		}
 	}
 
 	return nil
 }
 
-// prettyDynamicVal returns a strings representation of a value returns by the
-// API.
-func prettyDynamicVal(msg *dynamic.Message, field *desc.FieldDescriptor) string {
-	value := msg.GetFieldByName(field.GetName())
+// printTableHeader prints the header of a table.
+func (r ServerReflector) printTableHeader(w io.Writer, descs []*desc.FieldDescriptor, borders bool) {
+	last := len(descs) - 1
 
-	if enum := field.GetEnumType(); enum != nil {
-		return enum.FindValueByNumber(value.(int32)).GetName()
+	for i, d := range descs {
+		label := strings.ToUpper(ReflectFieldDesc(d))
+
+		if i < last {
+			if borders {
+				fmt.Fprintf(w, "%s\t| ", label)
+			} else {
+				fmt.Fprintf(w, "%s\t", label)
+			}
+		} else {
+			fmt.Fprintf(w, "%s", label)
+		}
 	}
 
-	switch v := value.(type) {
-	case []byte:
-		options := field.GetFieldOptions()
-		if options != nil {
-			// Base58.
-			ex, err := proto.GetExtension(options, ext.E_FieldBase58)
-			if err == nil && *ex.(*bool) {
-				return base58.Encode(v)
-			}
+	fmt.Fprintln(w, "")
 
-			// Multiaddr.
-			ex, err = proto.GetExtension(options, ext.E_FieldMultiaddr)
-			if err == nil && *ex.(*bool) {
-				addr, err := ma.NewMultiaddrBytes(v)
-				if err == nil {
-					return addr.String()
-				}
-			}
+	// Print a dummy row for the horizontal line.
+	if borders {
+		for range descs[:last] {
+			fmt.Fprint(w, "\t+")
 		}
 
-		return hex.EncodeToString(v)
-
-	case int64:
-		options := field.GetFieldOptions()
-		if options != nil {
-			// Duration.
-			ex, err := proto.GetExtension(options, ext.E_FieldDuration)
-			if err == nil && *ex.(*bool) {
-				return fmt.Sprintf("%v", time.Duration(v))
-			}
-		}
-		return fmt.Sprintf("%d", v)
-
-	case uint64:
-		options := field.GetFieldOptions()
-		if options != nil {
-			// Bytesize.
-			ex, err := proto.GetExtension(options, ext.E_FieldBytesize)
-			if err == nil && *ex.(*bool) {
-				return bytefmt.ByteSize(v)
-			}
-
-			// Byterate.
-			ex, err = proto.GetExtension(options, ext.E_FieldByterate)
-			if err == nil && *ex.(*bool) {
-				return fmt.Sprintf("%s/s", bytefmt.ByteSize(v))
-			}
-		}
-		return fmt.Sprintf("%d", v)
-
-	default:
-		return fmt.Sprintf("%v", v)
+		fmt.Fprintln(w, "\t")
 	}
 }
 
-// reflectBytesValue sets the value of a field of type bytes from a string.
-func reflectBytesValue(field *desc.FieldDescriptor, value string) ([]byte, error) {
-	var b []byte
-	var err error
+// printTableRow prints a row of a table.
+func (r ServerReflector) printTableRow(w io.Writer, descs []*desc.FieldDescriptor, msg *dynamic.Message, borders bool) error {
+	last := len(descs) - 1
 
-	options := field.GetFieldOptions()
-
-	if options != nil {
-		// Base58.
-		ex, err := proto.GetExtension(options, ext.E_FieldBase58)
-		if err == nil && *ex.(*bool) {
-			b = base58.Decode(value)
-			if len(b) < 1 {
-				return nil, errors.WithStack(ErrInvalidBase58)
-			}
-		}
-
-		// Multiaddr.
-		if len(b) < 1 {
-			ex, err = proto.GetExtension(options, ext.E_FieldMultiaddr)
-			if err == nil && *ex.(*bool) {
-				addr, err := ma.NewMultiaddr(value)
-				if err != nil {
-					return nil, errors.WithStack(err)
-				}
-
-				b = addr.Bytes()
-			}
-		}
-	}
-
-	// Hex.
-	if len(b) < 1 {
-		b, err = hex.DecodeString(value)
+	for i, d := range descs {
+		value, err := r.pretty(d, msg.GetFieldByName(d.GetName()))
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return err
+		}
+
+		if borders && i < last {
+			fmt.Fprintf(w, "%s\t| ", value)
+		} else {
+			fmt.Fprintf(w, "%s\t", value)
 		}
 	}
 
-	return b, nil
+	fmt.Fprintln(w, "")
+
+	return nil
+}
+
+// printTruncated prints a strings and truncates it if its length is larger
+// than the terminal width.
+func (r ServerReflector) printTruncated(w io.Writer, s string) {
+	s = strings.TrimRight(s, " ")
+	runes := []rune(s)
+
+	if r.width > 0 && len(runes) > r.width {
+		fmt.Fprintln(w, string(runes[:r.width-3])+"...")
+		return
+	}
+
+	fmt.Fprintln(w, s)
+}
+
+// pretty prints a human friendly string of a value.
+func (r ServerReflector) pretty(d *desc.FieldDescriptor, v interface{}) (string, error) {
+	reflector := r.findResReflector(d)
+	if reflector == nil {
+		return "", ErrUnsupportedReflectType
+	}
+
+	s, err := reflector.Pretty(d, v)
+	if err != nil {
+		return "", err
+	}
+
+	return s, err
 }

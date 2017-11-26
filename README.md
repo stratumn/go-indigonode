@@ -10,16 +10,14 @@ Copyright © 2017 Stratumn SAS
 ## Project Status
 
 The current focus is to build a solid architecture to develop P2P services.
-Once the design has proven its soundness, some code needs to be cleaned up and
-unit tests need to be written (things change way too fast at this point).
 
 ### Current features
 
-* uses IPFS' go-libp2p library
-* neat and powerful inner-process service based architecture
+* uses IPFS's go-libp2p library
 * core services (P2P, NAT, DHT routing, relay, etc...)
 * P2P bootstrapping from seed nodes
 * gRPC API
+* neat and powerful inner-process service based architecture
 * CLI with gRPC command reflection
 * system test framework
 * nice logs
@@ -32,11 +30,6 @@ unit tests need to be written (things change way too fast at this point).
 * Proof-Of-Authority for consortiums
 * a simple, script-less, digital asset
 * Indigo integration (compatibility with Tenderint ABCI?)
-
-### Stuff That Needs Refactoring
-
-* `cli/reflect.go`: current code feels hacky, it should be properly designed
-  to make it easy to support new types
 
 ## Installation
 

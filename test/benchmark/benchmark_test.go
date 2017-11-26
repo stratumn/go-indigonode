@@ -118,6 +118,39 @@ func BenchmarkPing(b *testing.B) {
 	}
 }
 
+func BenchmarkPing_times(b *testing.B) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+		client := ping.NewPingClient(conns[0])
+		b.ResetTimer()
+
+		ssCtx, cancelSS := context.WithCancel(ctx)
+		defer cancelSS()
+
+		ss, err := client.Ping(ssCtx, &ping.PingReq{
+			PeerId: []byte(set[1].PeerID()),
+			Times:  uint32(b.N),
+		})
+
+		for {
+			_, err = ss.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				b.Errorf("s.Recv(): error: %+v", err)
+			}
+		}
+	}
+
+	err := session.Run(ctx, SessionDir, 2, session.BenchmarkCfg(), tester)
+	if err != nil {
+		b.Errorf("Session(): error: %+v", err)
+	}
+}
+
 func BenchmarkPing_parallel(b *testing.B) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
 	defer cancel()
@@ -137,6 +170,48 @@ func BenchmarkPing_parallel(b *testing.B) {
 				_, err = ss.Recv()
 				if err != nil {
 					b.Errorf("s.Recv(): error: %+v", err)
+				}
+
+				cancelSS()
+			}
+		})
+	}
+
+	err := session.Run(ctx, SessionDir, 2, session.BenchmarkCfg(), tester)
+	if err != nil {
+		b.Errorf("Session(): error: %+v", err)
+	}
+}
+
+func BenchmarkPing_times100_parallel(b *testing.B) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+		client := ping.NewPingClient(conns[0])
+		b.ResetTimer()
+
+		b.RunParallel(func(p *testing.PB) {
+			for p.Next() {
+				ssCtx, cancelSS := context.WithCancel(ctx)
+				ss, err := client.Ping(ssCtx, &ping.PingReq{
+					PeerId: []byte(set[1].PeerID()),
+					Times:  100,
+				})
+
+				for {
+					_, err = ss.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						b.Errorf("s.Recv(): error: %+v", err)
+					}
+				}
+
+				// So we get results per ping.
+				for i := 0; i < 99; i++ {
+					p.Next()
 				}
 
 				cancelSS()

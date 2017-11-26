@@ -17,6 +17,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"unicode"
@@ -27,22 +28,28 @@ import (
 // Register the prompt.
 func init() {
 	registerPrompt("readline", func(ctx context.Context, cli CLI) {
-		p := rline{c: cli}
-		p.Run(ctx)
+		p := Rline{c: cli}
+		p.Run(ctx, nil)
 	})
 }
 
-// rline implements a quick-and-dirty prompt using readline.
-type rline struct {
+// Rline implements a quick-and-dirty prompt using readline.
+type Rline struct {
 	c     CLI
 	line  []rune
 	pos   int
 	start int
 }
 
+// NewRline creates a new readline prompt.
+func NewRline(cli CLI) *Rline {
+	return &Rline{c: cli}
+}
+
 // Run launches the prompt until it is killed.
-func (p *rline) Run(ctx context.Context) {
+func (p *Rline) Run(ctx context.Context, r io.Reader) {
 	rl, err := readline.NewEx(&readline.Config{
+		Stdin:             r,
 		Prompt:            "alice> ",
 		HistorySearchFold: true,
 		AutoComplete:      p,
@@ -66,7 +73,7 @@ func (p *rline) Run(ctx context.Context) {
 }
 
 // Do finds suggestions.
-func (p *rline) Do(line []rune, pos int) (newLine [][]rune, length int) {
+func (p *Rline) Do(line []rune, pos int) (newLine [][]rune, length int) {
 	p.line = line
 	p.pos = pos
 	p.begin()
@@ -87,17 +94,17 @@ func (p *rline) Do(line []rune, pos int) (newLine [][]rune, length int) {
 
 // TextBeforeCursor returns the content of the line before the the current
 // cursor position.
-func (p *rline) TextBeforeCursor() string {
+func (p *Rline) TextBeforeCursor() string {
 	return string(p.line[:p.pos])
 }
 
 // GetWordBeforeCursor return the word before the current cursor position.
-func (p *rline) GetWordBeforeCursor() string {
+func (p *Rline) GetWordBeforeCursor() string {
 	return string(p.line[p.start:p.pos])
 }
 
 // begin finds the start offset of the rurrent word.
-func (p *rline) begin() {
+func (p *Rline) begin() {
 	p.start = p.pos
 
 	for p.start > 0 {

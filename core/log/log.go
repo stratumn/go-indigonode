@@ -296,8 +296,13 @@ func NewFilteredWriter(writer io.Writer, mu sync.Locker, filter FilterFunc) io.W
 				continue
 			}
 
+			b, err := json.Marshal(entry)
+			if err != nil {
+				fmt.Fprintf(writer, "Failed to marshal log entry: %s.\n", err)
+			}
+
 			mu.Lock()
-			fmt.Fprintln(writer, text)
+			fmt.Fprintln(writer, string(b))
 			mu.Unlock()
 		}
 

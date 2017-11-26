@@ -515,6 +515,34 @@ NOEXT | REQUIRED FIELD | STRING FIELD | STRING REPEATED FIELD | BOOL FIELD ...
 `,
 	nil,
 }, {
+	"stream --stream",
+	"test-serverstream --no-timeout --stream hello --boolean true --bytesize_repeated 1k --bytesize_repeated 1m",
+	`
+NOEXT
+REQUIRED FIELD            hello
+STRING FIELD
+STRING REPEATED FIELD
+BOOL FIELD                true
+BOOL REPEATED FIELD
+UINT32 FIELD              0
+UINT32 REPEATED FIELD
+BYTES FIELD
+BYTES REPEATED FIELD
+ENUM FIELD                A
+ENUM REPEATED FIELD
+BASE58 FIELD
+BASE58 REPEATED FIELD
+MULTIADDR FIELD
+MULTIADDR REPEATED FIELD
+DURATION FIELD            0s
+DURATION REPEATED FIELD
+BYTESIZE FIELD            0
+BYTESIZE REPEATED FIELD   1K,1M
+BYTERATE FIELD            0/s
+BYTERATE REPEATED FIELD
+`,
+	nil,
+}, {
 	"missing arg",
 	"test-unaryreq",
 	"",

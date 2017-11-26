@@ -21,11 +21,12 @@ import (
 
 	"github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/grpc/manager"
+	"github.com/stratumn/alice/grpc/ping"
 	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 )
 
-func BenchmarkAPIInform(b *testing.B) {
+func BenchmarkAPI_Inform(b *testing.B) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
 	defer cancel()
 
@@ -51,12 +52,13 @@ func BenchmarkAPIInform(b *testing.B) {
 	}
 }
 
-func BenchmarkAPIListServices(b *testing.B) {
+func BenchmarkAPI_ListServices(b *testing.B) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
 	defer cancel()
 
 	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		client := manager.NewManagerClient(conns[0])
+
 		b.ResetTimer()
 
 		b.RunParallel(func(p *testing.PB) {
@@ -81,6 +83,68 @@ func BenchmarkAPIListServices(b *testing.B) {
 	config := session.WithServices(session.BenchmarkCfg(), "grpcapi")
 
 	err := session.Run(ctx, SessionDir, 1, config, tester)
+	if err != nil {
+		b.Errorf("Session(): error: %+v", err)
+	}
+}
+
+func BenchmarkPing(b *testing.B) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+		client := ping.NewPingClient(conns[0])
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			ssCtx, cancelSS := context.WithCancel(ctx)
+			ss, err := client.Ping(ssCtx, &ping.PingReq{
+				PeerId: []byte(set[1].PeerID()),
+				Times:  1,
+			})
+
+			_, err = ss.Recv()
+			if err != nil {
+				b.Errorf("s.Recv(): error: %+v", err)
+			}
+
+			cancelSS()
+		}
+	}
+
+	err := session.Run(ctx, SessionDir, 2, session.BenchmarkCfg(), tester)
+	if err != nil {
+		b.Errorf("Session(): error: %+v", err)
+	}
+}
+
+func BenchmarkPing_parallel(b *testing.B) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+		client := ping.NewPingClient(conns[0])
+		b.ResetTimer()
+
+		b.RunParallel(func(p *testing.PB) {
+			for p.Next() {
+				ssCtx, cancelSS := context.WithCancel(ctx)
+				ss, err := client.Ping(ssCtx, &ping.PingReq{
+					PeerId: []byte(set[1].PeerID()),
+					Times:  1,
+				})
+
+				_, err = ss.Recv()
+				if err != nil {
+					b.Errorf("s.Recv(): error: %+v", err)
+				}
+
+				cancelSS()
+			}
+		})
+	}
+
+	err := session.Run(ctx, SessionDir, 2, session.BenchmarkCfg(), tester)
 	if err != nil {
 		b.Errorf("Session(): error: %+v", err)
 	}

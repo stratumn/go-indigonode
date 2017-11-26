@@ -28,5 +28,5 @@ const (
 	MaxDuration = 2 * time.Minute
 
 	// SessionDir is the directory where session data will be saved.
-	SessionDir = "../tmp/integration"
+	SessionDir = "../tmp/system"
 )

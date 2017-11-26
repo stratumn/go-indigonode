@@ -474,6 +474,7 @@ EXEC_INSTRS:
 }
 
 // Exec executes a command.
+//
 // It handles signals to cancel the command if the user presses Ctrl-C.
 func (c *cli) Exec(ctx context.Context, in string) {
 	defer func() { c.executed = true }()

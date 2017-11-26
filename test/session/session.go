@@ -90,6 +90,7 @@ func BenchmarkCfg() cfg.ConfigSet {
 		Level:     logging.Error,
 		Formatter: logging.JSON,
 	}}
+	conf["log"] = logConf
 
 	apiConf := conf["grpcapi"].(grpcapi.Config)
 	apiConf.EnableRequestLogger = false
@@ -108,8 +109,7 @@ func BenchmarkCfg() cfg.ConfigSet {
 }
 
 // WithServices takes a configuration and returns a new one with the same
-// settings except that it changes the boot service so that the given services
-// will be started.
+// settings except that it changes the boot service.
 //
 // It will also start the signal service so that exit signals are handled
 // properly.

@@ -671,7 +671,7 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 	}
 
 	cmd.Flags = func() *pflag.FlagSet {
-		return r.flags(d.GetFullyQualifiedName(), optional)
+		return r.flags(d.GetFullyQualifiedName(), optional, d.IsServerStreaming())
 	}
 
 	cmd.Exec = func(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
@@ -753,11 +753,20 @@ func (r ServerReflector) findResReflector(d *desc.FieldDescriptor) ResponseRefle
 }
 
 // flags adds flags to a command.
-func (r ServerReflector) flags(name string, descs []*desc.FieldDescriptor) *pflag.FlagSet {
+func (r ServerReflector) flags(
+	name string,
+	descs []*desc.FieldDescriptor,
+	isServerStream bool,
+) *pflag.FlagSet {
 	flags := pflag.NewFlagSet(name, pflag.ContinueOnError)
 
-	flags.Bool("no-truncate", false, "Disable truncating rows")
-	flags.Bool("no-borders", false, "Disable table borders")
+	flags.Bool("no-timeout", false, "Disable request timeout")
+
+	if isServerStream {
+		flags.Bool("no-truncate", false, "Disable truncating rows")
+		flags.Bool("no-borders", false, "Disable table borders")
+		flags.Bool("stream", false, "Display results as they arrive")
+	}
 
 	for _, d := range descs {
 		reflector := r.findFlagReflector(d)
@@ -813,13 +822,30 @@ func (r ServerReflector) reflectExec(
 		return errors.WithStack(err)
 	}
 
-	reqCtx, cancel := context.WithTimeout(ctx, to)
-	defer cancel()
+	noTimeout, err := flags.GetBool("no-timeout")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if !noTimeout {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, to)
+		defer cancel()
+	}
 
 	if method.IsServerStreaming() {
-		ss, err := stub.InvokeRpcServerStream(reqCtx, method, req)
+		ss, err := stub.InvokeRpcServerStream(ctx, method, req)
 		if err != nil {
 			return errors.WithStack(err)
+		}
+
+		streaming, err := flags.GetBool("stream")
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if streaming {
+			return r.printStreaming(w, ss)
 		}
 
 		noTrunc, err := flags.GetBool("no-truncate")
@@ -835,7 +861,7 @@ func (r ServerReflector) reflectExec(
 		return r.printStream(w, ss, !noTrunc, !noBord)
 	}
 
-	res, err := stub.InvokeRpc(reqCtx, method, req)
+	res, err := stub.InvokeRpc(ctx, method, req)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -887,16 +913,6 @@ func (r ServerReflector) setFlags(req *dynamic.Message, descs []*desc.FieldDescr
 func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
 	descs := msg.GetKnownFields()
 
-	if len(descs) == 1 {
-		value, err := r.pretty(descs[0], msg.GetField(descs[0]))
-		if err != nil {
-			return err
-		}
-
-		fmt.Println(value)
-		return nil
-	}
-
 	tw := new(tabwriter.Writer)
 	tw.Init(w, 0, 8, 2, ' ', 0)
 
@@ -914,10 +930,28 @@ func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
 	return errors.WithStack(tw.Flush())
 }
 
+// printDynamicStreaming prints the messages of a server stream as they arrive.
+func (r ServerReflector) printStreaming(w io.Writer, ss *grpcdynamic.ServerStream) error {
+	for {
+		res, err := ss.RecvMsg()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := r.printMsg(w, res.(*dynamic.Message)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // printDynamicStream prints the messages of a server stream.
 func (r ServerReflector) printStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, borders bool) error {
 	var b bytes.Buffer
-	var numCols int
 
 	tw := new(tabwriter.Writer)
 	tw.Init(&b, 0, 8, 1, ' ', 0)
@@ -936,9 +970,8 @@ func (r ServerReflector) printStream(w io.Writer, ss *grpcdynamic.ServerStream, 
 
 		msg := res.(*dynamic.Message)
 		descs := msg.GetKnownFields()
-		numCols = len(descs)
 
-		if first && numCols > 1 {
+		if first {
 			r.printTableHeader(tw, descs, borders)
 		}
 
@@ -960,7 +993,7 @@ func (r ServerReflector) printStream(w io.Writer, ss *grpcdynamic.ServerStream, 
 			continue
 		}
 
-		if borders && numCols > 1 && i == 1 {
+		if borders && i == 1 {
 			// Print the horizontal line.
 			row = strings.Replace(row, " ", "-", r.width)
 

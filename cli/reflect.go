@@ -586,12 +586,12 @@ var DefReflectors = []Reflector{
 //	- Byterate extension (uint64)
 //	- Multiaddr extension (bytes)
 //
-// I also supports repeated fields for all these types.
+// It also supports repeated fields for all these types.
 //
 // In addition, it supports custom help strings for methods and fields using
 // extensions.
 //
-// Adding new types is trivial and missing type will be added as needed.
+// Adding new types is trivial and missing types will be added as needed.
 type ServerReflector struct {
 	cons           *Console
 	argReflectors  []ArgReflector

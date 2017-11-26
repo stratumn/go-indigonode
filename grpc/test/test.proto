@@ -54,17 +54,38 @@ message Message {
     (stratumn.alice.grpc.ext.field_desc) = "bool repeated field"
   ];
 
-  uint32 u32 = 14 [
+  int32 i32 = 14 [
+    (stratumn.alice.grpc.ext.field_desc) = "int32 field"
+  ];
+  repeated uint32 i32_repeated = 15 [
+    (stratumn.alice.grpc.ext.field_desc) = "int32 repeated field"
+  ];
+
+  uint32 u32 = 16 [
     (stratumn.alice.grpc.ext.field_desc) = "uint32 field"
   ];
-  repeated uint32 u32_repeated = 15 [
+  repeated uint32 u32_repeated = 17 [
     (stratumn.alice.grpc.ext.field_desc) = "uint32 repeated field"
   ];
 
-  bytes buf = 18 [
+  int64 i64 = 18 [
+    (stratumn.alice.grpc.ext.field_desc) = "int64 field"
+  ];
+  repeated int64 i64_repeated = 19 [
+    (stratumn.alice.grpc.ext.field_desc) = "int64 repeated field"
+  ];
+
+  uint64 u64 = 20 [
+    (stratumn.alice.grpc.ext.field_desc) = "uint64 field"
+  ];
+  repeated uint64 u64_repeated = 21 [
+    (stratumn.alice.grpc.ext.field_desc) = "uint64 repeated field"
+  ];
+
+  bytes buf = 22 [
     (stratumn.alice.grpc.ext.field_desc) = "bytes field"
   ];
-  repeated bytes buf_repeated = 19 [
+  repeated bytes buf_repeated = 23 [
     (stratumn.alice.grpc.ext.field_desc) = "bytes repeated field"
   ];
 
@@ -72,10 +93,10 @@ message Message {
     A = 0;
     B = 1;
   }
-  Enum enumeration = 20 [
+  Enum enumeration = 30 [
     (stratumn.alice.grpc.ext.field_desc) = "enum field"
   ];
-  repeated Enum enumeration_repeated = 21 [
+  repeated Enum enumeration_repeated = 31 [
     (stratumn.alice.grpc.ext.field_desc) = "enum repeated field"
   ];
 

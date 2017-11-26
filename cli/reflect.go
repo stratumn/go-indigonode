@@ -283,6 +283,23 @@ func NewBoolReflector() Reflector {
 	}
 }
 
+// NewInt32Reflector creates a new int32 reflector.
+func NewInt32Reflector() Reflector {
+	return GenericReflector{
+		Zero: int32(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_INT32
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return fmt.Sprintf("%d", v), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			i, err := strconv.ParseInt(s, 10, 32)
+			return int32(i), errors.WithStack(err)
+		},
+	}
+}
+
 // NewUint32Reflector creates a new uint32 reflector.
 func NewUint32Reflector() Reflector {
 	return GenericReflector{
@@ -296,6 +313,40 @@ func NewUint32Reflector() Reflector {
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
 			i, err := strconv.ParseUint(s, 10, 32)
 			return uint32(i), errors.WithStack(err)
+		},
+	}
+}
+
+// NewInt64Reflector creates a new int64 reflector.
+func NewInt64Reflector() Reflector {
+	return GenericReflector{
+		Zero: int64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_INT64
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return fmt.Sprintf("%d", v), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			i, err := strconv.ParseInt(s, 10, 64)
+			return i, errors.WithStack(err)
+		},
+	}
+}
+
+// NewUint64Reflector creates a new uint64 reflector.
+func NewUint64Reflector() Reflector {
+	return GenericReflector{
+		Zero: uint64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_UINT64
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return fmt.Sprintf("%d", v), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			i, err := strconv.ParseUint(s, 10, 64)
+			return i, errors.WithStack(err)
 		},
 	}
 }
@@ -509,7 +560,10 @@ var DefReflectors = []Reflector{
 	NewMaddrReflector(),
 	NewStringReflector(),
 	NewBoolReflector(),
+	NewInt32Reflector(),
 	NewUint32Reflector(),
+	NewInt64Reflector(),
+	NewUint64Reflector(),
 	NewBytesReflector(),
 	NewEnumReflector(),
 }
@@ -517,6 +571,27 @@ var DefReflectors = []Reflector{
 // ServerReflector reflects commands from a gRPC server.
 //
 // The server must have the reflection service enabled.
+//
+// Currently, it is able to reflect commands for methods that use to following
+// field types:
+//
+//	- String
+//	- Bool
+//	- Int32, Uint32, Int64, Uint64
+//	- Bytes
+//	- Enum
+//	- Duration extension (int64)
+//	- Base58 extension (bytes)
+//	- Bytesize extension (uint64)
+//	- Byterate extension (uint64)
+//	- Multiaddr extension (bytes)
+//
+// I also supports repeated fields for all these types.
+//
+// In addition, it supports custom help strings for methods and fields using
+// extensions.
+//
+// Adding new types is trivial and missing type will be added as needed.
 type ServerReflector struct {
 	cons           *Console
 	argReflectors  []ArgReflector

@@ -133,6 +133,22 @@ func TestReflectors(t *testing.T) {
 			{[]bool{true, false}, "true,false", false},
 		},
 	}, {
+		"int32",
+		NewInt32Reflector(),
+		msg.FindFieldByName("i32"),
+		msg.FindFieldByName("buf"),
+		[]reflectorParseTest{
+			{"10", int32(10), false},
+		},
+		[]reflectorParseTest{
+			{"cmd --i32 10", int32(10), false},
+			{"cmd --i32 false", int32(0), true},
+			{"cmd", int32(0), false},
+		},
+		[]reflectorPrettyTest{
+			{int32(10), "10", false},
+		},
+	}, {
 		"uint32",
 		NewUint32Reflector(),
 		msg.FindFieldByName("u32"),
@@ -147,6 +163,38 @@ func TestReflectors(t *testing.T) {
 		},
 		[]reflectorPrettyTest{
 			{uint32(10), "10", false},
+		},
+	}, {
+		"int64",
+		NewInt64Reflector(),
+		msg.FindFieldByName("i64"),
+		msg.FindFieldByName("buf"),
+		[]reflectorParseTest{
+			{"10", int64(10), false},
+		},
+		[]reflectorParseTest{
+			{"cmd --i64 10", int64(10), false},
+			{"cmd --i64 false", int64(0), true},
+			{"cmd", int64(0), false},
+		},
+		[]reflectorPrettyTest{
+			{int64(10), "10", false},
+		},
+	}, {
+		"uint64",
+		NewUint64Reflector(),
+		msg.FindFieldByName("u64"),
+		msg.FindFieldByName("buf"),
+		[]reflectorParseTest{
+			{"10", uint64(10), false},
+		},
+		[]reflectorParseTest{
+			{"cmd --u64 10", uint64(10), false},
+			{"cmd --u64 false", uint64(0), true},
+			{"cmd", uint64(0), false},
+		},
+		[]reflectorPrettyTest{
+			{uint64(10), "10", false},
 		},
 	}, {
 		"bytes",
@@ -487,8 +535,14 @@ STRING FIELD
 STRING REPEATED FIELD
 BOOL FIELD                true
 BOOL REPEATED FIELD
+INT32 FIELD               0
+INT32 REPEATED FIELD
 UINT32 FIELD              0
 UINT32 REPEATED FIELD
+INT64 FIELD               0
+INT64 REPEATED FIELD
+UINT64 FIELD              0
+UINT64 REPEATED FIELD
 BYTES FIELD
 BYTES REPEATED FIELD
 ENUM FIELD                A
@@ -524,8 +578,14 @@ STRING FIELD
 STRING REPEATED FIELD
 BOOL FIELD                true
 BOOL REPEATED FIELD
+INT32 FIELD               0
+INT32 REPEATED FIELD
 UINT32 FIELD              0
 UINT32 REPEATED FIELD
+INT64 FIELD               0
+INT64 REPEATED FIELD
+UINT64 FIELD              0
+UINT64 REPEATED FIELD
 BYTES FIELD
 BYTES REPEATED FIELD
 ENUM FIELD                A

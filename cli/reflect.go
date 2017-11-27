@@ -129,10 +129,10 @@ type ResponseReflector interface {
 	Pretty(*desc.FieldDescriptor, interface{}) (string, error)
 }
 
-// ReflectChecker checks if a field is supported by a reflector
+// ReflectChecker checks if a field is supported by a reflector.
 type ReflectChecker func(*desc.FieldDescriptor) bool
 
-// ReflectEncoder encodes a value to a string
+// ReflectEncoder encodes a value to a string.
 type ReflectEncoder func(*desc.FieldDescriptor, interface{}) (string, error)
 
 // ReflectDecoder decodes a value from a string.

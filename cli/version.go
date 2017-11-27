@@ -16,6 +16,8 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -29,12 +31,12 @@ var Version = BasicCmdWrapper{BasicCmd{
 	Exec:  versionExec,
 }}
 
-func versionExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+func versionExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
 	}
 
-	cli.Console().Println(release.Version + "@" + release.GitCommit)
+	fmt.Fprintln(w, release.Version+"@"+release.GitCommit)
 
 	return nil
 }

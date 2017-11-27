@@ -17,11 +17,13 @@ package cli_test
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
 )
@@ -31,8 +33,6 @@ var (
 	ErrUse = errors.New("usage error")
 )
 
-type Executor func(context.Context, cli.CLI, string) error
-
 type ExecTest struct {
 	Command string
 	Want    string
@@ -40,7 +40,7 @@ type ExecTest struct {
 	Expect  func(*mockcli.MockCLI)
 }
 
-func (e ExecTest) Test(t *testing.T, exec Executor) {
+func (e ExecTest) Test(t *testing.T, cmd cli.BasicCmd) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -52,12 +52,24 @@ func (e ExecTest) Test(t *testing.T, exec Executor) {
 	cons := cli.NewConsole(buf, false)
 
 	c.EXPECT().Console().Return(cons).AnyTimes()
-
 	if e.Expect != nil {
 		e.Expect(c)
 	}
 
-	err := errors.Cause(exec(ctx, c, e.Command))
+	argv := strings.Split(e.Command, " ")[1:]
+
+	var flags *pflag.FlagSet
+
+	if cmd.Flags != nil {
+		flags = cmd.Flags()
+		if err := flags.Parse(argv); err != nil {
+			t.Fatalf("%s: flag error: %s", e.Command, err)
+		}
+	} else {
+		flags = pflag.NewFlagSet(e.Command, pflag.ContinueOnError)
+	}
+
+	err := errors.Cause(cmd.Exec(ctx, c, buf, argv, flags))
 
 	switch {
 	case e.Err == ErrAny && err != nil:

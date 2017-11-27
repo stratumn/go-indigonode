@@ -37,7 +37,9 @@ cases.
 package cli
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -150,11 +152,12 @@ type Cmd interface {
 	Suggest(Content) []Suggest
 
 	// Match returns whether the command can execute against the given
-	// user input.
+	// command name.
 	Match(string) bool
 
-	// Exec executes the command.
-	Exec(context.Context, CLI, string) error
+	// Exec executes the command with the given S-Expressions as
+	// arguments.
+	Exec(context.Context, CLI, io.Writer, SExpEvaluator, ...*SExp) error
 }
 
 // Suggest implements a suggestion.
@@ -238,6 +241,7 @@ type cli struct {
 	prompt func(context.Context, CLI)
 
 	reflector ServerReflector
+	parser    *Parser
 	cmds      []Cmd
 	allCmds   []Cmd
 
@@ -262,9 +266,14 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
+	scanner := NewScanner(ScannerOptErrorHandler(func(err ScannerError) {
+		cons.Errorf("Error: %s.\n", err)
+	}))
+
 	c := cli{
 		conf:      config,
 		cons:      cons,
+		parser:    NewParser(scanner),
 		prompt:    prompt,
 		reflector: NewServerReflector(cons, 0),
 		cmds:      cmds,
@@ -432,45 +441,68 @@ func (c *cli) Run(ctx context.Context) {
 	c.prompt(ctx, c)
 }
 
+// evalSExp evaluates an S-Expression.
+//
+// If capture is false, the result of the command is printed to the console
+// and an empty string is returned.
+//
+// Otherwise the result of the command is returned.
+func (c *cli) evalSExp(
+	ctx context.Context,
+	capture bool,
+	atom string,
+	line int,
+	offset int,
+	args ...*SExp,
+) (string, error) {
+	for _, cmd := range c.allCmds {
+		if cmd.Match(atom) {
+			buf := bytes.NewBuffer(nil)
+			w := c.cons.Writer
+
+			if capture {
+				w = buf
+			}
+
+			eval := c.sexpEvaluator(ctx, true)
+			err := cmd.Exec(ctx, c, w, eval, args...)
+
+			if err != nil {
+				cause := errors.Cause(err)
+				// If it is a usage error, add the use
+				// string to it.
+				if userr, ok := cause.(*UseError); ok {
+					userr.use = cmd.LongUse()
+					return "", err
+				}
+
+				return "", err
+			}
+
+			return strings.TrimSpace(buf.String()), nil
+		}
+	}
+
+	return "", errors.WithStack(ErrInvalidInstr)
+}
+
+// sexpEvaluator returns an S-Expression evaluator.
+func (c *cli) sexpEvaluator(ctx context.Context, capture bool) SExpEvaluator {
+	return func(atom string, line, offset int, args ...*SExp) (string, error) {
+		return c.evalSExp(ctx, capture, atom, line, offset, args...)
+	}
+}
+
 // Eval executes the given input, but does not handle errors or exit signals.
 func (c *cli) Eval(ctx context.Context, in string) error {
-	// Allow multiple commands separated by new lines and semicolons.
-	var instrs []string
-	for _, l1 := range strings.Split(in, "\n") {
-		for _, l2 := range strings.Split(l1, "\t") {
-			instrs = append(instrs, strings.Split(l2, ";")...)
-		}
+	sexp, err := c.parser.Parse(in)
+	if err != nil {
+		return errors.WithStack(err)
 	}
 
-EXEC_INSTRS:
-	for _, instr := range instrs {
-		instr = strings.TrimSpace(instr)
-		if instr == "" {
-			continue
-		}
+	_, err = sexp.Eval(c.sexpEvaluator(ctx, false))
 
-		// Execute the first matched command.
-		for _, v := range c.allCmds {
-			if v.Match(instr) {
-				err := v.Exec(ctx, c, instr)
-				if err != nil {
-					cause := errors.Cause(err)
-					// If it is a usage error, add the use
-					// string to it.
-					if userr, ok := cause.(*UseError); ok {
-						userr.use = v.LongUse()
-						return err
-					}
-					return err
-				}
-				continue EXEC_INSTRS
-			}
-		}
-
-		return errors.WithStack(ErrInvalidInstr)
-	}
-
-	return nil
+	return err
 }
 
 // Exec executes a command.

@@ -16,6 +16,7 @@ package cli
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"strings"
 
@@ -41,7 +42,7 @@ type BasicCmd struct {
 	Flags func() *pflag.FlagSet
 
 	// Exec is a function that must be defined to execute the command.
-	Exec func(context.Context, CLI, []string, *pflag.FlagSet) error
+	Exec func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -92,8 +93,7 @@ func (cmd BasicCmdWrapper) LongUse() string {
 // word before the current position of cursor. It also makes suggestions for
 // flags.
 func (cmd BasicCmdWrapper) Suggest(c Content) []Suggest {
-	// Find instruction and split argument vector.
-	instrs := strings.Split(c.TextBeforeCursor(), ";")
+	instrs := strings.Split(c.TextBeforeCursor(), "(")
 	if len(instrs) < 1 {
 		return nil
 	}
@@ -109,6 +109,8 @@ func (cmd BasicCmdWrapper) Suggest(c Content) []Suggest {
 
 	// Get the word being typed.
 	word := strings.ToLower(c.GetWordBeforeCursor())
+	trimmed := strings.TrimPrefix(word, "(")
+	prefix := word[:len(word)-len(trimmed)]
 
 	// Look for flags if the command name is an exact match.
 	if name == cmd.Name() {
@@ -130,12 +132,12 @@ func (cmd BasicCmdWrapper) Suggest(c Content) []Suggest {
 	} else if len(args) < 2 && word != "" || name == "help" {
 		// Match command if command is being typed or the instruction
 		// is a help command.
-		canSugCmd = strings.Contains(strings.ToLower(cmd.Cmd.Name), word)
+		canSugCmd = strings.Contains(strings.ToLower(cmd.Cmd.Name), trimmed)
 	}
 
 	if canSugCmd {
 		return []Suggest{{
-			Text: cmd.Cmd.Name,
+			Text: prefix + cmd.Cmd.Name,
 			Desc: cmd.Cmd.Short,
 		}}
 	}
@@ -175,16 +177,16 @@ func (cmd BasicCmdWrapper) suggestFlags(word string) []Suggest {
 	return matches
 }
 
-// Match returns whether the first word exacly matches the text of the command.
-func (cmd BasicCmdWrapper) Match(in string) bool {
-	return strings.Split(in, " ")[0] == cmd.Cmd.Name
+// Match returns whether the string matches the command name.
+func (cmd BasicCmdWrapper) Match(name string) bool {
+	return name == cmd.Cmd.Name
 }
 
 // Exec executes the basic command.
-func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, in string) error {
-	argv := strings.Split(in, " ")
-	for i, v := range argv {
-		argv[i] = strings.TrimSpace(v)
+func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, w io.Writer, eval SExpEvaluator, args ...*SExp) error {
+	argv, err := EvalMulti(eval, args...)
+	if err != nil {
+		return err
 	}
 
 	flags := cmd.createFlags()
@@ -192,7 +194,7 @@ func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, in string) error {
 	// Discard flags output, we do our own error handling.
 	flags.SetOutput(ioutil.Discard)
 
-	if err := flags.Parse(argv[1:]); err != nil {
+	if err := flags.Parse(argv); err != nil {
 		return NewUseError(err.Error())
 	}
 
@@ -205,10 +207,10 @@ func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, in string) error {
 		// Invoke help command, pass the command name and remaining
 		// args.
 		args := append([]string{cmd.Name()}, flags.Args()...)
-		return Help.Cmd.Exec(ctx, cli, args, flags)
+		return Help.Cmd.Exec(ctx, cli, w, args, flags)
 	}
 
-	return cmd.Cmd.Exec(ctx, cli, flags.Args(), flags)
+	return cmd.Cmd.Exec(ctx, cli, w, flags.Args(), flags)
 }
 
 // createFlags creates a set of flags for the command. There will be at least

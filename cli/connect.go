@@ -16,6 +16,7 @@ package cli
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -29,7 +30,7 @@ var Connect = BasicCmdWrapper{BasicCmd{
 	Exec:  execConnect,
 }}
 
-func execConnect(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+func execConnect(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
 	}

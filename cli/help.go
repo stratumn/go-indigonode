@@ -17,6 +17,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -33,19 +34,17 @@ var Help = BasicCmdWrapper{BasicCmd{
 	Exec:  helpExec,
 }}
 
-func helpExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+func helpExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
 	}
-
-	c := cli.Console()
 
 	if len(args) > 0 {
 		// Show help for a specific command.
 		cmd := args[0]
 		for _, v := range cli.Commands() {
 			if v.Name() == cmd {
-				c.Print(v.Long())
+				fmt.Fprint(w, v.Long())
 				return nil
 			}
 		}
@@ -54,12 +53,12 @@ func helpExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet)
 	}
 
 	// List all the available commands using a tab writer.
-	w := new(tabwriter.Writer)
-	w.Init(c, 0, 8, 2, ' ', 0)
+	tw := new(tabwriter.Writer)
+	tw.Init(w, 0, 8, 2, ' ', 0)
 
 	for _, v := range cli.Commands() {
-		fmt.Fprintln(w, v.Use()+"\t"+v.Short())
+		fmt.Fprintln(tw, v.Use()+"\t"+v.Short())
 	}
 
-	return errors.WithStack(w.Flush())
+	return errors.WithStack(tw.Flush())
 }

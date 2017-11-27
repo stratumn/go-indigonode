@@ -67,7 +67,7 @@ Could not connect to "` + addr + `".
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Connect.Exec)
+			test.Test(t, cli.Connect.Cmd)
 		})
 	}
 }

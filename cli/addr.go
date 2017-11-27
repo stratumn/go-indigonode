@@ -16,6 +16,8 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -28,12 +30,12 @@ var Addr = BasicCmdWrapper{BasicCmd{
 	Exec:  addrExec,
 }}
 
-func addrExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+func addrExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
 	}
 
-	cli.Console().Println(cli.Address())
+	fmt.Fprintln(w, cli.Address())
 
 	return nil
 }

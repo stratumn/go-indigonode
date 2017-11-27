@@ -16,6 +16,7 @@ package cli
 
 import (
 	"context"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ var Exit = BasicCmdWrapper{BasicCmd{
 	Exec:  exitExec,
 }}
 
-func exitExec(ctx context.Context, cli CLI, args []string, flags *pflag.FlagSet) error {
+func exitExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
 	}

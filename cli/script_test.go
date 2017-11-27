@@ -123,6 +123,10 @@ var parserTT = []parserTest{{
 	"(one . ((two . (three . <nil>)) . <nil>))",
 	"",
 }, {
+	"one (two)",
+	"(one . ((two . <nil>) . <nil>))",
+	"",
+}, {
 	"one (two three) four",
 	"(one . ((two . (three . <nil>)) . (four . <nil>)))",
 	"",
@@ -178,8 +182,24 @@ type evalTest struct {
 }
 
 var evalTT = []evalTest{{
+	"",
+	"",
+	"",
+}, {
+	"()",
+	"",
+	"",
+}, {
+	"echo",
+	"",
+	"",
+}, {
 	"echo hello",
 	"hello",
+	"",
+}, {
+	"echo (echo)",
+	"",
 	"",
 }, {
 	"echo echo hello",
@@ -215,8 +235,8 @@ var evalTT = []evalTest{{
 	"1;8: unknown function \"+\"",
 }}
 
-func testEvaluator(name string, line int, offset int, args ...*SExp) (string, error) {
-	if name == "echo" {
+func testEvaluator(atom string, line, offset int, args ...*SExp) (string, error) {
+	if atom == "echo" {
 		vals, err := EvalMulti(testEvaluator, args...)
 		if err != nil {
 			return "", err
@@ -225,7 +245,7 @@ func testEvaluator(name string, line int, offset int, args ...*SExp) (string, er
 		return strings.Join(vals, " "), nil
 	}
 
-	return "", errors.Errorf("%d;%d: unknown function %q", line, offset, name)
+	return "", errors.Errorf("%d;%d: unknown function %q", line, offset, atom)
 }
 
 func TestSExp_Eval(t *testing.T) {

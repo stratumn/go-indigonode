@@ -37,7 +37,7 @@ func TestVersion(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Version.Exec)
+			test.Test(t, cli.Version.Cmd)
 		})
 	}
 }

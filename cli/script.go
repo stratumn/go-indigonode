@@ -27,7 +27,6 @@ const (
 	TokEOF
 	TokLParen
 	TokRParen
-	TokLine
 	TokString
 )
 
@@ -36,7 +35,6 @@ var tokToStr = map[TokenType]string{
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
-	TokLine:    "\\n",
 	TokString:  "<string>",
 }
 
@@ -130,8 +128,6 @@ func (s *Scanner) Emit() Token {
 		return Token{TokLParen, "", s.line, s.offset}
 	case ')':
 		return Token{TokRParen, "", s.line, s.offset}
-	case '\n', '\r':
-		return Token{TokLine, "", s.line, s.offset}
 	}
 
 	return s.string(c)
@@ -271,7 +267,7 @@ func (p *Parser) Parse(in string) (sexp *SExp, err error) {
 	p.tok = p.scanner.Emit()
 
 	if tok := p.consume(TokEOF); tok != nil {
-		return &SExp{nil, nil, "", tok.Line, tok.Offset}, nil
+		return nil, nil
 	}
 
 	if p.tok.Type == TokLParen {
@@ -305,10 +301,14 @@ func (p *Parser) consume(typ TokenType) *Token {
 
 func (p *Parser) sexp() (*SExp, error) {
 	if tok := p.consume(TokString); tok != nil {
-		return &SExp{nil, nil, tok.Value, tok.Line, tok.Offset}, nil
+		return &SExp{false, nil, nil, tok.Value, tok.Line, tok.Offset}, nil
 	}
 
-	if p.consume(TokLParen) != nil {
+	if tok := p.consume(TokLParen); tok != nil {
+		if p.consume(TokRParen) != nil {
+			return nil, nil
+		}
+
 		sexp, err := p.inner()
 		if err != nil {
 			return nil, err
@@ -334,6 +334,7 @@ func (p *Parser) inner() (*SExp, error) {
 	}
 
 	parent := &SExp{
+		List:   true,
 		Line:   tok.Line,
 		Offset: tok.Offset,
 		Atom:   atom.Value,
@@ -347,8 +348,9 @@ func (p *Parser) inner() (*SExp, error) {
 			break
 		}
 
-		if sexp.Cdr != nil {
+		if sexp.List {
 			sexp = &SExp{
+				List:   true,
 				Car:    sexp,
 				Line:   curr.Line,
 				Offset: curr.Offset,
@@ -364,6 +366,7 @@ func (p *Parser) inner() (*SExp, error) {
 
 // SExp is an S-Expression.
 type SExp struct {
+	List   bool
 	Car    *SExp
 	Cdr    *SExp
 	Atom   string
@@ -373,18 +376,22 @@ type SExp struct {
 
 // String returns a string representation of the S-Expression.
 func (s *SExp) String() string {
-	if s.Car == nil {
-		return fmt.Sprintf("(%s . %s)", s.Atom, s.Cdr)
+	if s.Car != nil {
+		return fmt.Sprintf("(%s . %s)", s.Car, s.Cdr)
 	}
 
-	return fmt.Sprintf("(%s . %s)", s.Car, s.Cdr)
+	return fmt.Sprintf("(%s . %s)", s.Atom, s.Cdr)
 }
 
 // SExpEvaluator evalutates an S-Expression.
-type SExpEvaluator func(name string, line int, offset int, args ...*SExp) (string, error)
+type SExpEvaluator func(atom string, line int, offset int, args ...*SExp) (string, error)
 
 // Eval evaluates the expression.
 func (s *SExp) Eval(eval SExpEvaluator) (string, error) {
+	if s == nil {
+		return "", nil
+	}
+
 	var args []*SExp
 
 	curr := s.Cdr

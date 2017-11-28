@@ -35,7 +35,7 @@ func (err ParserError) Error() string {
 	)
 }
 
-// Parser produces an abstract syntax tree from a scanner.
+// Parser produces an S-Expression list from scanner tokens.
 type Parser struct {
 	scanner *Scanner
 	tok     Token

@@ -2,13 +2,12 @@ language: go
 
 go:
   - 1.9
-  - tip
 
 install:
-  - make deps
+  - make deps && go install
 
 script:
-  - go install && make coverage system lint
+  - make coverage system lint
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t 12714e73-1809-4587-987d-2da57de8cbbb

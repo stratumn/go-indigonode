@@ -27,10 +27,10 @@ import (
 
 // Exit is a command that terminates the current process.
 var Exit = BasicCmdWrapper{BasicCmd{
-	Name:  "exit",
-	Use:   "exit [Status]",
-	Short: "Exit command line interface",
-	Exec:  exitExec,
+	Name:        "exit",
+	Use:         "exit [Status]",
+	Short:       "Exit command line interface",
+	ExecStrings: exitExec,
 }}
 
 func exitExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {

@@ -21,14 +21,54 @@ import (
 	"github.com/stratumn/alice/cli"
 )
 
-func TestExit(t *testing.T) {
+func TestIf(t *testing.T) {
 	tt := []ExecTest{{
-		"exit earth",
-		"",
-		ErrAny,
+		"if (title test) ok ko",
+		"ok\n",
+		nil,
 		nil,
 	}, {
-		"exit 1 2",
+		"if (test) ok ko",
+		"ko\n",
+		nil,
+		nil,
+	}, {
+		"if (title test) (title ok) (title ko)",
+		"Ok\n",
+		nil,
+		nil,
+	}, {
+		"if (test) (title ok) (title ko)",
+		"Ko\n",
+		nil,
+		nil,
+	}, {
+		"if (title test) ok",
+		"ok\n",
+		nil,
+		nil,
+	}, {
+		"if (test) ok",
+		"",
+		nil,
+		nil,
+	}, {
+		"if () ok ko",
+		"ko\n",
+		nil,
+		nil,
+	}, {
+		"if",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"if test",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"if (title test)",
 		"",
 		ErrUse,
 		nil,
@@ -36,7 +76,7 @@ func TestExit(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Exit.Cmd)
+			test.TestSExp(t, cli.If.Cmd)
 		})
 	}
 }

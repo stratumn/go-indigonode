@@ -25,9 +25,9 @@ import (
 
 // Addr is a command that displays the API server's address.
 var Addr = BasicCmdWrapper{BasicCmd{
-	Name:  "api-address",
-	Short: "Display API server address",
-	Exec:  addrExec,
+	Name:        "api-address",
+	Short:       "Display API server address",
+	ExecStrings: addrExec,
 }}
 
 func addrExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {

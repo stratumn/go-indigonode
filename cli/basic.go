@@ -22,10 +22,17 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"github.com/stratumn/alice/cli/script"
 )
 
 // BasicCmd implements a basic command that matches the first word of the
 // input.
+//
+// Either ExecStrings or ExecSExp should be defined. ExecSExp is meant for
+// commands that need to manipulate S-Expressions, such as conditional
+// commands.
+//
+// Not that in the case of ExecSExp command flags are not supported.
 type BasicCmd struct {
 	// Name is the name of the command, used to match a word to the command
 	// amongst other things.
@@ -41,8 +48,13 @@ type BasicCmd struct {
 	// Flags can be defined to return a set of flags for the command.
 	Flags func() *pflag.FlagSet
 
-	// Exec is a function that must be defined to execute the command.
-	Exec func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
+	// ExecStrings is a function that executes the command against string
+	// arguments.
+	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
+
+	// ExecSExp is a function that executes the command against an
+	// S-Expression.
+	ExecSExp func(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -183,8 +195,18 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 }
 
 // Exec executes the basic command.
-func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, w io.Writer, eval SExpEvaluator, args ...*SExp) error {
-	argv, err := EvalMulti(eval, args...)
+func (cmd BasicCmdWrapper) Exec(
+	ctx context.Context,
+	cli CLI,
+	w io.Writer,
+	exec script.SExpExecutor,
+	list *script.SExp,
+) error {
+	if cmd.Cmd.ExecSExp != nil {
+		return cmd.Cmd.ExecSExp(ctx, cli, w, exec, list)
+	}
+
+	argv, err := list.Cdr.EvalEach(exec)
 	if err != nil {
 		return err
 	}
@@ -207,10 +229,10 @@ func (cmd BasicCmdWrapper) Exec(ctx context.Context, cli CLI, w io.Writer, eval 
 		// Invoke help command, pass the command name and remaining
 		// args.
 		args := append([]string{cmd.Name()}, flags.Args()...)
-		return Help.Cmd.Exec(ctx, cli, w, args, flags)
+		return Help.Cmd.ExecStrings(ctx, cli, w, args, flags)
 	}
 
-	return cmd.Cmd.Exec(ctx, cli, w, flags.Args(), flags)
+	return cmd.Cmd.ExecStrings(ctx, cli, w, flags.Args(), flags)
 }
 
 // createFlags creates a set of flags for the command. There will be at least

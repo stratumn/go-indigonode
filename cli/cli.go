@@ -50,6 +50,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/cli/script"
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
@@ -61,11 +62,13 @@ import (
 
 // List all the builtin CLI commands here.
 var cmds = []Cmd{
-	Help,
-	Exit,
+	Addr,
 	Connect,
 	Disconnect,
-	Addr,
+	Echo,
+	Exit,
+	Help,
+	If,
 	Version,
 }
 
@@ -144,10 +147,10 @@ type Cmd interface {
 	// Use returns a short string showing how to use the command.
 	Use() string
 
-	// Use returns a long string showing how to use the command.
+	// LongUse returns a long string showing how to use the command.
 	LongUse() string
 
-	// Complete gives a chance for the command to add auto-complete
+	// Suggest gives a chance for the command to add auto-complete
 	// suggestions for the current content.
 	Suggest(Content) []Suggest
 
@@ -155,9 +158,11 @@ type Cmd interface {
 	// command name.
 	Match(string) bool
 
-	// Exec executes the command with the given S-Expressions as
-	// arguments.
-	Exec(context.Context, CLI, io.Writer, SExpEvaluator, ...*SExp) error
+	// Exec executes the given S-Expression.
+	//
+	// The result should be written to the writer. Other messages should
+	// be written the CLI's console.
+	Exec(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
 }
 
 // Suggest implements a suggestion.
@@ -241,7 +246,7 @@ type cli struct {
 	prompt func(context.Context, CLI)
 
 	reflector ServerReflector
-	parser    *Parser
+	parser    *script.Parser
 	cmds      []Cmd
 	allCmds   []Cmd
 
@@ -266,20 +271,18 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
-	scanner := NewScanner(ScannerOptErrorHandler(func(err ScannerError) {
-		cons.Errorf("Error: %s.\n", err)
-	}))
-
 	c := cli{
 		conf:      config,
 		cons:      cons,
-		parser:    NewParser(scanner),
 		prompt:    prompt,
 		reflector: NewServerReflector(cons, 0),
 		cmds:      cmds,
 		allCmds:   cmds,
 		addr:      config.APIAddress,
 	}
+
+	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.printErr))
+	c.parser = script.NewParser(scanner)
 
 	sort.Slice(c.cmds, func(i, j int) bool {
 		return c.cmds[i].Name() < c.cmds[j].Name()
@@ -434,62 +437,102 @@ func (c *cli) Run(ctx context.Context) {
 	cons.Println()
 	cons.Println("Enter `help` to list available commands.")
 	cons.Println("Enter `exit` to quit the command line interface.")
-	cons.Println("Use the tab key for auto-completion" + ".")
+	cons.Println("Use the tab key for auto-completion.")
 	cons.Println()
 
 	// Start the input prompt.
 	c.prompt(ctx, c)
 }
 
-// evalSExp evaluates an S-Expression.
+// execSExp executes an S-Expression.
 //
 // If capture is false, the result of the command is printed to the console
 // and an empty string is returned.
 //
 // Otherwise the result of the command is returned.
-func (c *cli) evalSExp(
-	ctx context.Context,
-	capture bool,
-	atom string,
-	line int,
-	offset int,
-	args ...*SExp,
-) (string, error) {
-	for _, cmd := range c.allCmds {
-		if cmd.Match(atom) {
-			buf := bytes.NewBuffer(nil)
-			w := c.cons.Writer
-
-			if capture {
-				w = buf
+func (c *cli) execSExp(ctx context.Context, sexp *script.SExp, capture bool) (string, error) {
+	if sexp != nil {
+		for _, cmd := range c.allCmds {
+			if cmd.Match(sexp.Str) {
+				return c.execCmd(ctx, cmd, sexp, capture)
 			}
-
-			eval := c.sexpEvaluator(ctx, true)
-			err := cmd.Exec(ctx, c, w, eval, args...)
-
-			if err != nil {
-				cause := errors.Cause(err)
-				// If it is a usage error, add the use
-				// string to it.
-				if userr, ok := cause.(*UseError); ok {
-					userr.use = cmd.LongUse()
-					return "", err
-				}
-
-				return "", err
-			}
-
-			return strings.TrimSpace(buf.String()), nil
 		}
 	}
 
-	return "", errors.WithStack(ErrInvalidInstr)
+	return "", errors.Wrapf(
+		ErrInvalidInstr,
+		"%d:%d: %s",
+		sexp.Line,
+		sexp.Offset,
+		sexp.Str,
+	)
 }
 
-// sexpEvaluator returns an S-Expression evaluator.
-func (c *cli) sexpEvaluator(ctx context.Context, capture bool) SExpEvaluator {
-	return func(atom string, line, offset int, args ...*SExp) (string, error) {
-		return c.evalSExp(ctx, capture, atom, line, offset, args...)
+// execCmd executes the given command.
+func (c *cli) execCmd(
+	ctx context.Context,
+	cmd Cmd,
+	sexp *script.SExp,
+	capture bool,
+) (string, error) {
+	buf := bytes.NewBuffer(nil)
+	w := c.cons.Writer
+
+	if capture {
+		w = buf
+	}
+
+	exec := c.sexpExecutor(ctx, true)
+	err := cmd.Exec(ctx, c, w, exec, sexp)
+
+	if err != nil {
+		cause := errors.Cause(err)
+
+		// If it is a usage error, add the use string to it.
+		if userr, ok := cause.(*UseError); ok {
+			userr.use = cmd.LongUse()
+		}
+
+		err = errors.Wrapf(
+			err,
+			"%d:%d: %s",
+			sexp.Line,
+			sexp.Offset,
+			sexp.Str,
+		)
+
+		// Always print errors of nested commands.
+		if capture {
+			c.printErr(err)
+		}
+
+		return "", err
+	}
+
+	return strings.TrimSpace(buf.String()), nil
+}
+
+// printErr prints the error if it isn't nil.
+func (c *cli) printErr(err error) {
+	if err == nil {
+		return
+	}
+
+	c.cons.Errorf("Error: %s.\n", err)
+
+	if stack := StackTrace(err); len(stack) > 0 {
+		c.cons.Debugf("%+v\n", stack)
+	}
+
+	if userr, ok := errors.Cause(err).(*UseError); ok {
+		c.cons.Print("\n" + userr.Use())
+	}
+}
+
+// sexpExecutor returns an S-Expression executor.
+func (c *cli) sexpExecutor(ctx context.Context, capture bool) script.SExpExecutor {
+	return func(list *script.SExp) (string, error) {
+		return c.execSExp(ctx, list, capture)
 	}
 }
 
@@ -500,7 +543,11 @@ func (c *cli) Eval(ctx context.Context, in string) error {
 		return errors.WithStack(err)
 	}
 
-	_, err = sexp.Eval(c.sexpEvaluator(ctx, false))
+	if sexp == nil {
+		return nil
+	}
+
+	_, err = c.sexpExecutor(ctx, false)(sexp)
 
 	return err
 }
@@ -534,28 +581,7 @@ func (c *cli) Exec(ctx context.Context, in string) {
 	case err = <-done:
 	}
 
-	if err != nil {
-		cons := c.cons
-
-		// If it is a usage error, print the usage
-		// message.
-		cause := errors.Cause(err)
-		stack := StackTrace(err)
-
-		if desc := grpc.ErrorDesc(cause); desc != "" {
-			cons.Errorf("Error: %s.\n", desc)
-		} else {
-			cons.Errorf("Error: %s.\n", cause)
-		}
-
-		if len(stack) > 0 {
-			cons.Debugf("%+v\n", stack)
-		}
-
-		if userr, ok := cause.(*UseError); ok {
-			cons.Print("\n" + userr.Use())
-		}
-	}
+	c.printErr(err)
 }
 
 // Suggest finds all command suggestions.

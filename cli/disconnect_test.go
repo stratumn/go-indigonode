@@ -39,7 +39,7 @@ func TestDisconnect(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Disconnect.Cmd)
+			test.TestStrings(t, cli.Disconnect.Cmd)
 		})
 	}
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli
+package script
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ type ScannerError struct {
 
 // Error returns an error string.
 func (err ScannerError) Error() string {
-	return fmt.Sprintf("%d;%d: unexpected character %q", err.Line, err.Offset, err.Ch)
+	return fmt.Sprintf("%d:%d: unexpected character %q", err.Line, err.Offset, err.Ch)
 }
 
 // Scanner produces tokens from a string.
@@ -72,14 +72,14 @@ type Scanner struct {
 	offset int
 	end    bool
 
-	errHandler func(ScannerError)
+	errHandler func(error)
 }
 
 // ScannerOpt is a scanner option.
 type ScannerOpt func(*Scanner)
 
 // ScannerOptErrorHandler sets the scanner's error handler.
-func ScannerOptErrorHandler(h func(ScannerError)) ScannerOpt {
+func ScannerOptErrorHandler(h func(error)) ScannerOpt {
 	return func(s *Scanner) {
 		s.errHandler = h
 	}
@@ -90,7 +90,7 @@ func NewScanner(opts ...ScannerOpt) *Scanner {
 	s := &Scanner{
 		runes:      nil,
 		len:        0,
-		errHandler: func(ScannerError) {},
+		errHandler: func(error) {},
 	}
 
 	for _, o := range opts {
@@ -230,197 +230,4 @@ func isLine(c rune) bool {
 
 func isSpecial(c rune) bool {
 	return c == '(' || c == ')' || isSpace(c) || isLine(c)
-}
-
-// ParserError represents an error from the parser.
-type ParserError struct {
-	Tok Token
-}
-
-// Error returns an error string.
-func (err ParserError) Error() string {
-	return fmt.Sprintf(
-		"%d;%d: unexpected token %s",
-		err.Tok.Line,
-		err.Tok.Offset,
-		err.Tok.Type,
-	)
-}
-
-// Parser produces an abstract syntax tree from a scanner.
-type Parser struct {
-	scanner *Scanner
-	tok     Token
-}
-
-// NewParser creates a new parser.
-func NewParser(scanner *Scanner) *Parser {
-	return &Parser{
-		scanner: scanner,
-	}
-}
-
-// Parse creates an S-Expression from the given input.
-func (p *Parser) Parse(in string) (sexp *SExp, err error) {
-	p.scanner.SetInput(in)
-
-	p.tok = p.scanner.Emit()
-
-	if tok := p.consume(TokEOF); tok != nil {
-		return nil, nil
-	}
-
-	if p.tok.Type == TokLParen {
-		sexp, err = p.sexp()
-	} else {
-		sexp, err = p.inner()
-	}
-
-	if p.consume(TokEOF) == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	return
-}
-
-func (p *Parser) scan() {
-	p.tok = p.scanner.Emit()
-}
-
-func (p *Parser) consume(typ TokenType) *Token {
-	tok := p.tok
-
-	if tok.Type != typ {
-		return nil
-	}
-
-	p.scan()
-
-	return &tok
-}
-
-func (p *Parser) sexp() (*SExp, error) {
-	if tok := p.consume(TokString); tok != nil {
-		return &SExp{false, nil, nil, tok.Value, tok.Line, tok.Offset}, nil
-	}
-
-	if tok := p.consume(TokLParen); tok != nil {
-		if p.consume(TokRParen) != nil {
-			return nil, nil
-		}
-
-		sexp, err := p.inner()
-		if err != nil {
-			return nil, err
-		}
-
-		if p.consume(TokRParen) == nil {
-			return nil, ParserError{p.tok}
-		}
-
-		return sexp, nil
-	}
-
-	return nil, ParserError{p.tok}
-}
-
-// one (two three) four
-func (p *Parser) inner() (*SExp, error) {
-	tok := p.tok
-	atom := p.consume(TokString)
-
-	if atom == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	parent := &SExp{
-		List:   true,
-		Line:   tok.Line,
-		Offset: tok.Offset,
-		Atom:   atom.Value,
-	}
-
-	curr := parent
-
-	for {
-		sexp, err := p.sexp()
-		if err != nil {
-			break
-		}
-
-		if sexp.List {
-			sexp = &SExp{
-				List:   true,
-				Car:    sexp,
-				Line:   curr.Line,
-				Offset: curr.Offset,
-			}
-		}
-
-		curr.Cdr = sexp
-		curr = sexp
-	}
-
-	return parent, nil
-}
-
-// SExp is an S-Expression.
-type SExp struct {
-	List   bool
-	Car    *SExp
-	Cdr    *SExp
-	Atom   string
-	Line   int
-	Offset int
-}
-
-// String returns a string representation of the S-Expression.
-func (s *SExp) String() string {
-	if s.Car != nil {
-		return fmt.Sprintf("(%s . %s)", s.Car, s.Cdr)
-	}
-
-	return fmt.Sprintf("(%s . %s)", s.Atom, s.Cdr)
-}
-
-// SExpEvaluator evalutates an S-Expression.
-type SExpEvaluator func(atom string, line int, offset int, args ...*SExp) (string, error)
-
-// Eval evaluates the expression.
-func (s *SExp) Eval(eval SExpEvaluator) (string, error) {
-	if s == nil {
-		return "", nil
-	}
-
-	var args []*SExp
-
-	curr := s.Cdr
-
-	for curr != nil {
-		args = append(args, curr)
-		curr = curr.Cdr
-	}
-
-	return eval(s.Atom, s.Line, s.Offset, args...)
-}
-
-// EvalMulti evaluates each given S-Expression.
-func EvalMulti(eval SExpEvaluator, sexps ...*SExp) ([]string, error) {
-	var vals []string
-
-	for _, s := range sexps {
-		if s.Car == nil {
-			vals = append(vals, s.Atom)
-			continue
-		}
-
-		v, err := s.Car.Eval(eval)
-		if err != nil {
-			return nil, err
-		}
-
-		vals = append(vals, v)
-	}
-
-	return vals, nil
 }

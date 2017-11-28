@@ -21,22 +21,47 @@ import (
 	"github.com/stratumn/alice/cli"
 )
 
-func TestExit(t *testing.T) {
+func TestEcho(t *testing.T) {
 	tt := []ExecTest{{
-		"exit earth",
-		"",
-		ErrAny,
+		"echo hello world",
+		"hello world\n",
+		nil,
 		nil,
 	}, {
-		"exit 1 2",
+		"echo --stream debug hello world",
 		"",
-		ErrUse,
+		nil,
+		nil,
+	}, {
+		"echo --stream normal hello world",
+		"hello world\n",
+		nil,
+		nil,
+	}, {
+		"echo --stream info hello world",
+		"hello world\n",
+		nil,
+		nil,
+	}, {
+		"echo --stream success hello world",
+		"hello world\n",
+		nil,
+		nil,
+	}, {
+		"echo --stream warning hello world",
+		"hello world\n",
+		nil,
+		nil,
+	}, {
+		"echo --stream error hello world",
+		"hello world\n",
+		nil,
 		nil,
 	}}
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Exit.Cmd)
+			test.TestStrings(t, cli.Echo.Cmd)
 		})
 	}
 }

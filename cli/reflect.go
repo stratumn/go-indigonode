@@ -749,7 +749,7 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 		return r.flags(d.GetFullyQualifiedName(), optional, d.IsServerStreaming())
 	}
 
-	cmd.Exec = func(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
+	cmd.ExecStrings = func(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 		return r.reflectExec(ctx, cli, w, args, flags, d, required, optional, conn)
 	}
 

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"github.com/stratumn/alice/cli/script"
 )
 
 type basicContentMock string
@@ -67,7 +68,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 			flags.String("flag", "", "")
 			return flags
 		},
-		Exec: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
+		ExecStrings: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
 			return nil
 		},
 	}}
@@ -125,7 +126,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	cmd := BasicCmdWrapper{BasicCmd{
 		Name:  "cmd",
 		Short: "A test command",
-		Exec: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
+		ExecStrings: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
 			close(execCh)
 			return nil
 		},
@@ -134,8 +135,8 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if err := cmd.Exec(ctx, nil, nil, nil); err != nil {
-		t.Errorf(`cmd.Exec(ctx, nil, ""): error: %s`, err)
+	if err := cmd.Exec(ctx, nil, nil, nil, &script.SExp{}); err != nil {
+		t.Errorf(`cmd.Exec(ctx, nil, nil, nil, nil): error: %s`, err)
 	}
 
 	select {

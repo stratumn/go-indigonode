@@ -12,31 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli_test
-
-import (
-	"fmt"
-	"testing"
-
-	"github.com/stratumn/alice/cli"
-)
-
-func TestExit(t *testing.T) {
-	tt := []ExecTest{{
-		"exit earth",
-		"",
-		ErrAny,
-		nil,
-	}, {
-		"exit 1 2",
-		"",
-		ErrUse,
-		nil,
-	}}
-
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Exit.Cmd)
-		})
-	}
-}
+// Package script defines types for a very simple script interpreter.
+//
+// It is designed with shell-like scripting in mind. It uses simplified
+// S-Expressions that can hold either string or list values.
+package script

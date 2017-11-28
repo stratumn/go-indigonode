@@ -243,7 +243,7 @@ func TestCli_Exec_error(t *testing.T) {
 	c.Exec(ctx, "version")
 
 	got := buf.String()
-	want := ansiRed + "Error: the instruction is invalid.\n" + ansiReset
+	want := ansiRed + "Error: 1:1: version: the instruction is invalid.\n" + ansiReset
 
 	if got != want {
 		t.Errorf("c.Exec(ctx, \"version\") =>\n%s\nwant\n\n%s", got, want)

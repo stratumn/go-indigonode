@@ -26,9 +26,9 @@ import (
 
 // Version is a command that displays the client version string.
 var Version = BasicCmdWrapper{BasicCmd{
-	Name:  "cli-version",
-	Short: "Display command line interface version string",
-	Exec:  versionExec,
+	Name:        "cli-version",
+	Short:       "Display command line interface version string",
+	ExecStrings: versionExec,
 }}
 
 func versionExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {

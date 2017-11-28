@@ -16,6 +16,8 @@ package script
 
 import (
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // ParserError represents an error from the parser.
@@ -46,41 +48,6 @@ func NewParser(scanner *Scanner) *Parser {
 	}
 }
 
-// Parse creates an S-Expression from the given input.
-func (p *Parser) Parse(in string) (*SExp, error) {
-	p.scanner.SetInput(in)
-
-	p.tok = p.scanner.Emit()
-
-	if tok := p.consume(TokEOF); tok != nil {
-		return nil, nil
-	}
-
-	var sexp *SExp
-	var err error
-
-	if p.tok.Type == TokLParen {
-		sexp, err = p.list()
-		if err != nil {
-			return nil, err
-		}
-		if sexp != nil {
-			sexp = sexp.SExp
-		}
-	} else {
-		sexp, err = p.inner()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if p.consume(TokEOF) == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	return sexp, nil
-}
-
 func (p *Parser) scan() {
 	p.tok = p.scanner.Emit()
 }
@@ -97,19 +64,162 @@ func (p *Parser) consume(typ TokenType) *Token {
 	return &tok
 }
 
-func (p *Parser) sexp() (*SExp, error) {
+func (p *Parser) skipLines() {
+	for {
+		if tok := p.consume(TokLine); tok == nil {
+			return
+		}
+	}
+}
+
+// Parse parses instructions in the given input.
+//
+// It returns a list of S-Expression which can be evaluated.
+func (p *Parser) Parse(in string) (*SExp, error) {
+	p.scanner.SetInput(in)
+	p.scan()
+
+	var head, tail *SExp
+
+	for {
+		instr, err := p.instr()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if instr == nil {
+			return head, nil
+		}
+
+		if tail == nil {
+			head = instr
+			tail = instr
+			continue
+		}
+
+		tail.Cdr = instr
+		tail = instr
+	}
+}
+
+func (p *Parser) instr() (*SExp, error) {
+	p.skipLines()
+
+	if tok := p.consume(TokEOF); tok != nil {
+		return nil, nil
+	}
+
+	tok := p.tok
+
+	if tok.Type == TokLParen {
+		list, err := p.list()
+		if err != nil {
+			return nil, err
+		}
+
+		if p.tok.Type != TokLine && p.tok.Type != TokEOF {
+			return nil, errors.WithStack(ParserError{p.tok})
+		}
+
+		return list, nil
+	}
+
+	call, err := p.call(false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SExp{
+		Type:   SExpList,
+		List:   call,
+		Line:   tok.Line,
+		Offset: tok.Offset,
+	}, nil
+}
+
+func (p *Parser) call(inList bool) (*SExp, error) {
+	head, err := p.string(inList)
+	if err != nil {
+		return nil, err
+	}
+
+	tail := head
+
+	for {
+		if inList {
+			p.skipLines()
+		}
+
+		if inList && p.tok.Type == TokRParen {
+			return head, nil
+		}
+
+		if !inList && (p.tok.Type == TokLine || p.tok.Type == TokEOF) {
+			return head, nil
+		}
+
+		operand, err := p.sexp(inList)
+		if err != nil {
+			return nil, err
+		}
+
+		tail.Cdr = operand
+		tail = operand
+	}
+}
+
+func (p *Parser) sexp(inList bool) (*SExp, error) {
+	if inList {
+		p.skipLines()
+	}
+
 	if p.tok.Type == TokLParen {
 		return p.list()
 	}
 
-	return p.string()
+	return p.string(inList)
 }
 
-func (p *Parser) string() (*SExp, error) {
+func (p *Parser) list() (*SExp, error) {
+	p.skipLines()
+
+	tok := p.consume(TokLParen)
+
+	if tok == nil {
+		return nil, errors.WithStack(ParserError{p.tok})
+	}
+
+	p.skipLines()
+
+	call, err := p.call(true)
+	if err != nil {
+		return nil, err
+	}
+
+	p.skipLines()
+
+	if p.consume(TokRParen) == nil {
+		return nil, errors.WithStack(ParserError{p.tok})
+	}
+
+	return &SExp{
+		Type:   SExpList,
+		List:   call,
+		Line:   tok.Line,
+		Offset: tok.Offset,
+	}, nil
+}
+
+func (p *Parser) string(inList bool) (*SExp, error) {
+	if inList {
+		p.skipLines()
+	}
+
 	tok := p.consume(TokString)
 
 	if tok == nil {
-		return nil, ParserError{p.tok}
+		return nil, errors.WithStack(ParserError{p.tok})
 	}
 
 	return &SExp{
@@ -118,67 +228,4 @@ func (p *Parser) string() (*SExp, error) {
 		Line:   tok.Line,
 		Offset: tok.Offset,
 	}, nil
-}
-
-func (p *Parser) list() (*SExp, error) {
-	tok := p.consume(TokLParen)
-
-	if tok == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	if p.consume(TokRParen) != nil {
-		return &SExp{
-			Type:   SExpList,
-			SExp:   nil,
-			Line:   tok.Line,
-			Offset: tok.Offset,
-		}, nil
-	}
-
-	sexp, err := p.inner()
-	if err != nil {
-		return nil, err
-	}
-
-	if p.consume(TokRParen) == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	return &SExp{
-		Type:   SExpList,
-		SExp:   sexp,
-		Line:   tok.Line,
-		Offset: tok.Offset,
-	}, nil
-}
-
-func (p *Parser) inner() (*SExp, error) {
-	tok := p.tok
-	atom := p.consume(TokString)
-
-	if atom == nil {
-		return nil, ParserError{p.tok}
-	}
-
-	head := &SExp{
-		Type:   SExpString,
-		Str:    atom.Value,
-		Line:   tok.Line,
-		Offset: tok.Offset,
-	}
-
-	curr := head
-
-	for {
-		cdr, err := p.sexp()
-		if err != nil {
-			break
-		}
-
-		curr.Cdr = cdr
-		curr = cdr
-	}
-
-	return head, nil
 }

@@ -32,6 +32,29 @@ var scannerTT = []scannerTest{{
 	},
 	nil,
 }, {
+	"(hello \nworld)",
+	[]Token{
+		{TokLParen, "", 1, 1},
+		{TokString, "hello", 1, 2},
+		{TokLine, "", 2, 0},
+		{TokString, "world", 2, 1},
+		{TokRParen, "", 2, 6},
+		{TokEOF, "", 2, 7},
+	},
+	nil,
+}, {
+	"one\r(two three)",
+	[]Token{
+		{TokString, "one", 1, 1},
+		{TokLine, "", 2, 0},
+		{TokLParen, "", 2, 1},
+		{TokString, "two", 2, 2},
+		{TokString, "three", 2, 6},
+		{TokRParen, "", 2, 11},
+		{TokEOF, "", 2, 12},
+	},
+	nil,
+}, {
 	"(hello world)",
 	[]Token{
 		{TokLParen, "", 1, 1},
@@ -53,6 +76,29 @@ var scannerTT = []scannerTest{{
 	[]Token{
 		{TokString, "hello\tworld\n\r'", 1, 1},
 		{TokEOF, "", 1, 21},
+	},
+	nil,
+}, {
+	"hello;world",
+	[]Token{
+		{TokString, "hello", 1, 1},
+		{TokEOF, "", 1, 12},
+	},
+	nil,
+}, {
+	"hello; world",
+	[]Token{
+		{TokString, "hello", 1, 1},
+		{TokEOF, "", 1, 13},
+	},
+	nil,
+}, {
+	"hello ; world \n world",
+	[]Token{
+		{TokString, "hello", 1, 1},
+		{TokLine, "", 2, 0},
+		{TokString, "world", 2, 2},
+		{TokEOF, "", 2, 7},
 	},
 	nil,
 }, {

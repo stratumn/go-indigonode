@@ -19,27 +19,51 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/release"
 )
 
-func TestVersion(t *testing.T) {
+func TestUnless(t *testing.T) {
 	tt := []ExecTest{{
-		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		"unless (title test) ko ok",
+		"ok\n",
 		nil,
 		nil,
 	}, {
-		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		"unless (test) ko ok",
+		"ko\n",
 		nil,
 		nil,
 	}, {
-		"cli-version --git-commit-length 100",
-		release.Version + "@" + release.GitCommit + "\n",
+		"unless (title test) (title ko) (title ok)",
+		"Ok\n",
 		nil,
 		nil,
 	}, {
-		"cli-version earth",
+		"unless (test) (title ko) (title ok)",
+		"Ko\n",
+		nil,
+		nil,
+	}, {
+		"unless (title test) ko",
+		"",
+		nil,
+		nil,
+	}, {
+		"unless (test) ko",
+		"ko\n",
+		nil,
+		nil,
+	}, {
+		"unless",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"unless test",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"unless (title test)",
 		"",
 		ErrUse,
 		nil,
@@ -47,7 +71,7 @@ func TestVersion(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Version.Cmd)
+			test.TestInstr(t, cli.Unless.Cmd)
 		})
 	}
 }

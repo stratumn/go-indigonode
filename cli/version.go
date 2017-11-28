@@ -20,6 +20,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/stratumn/alice/release"
 )
@@ -28,15 +29,33 @@ import (
 var Version = BasicCmdWrapper{BasicCmd{
 	Name:        "cli-version",
 	Short:       "Display command line interface version string",
+	Flags:       versionFlags,
 	ExecStrings: versionExec,
 }}
+
+func versionFlags() *pflag.FlagSet {
+	flags := pflag.NewFlagSet("cli-version", pflag.ContinueOnError)
+	flags.Int("git-commit-length", 0, "Truncate Git commit hash to specified length")
+	return flags
+}
 
 func versionExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
 	if len(args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
 	}
 
-	fmt.Fprintln(w, release.Version+"@"+release.GitCommit)
+	l, err := flags.GetInt("git-commit-length")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	commit := release.GitCommit
+
+	if l > 0 && l < len(commit) {
+		commit = commit[:l]
+	}
+
+	fmt.Fprintln(w, release.Version+"@"+commit)
 
 	return nil
 }

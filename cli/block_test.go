@@ -19,27 +19,26 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/release"
 )
 
-func TestVersion(t *testing.T) {
+func TestBlock(t *testing.T) {
 	tt := []ExecTest{{
-		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		"block",
+		"",
 		nil,
 		nil,
 	}, {
-		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		"block (echo a)",
+		"a\n",
 		nil,
 		nil,
 	}, {
-		"cli-version --git-commit-length 100",
-		release.Version + "@" + release.GitCommit + "\n",
+		"block (echo a) (echo b)",
+		"a\nb\n",
 		nil,
 		nil,
 	}, {
-		"cli-version earth",
+		"block hello",
 		"",
 		ErrUse,
 		nil,
@@ -47,7 +46,7 @@ func TestVersion(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Version.Cmd)
+			test.TestInstr(t, cli.Block.Cmd)
 		})
 	}
 }

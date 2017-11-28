@@ -15,7 +15,6 @@
 package script_test
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -24,26 +23,26 @@ import (
 
 func Example() {
 	src := `
-	(echo
-		(title hello world!)
-		(title goodbye world!))
+		; This is a comment.
+
+		echo (title hello world!)
+	
+		(echo
+			(title goodbye)
+			(title world!))
 `
 
 	var exec script.SExpExecutor
 
-	exec = func(list *script.SExp) (string, error) {
-		if list == nil {
-			return "", errors.New("empty list")
-		}
-
-		args, err := list.Cdr.EvalEach(exec)
+	exec = func(instr *script.SExp) (string, error) {
+		args, err := instr.Cdr.EvalEach(exec)
 		if err != nil {
 			return "", err
 		}
 
 		str := strings.Join(args, " ")
 
-		switch list.Str {
+		switch instr.Str {
 		case "echo":
 			fmt.Println(str)
 			return "", nil
@@ -51,7 +50,7 @@ func Example() {
 			return strings.Title(str), nil
 		}
 
-		return "", fmt.Errorf("invalid operand: %q", list.Str)
+		return "", fmt.Errorf("invalid operand: %q", instr.Str)
 	}
 
 	printErr := func(err error) {
@@ -61,14 +60,19 @@ func Example() {
 	scanner := script.NewScanner(script.ScannerOptErrorHandler(printErr))
 	parser := script.NewParser(scanner)
 
-	sexp, err := parser.Parse(src)
+	head, err := parser.Parse(src)
 	if err != nil {
 		panic(err)
 	}
 
-	if _, err := exec(sexp); err != nil {
-		panic(err)
+	for ; head != nil; head = head.Cdr {
+		_, err = exec(head.List)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	// Output: Hello World! Goodbye World!
+	// Output:
+	// Hello World!
+	// Goodbye World!
 }

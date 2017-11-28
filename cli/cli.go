@@ -52,7 +52,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 	"github.com/stratumn/alice/core/cfg"
-	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -63,14 +62,52 @@ import (
 // List all the builtin CLI commands here.
 var cmds = []Cmd{
 	Addr,
+	Block,
 	Connect,
 	Disconnect,
 	Echo,
 	Exit,
 	Help,
 	If,
+	Unless,
 	Version,
 }
+
+// art is displayed by the init script.
+const art = "      .o.       oooo   o8o\n" +
+	"     .888.      `888   `\\\"'\n" +
+	"    .8\\\"888.      888  oooo   .ooooo.   .ooooo.\n" +
+	"   .8' `888.     888  `888  d88' `\\\"Y8 d88' `88b\n" +
+	"  .88ooo8888.    888   888  888       888ooo888\n" +
+	" .8'     `888.   888   888  888   .o8 888    .o\n" +
+	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
+
+// initScript is executed when the CLI is launched.
+const initScript = `
+echo
+echo --stream info "` + art + `"
+echo
+echo (cli-version --git-commit-length 7) :: Copyright © 2017 Stratumn SAS
+echo
+
+; Only visible in debug mode.
+echo --stream debug Debuf output is enabled
+
+; Connect to the API.
+(unless
+	(api-connect)
+	(block
+		(echo)
+		(echo Looks like the API is offline.)
+		(echo You can try to connect again using "'api-connect'")
+		(echo)))
+
+echo
+echo Enter "'help'" to list available commands.
+echo Enter "'exit'" to quit the command line interface.
+echo Use the tab key for auto-completion.
+echo
+`
 
 // Available prompts.
 var promptsMu sync.Mutex
@@ -82,15 +119,6 @@ func registerPrompt(name string, run func(context.Context, CLI)) {
 	prompts[name] = run
 	promptsMu.Unlock()
 }
-
-// art is shown when launching the command line interface.
-const art = "      .o.       oooo   o8o\n" +
-	"     .888.      `888   `\"'\n" +
-	"    .8\"888.      888  oooo   .ooooo.   .ooooo.\n" +
-	"   .8' `888.     888  `888  d88' `\"Y8 d88' `88b\n" +
-	"  .88ooo8888.    888   888  888       888ooo888\n" +
-	" .8'     `888.   888   888  888   .o8 888    .o\n" +
-	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
 
 var (
 	// ErrInvalidConfig is returned when the configuration is invalid.
@@ -420,51 +448,31 @@ func (c *cli) Run(ctx context.Context) {
 		}
 	}()
 
-	cons := c.Console()
-
-	cons.Println()
-	cons.Infoln(art)
-	cons.Println()
-	cons.Println(release.Version + "@" + release.GitCommit[:7] + " -- Copyright © 2017 Stratumn SAS")
-	cons.Println()
-
-	// Will only be displayed if debug output is enabled.
-	cons.Debugln("Debug output is enabled.\n")
-
-	// Connect to the API.
-	c.Exec(ctx, "api-connect")
-
-	cons.Println()
-	cons.Println("Enter `help` to list available commands.")
-	cons.Println("Enter `exit` to quit the command line interface.")
-	cons.Println("Use the tab key for auto-completion.")
-	cons.Println()
+	c.Exec(ctx, initScript)
 
 	// Start the input prompt.
 	c.prompt(ctx, c)
 }
 
-// execSExp executes an S-Expression.
+// execSExp executes an S-Expression instruction.
 //
 // If capture is false, the result of the command is printed to the console
 // and an empty string is returned.
 //
 // Otherwise the result of the command is returned.
-func (c *cli) execSExp(ctx context.Context, sexp *script.SExp, capture bool) (string, error) {
-	if sexp != nil {
-		for _, cmd := range c.allCmds {
-			if cmd.Match(sexp.Str) {
-				return c.execCmd(ctx, cmd, sexp, capture)
-			}
+func (c *cli) execSExp(ctx context.Context, instr *script.SExp, capture bool) (string, error) {
+	for _, cmd := range c.allCmds {
+		if cmd.Match(instr.Str) {
+			return c.execCmd(ctx, cmd, instr, capture)
 		}
 	}
 
 	return "", errors.Wrapf(
 		ErrInvalidInstr,
 		"%d:%d: %s",
-		sexp.Line,
-		sexp.Offset,
-		sexp.Str,
+		instr.Line,
+		instr.Offset,
+		instr.Str,
 	)
 }
 
@@ -509,7 +517,7 @@ func (c *cli) execCmd(
 		return "", err
 	}
 
-	return strings.TrimSpace(buf.String()), nil
+	return strings.TrimSuffix(buf.String(), "\n"), nil
 }
 
 // printErr prints the error if it isn't nil.
@@ -531,25 +539,26 @@ func (c *cli) printErr(err error) {
 
 // sexpExecutor returns an S-Expression executor.
 func (c *cli) sexpExecutor(ctx context.Context, capture bool) script.SExpExecutor {
-	return func(list *script.SExp) (string, error) {
-		return c.execSExp(ctx, list, capture)
+	return func(instr *script.SExp) (string, error) {
+		return c.execSExp(ctx, instr, capture)
 	}
 }
 
 // Eval executes the given input, but does not handle errors or exit signals.
 func (c *cli) Eval(ctx context.Context, in string) error {
-	sexp, err := c.parser.Parse(in)
+	head, err := c.parser.Parse(in)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	if sexp == nil {
-		return nil
+	for ; head != nil; head = head.Cdr {
+		_, err = c.sexpExecutor(ctx, false)(head.List)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = c.sexpExecutor(ctx, false)(sexp)
-
-	return err
+	return nil
 }
 
 // Exec executes a command.

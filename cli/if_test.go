@@ -53,11 +53,6 @@ func TestIf(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"if () ok ko",
-		"ko\n",
-		nil,
-		nil,
-	}, {
 		"if",
 		"",
 		ErrUse,
@@ -76,7 +71,7 @@ func TestIf(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestSExp(t, cli.If.Cmd)
+			test.TestInstr(t, cli.If.Cmd)
 		})
 	}
 }

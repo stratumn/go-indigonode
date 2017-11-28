@@ -22,15 +22,15 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-// If is a command that evaluates conditional expressions.
-var If = BasicCmdWrapper{BasicCmd{
-	Name:      "if",
-	Use:       "if (command) then else",
-	Short:     "Evaluate conditional expressions",
-	ExecInstr: ifExec,
+// Unless is a command that does the opposite of the If command.
+var Unless = BasicCmdWrapper{BasicCmd{
+	Name:      "unless",
+	Use:       "unless (command) then else",
+	Short:     "Opposite of the if command",
+	ExecInstr: unlessExec,
 }}
 
-func ifExec(
+func unlessExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
 	exec script.SExpExecutor,
@@ -54,7 +54,7 @@ func ifExec(
 
 	_, err := exec(cond.List)
 
-	if err == nil {
+	if err != nil {
 		if then.Type == script.SExpList {
 			s, err := exec(then.List)
 			fmt.Fprint(w, s)

@@ -16,6 +16,8 @@ package script
 
 import (
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // TokenType is a script token.
@@ -25,6 +27,7 @@ type TokenType uint8
 const (
 	TokInvalid TokenType = iota
 	TokEOF
+	TokLine
 	TokLParen
 	TokRParen
 	TokString
@@ -32,6 +35,7 @@ const (
 
 var tokToStr = map[TokenType]string{
 	TokInvalid: "<invalid>",
+	TokLine:    "<line>",
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
@@ -65,12 +69,13 @@ func (err ScannerError) Error() string {
 
 // Scanner produces tokens from a string.
 type Scanner struct {
-	runes  []rune
-	len    int
-	line   int
-	pos    int
-	offset int
-	end    bool
+	runes      []rune
+	len        int
+	line       int
+	pos        int
+	offset     int
+	prevOffset int
+	end        bool
 
 	errHandler func(error)
 }
@@ -107,6 +112,7 @@ func (s *Scanner) SetInput(in string) {
 	s.pos = 0
 	s.line = 1
 	s.offset = 0
+	s.prevOffset = 0
 	s.end = false
 }
 
@@ -117,8 +123,18 @@ func (s *Scanner) SetInput(in string) {
 func (s *Scanner) Emit() Token {
 	c := s.read()
 
-	for isSpace(c) {
-		c = s.read()
+	for isSpace(c) || c == ';' {
+		for isSpace(c) {
+			c = s.read()
+		}
+
+		if c == ';' {
+			c = s.stripComment()
+		}
+	}
+
+	if isLine(c) {
+		return Token{TokLine, "", s.line, s.offset}
 	}
 
 	switch c {
@@ -134,6 +150,8 @@ func (s *Scanner) Emit() Token {
 }
 
 func (s *Scanner) read() rune {
+	s.prevOffset = s.offset
+
 	if s.pos >= s.len {
 		if !s.end {
 			s.offset++
@@ -156,8 +174,29 @@ func (s *Scanner) read() rune {
 	return c
 }
 
+// back should be called at most once per Emit.
+func (s *Scanner) back() {
+	s.pos--
+	s.offset--
+
+	if isLine(s.runes[s.pos]) {
+		s.line--
+		s.offset = s.prevOffset
+	}
+}
+
+func (s *Scanner) stripComment() rune {
+	c := s.read()
+
+	for !isLine(c) && c != 0 {
+		c = s.read()
+	}
+
+	return c
+}
+
 func (s *Scanner) error(line, pos int, c rune) {
-	s.errHandler(ScannerError{line, pos, c})
+	s.errHandler(errors.WithStack(ScannerError{line, pos, c}))
 }
 
 func (s *Scanner) string(c rune) Token {
@@ -202,16 +241,12 @@ func (s *Scanner) innerString(c rune, quote rune) Token {
 				buf += string(c)
 			default:
 				s.error(s.line, s.offset, c)
-				s.pos--
-				s.offset--
+				s.back()
 				return Token{TokInvalid, buf, line, offset}
 			}
 			c = s.read()
 		case isSpecial(c) && quote == 0:
-			if !isLine(c) {
-				s.pos--
-				s.offset--
-			}
+			s.back()
 			return Token{TokString, buf, line, offset}
 		default:
 			buf += string(c)
@@ -221,7 +256,7 @@ func (s *Scanner) innerString(c rune, quote rune) Token {
 }
 
 func isSpace(c rune) bool {
-	return c == ' ' || c == '\t' || isLine(c)
+	return c == ' ' || c == '\t'
 }
 
 func isLine(c rune) bool {
@@ -229,5 +264,5 @@ func isLine(c rune) bool {
 }
 
 func isSpecial(c rune) bool {
-	return c == '(' || c == ')' || isSpace(c) || isLine(c)
+	return c == '(' || c == ')' || c == ';' || isSpace(c) || isLine(c)
 }

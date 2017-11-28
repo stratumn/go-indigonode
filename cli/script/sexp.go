@@ -14,9 +14,7 @@
 
 package script
 
-import (
-	"fmt"
-)
+import "strings"
 
 // SExpType is a type of S-Expression.
 type SExpType uint8
@@ -30,7 +28,7 @@ const (
 // SExp is an S-Expression.
 type SExp struct {
 	Type   SExpType // car type
-	SExp   *SExp
+	List   *SExp
 	Str    string
 	Cdr    *SExp
 	Line   int
@@ -39,11 +37,22 @@ type SExp struct {
 
 // String returns a string representation of the S-Expression.
 func (s *SExp) String() string {
-	if s.Type == SExpList {
-		return fmt.Sprintf("(%s . %s)", s.SExp, s.Cdr)
+	var elems []string
+
+	for curr := s; curr != nil; curr = curr.Cdr {
+		switch curr.Type {
+		case SExpList:
+			if curr.List == nil {
+				elems = append(elems, "<nil>")
+			} else {
+				elems = append(elems, curr.List.String())
+			}
+		case SExpString:
+			elems = append(elems, curr.Str)
+		}
 	}
 
-	return fmt.Sprintf("(%s . %s)", s.Str, s.Cdr)
+	return "(" + strings.Join(elems, " ") + ")"
 }
 
 // SExpExecutor executes S-Expression operations.
@@ -57,7 +66,7 @@ func (s *SExp) Clone() *SExp {
 
 	return &SExp{
 		Type:   s.Type,
-		SExp:   s.SExp.Clone(),
+		List:   s.List.Clone(),
 		Str:    s.Str,
 		Cdr:    s.Cdr.Clone(),
 		Line:   s.Line,
@@ -75,7 +84,7 @@ func (s *SExp) EvalEach(exec SExpExecutor) ([]string, error) {
 
 	for curr := s; curr != nil; curr = curr.Cdr {
 		if curr.Type == SExpList {
-			v, err := exec(curr.SExp)
+			v, err := exec(curr.List)
 			if err != nil {
 				return nil, err
 			}

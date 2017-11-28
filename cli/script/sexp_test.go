@@ -32,10 +32,6 @@ var evalTT = []evalTest{{
 	"",
 	"",
 }, {
-	"()",
-	"",
-	"",
-}, {
 	"echo",
 	"",
 	"",
@@ -56,12 +52,12 @@ var evalTT = []evalTest{{
 	"hello",
 	"",
 }, {
-	"(echo hello world)",
-	"hello world",
+	"echo 'hello  world'",
+	"hello  world",
 	"",
 }, {
-	"(echo 'hello  world')",
-	"hello  world",
+	"echo hello\n(echo world)",
+	"hello\nworld",
 	"",
 }, {
 	"(echo hello (echo world !))",
@@ -72,30 +68,26 @@ var evalTT = []evalTest{{
 	"the world is beautiful !",
 	"",
 }, {
-	"(+ 1 2)",
+	"+ 1 2",
 	"",
-	"1:2: unknown function \"+\"",
+	"1:1: unknown function \"+\"",
 }, {
-	"(echo (+ 1 2))",
+	"echo (+ 1 2)",
 	"",
-	"1:8: unknown function \"+\"",
+	"1:7: unknown function \"+\"",
 }}
 
-func testExecutor(sexp *SExp) (string, error) {
-	if sexp == nil {
-		return "", nil
-	}
-
-	if sexp.Str == "echo" {
-		vals, err := sexp.Cdr.EvalEach(testExecutor)
+func testExecutor(instr *SExp) (string, error) {
+	if instr.Str == "echo" {
+		args, err := instr.Cdr.EvalEach(testExecutor)
 		if err != nil {
 			return "", err
 		}
 
-		return strings.Join(vals, " "), nil
+		return strings.Join(args, " "), nil
 	}
 
-	return "", errors.Errorf("%d:%d: unknown function %q", sexp.Line, sexp.Offset, sexp.Str)
+	return "", errors.Errorf("%d:%d: unknown function %q", instr.Line, instr.Offset, instr.Str)
 }
 
 func TestSExp_eval(t *testing.T) {
@@ -103,13 +95,24 @@ func TestSExp_eval(t *testing.T) {
 	p := NewParser(s)
 
 	for _, test := range evalTT {
-		sexp, err := p.Parse(test.input)
+		head, err := p.Parse(test.input)
 		if err != nil {
 			t.Errorf("%q: error: %s", test.input, err)
 			continue
 		}
 
-		output, err := testExecutor(sexp)
+		var vals []string
+		var v string
+
+		for ; head != nil; head = head.Cdr {
+			v, err = testExecutor(head.List)
+			if err != nil {
+				break
+			}
+
+			vals = append(vals, v)
+		}
+
 		if err != nil {
 			if test.err != "" {
 				if err.Error() != test.err {
@@ -120,6 +123,8 @@ func TestSExp_eval(t *testing.T) {
 			}
 			continue
 		}
+
+		output := strings.Join(vals, "\n")
 
 		if output != test.output {
 			t.Errorf("%q: output = %q want %q", test.input, output, test.output)

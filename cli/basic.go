@@ -28,11 +28,11 @@ import (
 // BasicCmd implements a basic command that matches the first word of the
 // input.
 //
-// Either ExecStrings or ExecSExp should be defined. ExecSExp is meant for
+// Either ExecStrings or ExecInstr should be defined. ExecInstr is meant for
 // commands that need to manipulate S-Expressions, such as conditional
 // commands.
 //
-// Not that in the case of ExecSExp command flags are not supported.
+// Not that in the case of ExecInstr command flags are not supported.
 type BasicCmd struct {
 	// Name is the name of the command, used to match a word to the command
 	// amongst other things.
@@ -52,9 +52,9 @@ type BasicCmd struct {
 	// arguments.
 	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
 
-	// ExecSExp is a function that executes the command against an
-	// S-Expression.
-	ExecSExp func(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
+	// ExecInstr is a function that executes the command against an
+	// S-Expression instruction.
+	ExecInstr func(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -200,13 +200,13 @@ func (cmd BasicCmdWrapper) Exec(
 	cli CLI,
 	w io.Writer,
 	exec script.SExpExecutor,
-	list *script.SExp,
+	instr *script.SExp,
 ) error {
-	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx, cli, w, exec, list)
+	if cmd.Cmd.ExecInstr != nil {
+		return cmd.Cmd.ExecInstr(ctx, cli, w, exec, instr)
 	}
 
-	argv, err := list.Cdr.EvalEach(exec)
+	argv, err := instr.Cdr.EvalEach(exec)
 	if err != nil {
 		return err
 	}

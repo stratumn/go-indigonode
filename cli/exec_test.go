@@ -92,7 +92,7 @@ func (e ExecTest) TestStrings(t *testing.T, cmd cli.BasicCmd) {
 	}
 }
 
-func (e ExecTest) TestSExp(t *testing.T, cmd cli.BasicCmd) {
+func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -122,6 +122,9 @@ func (e ExecTest) TestSExp(t *testing.T, cmd cli.BasicCmd) {
 		str := strings.Join(args, " ")
 
 		switch list.Str {
+		case "echo":
+			fmt.Fprint(buf, str)
+			return "", nil
 		case "title":
 			return strings.Title(str) + "\n", nil
 		}
@@ -130,12 +133,12 @@ func (e ExecTest) TestSExp(t *testing.T, cmd cli.BasicCmd) {
 	}
 
 	parser := script.NewParser(script.NewScanner())
-	sexp, err := parser.Parse(e.Command)
+	head, err := parser.Parse(e.Command)
 	if err != nil {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	err = errors.Cause(cmd.ExecSExp(ctx, c, buf, exec, sexp))
+	err = errors.Cause(cmd.ExecInstr(ctx, c, buf, exec, head.List))
 
 	switch {
 	case e.Err == ErrAny && err != nil:

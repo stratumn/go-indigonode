@@ -74,7 +74,7 @@ func (s *SExp) Clone() *SExp {
 	}
 }
 
-// EvalEach evaluates each element in a list.
+// EvalEach evaluates each instructions in a list.
 func (s *SExp) EvalEach(exec SExpExecutor) ([]string, error) {
 	if s == nil {
 		return nil, nil

@@ -119,7 +119,7 @@ func (s *Scanner) SetInput(in string) {
 // Emit emits the next token.
 //
 // It returns TokEOF if all tokens have been read, and TokInvalid if no valid
-// tokens were found.
+// token was found.
 func (s *Scanner) Emit() Token {
 	c := s.read()
 

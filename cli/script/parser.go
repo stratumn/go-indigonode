@@ -74,7 +74,7 @@ func (p *Parser) skipLines() {
 
 // Parse parses instructions in the given input.
 //
-// It returns a list of S-Expression which can be evaluated.
+// It returns a list of S-Expressions which can be evaluated.
 func (p *Parser) Parse(in string) (*SExp, error) {
 	p.scanner.SetInput(in)
 	p.scan()

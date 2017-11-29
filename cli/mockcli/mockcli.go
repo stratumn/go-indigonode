@@ -140,6 +140,16 @@ func (mr *MockCLIMockRecorder) Exec(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockCLI)(nil).Exec), arg0, arg1)
 }
 
+// PrintError mocks base method
+func (m *MockCLI) PrintError(arg0 error) {
+	m.ctrl.Call(m, "PrintError", arg0)
+}
+
+// PrintError indicates an expected call of PrintError
+func (mr *MockCLIMockRecorder) PrintError(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrintError", reflect.TypeOf((*MockCLI)(nil).PrintError), arg0)
+}
+
 // Run mocks base method
 func (m *MockCLI) Run(arg0 context.Context) {
 	m.ctrl.Call(m, "Run", arg0)

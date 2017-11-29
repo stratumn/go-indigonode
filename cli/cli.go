@@ -65,6 +65,8 @@ var cmds = []Cmd{
 	Bang{},
 	Block,
 	Connect,
+	Car,
+	Cdr,
 	Disconnect,
 	Echo,
 	Eval,
@@ -270,6 +272,9 @@ type CLI interface {
 	// Suggest finds all command suggestions.
 	Suggest(cnt Content) []Suggest
 
+	// PrintError prints an error if it isn't nil.
+	PrintError(error)
+
 	// DidJustExecute returns true the first time it is called after a command
 	// executed. This is a hack used by the VT100 prompt to hide suggestions
 	// after a command was executed.
@@ -325,7 +330,7 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		addr:      config.APIAddress,
 	}
 
-	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.printErr))
+	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.PrintError))
 	c.parser = script.NewParser(scanner)
 
 	sort.Slice(c.cmds, func(i, j int) bool {
@@ -541,7 +546,7 @@ func (c *cli) execCmd(
 
 		// Always print errors of nested commands.
 		if capture {
-			c.printErr(err)
+			c.PrintError(err)
 		}
 
 		return "", err
@@ -550,8 +555,8 @@ func (c *cli) execCmd(
 	return strings.TrimSuffix(buf.String(), "\n"), nil
 }
 
-// printErr prints the error if it isn't nil.
-func (c *cli) printErr(err error) {
+// PrintError prints the error if it isn't nil.
+func (c *cli) PrintError(err error) {
 	if err == nil {
 		return
 	}
@@ -624,7 +629,7 @@ func (c *cli) Exec(ctx context.Context, in string) {
 	case err = <-done:
 	}
 
-	c.printErr(err)
+	c.PrintError(err)
 }
 
 // Suggest finds all command suggestions.

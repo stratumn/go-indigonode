@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/script"
 )
 
 func TestUnless(t *testing.T) {
@@ -53,6 +54,16 @@ func TestUnless(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"unless test ko ok",
+		"ok\n",
+		nil,
+		nil,
+	}, {
+		"unless $test ko ok",
+		"ko\n",
+		nil,
+		nil,
+	}, {
 		"unless",
 		"",
 		ErrUse,
@@ -61,6 +72,16 @@ func TestUnless(t *testing.T) {
 		"unless test",
 		"",
 		ErrUse,
+		nil,
+	}, {
+		"unless test ko $ok",
+		"",
+		script.ErrSymNotFound,
+		nil,
+	}, {
+		"unless (test) $ko ok",
+		"",
+		script.ErrSymNotFound,
 		nil,
 	}, {
 		"unless (title test)",

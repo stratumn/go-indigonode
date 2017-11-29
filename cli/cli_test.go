@@ -306,8 +306,8 @@ func sym(s string) *script.SExp {
 	return &script.SExp{Type: script.SExpSym, Str: s}
 }
 
-func TestCli_resolver(t *testing.T) {
-	got, err := cliResolver(sym("a"))
+func TestResolver(t *testing.T) {
+	got, err := Resolver(sym("a"))
 	if err != nil {
 		t.Error(`cliResolver(sym("a")): error: `, err)
 	} else {
@@ -316,7 +316,7 @@ func TestCli_resolver(t *testing.T) {
 		}
 	}
 
-	if _, err := cliResolver(sym("$a")); err == nil {
+	if _, err := Resolver(sym("$a")); err == nil {
 		t.Error(`cliResolver(sym("$a")): did not get an error`)
 	}
 }

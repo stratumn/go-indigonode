@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/script"
 )
 
 func TestBlock(t *testing.T) {
@@ -38,9 +39,14 @@ func TestBlock(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"block hello",
+		"block hello world",
+		"hello\nworld\n",
+		nil,
+		nil,
+	}, {
+		"block $hello",
 		"",
-		ErrUse,
+		script.ErrSymNotFound,
 		nil,
 	}}
 

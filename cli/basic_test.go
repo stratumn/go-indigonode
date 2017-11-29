@@ -132,10 +132,12 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 		},
 	}}
 
+	closure := script.NewClosure(script.ClosureOptResolver(script.SExpNameResolver))
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if err := cmd.Exec(ctx, nil, nil, script.SExpNameResolver, nil, &script.SExp{}); err != nil {
+	if err := cmd.Exec(ctx, nil, nil, closure, nil, &script.SExp{}); err != nil {
 		t.Errorf(`cmd.Exec(): error: %s`, err)
 	}
 

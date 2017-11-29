@@ -58,7 +58,7 @@ type BasicCmd struct {
 		context.Context,
 		CLI,
 		io.Writer,
-		script.SExpResolver,
+		*script.Closure,
 		script.SExpEvaluator,
 		*script.SExp,
 	) error
@@ -206,15 +206,15 @@ func (cmd BasicCmdWrapper) Exec(
 	ctx context.Context,
 	cli CLI,
 	w io.Writer,
-	resolve script.SExpResolver,
+	closure *script.Closure,
 	eval script.SExpEvaluator,
 	exp *script.SExp,
 ) error {
 	if cmd.Cmd.ExecInstr != nil {
-		return cmd.Cmd.ExecInstr(ctx, cli, w, resolve, eval, exp)
+		return cmd.Cmd.ExecInstr(ctx, cli, w, closure, eval, exp)
 	}
 
-	argv, err := exp.Cdr.ResolveEvalEach(resolve, eval)
+	argv, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)
 	if err != nil {
 		return err
 	}

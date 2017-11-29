@@ -100,8 +100,7 @@ echo --stream debug Debuf output is enabled
 	(block
 		(echo)
 		(echo Looks like the API is offline.)
-		(echo You can try to connect again using "'api-connect'")
-		(echo)))
+		(echo You can try to connect again using "'api-connect'")))
 
 echo
 echo Enter "'help'" to list available commands.
@@ -195,7 +194,7 @@ type Cmd interface {
 		context.Context,
 		CLI,
 		io.Writer,
-		script.SExpResolver,
+		*script.Closure,
 		script.SExpEvaluator,
 		*script.SExp,
 	) error
@@ -310,7 +309,7 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 
 	closure := script.NewClosure(
 		script.ClosureOptEnv("$", os.Environ()),
-		script.ClosureOptResolver(cliResolver),
+		script.ClosureOptResolver(Resolver),
 	)
 
 	c := cli{
@@ -477,7 +476,7 @@ func (c *cli) Run(ctx context.Context) {
 // Otherwise the result of the command is returned.
 func (c *cli) evalSExp(
 	ctx context.Context,
-	resolve script.SExpResolver,
+	closure *script.Closure,
 	exp *script.SExp,
 	capture bool,
 ) (string, error) {
@@ -491,7 +490,7 @@ func (c *cli) evalSExp(
 
 	for _, cmd := range c.allCmds {
 		if cmd.Match(exp.Str) {
-			return c.execCmd(ctx, resolve, cmd, exp, capture)
+			return c.execCmd(ctx, closure, cmd, exp, capture)
 		}
 	}
 
@@ -507,7 +506,7 @@ func (c *cli) evalSExp(
 // execCmd executes the given command.
 func (c *cli) execCmd(
 	ctx context.Context,
-	resolve script.SExpResolver,
+	closure *script.Closure,
 	cmd Cmd,
 	sexp *script.SExp,
 	capture bool,
@@ -519,8 +518,8 @@ func (c *cli) execCmd(
 		w = buf
 	}
 
-	eval := c.sexpEvaluator(ctx, true)
-	err := cmd.Exec(ctx, c, w, resolve, eval, sexp)
+	eval := c.sexpEvaluator(ctx, closure, true)
+	err := cmd.Exec(ctx, c, w, closure, eval, sexp)
 
 	if err != nil {
 		cause := errors.Cause(err)
@@ -567,9 +566,13 @@ func (c *cli) printErr(err error) {
 }
 
 // sexpEvaluator returns an S-Expression evaluator.
-func (c *cli) sexpEvaluator(ctx context.Context, capture bool) script.SExpEvaluator {
+func (c *cli) sexpEvaluator(
+	ctx context.Context,
+	closure *script.Closure,
+	capture bool,
+) script.SExpEvaluator {
 	return func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
-		return c.evalSExp(ctx, resolve, exp, capture)
+		return c.evalSExp(ctx, closure, exp, capture)
 	}
 }
 
@@ -581,7 +584,7 @@ func (c *cli) Eval(ctx context.Context, in string) error {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = c.sexpEvaluator(ctx, false)(c.closure.Resolve, head.List)
+		_, err = c.sexpEvaluator(ctx, c.closure, false)(nil, head.List)
 		if err != nil {
 			return err
 		}
@@ -647,9 +650,9 @@ func (c *cli) DidJustExecute() bool {
 	return c.executed
 }
 
-// cliResolver resolves the name of the symbol if it doesn't begin with a
-// dollar sign.
-func cliResolver(sym *script.SExp) (*script.SExp, error) {
+// Resolver resolves the name of the symbol if it doesn't begin with a dollar
+// sign.
+func Resolver(sym *script.SExp) (*script.SExp, error) {
 	if strings.HasPrefix(sym.Str, "$") {
 		return nil, errors.Wrapf(
 			script.ErrSymNotFound,

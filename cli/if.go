@@ -25,7 +25,7 @@ import (
 // If is a command that evaluates conditional expressions.
 var If = BasicCmdWrapper{BasicCmd{
 	Name:      "if",
-	Use:       "if (command) then else",
+	Use:       "if cond then [else]",
 	Short:     "Evaluate conditional expressions",
 	ExecInstr: ifExec,
 }}
@@ -33,17 +33,13 @@ var If = BasicCmdWrapper{BasicCmd{
 func ifExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
-	resolve script.SExpResolver,
+	closure *script.Closure,
 	eval script.SExpEvaluator,
 	exp *script.SExp,
 ) error {
 	cond := exp.Cdr
 	if cond == nil {
 		return NewUseError("missing condition expression")
-	}
-
-	if cond.Type != script.SExpList {
-		return NewUseError("condition must be a list")
 	}
 
 	then := cond.Cdr
@@ -53,30 +49,24 @@ func ifExec(
 
 	otherwise := then.Cdr
 
-	_, err := eval(resolve, cond.List)
+	_, err := cond.ResolveEval(closure.Resolve, eval)
 
 	if err == nil {
-		if then.Type == script.SExpList {
-			s, err := eval(resolve, then.List)
-			fmt.Fprint(w, s)
-			return err
+		s, err := then.ResolveEval(closure.Resolve, eval)
+		if err == nil {
+			fmt.Fprintln(w, s)
 		}
 
-		fmt.Fprintln(w, then.Str)
-
-		return nil
+		return err
 	}
 
 	if otherwise != nil {
-		if otherwise.Type == script.SExpList {
-			s, err := eval(resolve, otherwise.List)
-			fmt.Fprint(w, s)
-			return err
+		s, err := otherwise.ResolveEval(closure.Resolve, eval)
+		if err == nil {
+			fmt.Fprintln(w, s)
 		}
 
-		fmt.Fprintln(w, otherwise.Str)
-
-		return nil
+		return err
 	}
 
 	return nil

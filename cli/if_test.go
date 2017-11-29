@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/script"
 )
 
 func TestIf(t *testing.T) {
@@ -53,6 +54,16 @@ func TestIf(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"if test ok",
+		"ok\n",
+		nil,
+		nil,
+	}, {
+		"if $test ok ko",
+		"ko\n",
+		nil,
+		nil,
+	}, {
 		"if",
 		"",
 		ErrUse,
@@ -61,6 +72,16 @@ func TestIf(t *testing.T) {
 		"if test",
 		"",
 		ErrUse,
+		nil,
+	}, {
+		"if test $ok",
+		"",
+		script.ErrSymNotFound,
+		nil,
+	}, {
+		"if (test) ok $ok",
+		"",
+		script.ErrSymNotFound,
 		nil,
 	}, {
 		"if (title test)",

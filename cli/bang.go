@@ -81,7 +81,7 @@ func (Bang) Exec(
 	ctx context.Context,
 	c CLI,
 	w io.Writer,
-	resolve script.SExpResolver,
+	closure *script.Closure,
 	eval script.SExpEvaluator,
 	exp *script.SExp,
 ) error {
@@ -90,7 +90,7 @@ func (Bang) Exec(
 		return NewUseError("command is blank")
 	}
 
-	args, err := exp.Cdr.ResolveEvalEach(resolve, eval)
+	args, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)
 	if err != nil {
 		return err
 	}

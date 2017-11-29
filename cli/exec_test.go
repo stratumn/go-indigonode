@@ -29,18 +29,20 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-// Types to help testing commands.
-
 var (
 	ErrAny = errors.New("any error")
 	ErrUse = errors.New("usage error")
 )
 
+// ExecTest helps testing commands.
 type ExecTest struct {
 	Command string
 	Want    string
 	Err     error
-	Expect  func(*mockcli.MockCLI)
+
+	// If the command expects anything other than the console from the CLI,
+	// add expectations in this function.
+	Expect func(*mockcli.MockCLI)
 }
 
 func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
@@ -82,7 +84,7 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 			fmt.Fprint(buf, str)
 			return "", nil
 		case "title":
-			return strings.Title(str) + "\n", nil
+			return strings.Title(str), nil
 		}
 
 		return "", fmt.Errorf("invalid operand: %q", exp.Str)
@@ -94,7 +96,9 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	err = errors.Cause(cmd.Exec(ctx, c, buf, script.SExpNameResolver, eval, head.List))
+	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
+
+	err = errors.Cause(cmd.Exec(ctx, c, buf, closure, eval, head.List))
 
 	switch {
 	case e.Err == ErrAny && err != nil:

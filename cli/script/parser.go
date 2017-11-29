@@ -103,6 +103,25 @@ func (p *Parser) Parse(in string) (*SExp, error) {
 	}
 }
 
+// List parses a list.
+func (p *Parser) List(in string) (*SExp, error) {
+	p.scanner.SetInput(in)
+	p.scan()
+
+	exp, err := p.list()
+	if err != nil {
+		return nil, err
+	}
+
+	p.skipLines()
+
+	if p.tok.Type != TokEOF {
+		return nil, errors.WithStack(ParserError{p.tok})
+	}
+
+	return exp.List, nil
+}
+
 func (p *Parser) instr() (*SExp, error) {
 	p.skipLines()
 

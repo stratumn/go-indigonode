@@ -24,7 +24,7 @@ type parserTest struct {
 	err   string
 }
 
-var parserTT = []parserTest{{
+var parserParseTT = []parserTest{{
 	"",
 	"()",
 	"",
@@ -114,12 +114,53 @@ var parserTT = []parserTest{{
 	"1:6: unexpected token (",
 }}
 
+var parserListTT = []parserTest{{
+	"()",
+	"()",
+	"",
+}, {
+	"(a b c)",
+	"(a b c)",
+	"",
+}, {
+	"",
+	"",
+	"1:1: unexpected token <EOF>",
+}, {
+	"(a b) (c d)",
+	"",
+	"1:7: unexpected token (",
+}}
+
 func TestParser_Parse(t *testing.T) {
 	s := NewScanner()
 	p := NewParser(s)
 
-	for _, test := range parserTT {
+	for _, test := range parserParseTT {
 		sexp, err := p.Parse(test.input)
+		if err != nil {
+			if test.err != "" {
+				if err.Error() != test.err {
+					t.Errorf("%q: error = %q want %q", test.input, err, test.err)
+				}
+			} else {
+				t.Errorf("%q: error: %s", test.input, err)
+			}
+			continue
+		}
+
+		if got, want := sexp.String(), test.sexp; got != want {
+			t.Errorf("%q: sexp = %q want %q", test.input, got, want)
+		}
+	}
+}
+
+func TestParser_List(t *testing.T) {
+	s := NewScanner()
+	p := NewParser(s)
+
+	for _, test := range parserListTT {
+		sexp, err := p.List(test.input)
 		if err != nil {
 			if test.err != "" {
 				if err.Error() != test.err {

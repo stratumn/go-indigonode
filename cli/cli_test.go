@@ -312,11 +312,11 @@ func TestCli_resolver(t *testing.T) {
 		t.Error(`cliResolver(sym("a")): error: `, err)
 	} else {
 		if got, want := got.String(), `("a")`; got != want {
-			t.Errorf(`cliResolver(sym("a")): v = %s want $s `, got, want)
+			t.Errorf(`cliResolver(sym("a")): v = %s want %s `, got, want)
 		}
 	}
 
-	if _, err := cliResolver(sym("$a")); err != nil {
+	if _, err := cliResolver(sym("$a")); err == nil {
 		t.Error(`cliResolver(sym("$a")): did not get an error`)
 	}
 }

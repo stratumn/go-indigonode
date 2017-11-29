@@ -62,6 +62,7 @@ import (
 // List all the builtin CLI commands here.
 var cmds = []Cmd{
 	Addr,
+	Bang{},
 	Block,
 	Connect,
 	Disconnect,

@@ -24,11 +24,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
 	"github.com/stratumn/alice/cli/script"
 )
+
+// Types to help testing commands.
 
 var (
 	ErrAny = errors.New("any error")
@@ -42,57 +43,7 @@ type ExecTest struct {
 	Expect  func(*mockcli.MockCLI)
 }
 
-func (e ExecTest) TestStrings(t *testing.T, cmd cli.BasicCmd) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	c := mockcli.NewMockCLI(ctrl)
-	buf := bytes.NewBuffer(nil)
-	cons := cli.NewConsole(buf, false)
-
-	c.EXPECT().Console().Return(cons).AnyTimes()
-	if e.Expect != nil {
-		e.Expect(c)
-	}
-
-	argv := strings.Split(e.Command, " ")[1:]
-
-	var flags *pflag.FlagSet
-
-	if cmd.Flags != nil {
-		flags = cmd.Flags()
-	} else {
-		flags = pflag.NewFlagSet(e.Command, pflag.ContinueOnError)
-	}
-
-	if err := flags.Parse(argv); err != nil {
-		t.Fatalf("%s: flag error: %s", e.Command, err)
-	}
-
-	err := errors.Cause(cmd.ExecStrings(ctx, c, buf, flags.Args(), flags))
-
-	switch {
-	case e.Err == ErrAny && err != nil:
-		// Pass.
-	case e.Err == ErrUse:
-		if _, ok := err.(*cli.UseError); !ok {
-			t.Errorf("%s: error = %v want %v", e.Command, err, e.Err)
-		}
-	case err != e.Err:
-		t.Errorf("%s: error = %v want %v", e.Command, err, e.Err)
-	}
-
-	got := buf.String()
-
-	if got != e.Want {
-		t.Errorf("%s =>\n%s\nwant\n\n%s", e.Command, got, e.Want)
-	}
-}
-
-func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
+func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -143,7 +94,7 @@ func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	err = errors.Cause(cmd.ExecInstr(ctx, c, buf, script.SExpNameResolver, eval, head.List))
+	err = errors.Cause(cmd.Exec(ctx, c, buf, script.SExpNameResolver, eval, head.List))
 
 	switch {
 	case e.Err == ErrAny && err != nil:

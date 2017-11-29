@@ -36,7 +36,7 @@ func TestExit(t *testing.T) {
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Exit.Cmd)
+			test.Test(t, cli.Exit)
 		})
 	}
 }

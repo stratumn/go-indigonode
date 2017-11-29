@@ -75,7 +75,7 @@ Flags:
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.TestStrings(t, cli.Help.Cmd)
+			test.Test(t, cli.Help)
 		})
 	}
 }

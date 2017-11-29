@@ -82,12 +82,12 @@ func TestClosure_Set_new(t *testing.T) {
 	c2 := NewClosure(ClosureOptParent(c1))
 	c2.Set("a", sym("one"))
 
-	got, ok := c1.Get("a")
+	_, ok := c1.Get("a")
 	if ok {
 		t.Errorf(`c1.Get("a"): ok = %v want false`, ok)
 	}
 
-	got, ok = c2.Get("a")
+	got, ok := c2.Get("a")
 	if !ok {
 		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
 	} else if got.String() != "(one)" {
@@ -128,9 +128,9 @@ func TestClosure_Resolve(t *testing.T) {
 		t.Errorf(`c.Resolve(sym("a")) = %v want (one)`, got.String())
 	}
 
-	got, err = c.Resolve(sym("b"))
+	_, err = c.Resolve(sym("b"))
 	if got, want := errors.Cause(err), ErrSymNotFound; got != want {
-		t.Error(`c.Resolve(sym("b")): error = %v want %v`, got, want)
+		t.Errorf(`c.Resolve(sym("b")): error = %v want %v`, got, want)
 	}
 }
 

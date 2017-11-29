@@ -15,15 +15,13 @@
 // Package script defines types for a very simple script interpreter.
 //
 // It is designed with shell-like scripting in mind. It uses simplified
-// S-Expressions that can hold either string or list values.
+// S-Expressions that can hold either symbols, strings or lists. Everything
+// evaluates to a string.
 package script
 
 import "github.com/pkg/errors"
 
 var (
-	// ErrNil is returned when trying to evaluate an empty list.
-	ErrNil = errors.New("cannot evaluate and empty list")
-
 	// ErrSymNotFound is returned when a symbol could not be resolved.
 	ErrSymNotFound = errors.New("could not resolve symbol")
 )

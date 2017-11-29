@@ -19,27 +19,24 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
 )
 
-func TestDisconnect(t *testing.T) {
+func TestBang(t *testing.T) {
 	tt := []ExecTest{{
-		"api-disconnect",
-		"Disconnected.\n",
+		"!echo hello outside world!",
+		"hello outside world!\n",
 		nil,
-		func(c *mockcli.MockCLI) {
-			c.EXPECT().Disconnect()
-		},
+		nil,
 	}, {
-		"api-disconnect earth",
+		"!1234567890",
 		"",
-		ErrUse,
+		ErrAny,
 		nil,
 	}}
 
 	for i, test := range tt {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Disconnect)
+			test.Test(t, cli.Bang{})
 		})
 	}
 }

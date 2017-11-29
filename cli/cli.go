@@ -190,7 +190,14 @@ type Cmd interface {
 	//
 	// The result should be written to the writer. Other messages should
 	// be written the CLI's console.
-	Exec(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
+	Exec(
+		context.Context,
+		CLI,
+		io.Writer,
+		script.SExpResolver,
+		script.SExpEvaluator,
+		*script.SExp,
+	) error
 }
 
 // Suggest implements a suggestion.
@@ -273,6 +280,7 @@ type cli struct {
 	cons   *Console
 	prompt func(context.Context, CLI)
 
+	closure   *script.Closure
 	reflector ServerReflector
 	parser    *script.Parser
 	cmds      []Cmd
@@ -299,10 +307,16 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
+	closure := script.NewClosure(
+		script.ClosureOptEnv("$", os.Environ()),
+		script.ClosureOptResolver(cliResolver),
+	)
+
 	c := cli{
 		conf:      config,
 		cons:      cons,
 		prompt:    prompt,
+		closure:   closure,
 		reflector: NewServerReflector(cons, 0),
 		cmds:      cmds,
 		allCmds:   cmds,
@@ -454,31 +468,45 @@ func (c *cli) Run(ctx context.Context) {
 	c.prompt(ctx, c)
 }
 
-// execSExp executes an S-Expression instruction.
+// evalSExp evaluate an S-Expression.
 //
 // If capture is false, the result of the command is printed to the console
 // and an empty string is returned.
 //
 // Otherwise the result of the command is returned.
-func (c *cli) execSExp(ctx context.Context, instr *script.SExp, capture bool) (string, error) {
+func (c *cli) evalSExp(
+	ctx context.Context,
+	resolve script.SExpResolver,
+	exp *script.SExp,
+	capture bool,
+) (string, error) {
+	if exp == nil {
+		return "", nil
+	}
+
+	if exp.Type == script.SExpString {
+		return exp.Str, nil
+	}
+
 	for _, cmd := range c.allCmds {
-		if cmd.Match(instr.Str) {
-			return c.execCmd(ctx, cmd, instr, capture)
+		if cmd.Match(exp.Str) {
+			return c.execCmd(ctx, resolve, cmd, exp, capture)
 		}
 	}
 
 	return "", errors.Wrapf(
 		ErrInvalidInstr,
 		"%d:%d: %s",
-		instr.Line,
-		instr.Offset,
-		instr.Str,
+		exp.Line,
+		exp.Offset,
+		exp.Str,
 	)
 }
 
 // execCmd executes the given command.
 func (c *cli) execCmd(
 	ctx context.Context,
+	resolve script.SExpResolver,
 	cmd Cmd,
 	sexp *script.SExp,
 	capture bool,
@@ -490,8 +518,8 @@ func (c *cli) execCmd(
 		w = buf
 	}
 
-	exec := c.sexpExecutor(ctx, true)
-	err := cmd.Exec(ctx, c, w, exec, sexp)
+	eval := c.sexpEvaluator(ctx, true)
+	err := cmd.Exec(ctx, c, w, resolve, eval, sexp)
 
 	if err != nil {
 		cause := errors.Cause(err)
@@ -537,10 +565,10 @@ func (c *cli) printErr(err error) {
 	}
 }
 
-// sexpExecutor returns an S-Expression executor.
-func (c *cli) sexpExecutor(ctx context.Context, capture bool) script.SExpExecutor {
-	return func(instr *script.SExp) (string, error) {
-		return c.execSExp(ctx, instr, capture)
+// sexpEvaluator returns an S-Expression evaluator.
+func (c *cli) sexpEvaluator(ctx context.Context, capture bool) script.SExpEvaluator {
+	return func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
+		return c.evalSExp(ctx, resolve, exp, capture)
 	}
 }
 
@@ -552,7 +580,7 @@ func (c *cli) Eval(ctx context.Context, in string) error {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = c.sexpExecutor(ctx, false)(head.List)
+		_, err = c.sexpEvaluator(ctx, false)(c.closure.Resolve, head.List)
 		if err != nil {
 			return err
 		}
@@ -616,4 +644,21 @@ func (c *cli) DidJustExecute() bool {
 	defer func() { c.executed = false }()
 
 	return c.executed
+}
+
+// cliResolver resolves the name of the symbol if it doesn't begin with a
+// dollar sign.
+func cliResolver(sym *script.SExp) (*script.SExp, error) {
+	if strings.HasPrefix(sym.Str, "$") {
+		return nil, errors.Wrapf(
+			script.ErrSymNotFound,
+			"%d:%d: %s",
+			sym.Line, sym.Offset, sym.Str,
+		)
+	}
+
+	atom := sym.Clone()
+	atom.Type = script.SExpString
+
+	return atom, nil
 }

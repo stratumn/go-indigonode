@@ -33,15 +33,16 @@ var Block = BasicCmdWrapper{BasicCmd{
 func blockExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
-	exec script.SExpExecutor,
-	instr *script.SExp,
+	resolve script.SExpResolver,
+	eval script.SExpEvaluator,
+	exp *script.SExp,
 ) error {
-	for head := instr.Cdr; head != nil; head = head.Cdr {
+	for head := exp.Cdr; head != nil; head = head.Cdr {
 		if head.Type != script.SExpList {
 			return NewUseError("expected a list")
 		}
 
-		s, err := exec(head.List)
+		s, err := eval(resolve, head.List)
 		if err != nil {
 			return err
 		}

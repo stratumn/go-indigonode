@@ -113,7 +113,7 @@ func (p *Parser) instr() (*SExp, error) {
 	tok := p.tok
 
 	if tok.Type == TokLParen {
-		list, err := p.list()
+		call, err := p.list()
 		if err != nil {
 			return nil, err
 		}
@@ -122,55 +122,24 @@ func (p *Parser) instr() (*SExp, error) {
 			return nil, errors.WithStack(ParserError{p.tok})
 		}
 
-		return list, nil
+		return call, nil
 	}
 
-	call, err := p.call(false)
+	cells, err := p.cells(false)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SExp{
 		Type:   SExpList,
-		List:   call,
+		List:   cells,
 		Line:   tok.Line,
 		Offset: tok.Offset,
 	}, nil
 }
 
-func (p *Parser) call(inList bool) (*SExp, error) {
-	head, err := p.string(inList)
-	if err != nil {
-		return nil, err
-	}
-
-	tail := head
-
-	for {
-		if inList {
-			p.skipLines()
-		}
-
-		if inList && p.tok.Type == TokRParen {
-			return head, nil
-		}
-
-		if !inList && (p.tok.Type == TokLine || p.tok.Type == TokEOF) {
-			return head, nil
-		}
-
-		operand, err := p.sexp(inList)
-		if err != nil {
-			return nil, err
-		}
-
-		tail.Cdr = operand
-		tail = operand
-	}
-}
-
-func (p *Parser) sexp(inList bool) (*SExp, error) {
-	if inList {
+func (p *Parser) sexp(inParen bool) (*SExp, error) {
+	if inParen {
 		p.skipLines()
 	}
 
@@ -178,7 +147,7 @@ func (p *Parser) sexp(inList bool) (*SExp, error) {
 		return p.list()
 	}
 
-	return p.string(inList)
+	return p.atom(inParen)
 }
 
 func (p *Parser) list() (*SExp, error) {
@@ -192,7 +161,15 @@ func (p *Parser) list() (*SExp, error) {
 
 	p.skipLines()
 
-	call, err := p.call(true)
+	if p.consume(TokRParen) != nil {
+		return &SExp{
+			Type:   SExpList,
+			Line:   tok.Line,
+			Offset: tok.Offset,
+		}, nil
+	}
+
+	call, err := p.cells(true)
 	if err != nil {
 		return nil, err
 	}
@@ -211,8 +188,69 @@ func (p *Parser) list() (*SExp, error) {
 	}, nil
 }
 
-func (p *Parser) string(inList bool) (*SExp, error) {
-	if inList {
+func (p *Parser) cells(inParen bool) (*SExp, error) {
+	head, err := p.sym(inParen)
+	if err != nil {
+		return nil, err
+	}
+
+	tail := head
+
+	for {
+		if inParen {
+			p.skipLines()
+		}
+
+		if inParen && p.tok.Type == TokRParen {
+			return head, nil
+		}
+
+		if !inParen && (p.tok.Type == TokLine || p.tok.Type == TokEOF) {
+			return head, nil
+		}
+
+		operand, err := p.sexp(inParen)
+		if err != nil {
+			return nil, err
+		}
+
+		tail.Cdr = operand
+		tail = operand
+	}
+}
+
+func (p *Parser) atom(inParen bool) (*SExp, error) {
+	switch p.tok.Type {
+	case TokSym:
+		return p.sym(inParen)
+	case TokString:
+		return p.string(inParen)
+	}
+
+	return nil, errors.WithStack(ParserError{p.tok})
+}
+
+func (p *Parser) sym(inParen bool) (*SExp, error) {
+	if inParen {
+		p.skipLines()
+	}
+
+	tok := p.consume(TokSym)
+
+	if tok == nil {
+		return nil, errors.WithStack(ParserError{p.tok})
+	}
+
+	return &SExp{
+		Type:   SExpSym,
+		Str:    tok.Value,
+		Line:   tok.Line,
+		Offset: tok.Offset,
+	}, nil
+}
+
+func (p *Parser) string(inParen bool) (*SExp, error) {
+	if inParen {
 		p.skipLines()
 	}
 

@@ -53,8 +53,15 @@ type BasicCmd struct {
 	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
 
 	// ExecInstr is a function that executes the command against an
-	// S-Expression instruction.
-	ExecInstr func(context.Context, CLI, io.Writer, script.SExpExecutor, *script.SExp) error
+	// S-Expression.
+	ExecInstr func(
+		context.Context,
+		CLI,
+		io.Writer,
+		script.SExpResolver,
+		script.SExpEvaluator,
+		*script.SExp,
+	) error
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -199,14 +206,15 @@ func (cmd BasicCmdWrapper) Exec(
 	ctx context.Context,
 	cli CLI,
 	w io.Writer,
-	exec script.SExpExecutor,
-	instr *script.SExp,
+	resolve script.SExpResolver,
+	eval script.SExpEvaluator,
+	exp *script.SExp,
 ) error {
 	if cmd.Cmd.ExecInstr != nil {
-		return cmd.Cmd.ExecInstr(ctx, cli, w, exec, instr)
+		return cmd.Cmd.ExecInstr(ctx, cli, w, resolve, eval, exp)
 	}
 
-	argv, err := instr.Cdr.EvalEach(exec)
+	argv, err := exp.Cdr.ResolveEvalEach(resolve, eval)
 	if err != nil {
 		return err
 	}

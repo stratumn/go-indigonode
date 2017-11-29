@@ -33,10 +33,11 @@ var If = BasicCmdWrapper{BasicCmd{
 func ifExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
-	exec script.SExpExecutor,
-	instr *script.SExp,
+	resolve script.SExpResolver,
+	eval script.SExpEvaluator,
+	exp *script.SExp,
 ) error {
-	cond := instr.Cdr
+	cond := exp.Cdr
 	if cond == nil {
 		return NewUseError("missing condition expression")
 	}
@@ -52,11 +53,11 @@ func ifExec(
 
 	otherwise := then.Cdr
 
-	_, err := exec(cond.List)
+	_, err := eval(resolve, cond.List)
 
 	if err == nil {
 		if then.Type == script.SExpList {
-			s, err := exec(then.List)
+			s, err := eval(resolve, then.List)
 			fmt.Fprint(w, s)
 			return err
 		}
@@ -68,7 +69,7 @@ func ifExec(
 
 	if otherwise != nil {
 		if otherwise.Type == script.SExpList {
-			s, err := exec(otherwise.List)
+			s, err := eval(resolve, otherwise.List)
 			fmt.Fprint(w, s)
 			return err
 		}

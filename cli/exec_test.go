@@ -108,20 +108,25 @@ func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
 		e.Expect(c)
 	}
 
-	var exec script.SExpExecutor
+	var eval script.SExpEvaluator
 
-	exec = func(list *script.SExp) (string, error) {
-		if list == nil {
-			return "", errors.New("cannot execute empty list")
+	eval = func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
+		if exp == nil {
+			return "", nil
 		}
-		args, err := list.Cdr.EvalEach(exec)
+
+		if exp.Type == script.SExpString {
+			return exp.Str, nil
+		}
+
+		args, err := exp.Cdr.ResolveEvalEach(resolve, eval)
 		if err != nil {
 			return "", err
 		}
 
 		str := strings.Join(args, " ")
 
-		switch list.Str {
+		switch exp.Str {
 		case "echo":
 			fmt.Fprint(buf, str)
 			return "", nil
@@ -129,7 +134,7 @@ func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
 			return strings.Title(str) + "\n", nil
 		}
 
-		return "", fmt.Errorf("invalid operand: %q", list.Str)
+		return "", fmt.Errorf("invalid operand: %q", exp.Str)
 	}
 
 	parser := script.NewParser(script.NewScanner())
@@ -138,7 +143,7 @@ func (e ExecTest) TestInstr(t *testing.T, cmd cli.BasicCmd) {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	err = errors.Cause(cmd.ExecInstr(ctx, c, buf, exec, head.List))
+	err = errors.Cause(cmd.ExecInstr(ctx, c, buf, script.SExpNameResolver, eval, head.List))
 
 	switch {
 	case e.Err == ErrAny && err != nil:

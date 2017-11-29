@@ -32,17 +32,25 @@ func Example() {
 			(title world!))
 `
 
-	var exec script.SExpExecutor
+	var eval script.SExpEvaluator
 
-	exec = func(instr *script.SExp) (string, error) {
-		args, err := instr.Cdr.EvalEach(exec)
+	eval = func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
+		if exp == nil {
+			return "", nil
+		}
+
+		if exp.Type == script.SExpString {
+			return exp.Str, nil
+		}
+
+		args, err := exp.Cdr.ResolveEvalEach(resolve, eval)
 		if err != nil {
 			return "", err
 		}
 
 		str := strings.Join(args, " ")
 
-		switch instr.Str {
+		switch exp.Str {
 		case "echo":
 			fmt.Println(str)
 			return "", nil
@@ -50,7 +58,7 @@ func Example() {
 			return strings.Title(str), nil
 		}
 
-		return "", fmt.Errorf("invalid operand: %q", instr.Str)
+		return "", fmt.Errorf("invalid operand: %q", exp.Str)
 	}
 
 	printErr := func(err error) {
@@ -66,7 +74,7 @@ func Example() {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = exec(head.List)
+		_, err = eval(script.SExpNameResolver, head.List)
 		if err != nil {
 			panic(err)
 		}

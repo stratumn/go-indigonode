@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/cli/script"
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
@@ -298,5 +299,24 @@ func TestCli_DidJustExecute(t *testing.T) {
 
 	if got, want := c.DidJustExecute(), false; got != want {
 		t.Errorf("c.DidJustExecute() = %v want %v", got, want)
+	}
+}
+
+func sym(s string) *script.SExp {
+	return &script.SExp{Type: script.SExpSym, Str: s}
+}
+
+func TestCli_resolver(t *testing.T) {
+	got, err := cliResolver(sym("a"))
+	if err != nil {
+		t.Error(`cliResolver(sym("a")): error: `, err)
+	} else {
+		if got, want := got.String(), `("a")`; got != want {
+			t.Errorf(`cliResolver(sym("a")): v = %s want $s `, got, want)
+		}
+	}
+
+	if _, err := cliResolver(sym("$a")); err != nil {
+		t.Error(`cliResolver(sym("$a")): did not get an error`)
 	}
 }

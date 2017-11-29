@@ -29,6 +29,10 @@ var parserTT = []parserTest{{
 	"()",
 	"",
 }, {
+	"()",
+	"(())",
+	"",
+}, {
 	"one",
 	"((one))",
 	"",
@@ -57,8 +61,8 @@ var parserTT = []parserTest{{
 	"((one))",
 	"",
 }, {
-	"(one\rtwo three)",
-	"((one two three))",
+	"(one\rtwo 'three')",
+	"((one two \"three\"))",
 	"",
 }, {
 	"one\n two \rthree",
@@ -69,6 +73,14 @@ var parserTT = []parserTest{{
 	"((one (two)))",
 	"",
 }, {
+	"one ()",
+	"((one ()))",
+	"",
+}, {
+	"one () two",
+	"((one () two))",
+	"",
+}, {
 	"one (two three) four",
 	"((one (two three) four))",
 	"",
@@ -77,17 +89,17 @@ var parserTT = []parserTest{{
 	"((one) (two (three)) (four))",
 	"",
 }, {
-	"()",
+	"('one')",
 	"",
-	"1:2: unexpected token )",
+	"1:2: unexpected token <string>",
 }, {
 	"(one) two",
 	"",
-	"1:7: unexpected token <string>",
+	"1:7: unexpected token <sym>",
 }, {
 	"(one\r) two",
 	"",
-	"2:3: unexpected token <string>",
+	"2:3: unexpected token <sym>",
 }, {
 	"one )",
 	"",

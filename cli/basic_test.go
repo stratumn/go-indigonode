@@ -135,8 +135,8 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if err := cmd.Exec(ctx, nil, nil, nil, &script.SExp{}); err != nil {
-		t.Errorf(`cmd.Exec(ctx, nil, nil, nil, nil): error: %s`, err)
+	if err := cmd.Exec(ctx, nil, nil, script.SExpNameResolver, nil, &script.SExp{}); err != nil {
+		t.Errorf(`cmd.Exec(): error: %s`, err)
 	}
 
 	select {

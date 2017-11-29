@@ -30,6 +30,7 @@ const (
 	TokLine
 	TokLParen
 	TokRParen
+	TokSym
 	TokString
 )
 
@@ -39,6 +40,7 @@ var tokToStr = map[TokenType]string{
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
+	TokSym:     "<sym>",
 	TokString:  "<string>",
 }
 
@@ -146,7 +148,7 @@ func (s *Scanner) Emit() Token {
 		return Token{TokRParen, "", s.line, s.offset}
 	}
 
-	return s.string(c)
+	return s.strOrSym(c)
 }
 
 func (s *Scanner) read() rune {
@@ -199,18 +201,18 @@ func (s *Scanner) error(line, pos int, c rune) {
 	s.errHandler(errors.WithStack(ScannerError{line, pos, c}))
 }
 
-func (s *Scanner) string(c rune) Token {
+func (s *Scanner) strOrSym(c rune) Token {
 	switch c {
 	case '"':
-		return s.innerString(c, '"')
+		return s.text(c, '"')
 	case '\'':
-		return s.innerString(c, '\'')
+		return s.text(c, '\'')
 	}
 
-	return s.innerString(c, 0)
+	return s.text(c, 0)
 }
 
-func (s *Scanner) innerString(c rune, quote rune) Token {
+func (s *Scanner) text(c rune, quote rune) Token {
 	buf := ""
 
 	line, offset := s.line, s.offset
@@ -222,7 +224,7 @@ func (s *Scanner) innerString(c rune, quote rune) Token {
 	for {
 		switch {
 		case c == 0 && quote == 0:
-			return Token{TokString, buf, line, offset}
+			return Token{TokSym, buf, line, offset}
 		case c == 0:
 			s.error(s.line, s.offset, 0)
 			return Token{TokInvalid, buf, line, offset}
@@ -247,7 +249,7 @@ func (s *Scanner) innerString(c rune, quote rune) Token {
 			c = s.read()
 		case isSpecial(c) && quote == 0:
 			s.back()
-			return Token{TokString, buf, line, offset}
+			return Token{TokSym, buf, line, offset}
 		default:
 			buf += string(c)
 			c = s.read()

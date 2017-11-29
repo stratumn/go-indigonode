@@ -14,7 +14,24 @@
 
 package script
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
+
+// SExpResolver resolves symbols.
+type SExpResolver func(sym *SExp) (*SExp, error)
+
+// SExpNameResolver resolves symbols with their names.
+func SExpNameResolver(sym *SExp) (*SExp, error) {
+	atom := sym.Clone()
+	atom.Type = SExpString
+
+	return atom, nil
+}
+
+// SExpEvaluator evaluates S-Expression operations.
+type SExpEvaluator func(SExpResolver, *SExp) (string, error)
 
 // SExpType is a type of S-Expression.
 type SExpType uint8
@@ -22,6 +39,7 @@ type SExpType uint8
 // Available S-Expression types.
 const (
 	SExpList SExpType = iota
+	SExpSym
 	SExpString
 )
 
@@ -43,20 +61,19 @@ func (s *SExp) String() string {
 		switch curr.Type {
 		case SExpList:
 			if curr.List == nil {
-				elems = append(elems, "<nil>")
+				elems = append(elems, "()")
 			} else {
 				elems = append(elems, curr.List.String())
 			}
-		case SExpString:
+		case SExpSym:
 			elems = append(elems, curr.Str)
+		case SExpString:
+			elems = append(elems, fmt.Sprintf("%q", curr.Str))
 		}
 	}
 
 	return "(" + strings.Join(elems, " ") + ")"
 }
-
-// SExpExecutor executes S-Expression operations.
-type SExpExecutor func(list *SExp) (string, error)
 
 // Clone creates a copy of the S-Expression.
 func (s *SExp) Clone() *SExp {
@@ -74,8 +91,24 @@ func (s *SExp) Clone() *SExp {
 	}
 }
 
-// EvalEach evaluates each instructions in a list.
-func (s *SExp) EvalEach(exec SExpExecutor) ([]string, error) {
+// ResolveEval resolves symbols and evaluates the S-Expression.
+func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, error) {
+	switch s.Type {
+	case SExpList:
+		return eval(resolve, s.List)
+	case SExpSym:
+		v, err := resolve(s)
+		if err != nil {
+			return "", err
+		}
+		return eval(resolve, v)
+	default:
+		return s.Str, nil
+	}
+}
+
+// ResolveEvalEach resolves symbols and evaluates each expression in a list.
+func (s *SExp) ResolveEvalEach(resolve SExpResolver, eval SExpEvaluator) ([]string, error) {
 	if s == nil {
 		return nil, nil
 	}
@@ -83,15 +116,12 @@ func (s *SExp) EvalEach(exec SExpExecutor) ([]string, error) {
 	var elems []string
 
 	for curr := s; curr != nil; curr = curr.Cdr {
-		if curr.Type == SExpList {
-			v, err := exec(curr.List)
-			if err != nil {
-				return nil, err
-			}
-			elems = append(elems, v)
-		} else {
-			elems = append(elems, curr.Str)
+		v, err := curr.ResolveEval(resolve, eval)
+		if err != nil {
+			return nil, err
 		}
+
+		elems = append(elems, v)
 	}
 
 	return elems, nil

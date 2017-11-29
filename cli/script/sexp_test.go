@@ -32,6 +32,10 @@ var evalTT = []evalTest{{
 	"",
 	"",
 }, {
+	"()",
+	"",
+	"",
+}, {
 	"echo",
 	"",
 	"",
@@ -77,9 +81,17 @@ var evalTT = []evalTest{{
 	"1:7: unknown function \"+\"",
 }}
 
-func testExecutor(instr *SExp) (string, error) {
-	if instr.Str == "echo" {
-		args, err := instr.Cdr.EvalEach(testExecutor)
+func testEval(resolve SExpResolver, exp *SExp) (string, error) {
+	if exp == nil {
+		return "", nil
+	}
+
+	if exp.Type == SExpString {
+		return exp.Str, nil
+	}
+
+	if exp.Str == "echo" {
+		args, err := exp.Cdr.ResolveEvalEach(resolve, testEval)
 		if err != nil {
 			return "", err
 		}
@@ -87,7 +99,7 @@ func testExecutor(instr *SExp) (string, error) {
 		return strings.Join(args, " "), nil
 	}
 
-	return "", errors.Errorf("%d:%d: unknown function %q", instr.Line, instr.Offset, instr.Str)
+	return "", errors.Errorf("%d:%d: unknown function %q", exp.Line, exp.Offset, exp.Str)
 }
 
 func TestSExp_eval(t *testing.T) {
@@ -105,7 +117,7 @@ func TestSExp_eval(t *testing.T) {
 		var v string
 
 		for ; head != nil; head = head.Cdr {
-			v, err = testExecutor(head.List)
+			v, err = testEval(SExpNameResolver, head.List)
 			if err != nil {
 				break
 			}

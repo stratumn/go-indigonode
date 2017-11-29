@@ -34,7 +34,7 @@ type grpcServer struct {
 	Connect  func(context.Context, pstore.PeerInfo) error
 }
 
-// Ping does a ping request to the specified address.
+// Ping does a ping request to the specified peer.
 func (s grpcServer) Ping(req *pb.PingReq, ss pb.Ping_PingServer) error {
 	pid, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {

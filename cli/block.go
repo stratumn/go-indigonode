@@ -24,10 +24,10 @@ import (
 
 // Block is a command that evaluates a list of expressions.
 var Block = BasicCmdWrapper{BasicCmd{
-	Name:      "block",
-	Use:       "block (command1) (command2) (etc...)",
-	Short:     "Evaluate a list of expressions",
-	ExecInstr: blockExec,
+	Name:     "block",
+	Use:      "block (command1) (command2) (etc...)",
+	Short:    "Evaluate a list of expressions",
+	ExecSExp: blockExec,
 }}
 
 func blockExec(

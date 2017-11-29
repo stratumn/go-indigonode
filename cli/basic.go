@@ -28,7 +28,7 @@ import (
 // BasicCmd implements a basic command that matches the first word of the
 // input.
 //
-// Either ExecStrings or ExecInstr should be defined. ExecInstr is meant for
+// Either ExecStrings or ExecSExp should be defined. ExecSExp is meant for
 // commands that need to manipulate S-Expressions, such as conditional
 // commands.
 //
@@ -52,9 +52,9 @@ type BasicCmd struct {
 	// arguments.
 	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
 
-	// ExecInstr is a function that executes the command against an
+	// ExecSExp is a function that executes the command against an
 	// S-Expression.
-	ExecInstr func(
+	ExecSExp func(
 		context.Context,
 		CLI,
 		io.Writer,
@@ -210,8 +210,8 @@ func (cmd BasicCmdWrapper) Exec(
 	eval script.SExpEvaluator,
 	exp *script.SExp,
 ) error {
-	if cmd.Cmd.ExecInstr != nil {
-		return cmd.Cmd.ExecInstr(ctx, cli, w, closure, eval, exp)
+	if cmd.Cmd.ExecSExp != nil {
+		return cmd.Cmd.ExecSExp(ctx, cli, w, closure, eval, exp)
 	}
 
 	argv, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)

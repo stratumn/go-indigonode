@@ -24,10 +24,10 @@ import (
 
 // Unless is a command that does the opposite of the If command.
 var Unless = BasicCmdWrapper{BasicCmd{
-	Name:      "unless",
-	Use:       "unless cond then [else]",
-	Short:     "Opposite of the if command",
-	ExecInstr: unlessExec,
+	Name:     "unless",
+	Use:      "unless cond then [else]",
+	Short:    "Opposite of the if command",
+	ExecSExp: unlessExec,
 }}
 
 func unlessExec(

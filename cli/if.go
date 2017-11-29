@@ -24,10 +24,10 @@ import (
 
 // If is a command that evaluates conditional expressions.
 var If = BasicCmdWrapper{BasicCmd{
-	Name:      "if",
-	Use:       "if cond then [else]",
-	Short:     "Evaluate conditional expressions",
-	ExecInstr: ifExec,
+	Name:     "if",
+	Use:      "if cond then [else]",
+	Short:    "Evaluate conditional expressions",
+	ExecSExp: ifExec,
 }}
 
 func ifExec(

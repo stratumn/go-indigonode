@@ -67,9 +67,11 @@ var cmds = []Cmd{
 	Connect,
 	Disconnect,
 	Echo,
+	Eval,
 	Exit,
 	Help,
 	If,
+	Quote,
 	Unless,
 	Version,
 }

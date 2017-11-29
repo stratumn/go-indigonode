@@ -58,21 +58,31 @@ func (s *SExp) String() string {
 	var elems []string
 
 	for curr := s; curr != nil; curr = curr.Cdr {
-		switch curr.Type {
-		case SExpList:
-			if curr.List == nil {
-				elems = append(elems, "()")
-			} else {
-				elems = append(elems, curr.List.String())
-			}
-		case SExpSym:
-			elems = append(elems, curr.Str)
-		case SExpString:
-			elems = append(elems, fmt.Sprintf("%q", curr.Str))
-		}
+		elems = append(elems, curr.CarString())
 	}
 
 	return "(" + strings.Join(elems, " ") + ")"
+}
+
+// CarString returns a string representation of the card of the S-Expression.
+func (s *SExp) CarString() string {
+	if s == nil {
+		return ""
+	}
+
+	switch s.Type {
+	case SExpList:
+		if s.List == nil {
+			return "()"
+		}
+		return s.List.String()
+	case SExpSym:
+		return s.Str
+	case SExpString:
+		return fmt.Sprintf("%q", s.Str)
+	}
+
+	return "<error>"
 }
 
 // Clone creates a copy of the S-Expression.

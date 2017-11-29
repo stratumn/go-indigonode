@@ -79,6 +79,10 @@ var evalTT = []evalTest{{
 	"echo (+ 1 2)",
 	"",
 	"1:7: unknown function \"+\"",
+}, {
+	"echo ('echo' 1 2)",
+	"",
+	"1:7: operand must be a symbol",
 }}
 
 func testEval(resolve SExpResolver, exp *SExp) (string, error) {

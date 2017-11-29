@@ -22,6 +22,9 @@ package script
 import "github.com/pkg/errors"
 
 var (
+	// ErrInvalidOperand is returned when an operand is not a symbol.
+	ErrInvalidOperand = errors.New("operand must be a symbol")
+
 	// ErrSymNotFound is returned when a symbol could not be resolved.
 	ErrSymNotFound = errors.New("could not resolve symbol")
 )

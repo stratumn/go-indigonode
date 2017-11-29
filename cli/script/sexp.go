@@ -17,6 +17,8 @@ package script
 import (
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // SExpResolver resolves symbols.
@@ -105,6 +107,14 @@ func (s *SExp) Clone() *SExp {
 func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, error) {
 	switch s.Type {
 	case SExpList:
+		if s.List.Type != SExpSym {
+			return "", errors.Wrapf(
+				ErrInvalidOperand,
+				"%d:%d",
+				s.List.Line,
+				s.List.Offset,
+			)
+		}
 		return eval(resolve, s.List)
 	case SExpSym:
 		v, err := resolve(s)

@@ -81,6 +81,10 @@ var parserParseTT = []parserTest{{
 	"((one () two))",
 	"",
 }, {
+	"one ((two))",
+	"((one ((two))))",
+	"",
+}, {
 	"one (two three) four",
 	"((one (two three) four))",
 	"",
@@ -97,6 +101,10 @@ var parserParseTT = []parserTest{{
 	"",
 	"1:7: unexpected token <sym>",
 }, {
+	"((one) two)",
+	"",
+	"1:2: unexpected token (",
+}, {
 	"(one\r) two",
 	"",
 	"2:3: unexpected token <sym>",
@@ -108,10 +116,6 @@ var parserParseTT = []parserTest{{
 	"one\t(two",
 	"",
 	"1:9: unexpected token <EOF>",
-}, {
-	"one ((two) three)",
-	"",
-	"1:6: unexpected token (",
 }}
 
 var parserListTT = []parserTest{{

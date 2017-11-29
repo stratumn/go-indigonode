@@ -108,7 +108,7 @@ func (p *Parser) List(in string) (*SExp, error) {
 	p.scanner.SetInput(in)
 	p.scan()
 
-	exp, err := p.list()
+	exp, err := p.list(false)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (p *Parser) instr() (*SExp, error) {
 	tok := p.tok
 
 	if tok.Type == TokLParen {
-		call, err := p.list()
+		call, err := p.list(true)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +144,7 @@ func (p *Parser) instr() (*SExp, error) {
 		return call, nil
 	}
 
-	cells, err := p.cells(false)
+	cells, err := p.cells(false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -163,13 +163,13 @@ func (p *Parser) sexp(inParen bool) (*SExp, error) {
 	}
 
 	if p.tok.Type == TokLParen {
-		return p.list()
+		return p.list(false)
 	}
 
 	return p.atom(inParen)
 }
 
-func (p *Parser) list() (*SExp, error) {
+func (p *Parser) list(isCall bool) (*SExp, error) {
 	p.skipLines()
 
 	tok := p.consume(TokLParen)
@@ -188,7 +188,7 @@ func (p *Parser) list() (*SExp, error) {
 		}, nil
 	}
 
-	call, err := p.cells(true)
+	call, err := p.cells(true, isCall)
 	if err != nil {
 		return nil, err
 	}
@@ -207,8 +207,16 @@ func (p *Parser) list() (*SExp, error) {
 	}, nil
 }
 
-func (p *Parser) cells(inParen bool) (*SExp, error) {
-	head, err := p.sym(inParen)
+func (p *Parser) cells(inParen, isCall bool) (*SExp, error) {
+	var head *SExp
+	var err error
+
+	if isCall {
+		head, err = p.sym(inParen)
+	} else {
+		head, err = p.sexp(inParen)
+	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -333,7 +333,7 @@ func (s TestNodeSet) randSeeds() {
 	}
 
 	// Exclude the first node so that tests can use it as a node that is
-	// not part of the bootstrap list. We select random one but make sure
+	// not part of the bootstrap list. We select random ones but make sure
 	// that all the nodes are connected by taking a sample of 2*NumSeed-1.
 	// This guarantees that at least one node will be connected to every
 	// node.

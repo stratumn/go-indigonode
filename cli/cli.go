@@ -92,7 +92,7 @@ echo (cli-version --git-commit-length 7) :: Copyright © 2017 Stratumn SAS
 echo
 
 ; Only visible in debug mode.
-echo --stream debug Debuf output is enabled
+echo --stream debug Debuf output is enabled.
 
 ; Connect to the API.
 (unless

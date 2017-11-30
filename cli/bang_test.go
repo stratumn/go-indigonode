@@ -44,13 +44,13 @@ func TestBang(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"! wc () 'hello outside world!'",
-		"       0       3      20\n",
+		"! cat () 'hello outside world!'",
+		"hello outside world!",
 		nil,
 		nil,
 	}, {
-		"! wc -m 'hello outside world!'",
-		"      20\n",
+		"! grep outside 'hello\noutside\nworld!'",
+		"outside\n",
 		nil,
 		nil,
 	}, {

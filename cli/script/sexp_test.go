@@ -27,7 +27,7 @@ type evalTest struct {
 	err    string
 }
 
-var evalTT = []evalTest{{
+var evalTests = []evalTest{{
 	"",
 	"",
 	"",
@@ -110,10 +110,10 @@ func TestSExp_eval(t *testing.T) {
 	s := NewScanner()
 	p := NewParser(s)
 
-	for _, test := range evalTT {
-		head, err := p.Parse(test.input)
+	for _, tt := range evalTests {
+		head, err := p.Parse(tt.input)
 		if err != nil {
-			t.Errorf("%q: error: %s", test.input, err)
+			t.Errorf("%q: error: %s", tt.input, err)
 			continue
 		}
 
@@ -130,20 +130,20 @@ func TestSExp_eval(t *testing.T) {
 		}
 
 		if err != nil {
-			if test.err != "" {
-				if err.Error() != test.err {
-					t.Errorf("%q: error = %q want %q", test.input, err, test.err)
+			if tt.err != "" {
+				if err.Error() != tt.err {
+					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", test.input, err)
+				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
 		}
 
 		output := strings.Join(vals, "\n")
 
-		if output != test.output {
-			t.Errorf("%q: output = %q want %q", test.input, output, test.output)
+		if output != tt.output {
+			t.Errorf("%q: output = %q want %q", tt.input, output, tt.output)
 		}
 	}
 }

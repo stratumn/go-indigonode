@@ -24,7 +24,7 @@ type parserTest struct {
 	err   string
 }
 
-var parserParseTT = []parserTest{{
+var parseTests = []parserTest{{
 	"",
 	"()",
 	"",
@@ -118,7 +118,7 @@ var parserParseTT = []parserTest{{
 	"1:9: unexpected token <EOF>",
 }}
 
-var parserListTT = []parserTest{{
+var listTests = []parserTest{{
 	"()",
 	"()",
 	"",
@@ -140,21 +140,21 @@ func TestParser_Parse(t *testing.T) {
 	s := NewScanner()
 	p := NewParser(s)
 
-	for _, test := range parserParseTT {
-		sexp, err := p.Parse(test.input)
+	for _, tt := range parseTests {
+		exp, err := p.Parse(tt.input)
 		if err != nil {
-			if test.err != "" {
-				if err.Error() != test.err {
-					t.Errorf("%q: error = %q want %q", test.input, err, test.err)
+			if tt.err != "" {
+				if err.Error() != tt.err {
+					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", test.input, err)
+				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
 		}
 
-		if got, want := sexp.String(), test.sexp; got != want {
-			t.Errorf("%q: sexp = %q want %q", test.input, got, want)
+		if got, want := exp.String(), tt.sexp; got != want {
+			t.Errorf("%q: sexp = %q want %q", tt.input, got, want)
 		}
 	}
 }
@@ -163,21 +163,21 @@ func TestParser_List(t *testing.T) {
 	s := NewScanner()
 	p := NewParser(s)
 
-	for _, test := range parserListTT {
-		sexp, err := p.List(test.input)
+	for _, tt := range listTests {
+		exp, err := p.List(tt.input)
 		if err != nil {
-			if test.err != "" {
-				if err.Error() != test.err {
-					t.Errorf("%q: error = %q want %q", test.input, err, test.err)
+			if tt.err != "" {
+				if err.Error() != tt.err {
+					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", test.input, err)
+				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
 		}
 
-		if got, want := sexp.String(), test.sexp; got != want {
-			t.Errorf("%q: sexp = %q want %q", test.input, got, want)
+		if got, want := exp.String(), tt.sexp; got != want {
+			t.Errorf("%q: sexp = %q want %q", tt.input, got, want)
 		}
 	}
 }

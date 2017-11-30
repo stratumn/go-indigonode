@@ -19,13 +19,13 @@ import (
 	"testing"
 )
 
-type scannerTest struct {
+type scanTest struct {
 	input  string
 	tokens []Token
 	errors []string
 }
 
-var scannerTT = []scannerTest{{
+var scanTests = []scanTest{{
 	"",
 	[]Token{
 		{TokEOF, "", 1, 1},
@@ -116,7 +116,7 @@ var scannerTT = []scannerTest{{
 }}
 
 func TestScanner_Emit(t *testing.T) {
-	for _, test := range scannerTT {
+	for _, tt := range scanTests {
 		var tokens []Token
 		var errors []string
 
@@ -125,7 +125,7 @@ func TestScanner_Emit(t *testing.T) {
 		}
 
 		s := NewScanner(OptErrorHandler(errHandler))
-		s.SetInput(test.input)
+		s.SetInput(tt.input)
 
 		for {
 			tok := s.Emit()
@@ -137,12 +137,12 @@ func TestScanner_Emit(t *testing.T) {
 			}
 		}
 
-		if !reflect.DeepEqual(tokens, test.tokens) {
-			t.Errorf("%q: tokens = %v want %v", test.input, tokens, test.tokens)
+		if !reflect.DeepEqual(tokens, tt.tokens) {
+			t.Errorf("%q: tokens = %v want %v", tt.input, tokens, tt.tokens)
 		}
 
-		if !reflect.DeepEqual(errors, test.errors) {
-			t.Errorf("%q: errors = %q want %q", test.input, errors, test.errors)
+		if !reflect.DeepEqual(errors, tt.errors) {
+			t.Errorf("%q: errors = %q want %q", tt.input, errors, tt.errors)
 		}
 	}
 }

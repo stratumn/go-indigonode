@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package script defines types for a very simple script interpreter.
+// Package script defines types to implement a very rudimentary script
+// interpreter.
 //
 // It is designed with shell-like scripting in mind. It uses simplified
 // S-Expressions that can hold either symbols, strings or lists. Everything
-// evaluates to a string.
+// evaluates to a string instead of S-Expressions.
+//
+// There are no builtin operators.
 package script
 
 import "github.com/pkg/errors"

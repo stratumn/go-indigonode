@@ -24,30 +24,30 @@ import (
 // ClosureOpt is a closure options.
 type ClosureOpt func(*Closure)
 
-// ClosureOptParent sets the parent closure.
-func ClosureOptParent(parent *Closure) ClosureOpt {
+// OptParent sets the parent closure.
+func OptParent(parent *Closure) ClosureOpt {
 	return func(c *Closure) {
 		c.parent = parent
 	}
 }
 
-// ClosureOptEnv sets values from environment variables of the form "key=value".
+// OptEnv sets values from environment variables of the form "key=value".
 //
 // The given string will be prefixed to variable names.
-func ClosureOptEnv(prefix string, env []string) ClosureOpt {
+func OptEnv(prefix string, env []string) ClosureOpt {
 	return func(c *Closure) {
 		for _, e := range env {
 			parts := strings.Split(e, "=")
 			c.values[prefix+parts[0]] = &SExp{
-				Type: SExpString,
+				Type: TypeStr,
 				Str:  parts[1],
 			}
 		}
 	}
 }
 
-// ClosureOptResolver sets the resolver which is used if a key is not found.
-func ClosureOptResolver(resolve SExpResolver) ClosureOpt {
+// OptResolver sets the resolver which is used if a key is not found.
+func OptResolver(resolve Resolver) ClosureOpt {
 	return func(c *Closure) {
 		c.resolve = resolve
 	}
@@ -56,7 +56,7 @@ func ClosureOptResolver(resolve SExpResolver) ClosureOpt {
 // Closure stores local values and a parent closure.
 type Closure struct {
 	parent  *Closure
-	resolve SExpResolver
+	resolve Resolver
 
 	mu     sync.RWMutex
 	values map[string]*SExp

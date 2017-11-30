@@ -34,7 +34,7 @@ func cdr(
 	ctx context.Context,
 	cli CLI, w io.Writer,
 	closure *script.Closure,
-	eval script.SExpEvaluator,
+	eval script.Evaluator,
 	exp *script.SExp,
 ) error {
 	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
@@ -46,7 +46,7 @@ func cdr(
 		return err
 	}
 
-	scanner := script.NewScanner(script.ScannerOptErrorHandler(cli.PrintError))
+	scanner := script.NewScanner(script.OptErrorHandler(cli.PrintError))
 	parser := script.NewParser(scanner)
 
 	list, err := parser.List(v)

@@ -85,12 +85,12 @@ var evalTT = []evalTest{{
 	"1:7: operand must be a symbol",
 }}
 
-func testEval(resolve SExpResolver, exp *SExp) (string, error) {
+func testEval(resolve Resolver, exp *SExp) (string, error) {
 	if exp == nil {
 		return "", nil
 	}
 
-	if exp.Type == SExpString {
+	if exp.Type == TypeStr {
 		return exp.Str, nil
 	}
 
@@ -121,7 +121,7 @@ func TestSExp_eval(t *testing.T) {
 		var v string
 
 		for ; head != nil; head = head.Cdr {
-			v, err = testEval(SExpNameResolver, head.List)
+			v, err = testEval(ResolveName, head.List)
 			if err != nil {
 				break
 			}

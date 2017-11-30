@@ -33,7 +33,7 @@ func evalExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
 	closure *script.Closure,
-	eval script.SExpEvaluator,
+	eval script.Evaluator,
 	exp *script.SExp,
 ) error {
 	if exp.Cdr == nil || exp.Cdr.Cdr != nil {

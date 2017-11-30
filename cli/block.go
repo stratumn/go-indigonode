@@ -35,7 +35,7 @@ func blockExec(
 	ctx context.Context,
 	cli CLI, w io.Writer,
 	closure *script.Closure,
-	eval script.SExpEvaluator,
+	eval script.Evaluator,
 	exp *script.SExp,
 ) error {
 	for head := exp.Cdr; head != nil; head = head.Cdr {

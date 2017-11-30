@@ -132,7 +132,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 		},
 	}}
 
-	closure := script.NewClosure(script.ClosureOptResolver(script.SExpNameResolver))
+	closure := script.NewClosure(script.OptResolver(script.ResolveName))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

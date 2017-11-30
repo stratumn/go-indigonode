@@ -61,14 +61,14 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		e.Expect(c)
 	}
 
-	var eval script.SExpEvaluator
+	var eval script.Evaluator
 
-	eval = func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
+	eval = func(resolve script.Resolver, exp *script.SExp) (string, error) {
 		if exp == nil {
 			return "", nil
 		}
 
-		if exp.Type == script.SExpString {
+		if exp.Type == script.TypeStr {
 			return exp.Str, nil
 		}
 
@@ -96,7 +96,7 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
+	closure := script.NewClosure(script.OptResolver(cli.Resolver))
 
 	err = errors.Cause(cmd.Exec(ctx, c, buf, closure, eval, head.List))
 

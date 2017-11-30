@@ -124,7 +124,7 @@ func TestScanner_Emit(t *testing.T) {
 			errors = append(errors, err.Error())
 		}
 
-		s := NewScanner(ScannerOptErrorHandler(errHandler))
+		s := NewScanner(OptErrorHandler(errHandler))
 		s.SetInput(test.input)
 
 		for {

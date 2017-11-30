@@ -46,14 +46,14 @@ func StackTrace(err error) errors.StackTrace {
 // If the car isn't a list, it is directly evaluated.
 func evalSExpBody(
 	w io.Writer,
-	resolve script.SExpResolver,
-	eval script.SExpEvaluator,
+	resolve script.Resolver,
+	eval script.Evaluator,
 	body *script.SExp,
 ) error {
 	exp := body
 
 	isList := func(x *script.SExp) bool {
-		return x.Type == script.SExpList
+		return x.Type == script.TypeList
 	}
 
 	if isList(exp) && exp.List != nil && isList(exp.List) {

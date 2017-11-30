@@ -21,33 +21,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-// SExpResolver resolves symbols.
-type SExpResolver func(sym *SExp) (*SExp, error)
+// Resolver resolves symbols.
+type Resolver func(sym *SExp) (*SExp, error)
 
-// SExpNameResolver resolves symbols with their names.
-func SExpNameResolver(sym *SExp) (*SExp, error) {
-	atom := sym.Clone()
-	atom.Type = SExpString
+// ResolveName resolves symbols with their names.
+func ResolveName(sym *SExp) (*SExp, error) {
+	exp := sym.Clone()
+	exp.Type = TypeStr
 
-	return atom, nil
+	return exp, nil
 }
 
-// SExpEvaluator evaluates S-Expression operations.
-type SExpEvaluator func(SExpResolver, *SExp) (string, error)
+// Evaluator evaluates S-Expression operations.
+type Evaluator func(Resolver, *SExp) (string, error)
 
-// SExpType is a type of S-Expression.
-type SExpType uint8
+// Type is a type of S-Expression.
+type Type uint8
 
 // Available S-Expression types.
 const (
-	SExpList SExpType = iota
-	SExpSym
-	SExpString
+	TypeList Type = iota
+	TypeSym
+	TypeStr
 )
 
 // SExp is an S-Expression.
 type SExp struct {
-	Type   SExpType // car type
+	Type   Type // car type
 	List   *SExp
 	Str    string
 	Cdr    *SExp
@@ -73,14 +73,14 @@ func (s *SExp) CarString() string {
 	}
 
 	switch s.Type {
-	case SExpList:
+	case TypeList:
 		if s.List == nil {
 			return "()"
 		}
 		return s.List.String()
-	case SExpSym:
+	case TypeSym:
 		return s.Str
-	case SExpString:
+	case TypeStr:
 		return fmt.Sprintf("%q", s.Str)
 	}
 
@@ -104,13 +104,13 @@ func (s *SExp) Clone() *SExp {
 }
 
 // ResolveEval resolves symbols and evaluates the S-Expression.
-func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, error) {
+func (s *SExp) ResolveEval(resolve Resolver, eval Evaluator) (string, error) {
 	switch s.Type {
-	case SExpList:
+	case TypeList:
 		if s.List == nil {
 			return "", nil
 		}
-		if s.List.Type != SExpSym {
+		if s.List.Type != TypeSym {
 			return "", errors.Wrapf(
 				ErrInvalidOperand,
 				"%d:%d",
@@ -119,7 +119,7 @@ func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, er
 			)
 		}
 		return eval(resolve, s.List)
-	case SExpSym:
+	case TypeSym:
 		v, err := resolve(s)
 		if err != nil {
 			return "", err
@@ -131,7 +131,7 @@ func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, er
 }
 
 // ResolveEvalEach resolves symbols and evaluates each expression in a list.
-func (s *SExp) ResolveEvalEach(resolve SExpResolver, eval SExpEvaluator) ([]string, error) {
+func (s *SExp) ResolveEvalEach(resolve Resolver, eval Evaluator) ([]string, error) {
 	if s == nil {
 		return nil, nil
 	}

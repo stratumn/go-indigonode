@@ -20,13 +20,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ParserError represents an error from the parser.
-type ParserError struct {
+// ParseError represents an error from the parser.
+type ParseError struct {
 	Tok Token
 }
 
 // Error returns an error string.
-func (err ParserError) Error() string {
+func (err ParseError) Error() string {
 	return fmt.Sprintf(
 		"%d:%d: unexpected token %s",
 		err.Tok.Line,
@@ -116,7 +116,7 @@ func (p *Parser) List(in string) (*SExp, error) {
 	p.skipLines()
 
 	if p.tok.Type != TokEOF {
-		return nil, errors.WithStack(ParserError{p.tok})
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	return exp.List, nil
@@ -138,7 +138,7 @@ func (p *Parser) instr() (*SExp, error) {
 		}
 
 		if p.tok.Type != TokLine && p.tok.Type != TokEOF {
-			return nil, errors.WithStack(ParserError{p.tok})
+			return nil, errors.WithStack(ParseError{p.tok})
 		}
 
 		return call, nil
@@ -150,7 +150,7 @@ func (p *Parser) instr() (*SExp, error) {
 	}
 
 	return &SExp{
-		Type:   SExpList,
+		Type:   TypeList,
 		List:   cells,
 		Line:   tok.Line,
 		Offset: tok.Offset,
@@ -175,14 +175,14 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 	tok := p.consume(TokLParen)
 
 	if tok == nil {
-		return nil, errors.WithStack(ParserError{p.tok})
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	p.skipLines()
 
 	if p.consume(TokRParen) != nil {
 		return &SExp{
-			Type:   SExpList,
+			Type:   TypeList,
 			Line:   tok.Line,
 			Offset: tok.Offset,
 		}, nil
@@ -196,11 +196,11 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 	p.skipLines()
 
 	if p.consume(TokRParen) == nil {
-		return nil, errors.WithStack(ParserError{p.tok})
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	return &SExp{
-		Type:   SExpList,
+		Type:   TypeList,
 		List:   call,
 		Line:   tok.Line,
 		Offset: tok.Offset,
@@ -254,7 +254,7 @@ func (p *Parser) atom(inParen bool) (*SExp, error) {
 		return p.string(inParen)
 	}
 
-	return nil, errors.WithStack(ParserError{p.tok})
+	return nil, errors.WithStack(ParseError{p.tok})
 }
 
 func (p *Parser) sym(inParen bool) (*SExp, error) {
@@ -265,11 +265,11 @@ func (p *Parser) sym(inParen bool) (*SExp, error) {
 	tok := p.consume(TokSym)
 
 	if tok == nil {
-		return nil, errors.WithStack(ParserError{p.tok})
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	return &SExp{
-		Type:   SExpSym,
+		Type:   TypeSym,
 		Str:    tok.Value,
 		Line:   tok.Line,
 		Offset: tok.Offset,
@@ -284,11 +284,11 @@ func (p *Parser) string(inParen bool) (*SExp, error) {
 	tok := p.consume(TokString)
 
 	if tok == nil {
-		return nil, errors.WithStack(ParserError{p.tok})
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	return &SExp{
-		Type:   SExpString,
+		Type:   TypeStr,
 		Str:    tok.Value,
 		Line:   tok.Line,
 		Offset: tok.Offset,

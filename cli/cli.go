@@ -199,7 +199,7 @@ type Cmd interface {
 		CLI,
 		io.Writer,
 		*script.Closure,
-		script.SExpEvaluator,
+		script.Evaluator,
 		*script.SExp,
 	) error
 }
@@ -315,8 +315,8 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 	}
 
 	closure := script.NewClosure(
-		script.ClosureOptEnv("$", os.Environ()),
-		script.ClosureOptResolver(Resolver),
+		script.OptEnv("$", os.Environ()),
+		script.OptResolver(Resolver),
 	)
 
 	c := cli{
@@ -330,7 +330,7 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		addr:      config.APIAddress,
 	}
 
-	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.PrintError))
+	scanner := script.NewScanner(script.OptErrorHandler(c.PrintError))
 	c.parser = script.NewParser(scanner)
 
 	sort.Slice(c.cmds, func(i, j int) bool {
@@ -491,7 +491,7 @@ func (c *cli) evalSExp(
 		return "", nil
 	}
 
-	if exp.Type == script.SExpString {
+	if exp.Type == script.TypeStr {
 		return exp.Str, nil
 	}
 
@@ -577,8 +577,8 @@ func (c *cli) sexpEvaluator(
 	ctx context.Context,
 	closure *script.Closure,
 	capture bool,
-) script.SExpEvaluator {
-	return func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
+) script.Evaluator {
+	return func(resolve script.Resolver, exp *script.SExp) (string, error) {
 		return c.evalSExp(ctx, closure, exp, capture)
 	}
 }
@@ -669,7 +669,7 @@ func Resolver(sym *script.SExp) (*script.SExp, error) {
 	}
 
 	atom := sym.Clone()
-	atom.Type = script.SExpString
+	atom.Type = script.TypeStr
 
 	return atom, nil
 }

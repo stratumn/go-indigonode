@@ -32,10 +32,10 @@ func Example() {
 			(title world!))
 `
 
-	var eval script.SExpEvaluator
+	var eval script.Evaluator
 
-	eval = func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
-		if exp.Type == script.SExpString {
+	eval = func(resolve script.Resolver, exp *script.SExp) (string, error) {
+		if exp.Type == script.TypeStr {
 			return exp.Str, nil
 		}
 
@@ -61,7 +61,7 @@ func Example() {
 		panic(err)
 	}
 
-	scanner := script.NewScanner(script.ScannerOptErrorHandler(printErr))
+	scanner := script.NewScanner(script.OptErrorHandler(printErr))
 	parser := script.NewParser(scanner)
 
 	head, err := parser.Parse(src)
@@ -70,7 +70,7 @@ func Example() {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = eval(script.SExpNameResolver, head.List)
+		_, err = eval(script.ResolveName, head.List)
 		if err != nil {
 			panic(err)
 		}

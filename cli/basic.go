@@ -59,7 +59,7 @@ type BasicCmd struct {
 		CLI,
 		io.Writer,
 		*script.Closure,
-		script.SExpEvaluator,
+		script.Evaluator,
 		*script.SExp,
 	) error
 }
@@ -207,7 +207,7 @@ func (cmd BasicCmdWrapper) Exec(
 	cli CLI,
 	w io.Writer,
 	closure *script.Closure,
-	eval script.SExpEvaluator,
+	eval script.Evaluator,
 	exp *script.SExp,
 ) error {
 	if cmd.Cmd.ExecSExp != nil {

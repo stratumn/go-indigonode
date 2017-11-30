@@ -57,16 +57,16 @@ type Token struct {
 	Offset int
 }
 
-// ScannerError represents an error from the scanner.
-type ScannerError struct {
+// ScanError represents an error from the scanner.
+type ScanError struct {
 	Line   int
 	Offset int
-	Ch     rune
+	Rune   rune
 }
 
 // Error returns an error string.
-func (err ScannerError) Error() string {
-	return fmt.Sprintf("%d:%d: unexpected character %q", err.Line, err.Offset, err.Ch)
+func (err ScanError) Error() string {
+	return fmt.Sprintf("%d:%d: unexpected character %q", err.Line, err.Offset, err.Rune)
 }
 
 // Scanner produces tokens from a string.
@@ -85,8 +85,8 @@ type Scanner struct {
 // ScannerOpt is a scanner option.
 type ScannerOpt func(*Scanner)
 
-// ScannerOptErrorHandler sets the scanner's error handler.
-func ScannerOptErrorHandler(h func(error)) ScannerOpt {
+// OptErrorHandler sets the scanner's error handler.
+func OptErrorHandler(h func(error)) ScannerOpt {
 	return func(s *Scanner) {
 		s.errHandler = h
 	}
@@ -198,7 +198,7 @@ func (s *Scanner) stripComment() rune {
 }
 
 func (s *Scanner) error(line, pos int, c rune) {
-	s.errHandler(errors.WithStack(ScannerError{line, pos, c}))
+	s.errHandler(errors.WithStack(ScanError{line, pos, c}))
 }
 
 func (s *Scanner) strOrSym(c rune) Token {

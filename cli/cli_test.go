@@ -303,7 +303,7 @@ func TestCli_DidJustExecute(t *testing.T) {
 }
 
 func sym(s string) *script.SExp {
-	return &script.SExp{Type: script.SExpSym, Str: s}
+	return &script.SExp{Type: script.TypeSym, Str: s}
 }
 
 func TestResolver(t *testing.T) {

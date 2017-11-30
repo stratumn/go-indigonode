@@ -21,11 +21,11 @@ import (
 )
 
 func sym(s string) *SExp {
-	return &SExp{Type: SExpSym, Str: s}
+	return &SExp{Type: TypeSym, Str: s}
 }
 
 func TestNewClosure_env(t *testing.T) {
-	c := NewClosure(ClosureOptEnv("$", []string{"a=one", "b=two"}))
+	c := NewClosure(OptEnv("$", []string{"a=one", "b=two"}))
 
 	got, ok := c.Get("$a")
 	if !ok {
@@ -58,7 +58,7 @@ func TestClosure_Set_overwriteParent(t *testing.T) {
 	c1 := NewClosure()
 	c1.Set("a", sym("one"))
 
-	c2 := NewClosure(ClosureOptParent(c1))
+	c2 := NewClosure(OptParent(c1))
 	c2.Set("a", sym("two"))
 
 	got, ok := c1.Get("a")
@@ -79,7 +79,7 @@ func TestClosure_Set_overwriteParent(t *testing.T) {
 func TestClosure_Set_new(t *testing.T) {
 	c1 := NewClosure()
 
-	c2 := NewClosure(ClosureOptParent(c1))
+	c2 := NewClosure(OptParent(c1))
 	c2.Set("a", sym("one"))
 
 	_, ok := c1.Get("a")
@@ -99,7 +99,7 @@ func TestClosure_SetLocal(t *testing.T) {
 	c1 := NewClosure()
 	c1.Set("a", sym("one"))
 
-	c2 := NewClosure(ClosureOptParent(c1))
+	c2 := NewClosure(OptParent(c1))
 	c2.SetLocal("a", sym("two"))
 
 	got, ok := c1.Get("a")
@@ -135,7 +135,7 @@ func TestClosure_Resolve(t *testing.T) {
 }
 
 func TestClosure_Resolve_resolver(t *testing.T) {
-	c := NewClosure(ClosureOptResolver(SExpNameResolver))
+	c := NewClosure(OptResolver(ResolveName))
 
 	c.Set("a", sym("one"))
 	got, err := c.Resolve(sym("a"))

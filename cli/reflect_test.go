@@ -61,7 +61,7 @@ func TestReflectors(t *testing.T) {
 		t.Fatal("failed to load message: ", err)
 	}
 
-	tt := []reflectorTest{{
+	tests := []reflectorTest{{
 		"string",
 		NewStringReflector(),
 		msg.FindFieldByName("str"),
@@ -381,9 +381,9 @@ func TestReflectors(t *testing.T) {
 		},
 	}}
 
-	for _, test := range tt {
-		t.Run(test.name, func(t *testing.T) {
-			testReflector(t, test)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testReflector(t, tt)
 		})
 	}
 }
@@ -525,7 +525,7 @@ type reflectorServerTest struct {
 	err  error
 }
 
-var serverReflectorTT = []reflectorServerTest{{
+var serverReflectorTests = []reflectorServerTest{{
 	"unary",
 	"test-unaryreq hello --boolean true --bytesize_repeated 1k --bytesize_repeated 1m",
 	`
@@ -647,9 +647,9 @@ func TestServerReflector_Reflect(t *testing.T) {
 		t.Errorf("c.Connect(ctx, addr): error: %s", err)
 	}
 
-	for _, test := range serverReflectorTT {
-		t.Run(test.name, func(t *testing.T) {
-			testServerReflectorReflect(ctx, t, c, test)
+	for _, tt := range serverReflectorTests {
+		t.Run(tt.name, func(t *testing.T) {
+			testServerReflectorReflect(ctx, t, c, tt)
 		})
 	}
 

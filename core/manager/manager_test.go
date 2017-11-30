@@ -189,7 +189,7 @@ type mgrTest struct {
 	status map[string]StatusCode
 }
 
-var mgrTT = []mgrTest{{
+var mgrTests = []mgrTest{{
 	"Start_deps",
 	func(mgr *Manager) error {
 		return mgr.Start("apps")
@@ -413,9 +413,9 @@ func TestManager(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	for _, test := range mgrTT {
-		t.Run(test.name, func(t *testing.T) {
-			testMgr(t, ctrl, test)
+	for _, tt := range mgrTests {
+		t.Run(tt.name, func(t *testing.T) {
+			testMgr(t, ctrl, tt)
 		})
 	}
 }
@@ -1028,7 +1028,7 @@ type mgrDepsTest struct {
 	want     []string
 }
 
-var mgrDepsTT = []mgrDepsTest{{
+var mgrDepsTests = []mgrDepsTest{{
 	"valid dependencies",
 	[]testService{
 		{id: "salt"},
@@ -1209,9 +1209,9 @@ func testMgrDeps(t *testing.T, test mgrDepsTest) {
 }
 
 func TestManager_Deps(t *testing.T) {
-	for _, test := range mgrDepsTT {
-		t.Run(test.name, func(t *testing.T) {
-			testMgrDeps(t, test)
+	for _, tt := range mgrDepsTests {
+		t.Run(tt.name, func(t *testing.T) {
+			testMgrDeps(t, tt)
 		})
 	}
 }

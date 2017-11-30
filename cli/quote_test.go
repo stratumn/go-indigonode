@@ -22,7 +22,7 @@ import (
 )
 
 func TestQuote(t *testing.T) {
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"quote",
 		"\n",
 		nil,
@@ -59,9 +59,9 @@ func TestQuote(t *testing.T) {
 		nil,
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Quote)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Quote)
 		})
 	}
 }

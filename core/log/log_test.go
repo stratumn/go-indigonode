@@ -29,7 +29,7 @@ type writerTest struct {
 	want   string
 }
 
-var tt = []writerTest{{
+var writerTests = []writerTest{{
 	"not filtered",
 	func(w io.Writer, lock sync.Locker) io.WriteCloser {
 		return NewFilteredWriter(w, lock, nil)
@@ -169,9 +169,9 @@ var tt = []writerTest{{
 }}
 
 func TestWriters(t *testing.T) {
-	for _, test := range tt {
-		t.Run(test.name, func(t *testing.T) {
-			testWriter(t, test)
+	for _, tt := range writerTests {
+		t.Run(tt.name, func(t *testing.T) {
+			testWriter(t, tt)
 		})
 	}
 }

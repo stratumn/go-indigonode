@@ -73,7 +73,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 		},
 	}}
 
-	tt := []struct {
+	tests := []struct {
 		name   string
 		text   string
 		expect []string
@@ -103,8 +103,8 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 		[]string{},
 	}}
 
-	for _, test := range tt {
-		content := basicContentMock(test.text)
+	for _, tt := range tests {
+		content := basicContentMock(tt.text)
 		suggs := cmd.Suggest(content)
 		completions := make([]string, len(suggs))
 		for i, s := range suggs {
@@ -112,10 +112,10 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 		}
 
 		got := fmt.Sprintf("%s", completions)
-		want := fmt.Sprintf("%s", test.expect)
+		want := fmt.Sprintf("%s", tt.expect)
 
 		if got != want {
-			t.Errorf("%s: completions = %v want %v", test.name, got, want)
+			t.Errorf("%s: completions = %v want %v", tt.name, got, want)
 		}
 	}
 }

@@ -66,7 +66,7 @@ func TestService_Run(t *testing.T) {
 func TestService_SetConfig(t *testing.T) {
 	errAny := errors.New("any error")
 
-	tt := []struct {
+	tests := []struct {
 		name string
 		set  func(*Config)
 		err  error
@@ -80,16 +80,16 @@ func TestService_SetConfig(t *testing.T) {
 		errAny,
 	}}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		serv := Service{}
 		config := serv.Config().(Config)
-		test.set(&config)
+		tt.set(&config)
 
 		err := errors.Cause(serv.SetConfig(config))
 		switch {
-		case err != nil && test.err == errAny:
-		case err != test.err:
-			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		case err != nil && tt.err == errAny:
+		case err != tt.err:
+			t.Errorf("%s: err = %v want %v", tt.name, err, tt.err)
 		}
 	}
 }

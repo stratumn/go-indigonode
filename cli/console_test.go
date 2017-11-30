@@ -23,7 +23,7 @@ func TestConsole_print(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	cons := NewConsole(buf, false)
 
-	tt := []struct {
+	tests := []struct {
 		name  string
 		fn    func(...interface{})
 		debug bool
@@ -37,22 +37,22 @@ func TestConsole_print(t *testing.T) {
 		{"Error", cons.Error, false, ansiRed},
 	}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		cons.SetDebug(true)
 		cons.color = false
 
-		test.fn("test")
+		tt.fn("test")
 		if got, want := buf.String(), "test"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 
-		if test.debug {
+		if tt.debug {
 			cons.SetDebug(false)
 
-			test.fn("test")
+			tt.fn("test")
 			if got, want := buf.String(), ""; got != want {
-				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, test.name, got, want)
+				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, tt.name, got, want)
 			}
 			buf.Reset()
 		}
@@ -61,13 +61,13 @@ func TestConsole_print(t *testing.T) {
 		cons.SetDebug(true)
 		cons.color = true
 
-		test.fn("test")
+		tt.fn("test")
 		want := "test"
-		if test.color != "" {
-			want = test.color + want + ansiReset
+		if tt.color != "" {
+			want = tt.color + want + ansiReset
 		}
 		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 	}
@@ -78,7 +78,7 @@ func TestConsole_println(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	cons := NewConsole(buf, false)
 
-	tt := []struct {
+	tests := []struct {
 		name  string
 		fn    func(...interface{})
 		debug bool
@@ -92,22 +92,22 @@ func TestConsole_println(t *testing.T) {
 		{"Errorln", cons.Errorln, false, ansiRed},
 	}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		cons.SetDebug(true)
 		cons.color = false
 
-		test.fn("test")
+		tt.fn("test")
 		if got, want := buf.String(), "test\n"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 
-		if test.debug {
+		if tt.debug {
 			cons.SetDebug(false)
 
-			test.fn("test\n")
+			tt.fn("test\n")
 			if got, want := buf.String(), ""; got != want {
-				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, test.name, got, want)
+				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, tt.name, got, want)
 			}
 			buf.Reset()
 		}
@@ -115,13 +115,13 @@ func TestConsole_println(t *testing.T) {
 		cons.SetDebug(true)
 		cons.color = true
 
-		test.fn("test")
+		tt.fn("test")
 		want := "test\n"
-		if test.color != "" {
-			want = test.color + want + ansiReset
+		if tt.color != "" {
+			want = tt.color + want + ansiReset
 		}
 		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 	}
@@ -131,7 +131,7 @@ func TestConsole_printf(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	cons := NewConsole(buf, false)
 
-	tt := []struct {
+	tests := []struct {
 		name  string
 		fn    func(string, ...interface{})
 		debug bool
@@ -145,25 +145,25 @@ func TestConsole_printf(t *testing.T) {
 		{"Errorf", cons.Errorf, false, ansiRed},
 	}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		cons.SetDebug(true)
 		cons.color = false
 
-		test.fn("%s", "test")
+		tt.fn("%s", "test")
 		if got, want := buf.String(), "test"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 
 		cons.color = true
 
-		test.fn("%s", "test")
+		tt.fn("%s", "test")
 		want := "test"
-		if test.color != "" {
-			want = test.color + want + ansiReset
+		if tt.color != "" {
+			want = tt.color + want + ansiReset
 		}
 		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, test.name, got, want)
+			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
 		}
 		buf.Reset()
 	}

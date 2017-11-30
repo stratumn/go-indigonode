@@ -25,7 +25,7 @@ import (
 func TestAddr(t *testing.T) {
 	addr := "/ip4/127.0.0.1/tcp/8904"
 
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"api-address",
 		addr + "\n",
 		nil,
@@ -39,9 +39,9 @@ func TestAddr(t *testing.T) {
 		nil,
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Addr)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Addr)
 		})
 	}
 }

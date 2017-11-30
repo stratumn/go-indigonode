@@ -23,7 +23,7 @@ import (
 )
 
 func TestUnless(t *testing.T) {
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"unless (title test) ko ok",
 		"ok\n",
 		nil,
@@ -105,9 +105,9 @@ func TestUnless(t *testing.T) {
 		nil,
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Unless)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Unless)
 		})
 	}
 }

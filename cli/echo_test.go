@@ -22,7 +22,7 @@ import (
 )
 
 func TestEcho(t *testing.T) {
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"echo hello world",
 		"hello world\n",
 		nil,
@@ -59,9 +59,9 @@ func TestEcho(t *testing.T) {
 		nil,
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Echo)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Echo)
 		})
 	}
 }

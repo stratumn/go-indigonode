@@ -28,7 +28,7 @@ func TestConnect(t *testing.T) {
 	addr := "/ip4/127.0.0.1/tcp/8904"
 	err := errors.New("could not connect")
 
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"api-connect",
 		`Connecting to "` + addr + `"...
 Connected to "` + addr + `".
@@ -65,9 +65,9 @@ Could not connect to "` + addr + `".
 		},
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Connect)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Connect)
 		})
 	}
 }

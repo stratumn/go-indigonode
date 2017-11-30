@@ -70,7 +70,7 @@ func TestService_Run(t *testing.T) {
 }
 
 func TestService_Needs(t *testing.T) {
-	tt := []struct {
+	tests := []struct {
 		name  string
 		set   func(*Config)
 		needs []string
@@ -80,20 +80,20 @@ func TestService_Needs(t *testing.T) {
 		[]string{"test"},
 	}}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		serv := Service{}
 		config := serv.Config().(Config)
-		test.set(&config)
+		tt.set(&config)
 
 		if err := serv.SetConfig(config); err != nil {
-			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			t.Errorf("%s: serv.SetConfig(config): error: %s", tt.name, err)
 			continue
 		}
 
 		needs := serv.Needs()
-		for _, n := range test.needs {
+		for _, n := range tt.needs {
 			if _, ok := needs[n]; !ok {
-				t.Errorf("%s: needs[%q] = nil want struct{}{}", test.name, n)
+				t.Errorf("%s: needs[%q] = nil want struct{}{}", tt.name, n)
 			}
 		}
 	}
@@ -102,7 +102,7 @@ func TestService_Needs(t *testing.T) {
 func TestService_Plug(t *testing.T) {
 	errAny := errors.New("any error")
 
-	tt := []struct {
+	tests := []struct {
 		name string
 		set  func(*Config)
 		deps map[string]interface{}
@@ -123,21 +123,21 @@ func TestService_Plug(t *testing.T) {
 		ErrNotStreamMuxer,
 	}}
 
-	for _, test := range tt {
+	for _, tt := range tests {
 		serv := Service{}
 		config := serv.Config().(Config)
-		test.set(&config)
+		tt.set(&config)
 
 		if err := serv.SetConfig(config); err != nil {
-			t.Errorf("%s: serv.SetConfig(config): error: %s", test.name, err)
+			t.Errorf("%s: serv.SetConfig(config): error: %s", tt.name, err)
 			continue
 		}
 
-		err := errors.Cause(serv.Plug(test.deps))
+		err := errors.Cause(serv.Plug(tt.deps))
 		switch {
-		case err != nil && test.err == errAny:
-		case err != test.err:
-			t.Errorf("%s: err = %v want %v", test.name, err, test.err)
+		case err != nil && tt.err == errAny:
+		case err != tt.err:
+			t.Errorf("%s: err = %v want %v", tt.name, err, tt.err)
 		}
 	}
 }

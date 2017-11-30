@@ -15,6 +15,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -44,23 +45,31 @@ func (Bang) Long() string {
 	return `Execute external commands
 
 Usage:
-  !<Command>
+  !<Command> args...
 
-Bang executes the external command immediatelly following the exclamation point.
+Bang executes the external command immediately following the exclamation point.
 
-Example:
-  !ls -l
+If a name doesn't immediately follow the exclamation point, the first element 
+is the name of the command, the optional second element are arguments for the
+command, and the optional third element will be written to the input stream of 
+the command.
+
+Examples:
+  !ls -l -a
+  ! wc () (echo hello world !) ; use a pipe, notice the space before the command
+  ! less () (manager-list)
+  ! grep "manager" (manager-list)
 `
 }
 
 // Use returns a short string showing how to use the command.
 func (Bang) Use() string {
-	return "!<Command>"
+	return "!<Command> args..."
 }
 
 // LongUse returns a long string showing how to use the command.
 func (Bang) LongUse() string {
-	return "!<Command>"
+	return "!<Command> args..."
 }
 
 // Suggest gives a chance for the command to add auto-complete
@@ -85,20 +94,53 @@ func (Bang) Exec(
 	eval script.SExpEvaluator,
 	exp *script.SExp,
 ) error {
-	name := exp.Str[1:]
-	if len(name) == 0 {
-		return NewUseError("command is blank")
-	}
+	var stdin io.Reader
 
 	args, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)
 	if err != nil {
 		return err
 	}
 
+	name := exp.Str[1:]
+
+	if len(name) < 1 {
+		argc := len(args)
+		if argc < 1 {
+			return NewUseError("expected command name")
+		}
+		if argc > 3 {
+			return NewUseError("expected at most three expressions")
+		}
+
+		name = args[0]
+
+		if argc > 2 {
+			stdin = bytes.NewBuffer([]byte(args[2]))
+		}
+
+		if argc > 1 {
+			args = strings.Split(args[1], " ")
+		} else {
+			args = nil
+		}
+	}
+
+	// Filter out empty arguments.
+	tmp, args := args, args[:0]
+	for _, a := range tmp {
+		if a != "" {
+			args = append(args, a)
+		}
+	}
+
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdout = w
 	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	cmd.Stdin = stdin
 
 	err = cmd.Start()
 	if err != nil {

@@ -107,6 +107,9 @@ func (s *SExp) Clone() *SExp {
 func (s *SExp) ResolveEval(resolve SExpResolver, eval SExpEvaluator) (string, error) {
 	switch s.Type {
 	case SExpList:
+		if s.List == nil {
+			return "", nil
+		}
 		if s.List.Type != SExpSym {
 			return "", errors.Wrapf(
 				ErrInvalidOperand,

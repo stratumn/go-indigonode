@@ -87,7 +87,7 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 			return strings.Title(str), nil
 		}
 
-		return "", fmt.Errorf("invalid operand: %q", exp.Str)
+		return "", script.ErrInvalidOperand
 	}
 
 	parser := script.NewParser(script.NewScanner())

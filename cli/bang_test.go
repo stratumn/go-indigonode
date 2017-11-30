@@ -19,13 +19,54 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/script"
 )
 
 func TestBang(t *testing.T) {
-	tt := []ExecTest{{
+	tests := []ExecTest{{
 		"!echo hello outside world!",
 		"hello outside world!\n",
 		nil,
+		nil,
+	}, {
+		"! echo",
+		"\n",
+		nil,
+		nil,
+	}, {
+		"! echo 'hello outside world!'",
+		"hello outside world!\n",
+		nil,
+		nil,
+	}, {
+		"! cat '' (title 'hello outside world!')",
+		"Hello Outside World!",
+		nil,
+		nil,
+	}, {
+		"! wc () 'hello outside world!'",
+		"       0       3      20\n",
+		nil,
+		nil,
+	}, {
+		"! wc -m 'hello outside world!'",
+		"      20\n",
+		nil,
+		nil,
+	}, {
+		"! (a)",
+		"",
+		script.ErrInvalidOperand,
+		nil,
+	}, {
+		"!",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"! echo a b c",
+		"",
+		ErrUse,
 		nil,
 	}, {
 		"!1234567890",
@@ -34,9 +75,41 @@ func TestBang(t *testing.T) {
 		nil,
 	}}
 
-	for i, test := range tt {
-		t.Run(fmt.Sprintf("%d-%s", i, test.Command), func(t *testing.T) {
-			test.Test(t, cli.Bang{})
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Bang{})
+		})
+	}
+}
+
+func TestBang_strings(t *testing.T) {
+	bang := cli.Bang{}
+
+	tests := []struct {
+		name  string
+		value string
+	}{{
+		"Name()",
+		bang.Name(),
+	}, {
+		"Short()",
+		bang.Short(),
+	}, {
+		"Long()",
+		bang.Long(),
+	}, {
+		"Use()",
+		bang.Use(),
+	}, {
+		"LongUse()",
+		bang.LongUse(),
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.value == "" {
+				t.Errorf("%s is blank", tt.value)
+			}
 		})
 	}
 }

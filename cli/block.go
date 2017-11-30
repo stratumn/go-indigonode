@@ -22,11 +22,12 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-// Block is a command that evaluates a list of expressions.
+// Block is a command that evaluates a list of expressions and outputs each
+// result.
 var Block = BasicCmdWrapper{BasicCmd{
 	Name:     "block",
 	Use:      "block (command1) (command2) (etc...)",
-	Short:    "Evaluate a list of expressions",
+	Short:    "Evaluate a list of expressions and output each result",
 	ExecSExp: blockExec,
 }}
 

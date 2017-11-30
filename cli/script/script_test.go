@@ -35,10 +35,6 @@ func Example() {
 	var eval script.SExpEvaluator
 
 	eval = func(resolve script.SExpResolver, exp *script.SExp) (string, error) {
-		if exp == nil {
-			return "", nil
-		}
-
 		if exp.Type == script.SExpString {
 			return exp.Str, nil
 		}

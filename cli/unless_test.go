@@ -64,6 +64,21 @@ func TestUnless(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"unless test ((title o) (title k)) ((title k) (title o))",
+		"O\n",
+		nil,
+		nil,
+	}, {
+		"unless $test ((title o) (title k)) ((title k) (title o))",
+		"K\n",
+		nil,
+		nil,
+	}, {
+		"unless $test ((title o) k)",
+		"k\n",
+		nil,
+		nil,
+	}, {
 		"unless",
 		"",
 		ErrUse,

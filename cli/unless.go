@@ -16,7 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/stratumn/alice/cli/script"
@@ -47,26 +46,14 @@ func unlessExec(
 		return NewUseError("missing then expression")
 	}
 
-	otherwise := then.Cdr
-
 	_, err := cond.ResolveEval(closure.Resolve, eval)
 
 	if err != nil {
-		s, err := then.ResolveEval(closure.Resolve, eval)
-		if err == nil {
-			fmt.Fprintln(w, s)
-		}
-
-		return err
+		return evalSExpBody(w, closure.Resolve, eval, then)
 	}
 
-	if otherwise != nil {
-		s, err := otherwise.ResolveEval(closure.Resolve, eval)
-		if err == nil {
-			fmt.Fprintln(w, s)
-		}
-
-		return err
+	if then.Cdr != nil {
+		return evalSExpBody(w, closure.Resolve, eval, then.Cdr)
 	}
 
 	return nil

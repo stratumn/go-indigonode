@@ -73,7 +73,7 @@ func (s *Service) SetConfig(config interface{}) error {
 
 // Needs returns the set of services this service depends on.
 func (s *Service) Needs() map[string]struct{} {
-	// If your service depends on other services, specify it here.
+	// If your service depends on other services, specify them here.
 	// For example, if you need the "manager" service:
 	//
 	//  return map[string]struct{}{

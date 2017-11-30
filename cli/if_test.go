@@ -64,6 +64,21 @@ func TestIf(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"if test ((title o) (title k)) ((title k) (title o))",
+		"K\n",
+		nil,
+		nil,
+	}, {
+		"if $test ((title o) (title k)) ((title k) (title o))",
+		"O\n",
+		nil,
+		nil,
+	}, {
+		"if test ((title o) k)",
+		"k\n",
+		nil,
+		nil,
+	}, {
 		"if",
 		"",
 		ErrUse,

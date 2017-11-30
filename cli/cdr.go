@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -54,10 +55,8 @@ func cdr(
 		return err
 	}
 
-	// TODO: should this be an error?
 	if list == nil {
-		fmt.Fprintln(w)
-		return nil
+		return errors.WithStack(ErrCdrNil)
 	}
 
 	fmt.Fprintln(w, list.Cdr.String())

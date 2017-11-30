@@ -152,6 +152,14 @@ var (
 
 	// ErrParse is returned when a value could not be parsed.
 	ErrParse = errors.New("could not parse value")
+
+	// ErrCarNil is retrurned when calling car on an S-Expression that doesn't
+	// have one.
+	ErrCarNil = errors.New("car is nil")
+
+	// ErrCdrNil is retrurned when calling cdr on an S-Expression that doesn't
+	// have one.
+	ErrCdrNil = errors.New("cdr is nil")
 )
 
 // Content represents console content used to find suggestions.

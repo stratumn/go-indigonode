@@ -23,11 +23,6 @@ import (
 
 func TestCdr(t *testing.T) {
 	tests := []ExecTest{{
-		"cdr '()'",
-		"\n",
-		nil,
-		nil,
-	}, {
 		"cdr '(a)'",
 		"()\n",
 		nil,
@@ -51,6 +46,11 @@ func TestCdr(t *testing.T) {
 		"cdr",
 		"",
 		ErrUse,
+		nil,
+	}, {
+		"cdr '()'",
+		"",
+		cli.ErrCdrNil,
 		nil,
 	}, {
 		"cdr a",

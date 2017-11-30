@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -52,6 +53,10 @@ func carExec(
 	list, err := parser.List(v)
 	if err != nil {
 		return err
+	}
+
+	if list == nil {
+		return errors.WithStack(ErrCarNil)
 	}
 
 	fmt.Fprintln(w, list.CarString())

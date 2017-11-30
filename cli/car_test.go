@@ -23,11 +23,6 @@ import (
 
 func TestCar(t *testing.T) {
 	tests := []ExecTest{{
-		"car '()'",
-		"\n",
-		nil,
-		nil,
-	}, {
 		"car '(a b c)'",
 		"a\n",
 		nil,
@@ -41,6 +36,11 @@ func TestCar(t *testing.T) {
 		"car",
 		"",
 		ErrUse,
+		nil,
+	}, {
+		"car '()'",
+		"",
+		cli.ErrCarNil,
 		nil,
 	}, {
 		"car a",

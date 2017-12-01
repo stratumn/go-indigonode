@@ -669,7 +669,7 @@ func testServerReflectorReflect(ctx context.Context, t *testing.T, c CLI, test r
 	buf := bytes.NewBuffer(nil)
 	c.Console().Writer = buf
 
-	err := errors.Cause(c.Eval(ctx, test.cmd))
+	err := errors.Cause(c.Exec(ctx, test.cmd))
 
 	switch {
 	case test.err == errAny && err != nil:

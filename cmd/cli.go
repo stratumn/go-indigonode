@@ -42,13 +42,12 @@ var cliCmd = &cobra.Command{
 		ctx := context.Background()
 
 		if cliCommand != "" {
-			// Execute command line argument.
 			if err := c.Connect(ctx, ""); err != nil {
 				fail(err)
 			}
 
-			// We don't use Exec so we can handle the errors here.
-			if err := c.Eval(ctx, cliCommand); err != nil {
+			// We don't use Run so we can handle the errors here.
+			if err := c.Exec(ctx, cliCommand); err != nil {
 				// If it is a usage error, print the usage
 				// message.
 				cause := errors.Cause(err)
@@ -74,8 +73,7 @@ var cliCmd = &cobra.Command{
 			return
 		}
 
-		// Launch the shell.
-		c.Run(ctx)
+		c.Start(ctx)
 	},
 }
 

@@ -118,21 +118,11 @@ func (mr *MockCLIMockRecorder) Disconnect() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Disconnect", reflect.TypeOf((*MockCLI)(nil).Disconnect))
 }
 
-// Eval mocks base method
-func (m *MockCLI) Eval(arg0 context.Context, arg1 string) error {
-	ret := m.ctrl.Call(m, "Eval", arg0, arg1)
+// Exec mocks base method
+func (m *MockCLI) Exec(arg0 context.Context, arg1 string) error {
+	ret := m.ctrl.Call(m, "Exec", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
-}
-
-// Eval indicates an expected call of Eval
-func (mr *MockCLIMockRecorder) Eval(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Eval", reflect.TypeOf((*MockCLI)(nil).Eval), arg0, arg1)
-}
-
-// Exec mocks base method
-func (m *MockCLI) Exec(arg0 context.Context, arg1 string) {
-	m.ctrl.Call(m, "Exec", arg0, arg1)
 }
 
 // Exec indicates an expected call of Exec
@@ -151,13 +141,23 @@ func (mr *MockCLIMockRecorder) PrintError(arg0 interface{}) *gomock.Call {
 }
 
 // Run mocks base method
-func (m *MockCLI) Run(arg0 context.Context) {
-	m.ctrl.Call(m, "Run", arg0)
+func (m *MockCLI) Run(arg0 context.Context, arg1 string) {
+	m.ctrl.Call(m, "Run", arg0, arg1)
 }
 
 // Run indicates an expected call of Run
-func (mr *MockCLIMockRecorder) Run(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCLI)(nil).Run), arg0)
+func (mr *MockCLIMockRecorder) Run(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockCLI)(nil).Run), arg0, arg1)
+}
+
+// Start mocks base method
+func (m *MockCLI) Start(arg0 context.Context) {
+	m.ctrl.Call(m, "Start", arg0)
+}
+
+// Start indicates an expected call of Start
+func (mr *MockCLIMockRecorder) Start(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockCLI)(nil).Start), arg0)
 }
 
 // Suggest mocks base method

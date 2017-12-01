@@ -118,7 +118,7 @@ func TestCli_Connect(t *testing.T) {
 	}
 }
 
-func TestCli_Run(t *testing.T) {
+func TestCli_Start(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	addr := testAddress()
@@ -147,14 +147,14 @@ func TestCli_Run(t *testing.T) {
 
 	runCh := make(chan struct{})
 	go func() {
-		c.Run(ctx)
+		c.Start(ctx)
 		close(runCh)
 	}()
 
 	select {
 	case <-promptCh:
 	case <-time.After(10 * time.Second):
-		t.Error("c.Run(ctx) did start the prompt")
+		t.Error("c.Start(ctx) did not start the prompt")
 	}
 
 	cancel()
@@ -170,45 +170,6 @@ func TestCli_Run(t *testing.T) {
 	}
 }
 
-func TestCli_Eval(t *testing.T) {
-	config := NewConfigSet().Configs()
-	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
-
-	buf := bytes.NewBuffer(nil)
-	c.Console().Writer = buf
-
-	ctx := context.Background()
-	err = c.Eval(ctx, "cli-version")
-	if err != nil {
-		t.Errorf(`c.Eval("cli-version"): error: %s`, err)
-	}
-
-	got := buf.String()
-	want := release.Version + "@" + release.GitCommit + "\n"
-
-	if got != want {
-		t.Errorf("c.Exec(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)
-	}
-}
-
-func TestCli_Eval_error(t *testing.T) {
-	config := NewConfigSet().Configs()
-	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
-
-	ctx := context.Background()
-	err = errors.Cause(c.Eval(ctx, "version"))
-
-	if err != ErrInvalidInstr {
-		t.Errorf("c.Exec(ctx, \"version\"): error = %v want %v", err, ErrInvalidInstr)
-	}
-}
-
 func TestCli_Exec(t *testing.T) {
 	config := NewConfigSet().Configs()
 	c, err := New(config)
@@ -220,7 +181,10 @@ func TestCli_Exec(t *testing.T) {
 	c.Console().Writer = buf
 
 	ctx := context.Background()
-	c.Exec(ctx, "cli-version")
+	err = c.Exec(ctx, "cli-version")
+	if err != nil {
+		t.Errorf(`c.Exec("cli-version"): error: %s`, err)
+	}
 
 	got := buf.String()
 	want := release.Version + "@" + release.GitCommit + "\n"
@@ -237,17 +201,53 @@ func TestCli_Exec_error(t *testing.T) {
 		t.Errorf("New(config): error: %s", err)
 	}
 
+	ctx := context.Background()
+	err = errors.Cause(c.Exec(ctx, "version"))
+
+	if err != ErrInvalidInstr {
+		t.Errorf("c.Exec(ctx, \"version\"): error = %v want %v", err, ErrInvalidInstr)
+	}
+}
+
+func TestCli_Run(t *testing.T) {
+	config := NewConfigSet().Configs()
+	c, err := New(config)
+	if err != nil {
+		t.Errorf("New(config): error: %s", err)
+	}
+
 	buf := bytes.NewBuffer(nil)
 	c.Console().Writer = buf
 
 	ctx := context.Background()
-	c.Exec(ctx, "version")
+	c.Exec(ctx, "cli-version")
+
+	got := buf.String()
+	want := release.Version + "@" + release.GitCommit + "\n"
+
+	if got != want {
+		t.Errorf("c.Run(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)
+	}
+}
+
+func TestCli_Run_error(t *testing.T) {
+	config := NewConfigSet().Configs()
+	c, err := New(config)
+	if err != nil {
+		t.Errorf("New(config): error: %s", err)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	c.Console().Writer = buf
+
+	ctx := context.Background()
+	c.Run(ctx, "version")
 
 	got := buf.String()
 	want := ansiRed + "Error: 1:1: version: the instruction is invalid.\n" + ansiReset
 
 	if got != want {
-		t.Errorf("c.Exec(ctx, \"version\") =>\n%s\nwant\n\n%s", got, want)
+		t.Errorf("c.Run(ctx, \"version\") =>\n%s\nwant\n\n%s", got, want)
 	}
 }
 
@@ -291,7 +291,7 @@ func TestCli_DidJustExecute(t *testing.T) {
 		t.Errorf("c.DidJustExecute() = %v want %v", got, want)
 	}
 
-	c.Exec(ctx, "cli-version")
+	c.Run(ctx, "cli-version")
 
 	if got, want := c.DidJustExecute(), true; got != want {
 		t.Errorf("c.DidJustExecute() = %v want %v", got, want)

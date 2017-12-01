@@ -29,21 +29,30 @@ import (
 )
 
 var (
+	// ErrAny means any error type is expected.
 	ErrAny = errors.New("any error")
+
+	// ErrUse means a usage error is expected.
 	ErrUse = errors.New("usage error")
 )
 
 // ExecTest helps testing commands.
 type ExecTest struct {
+	// Command is the command to run.
 	Command string
-	Want    string
-	Err     error
+
+	// Want is the expected output.
+	Want string
+
+	// Err is the expected error.
+	Err error
 
 	// If the command expects anything other than the console from the CLI,
 	// add expectations in this function.
 	Expect func(*mockcli.MockCLI)
 }
 
+// Test runs the test against the command.
 func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

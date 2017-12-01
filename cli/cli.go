@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen  -package mockcli -destination mockcli/mockcli.go github.com/stratumn/alice/cli CLI,Prompt
+//go:generate mockgen -package mockcli -destination mockcli/mockcli.go github.com/stratumn/alice/cli CLI
 
 /*
 Package cli defines types for Alice's command line interface.
@@ -261,16 +261,15 @@ type CLI interface {
 	// Disconnect closes the API client connection.
 	Disconnect() error
 
-	// Run runs the command line interface until the user kills it.
-	Run(context.Context)
+	// Start starts the command line interface until the user kills it.
+	Start(context.Context)
 
-	// Eval executes the given input, but does not handle errors or exit
+	// Exec executes the given input.
+	Exec(ctx context.Context, in string) error
+
+	// Run executes the given input, handling errors and cancellation
 	// signals.
-	Eval(ctx context.Context, in string) error
-
-	// Exec executes a command.
-	// It handles signals to cancel the command if the user presses Ctrl-C.
-	Exec(ctx context.Context, in string)
+	Run(ctx context.Context, in string)
 
 	// Suggest finds all command suggestions.
 	Suggest(cnt Content) []Suggest
@@ -278,9 +277,9 @@ type CLI interface {
 	// PrintError prints an error if it isn't nil.
 	PrintError(error)
 
-	// DidJustExecute returns true the first time it is called after a command
-	// executed. This is a hack used by the VT100 prompt to hide suggestions
-	// after a command was executed.
+	// DidJustExecute returns true the first time it is called after a
+	// command executed. This is a hack used by the VT100 prompt to hide
+	// suggestions after a command was executed.
 	DidJustExecute() bool
 }
 
@@ -343,6 +342,20 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 	c.cons.SetDebug(config.EnableDebugOutput)
 
 	return &c, nil
+}
+
+// Start starts the command line interface until the user kills it.
+func (c *cli) Start(ctx context.Context) {
+	defer func() {
+		if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
+			c.cons.Debugf("Could not disconnect: %s.", err)
+		}
+	}()
+
+	c.Run(ctx, initScript)
+
+	// Start the input prompt.
+	c.prompt(ctx, c)
 }
 
 // Config returns the configuration.
@@ -464,20 +477,6 @@ func (c *cli) Disconnect() error {
 	return errors.WithStack(conn.Close())
 }
 
-// Run runs the command line interface until the user kills it.
-func (c *cli) Run(ctx context.Context) {
-	defer func() {
-		if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
-			c.cons.Debugf("Could not disconnect: %s.", err)
-		}
-	}()
-
-	c.Exec(ctx, initScript)
-
-	// Start the input prompt.
-	c.prompt(ctx, c)
-}
-
 // call handles function calls.
 func (c *cli) call(
 	ctx context.Context,
@@ -558,8 +557,8 @@ func (c *cli) callWithClosure(
 	}
 }
 
-// Eval executes the given input, but does not handle errors or exit signals.
-func (c *cli) Eval(ctx context.Context, in string) error {
+// Exec executes the given input.
+func (c *cli) Exec(ctx context.Context, in string) error {
 	head, err := c.parser.Parse(in)
 	if err != nil {
 		return errors.WithStack(err)
@@ -577,10 +576,8 @@ func (c *cli) Eval(ctx context.Context, in string) error {
 	return nil
 }
 
-// Exec executes a command.
-//
-// It handles signals to cancel the command if the user presses Ctrl-C.
-func (c *cli) Exec(ctx context.Context, in string) {
+// Run executes the given input, handling errors and cancellation signals.
+func (c *cli) Run(ctx context.Context, in string) {
 	defer func() { c.executed = true }()
 
 	execCtx, cancel := context.WithCancel(ctx)
@@ -593,7 +590,7 @@ func (c *cli) Exec(ctx context.Context, in string) {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		done <- c.Eval(execCtx, in)
+		done <- c.Exec(execCtx, in)
 	}()
 
 	var err error

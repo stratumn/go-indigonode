@@ -34,37 +34,41 @@ var Echo = BasicCmdWrapper{BasicCmd{
 
 func echoFlags() *pflag.FlagSet {
 	flags := pflag.NewFlagSet("echo", pflag.ContinueOnError)
-
-	flags.StringP("stream", "s", "", "Output to console stream (debug, info, normal, success, warning, error)")
-
+	flags.StringP("log", "s", "", "Print log message (debug, info, normal, success, warning, error)")
 	return flags
 }
 
-func echoExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
+func echoExec(
+	ctx context.Context,
+	cli CLI,
+	w io.Writer,
+	args []string,
+	flags *pflag.FlagSet,
+) error {
 	s := strings.Join(args, " ")
 
-	stream, err := flags.GetString("stream")
+	log, err := flags.GetString("log")
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	cons := cli.Console()
 
-	switch stream {
+	switch log {
 	case "debug":
-		cons.Debugln(s)
+		cons.Debug(s)
 	case "normal":
-		cons.Println(s)
+		cons.Print(s)
 	case "info":
-		cons.Infoln(s)
+		cons.Info(s)
 	case "success":
-		cons.Successln(s)
+		cons.Success(s)
 	case "warning":
-		cons.Warningln(s)
+		cons.Warning(s)
 	case "error":
-		cons.Errorln(s)
+		cons.Error(s)
 	default:
-		fmt.Fprintln(w, s)
+		fmt.Fprint(w, s)
 	}
 
 	return nil

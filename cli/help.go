@@ -34,7 +34,13 @@ var Help = BasicCmdWrapper{BasicCmd{
 	ExecStrings: helpExec,
 }}
 
-func helpExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
+func helpExec(
+	ctx context.Context,
+	cli CLI,
+	w io.Writer,
+	args []string,
+	flags *pflag.FlagSet,
+) error {
 	if len(args) > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
 	}
@@ -56,8 +62,11 @@ func helpExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *p
 	tw := new(tabwriter.Writer)
 	tw.Init(w, 0, 8, 2, ' ', 0)
 
-	for _, v := range cli.Commands() {
-		fmt.Fprintln(tw, v.Use()+"\t"+v.Short())
+	for i, v := range cli.Commands() {
+		if i > 0 {
+			fmt.Fprintln(tw)
+		}
+		fmt.Fprint(tw, v.Use()+"\t"+v.Short())
 	}
 
 	return errors.WithStack(tw.Flush())

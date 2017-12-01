@@ -180,7 +180,7 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 
 	p.skipLines()
 
-	if p.consume(TokRParen) != nil {
+	if !isCall && p.consume(TokRParen) != nil {
 		return &SExp{
 			Type:   TypeList,
 			Line:   tok.Line,

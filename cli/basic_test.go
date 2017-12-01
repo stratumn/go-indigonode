@@ -54,7 +54,7 @@ func TestBasicCmdWrapper_strings(t *testing.T) {
 		t.Errorf("cmd.Short() = %v want %v", got, want)
 	}
 
-	if got, want := cmd.Long(), "A test command\n\nUsage:\n  cmd\n\nFlags:\n  -h, --help   Invoke help on command\n"; got != want {
+	if got, want := cmd.Long(), "A test command\n\nUsage:\n  cmd\n\nFlags:\n  -h, --help   Invoke help on command"; got != want {
 		t.Errorf("cmd.Long() = \n%v want\n%v", got, want)
 	}
 }
@@ -137,7 +137,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if err := cmd.Exec(ctx, nil, nil, closure, nil, &script.SExp{}); err != nil {
+	if _, err := cmd.Exec(ctx, nil, closure, nil, &script.SExp{}); err != nil {
 		t.Errorf(`cmd.Exec(): error: %s`, err)
 	}
 

@@ -685,7 +685,7 @@ func testServerReflectorReflect(ctx context.Context, t *testing.T, c CLI, test r
 	got, want := trimLines(buf.String()), trimLines(test.want)
 
 	if got != want {
-		t.Errorf("%s =>\n\n%s\n\nwant\n\n%s\n", test.cmd, got, want)
+		t.Errorf("%s =>\n\n%s\n\nwant\n\n%s", test.cmd, got, want)
 	}
 }
 

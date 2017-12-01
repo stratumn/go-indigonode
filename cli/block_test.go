@@ -30,17 +30,17 @@ func TestBlock(t *testing.T) {
 		nil,
 	}, {
 		"block (echo a)",
-		"a\n",
+		"a",
 		nil,
 		nil,
 	}, {
 		"block (echo a) (echo b)",
-		"a\nb\n",
+		"a\nb",
 		nil,
 		nil,
 	}, {
 		"block hello world",
-		"hello\nworld\n",
+		"hello\nworld",
 		nil,
 		nil,
 	}, {

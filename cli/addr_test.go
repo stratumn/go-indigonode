@@ -27,7 +27,7 @@ func TestAddr(t *testing.T) {
 
 	tests := []ExecTest{{
 		"api-address",
-		addr + "\n",
+		addr,
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Address().Return(addr)

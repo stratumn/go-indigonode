@@ -25,17 +25,17 @@ import (
 func TestBang(t *testing.T) {
 	tests := []ExecTest{{
 		"!echo hello outside world!",
-		"hello outside world!\n",
+		"hello outside world!",
 		nil,
 		nil,
 	}, {
 		"! echo",
-		"\n",
+		"",
 		nil,
 		nil,
 	}, {
 		"! echo 'hello outside world!'",
-		"hello outside world!\n",
+		"hello outside world!",
 		nil,
 		nil,
 	}, {
@@ -50,7 +50,7 @@ func TestBang(t *testing.T) {
 		nil,
 	}, {
 		"! grep outside 'hello\noutside\nworld!'",
-		"outside\n",
+		"outside",
 		nil,
 		nil,
 	}, {

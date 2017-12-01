@@ -21,8 +21,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Resolver resolves symbols.
-type Resolver func(sym *SExp) (*SExp, error)
+// ResolveHandler resolves symbols.
+type ResolveHandler func(sym *SExp) (*SExp, error)
 
 // ResolveName resolves symbols with their names.
 func ResolveName(sym *SExp) (*SExp, error) {
@@ -32,8 +32,8 @@ func ResolveName(sym *SExp) (*SExp, error) {
 	return exp, nil
 }
 
-// Evaluator evaluates S-Expression operations.
-type Evaluator func(Resolver, *SExp) (string, error)
+// CallHandler handles function calls.
+type CallHandler func(ResolveHandler, *SExp) (*SExp, error)
 
 // Type is a type of S-Expression.
 type Type uint8
@@ -60,14 +60,16 @@ func (s *SExp) String() string {
 	var elems []string
 
 	for curr := s; curr != nil; curr = curr.Cdr {
-		elems = append(elems, curr.CarString())
+		elems = append(elems, curr.CarString(true))
 	}
 
 	return "(" + strings.Join(elems, " ") + ")"
 }
 
 // CarString returns a string representation of the card of the S-Expression.
-func (s *SExp) CarString() string {
+//
+// If quite is true then strings are quoted.
+func (s *SExp) CarString(quote bool) string {
 	if s == nil {
 		return ""
 	}
@@ -81,7 +83,10 @@ func (s *SExp) CarString() string {
 	case TypeSym:
 		return s.Str
 	case TypeStr:
-		return fmt.Sprintf("%q", s.Str)
+		if quote {
+			return fmt.Sprintf("%q", s.Str)
+		}
+		return s.Str
 	}
 
 	return "<error>"
@@ -104,42 +109,42 @@ func (s *SExp) Clone() *SExp {
 }
 
 // ResolveEval resolves symbols and evaluates the S-Expression.
-func (s *SExp) ResolveEval(resolve Resolver, eval Evaluator) (string, error) {
+func (s *SExp) ResolveEval(resolve ResolveHandler, call CallHandler) (*SExp, error) {
 	switch s.Type {
 	case TypeList:
 		if s.List == nil {
-			return "", nil
+			return nil, nil
 		}
 		if s.List.Type != TypeSym {
-			return "", errors.Wrapf(
+			return nil, errors.Wrapf(
 				ErrInvalidOperand,
 				"%d:%d",
 				s.List.Line,
 				s.List.Offset,
 			)
 		}
-		return eval(resolve, s.List)
+		return call(resolve, s.List)
 	case TypeSym:
 		v, err := resolve(s)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return eval(resolve, v)
+		return v, nil
 	default:
-		return s.Str, nil
+		return s, nil
 	}
 }
 
 // ResolveEvalEach resolves symbols and evaluates each expression in a list.
-func (s *SExp) ResolveEvalEach(resolve Resolver, eval Evaluator) ([]string, error) {
+func (s *SExp) ResolveEvalEach(resolve ResolveHandler, call CallHandler) (SExpSlice, error) {
 	if s == nil {
 		return nil, nil
 	}
 
-	var elems []string
+	var elems SExpSlice
 
 	for curr := s; curr != nil; curr = curr.Cdr {
-		v, err := curr.ResolveEval(resolve, eval)
+		v, err := curr.ResolveEval(resolve, call)
 		if err != nil {
 			return nil, err
 		}
@@ -148,4 +153,28 @@ func (s *SExp) ResolveEvalEach(resolve Resolver, eval Evaluator) ([]string, erro
 	}
 
 	return elems, nil
+}
+
+// SExpSlice is a slice of S-Expressions.
+type SExpSlice []*SExp
+
+// Strings returns the string values of the car of every S-Expression in the
+// slice.
+//
+// If quote is true strings are quoted.
+func (s SExpSlice) Strings(quote bool) []string {
+	str := make([]string, len(s))
+	for i, exp := range s {
+		str[i] = exp.CarString(quote)
+	}
+
+	return str
+}
+
+// JoinCars returns the string values of the car of every S-Expression in the
+// slice separated by the given string.
+//
+// If quote is true strings are quoted.
+func (s SExpSlice) JoinCars(sep string, quote bool) string {
+	return strings.Join(s.Strings(quote), sep)
 }

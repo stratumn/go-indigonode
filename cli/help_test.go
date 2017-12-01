@@ -40,7 +40,7 @@ func TestHelp(t *testing.T) {
 
 	tests := []ExecTest{{
 		"help",
-		"cmd1  Command 1\ncmd2  Command 2\n",
+		"cmd1  Command 1\ncmd2  Command 2",
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Commands().Return(cmds).AnyTimes()
@@ -53,8 +53,7 @@ Usage:
   cmd2
 
 Flags:
-  -h, --help   Invoke help on command
-`,
+  -h, --help   Invoke help on command`,
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Commands().Return(cmds).AnyTimes()

@@ -24,32 +24,32 @@ import (
 func TestQuote(t *testing.T) {
 	tests := []ExecTest{{
 		"quote",
-		"\n",
+		"",
 		nil,
 		nil,
 	}, {
 		"quote hello",
-		"hello\n",
+		"hello",
 		nil,
 		nil,
 	}, {
 		"quote $hello",
-		"$hello\n",
+		"$hello",
 		nil,
 		nil,
 	}, {
 		"quote (hello)",
-		"(hello)\n",
+		"(hello)",
 		nil,
 		nil,
 	}, {
 		"quote (hello world)",
-		"(hello world)\n",
+		"(hello world)",
 		nil,
 		nil,
 	}, {
 		"quote (quote (quote hello))",
-		"(quote (quote hello))\n",
+		"(quote (quote hello))",
 		nil,
 		nil,
 	}, {

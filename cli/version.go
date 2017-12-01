@@ -28,7 +28,7 @@ import (
 // Version is a command that displays the client version string.
 var Version = BasicCmdWrapper{BasicCmd{
 	Name:        "cli-version",
-	Short:       "Display command line interface version string",
+	Short:       "Output program version string",
 	Flags:       versionFlags,
 	ExecStrings: versionExec,
 }}
@@ -39,7 +39,13 @@ func versionFlags() *pflag.FlagSet {
 	return flags
 }
 
-func versionExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
+func versionExec(
+	ctx context.Context,
+	cli CLI,
+	w io.Writer,
+	args []string,
+	flags *pflag.FlagSet,
+) error {
 	if len(args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
 	}
@@ -55,7 +61,7 @@ func versionExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags
 		commit = commit[:l]
 	}
 
-	fmt.Fprintln(w, release.Version+"@"+commit)
+	fmt.Fprint(w, release.Version+"@"+commit)
 
 	return nil
 }

@@ -16,7 +16,6 @@ package cli
 
 import (
 	"context"
-	"io"
 
 	"github.com/stratumn/alice/cli/script"
 )
@@ -31,30 +30,30 @@ var If = BasicCmdWrapper{BasicCmd{
 
 func ifExec(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	cond := exp.Cdr
 	if cond == nil {
-		return NewUseError("missing condition expression")
+		return nil, NewUseError("missing condition expression")
 	}
 
 	then := cond.Cdr
 	if then == nil {
-		return NewUseError("missing then expression")
+		return nil, NewUseError("missing then expression")
 	}
 
-	_, err := cond.ResolveEval(closure.Resolve, eval)
+	_, err := cond.ResolveEval(closure.Resolve, call)
 
 	if err == nil {
-		return evalSExpBody(w, closure.Resolve, eval, then)
+		return evalSExpBody(closure.Resolve, call, then)
 	}
 
 	if then.Cdr != nil {
-		return evalSExpBody(w, closure.Resolve, eval, then.Cdr)
+		return evalSExpBody(closure.Resolve, call, then.Cdr)
 	}
 
-	return nil
+	return nil, nil
 }

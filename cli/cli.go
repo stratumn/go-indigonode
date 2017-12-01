@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen  -package mockcli -destination mockcli/mockcli.go github.com/stratumn/alice/cli CLI,Prompt
+
 /*
 Package cli defines types for Alice's command line interface.
 
@@ -37,9 +39,7 @@ cases.
 package cli
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -90,13 +90,13 @@ const art = "      .o.       oooo   o8o\n" +
 // initScript is executed when the CLI is launched.
 const initScript = `
 echo
-echo --stream info "` + art + `"
+echo --log info "` + art + `"
 echo
 echo (cli-version --git-commit-length 7) :: Copyright © 2017 Stratumn SAS
 echo
 
 ; Only visible in debug mode.
-echo --stream debug Debuf output is enabled.
+echo --log debug Debuf output is enabled.
 
 ; Connect to the API.
 (unless
@@ -199,17 +199,12 @@ type Cmd interface {
 	Match(string) bool
 
 	// Exec executes the given S-Expression.
-	//
-	// The result should be written to the writer. Other messages should
-	// be written the CLI's console.
 	Exec(
 		context.Context,
 		CLI,
-		io.Writer,
 		*script.Closure,
-		script.Evaluator,
-		*script.SExp,
-	) error
+		script.CallHandler, *script.SExp,
+	) (*script.SExp, error)
 }
 
 // Suggest implements a suggestion.
@@ -483,33 +478,19 @@ func (c *cli) Run(ctx context.Context) {
 	c.prompt(ctx, c)
 }
 
-// evalSExp evaluate an S-Expression.
-//
-// If capture is false, the result of the command is printed to the console
-// and an empty string is returned.
-//
-// Otherwise the result of the command is returned.
-func (c *cli) evalSExp(
+// call handles function calls.
+func (c *cli) call(
 	ctx context.Context,
 	closure *script.Closure,
 	exp *script.SExp,
-	capture bool,
-) (string, error) {
-	if exp == nil {
-		return "", nil
-	}
-
-	if exp.Type == script.TypeStr {
-		return exp.Str, nil
-	}
-
+) (*script.SExp, error) {
 	for _, cmd := range c.allCmds {
 		if cmd.Match(exp.Str) {
-			return c.execCmd(ctx, closure, cmd, exp, capture)
+			return c.execCmd(ctx, closure, cmd, exp)
 		}
 	}
 
-	return "", errors.Wrapf(
+	return nil, errors.Wrapf(
 		ErrInvalidInstr,
 		"%d:%d: %s",
 		exp.Line,
@@ -524,17 +505,9 @@ func (c *cli) execCmd(
 	closure *script.Closure,
 	cmd Cmd,
 	sexp *script.SExp,
-	capture bool,
-) (string, error) {
-	buf := bytes.NewBuffer(nil)
-	w := c.cons.Writer
-
-	if capture {
-		w = buf
-	}
-
-	eval := c.sexpEvaluator(ctx, closure, true)
-	err := cmd.Exec(ctx, c, w, closure, eval, sexp)
+) (*script.SExp, error) {
+	call := c.callWithClosure(ctx, closure)
+	val, err := cmd.Exec(ctx, c, closure, call, sexp)
 
 	if err != nil {
 		cause := errors.Cause(err)
@@ -552,15 +525,10 @@ func (c *cli) execCmd(
 			sexp.Str,
 		)
 
-		// Always print errors of nested commands.
-		if capture {
-			c.PrintError(err)
-		}
-
-		return "", err
+		return nil, err
 	}
 
-	return strings.TrimSuffix(buf.String(), "\n"), nil
+	return val, nil
 }
 
 // PrintError prints the error if it isn't nil.
@@ -580,14 +548,13 @@ func (c *cli) PrintError(err error) {
 	}
 }
 
-// sexpEvaluator returns an S-Expression evaluator.
-func (c *cli) sexpEvaluator(
+// callWithClosure creates an S-Expression call handler with a closure.
+func (c *cli) callWithClosure(
 	ctx context.Context,
 	closure *script.Closure,
-	capture bool,
-) script.Evaluator {
-	return func(resolve script.Resolver, exp *script.SExp) (string, error) {
-		return c.evalSExp(ctx, closure, exp, capture)
+) script.CallHandler {
+	return func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
+		return c.call(ctx, closure, exp)
 	}
 }
 
@@ -599,10 +566,12 @@ func (c *cli) Eval(ctx context.Context, in string) error {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = c.sexpEvaluator(ctx, c.closure, false)(nil, head.List)
+		exp, err := c.callWithClosure(ctx, c.closure)(nil, head.List)
 		if err != nil {
 			return err
 		}
+
+		c.cons.Println(exp.CarString(false))
 	}
 
 	return nil

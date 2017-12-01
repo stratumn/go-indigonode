@@ -47,7 +47,7 @@ func OptEnv(prefix string, env []string) ClosureOpt {
 }
 
 // OptResolver sets the resolver which is used if a key is not found.
-func OptResolver(resolve Resolver) ClosureOpt {
+func OptResolver(resolve ResolveHandler) ClosureOpt {
 	return func(c *Closure) {
 		c.resolve = resolve
 	}
@@ -56,7 +56,7 @@ func OptResolver(resolve Resolver) ClosureOpt {
 // Closure stores local values and a parent closure.
 type Closure struct {
 	parent  *Closure
-	resolve Resolver
+	resolve ResolveHandler
 
 	mu     sync.RWMutex
 	values map[string]*SExp

@@ -24,37 +24,37 @@ import (
 func TestEcho(t *testing.T) {
 	tests := []ExecTest{{
 		"echo hello world",
-		"hello world\n",
+		"hello world",
 		nil,
 		nil,
 	}, {
-		"echo --stream debug hello world",
+		"echo --log debug hello world",
 		"",
 		nil,
 		nil,
 	}, {
-		"echo --stream normal hello world",
-		"hello world\n",
+		"echo --log normal hello world",
+		"hello world",
 		nil,
 		nil,
 	}, {
-		"echo --stream info hello world",
-		"hello world\n",
+		"echo --log info hello world",
+		"hello world",
 		nil,
 		nil,
 	}, {
-		"echo --stream success hello world",
-		"hello world\n",
+		"echo --log success hello world",
+		"hello world",
 		nil,
 		nil,
 	}, {
-		"echo --stream warning hello world",
-		"hello world\n",
+		"echo --log warning hello world",
+		"hello world",
 		nil,
 		nil,
 	}, {
-		"echo --stream error hello world",
-		"hello world\n",
+		"echo --log error hello world",
+		"hello world",
 		nil,
 		nil,
 	}}

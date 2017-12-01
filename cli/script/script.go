@@ -15,9 +15,8 @@
 // Package script defines types to implement a very rudimentary script
 // interpreter.
 //
-// It is designed with shell-like scripting in mind. It uses simplified
-// S-Expressions that can hold either symbols, strings or lists. Everything
-// evaluates to a string instead of S-Expressions.
+// It is designed with shell-like scripting in mind. It uses simple
+// S-Expressions that can hold either symbols, strings or lists.
 //
 // There are no builtin operators.
 package script

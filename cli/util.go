@@ -15,9 +15,6 @@
 package cli
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
@@ -41,15 +38,12 @@ func StackTrace(err error) errors.StackTrace {
 // evalSExpBody evaluates an S-Expression "body".
 //
 // If the car of the expression is a list beginning with a list, it evaluates
-// each expression in that list and outputs the last value to the writer.
+// each expression in that list and returns the last value.
 //
 // If the car isn't a list, it is directly evaluated.
 func evalSExpBody(
-	w io.Writer,
-	resolve script.Resolver,
-	eval script.Evaluator,
-	body *script.SExp,
-) error {
+	resolve script.ResolveHandler, eval script.CallHandler, body *script.SExp,
+) (*script.SExp, error) {
 	exp := body
 
 	isList := func(x *script.SExp) bool {
@@ -57,22 +51,17 @@ func evalSExpBody(
 	}
 
 	if isList(exp) && exp.List != nil && isList(exp.List) {
-		// Ignore output of every expression in the list except the
+		// Ignore result of every expression in the list except the
 		// last one
 		for exp = exp.List; exp.Cdr != nil; exp = exp.Cdr {
 			_, err := exp.ResolveEval(resolve, eval)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	// At this point exp is either the given expression or the last
-	// expression in the list. In any case we want to write its output.
-	s, err := exp.ResolveEval(resolve, eval)
-	if err == nil {
-		fmt.Fprintln(w, s)
-	}
-
-	return err
+	// expression in the list. In any case we want to return its result.
+	return exp.ResolveEval(resolve, eval)
 }

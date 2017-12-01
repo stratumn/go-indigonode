@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -32,29 +33,30 @@ func Example() {
 			(title world!))
 `
 
-	var eval script.Evaluator
+	var call script.CallHandler
 
-	eval = func(resolve script.Resolver, exp *script.SExp) (string, error) {
-		if exp.Type == script.TypeStr {
-			return exp.Str, nil
-		}
-
-		args, err := exp.Cdr.ResolveEvalEach(resolve, eval)
+	call = func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
+		args, err := exp.Cdr.ResolveEvalEach(resolve, call)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		str := strings.Join(args, " ")
+		str := args.JoinCars(" ", false)
 
 		switch exp.Str {
 		case "echo":
 			fmt.Println(str)
-			return "", nil
+			return nil, nil
 		case "title":
-			return strings.Title(str), nil
+			return &script.SExp{
+				Type:   script.TypeStr,
+				Str:    strings.Title(str),
+				Line:   exp.Line,
+				Offset: exp.Offset,
+			}, nil
 		}
 
-		return "", fmt.Errorf("invalid operand: %q", exp.Str)
+		return nil, errors.Errorf("%d:%d: unknown function %q", exp.Line, exp.Offset, exp.Str)
 	}
 
 	printErr := func(err error) {
@@ -70,7 +72,7 @@ func Example() {
 	}
 
 	for ; head != nil; head = head.Cdr {
-		_, err = eval(script.ResolveName, head.List)
+		_, err = call(script.ResolveName, head.List)
 		if err != nil {
 			panic(err)
 		}

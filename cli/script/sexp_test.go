@@ -15,7 +15,6 @@
 package script
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -29,10 +28,6 @@ type evalTest struct {
 
 var evalTests = []evalTest{{
 	"",
-	"",
-	"",
-}, {
-	"()",
 	"",
 	"",
 }, {
@@ -85,25 +80,22 @@ var evalTests = []evalTest{{
 	"1:7: operand must be a symbol",
 }}
 
-func testEval(resolve Resolver, exp *SExp) (string, error) {
-	if exp == nil {
-		return "", nil
-	}
-
-	if exp.Type == TypeStr {
-		return exp.Str, nil
-	}
-
+func testCall(resolve ResolveHandler, exp *SExp) (*SExp, error) {
 	if exp.Str == "echo" {
-		args, err := exp.Cdr.ResolveEvalEach(resolve, testEval)
+		args, err := exp.Cdr.ResolveEvalEach(resolve, testCall)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
-		return strings.Join(args, " "), nil
+		return &SExp{
+			Type:   TypeStr,
+			Str:    args.JoinCars(" ", false),
+			Line:   exp.Line,
+			Offset: exp.Offset,
+		}, nil
 	}
 
-	return "", errors.Errorf("%d:%d: unknown function %q", exp.Line, exp.Offset, exp.Str)
+	return nil, errors.Errorf("%d:%d: unknown function %q", exp.Line, exp.Offset, exp.Str)
 }
 
 func TestSExp_eval(t *testing.T) {
@@ -117,11 +109,11 @@ func TestSExp_eval(t *testing.T) {
 			continue
 		}
 
-		var vals []string
-		var v string
+		var vals SExpSlice
+		var v *SExp
 
 		for ; head != nil; head = head.Cdr {
-			v, err = testEval(ResolveName, head.List)
+			v, err = testCall(ResolveName, head.List)
 			if err != nil {
 				break
 			}
@@ -140,7 +132,7 @@ func TestSExp_eval(t *testing.T) {
 			continue
 		}
 
-		output := strings.Join(vals, "\n")
+		output := vals.JoinCars("\n", false)
 
 		if output != tt.output {
 			t.Errorf("%q: output = %q want %q", tt.input, output, tt.output)

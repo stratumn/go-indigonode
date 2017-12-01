@@ -15,6 +15,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/ioutil"
@@ -57,11 +58,9 @@ type BasicCmd struct {
 	ExecSExp func(
 		context.Context,
 		CLI,
-		io.Writer,
 		*script.Closure,
-		script.Evaluator,
-		*script.SExp,
-	) error
+		script.CallHandler, *script.SExp,
+	) (*script.SExp, error)
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -102,8 +101,11 @@ func (cmd BasicCmdWrapper) LongUse() string {
 
 	long := "Usage:\n"
 	long += "  " + cmd.Use()
-	long += "\n\nFlags:\n"
-	long += flags.FlagUsages()
+
+	if cmd.Cmd.ExecSExp == nil {
+		long += "\n\nFlags:\n"
+		long += strings.TrimSuffix(flags.FlagUsages(), "\n")
+	}
 
 	return long
 }
@@ -205,42 +207,54 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 func (cmd BasicCmdWrapper) Exec(
 	ctx context.Context,
 	cli CLI,
-	w io.Writer,
 	closure *script.Closure,
-	eval script.Evaluator,
-	exp *script.SExp,
-) error {
+	call script.CallHandler, exp *script.SExp,
+) (*script.SExp, error) {
 	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx, cli, w, closure, eval, exp)
+		return cmd.Cmd.ExecSExp(ctx, cli, closure, call, exp)
 	}
 
-	argv, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)
+	vals, err := exp.Cdr.ResolveEvalEach(closure.Resolve, call)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	argv := vals.Strings(false)
 	flags := cmd.createFlags()
 
 	// Discard flags output, we do our own error handling.
 	flags.SetOutput(ioutil.Discard)
 
 	if err := flags.Parse(argv); err != nil {
-		return NewUseError(err.Error())
+		return nil, NewUseError(err.Error())
 	}
 
 	help, err := flags.GetBool("help")
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
+
+	buf := bytes.NewBuffer(nil)
 
 	if help {
 		// Invoke help command, pass the command name and remaining
 		// args.
 		args := append([]string{cmd.Name()}, flags.Args()...)
-		return Help.Cmd.ExecStrings(ctx, cli, w, args, flags)
+		err = Help.Cmd.ExecStrings(ctx, cli, buf, args, flags)
+	} else {
+		err = cmd.Cmd.ExecStrings(ctx, cli, buf, flags.Args(), flags)
 	}
 
-	return cmd.Cmd.ExecStrings(ctx, cli, w, flags.Args(), flags)
+	if err != nil {
+		return nil, err
+	}
+
+	return &script.SExp{
+		Type:   script.TypeStr,
+		Str:    buf.String(),
+		Line:   exp.Line,
+		Offset: exp.Offset,
+	}, nil
 }
 
 // createFlags creates a set of flags for the command. There will be at least

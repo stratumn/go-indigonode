@@ -29,10 +29,6 @@ var parseTests = []parserTest{{
 	"()",
 	"",
 }, {
-	"()",
-	"(())",
-	"",
-}, {
 	"one",
 	"((one))",
 	"",
@@ -93,6 +89,10 @@ var parseTests = []parserTest{{
 	"((one) (two (three)) (four))",
 	"",
 }, {
+	"()",
+	"",
+	"1:2: unexpected token )",
+}, {
 	"('one')",
 	"",
 	"1:2: unexpected token <string>",
@@ -130,6 +130,10 @@ var listTests = []parserTest{{
 	"",
 	"",
 	"1:1: unexpected token <EOF>",
+}, {
+	"(",
+	"",
+	"1:2: unexpected token <EOF>",
 }, {
 	"(a b) (c d)",
 	"",

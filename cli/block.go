@@ -16,8 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
-	"io"
 
 	"github.com/stratumn/alice/cli/script"
 )
@@ -33,19 +31,20 @@ var Block = BasicCmdWrapper{BasicCmd{
 
 func blockExec(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
-	for head := exp.Cdr; head != nil; head = head.Cdr {
-		s, err := head.ResolveEval(closure.Resolve, eval)
-		if err != nil {
-			return err
-		}
-
-		fmt.Fprintln(w, s)
+) (*script.SExp, error) {
+	vals, err := exp.Cdr.ResolveEvalEach(closure.Resolve, call)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &script.SExp{
+		Type:   script.TypeStr,
+		Str:    vals.JoinCars("\n", false),
+		Line:   exp.Line,
+		Offset: exp.Offset,
+	}, nil
 }

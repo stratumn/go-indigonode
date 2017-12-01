@@ -31,8 +31,7 @@ func TestConnect(t *testing.T) {
 	tests := []ExecTest{{
 		"api-connect",
 		`Connecting to "` + addr + `"...
-Connected to "` + addr + `".
-`,
+Connected to "` + addr + `".`,
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Address().Return(addr).AnyTimes()
@@ -41,8 +40,7 @@ Connected to "` + addr + `".
 	}, {
 		"api-connect " + addr,
 		`Connecting to "` + addr + `"...
-Connected to "` + addr + `".
-`,
+Connected to "` + addr + `".`,
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Address().Return("/ip4/127.0.0.1/tcp/8905").AnyTimes()
@@ -56,8 +54,7 @@ Connected to "` + addr + `".
 	}, {
 		"api-connect",
 		`Connecting to "` + addr + `"...
-Could not connect to "` + addr + `".
-`,
+Could not connect to "` + addr + `".`,
 		err,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Address().Return(addr).AnyTimes()

@@ -29,11 +29,17 @@ import (
 var Exit = BasicCmdWrapper{BasicCmd{
 	Name:        "exit",
 	Use:         "exit [Status]",
-	Short:       "Exit command line interface",
+	Short:       "Exit program",
 	ExecStrings: exitExec,
 }}
 
-func exitExec(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
+func exitExec(
+	ctx context.Context,
+	cli CLI,
+	w io.Writer,
+	args []string,
+	flags *pflag.FlagSet,
+) error {
 	if len(args) > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
 	}

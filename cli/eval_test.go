@@ -18,21 +18,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
 )
-
-// These tests don't really do much :(
 
 func TestEval(t *testing.T) {
 	tests := []ExecTest{{
-		"eval 'title hello world'",
-		"",
+		"eval (quote (title hello world))",
+		"Hello World",
 		nil,
-		func(c *mockcli.MockCLI) {
-			c.EXPECT().Eval(gomock.Any(), gomock.Any()).Return(nil)
-		},
+		nil,
+	}, {
+		"eval 'hello world'",
+		"hello world",
+		nil,
+		nil,
 	}, {
 		"eval",
 		"",
@@ -43,15 +42,6 @@ func TestEval(t *testing.T) {
 		"",
 		ErrUse,
 		nil,
-	}, {
-		"eval 'hello world'",
-		"",
-		ErrUse,
-		func(c *mockcli.MockCLI) {
-			c.EXPECT().
-				Eval(gomock.Any(), gomock.Any()).
-				Return(cli.NewUseError("fail"))
-		},
 	}}
 
 	for i, tt := range tests {

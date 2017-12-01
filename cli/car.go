@@ -16,8 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
-	"io"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
@@ -27,39 +25,36 @@ import (
 var Car = BasicCmdWrapper{BasicCmd{
 	Name:     "car",
 	Use:      "car (quote (a b c))",
-	Short:    "Print the first element of a list",
+	Short:    "Output the first element of a list",
 	ExecSExp: carExec,
 }}
 
 func carExec(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
-		return NewUseError("expected a single expression")
+		return nil, NewUseError("expected a single expression")
 	}
 
-	v, err := exp.Cdr.ResolveEval(closure.Resolve, eval)
+	v, err := exp.Cdr.ResolveEval(closure.Resolve, call)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	scanner := script.NewScanner(script.OptErrorHandler(cli.PrintError))
-	parser := script.NewParser(scanner)
-
-	list, err := parser.List(v)
-	if err != nil {
-		return err
+	if v.Type != script.TypeList {
+		return nil, NewUseError("expected a list")
 	}
 
-	if list == nil {
-		return errors.WithStack(ErrCarNil)
+	if v.List == nil {
+		return nil, errors.WithStack(ErrCarNil)
 	}
 
-	fmt.Fprintln(w, list.CarString())
+	car := v.List
+	car.Cdr = nil
 
-	return nil
+	return car, nil
 }

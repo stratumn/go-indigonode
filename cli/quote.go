@@ -16,8 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
-	"io"
 
 	"github.com/stratumn/alice/cli/script"
 )
@@ -26,22 +24,20 @@ import (
 var Quote = BasicCmdWrapper{BasicCmd{
 	Name:     "quote",
 	Use:      "quote exp",
-	Short:    "Print an expression without evaluating it",
+	Short:    "Output an expression without evaluating it",
 	ExecSExp: quoteExec,
 }}
 
 func quoteExec(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	if exp.Cdr != nil && exp.Cdr.Cdr != nil {
-		return NewUseError("expected a single expression")
+		return nil, NewUseError("expected a single expression")
 	}
 
-	fmt.Fprintln(w, exp.Cdr.CarString())
-
-	return nil
+	return exp.Cdr, nil
 }

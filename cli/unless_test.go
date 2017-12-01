@@ -25,22 +25,22 @@ import (
 func TestUnless(t *testing.T) {
 	tests := []ExecTest{{
 		"unless (title test) ko ok",
-		"ok\n",
+		"ok",
 		nil,
 		nil,
 	}, {
 		"unless (test) ko ok",
-		"ko\n",
+		"ko",
 		nil,
 		nil,
 	}, {
 		"unless (title test) (title ko) (title ok)",
-		"Ok\n",
+		"Ok",
 		nil,
 		nil,
 	}, {
 		"unless (test) (title ko) (title ok)",
-		"Ko\n",
+		"Ko",
 		nil,
 		nil,
 	}, {
@@ -50,32 +50,32 @@ func TestUnless(t *testing.T) {
 		nil,
 	}, {
 		"unless (test) ko",
-		"ko\n",
+		"ko",
 		nil,
 		nil,
 	}, {
 		"unless test ko ok",
-		"ok\n",
+		"ok",
 		nil,
 		nil,
 	}, {
 		"unless $test ko ok",
-		"ko\n",
+		"ko",
 		nil,
 		nil,
 	}, {
 		"unless test ((title o) (title k)) ((title k) (title o))",
-		"O\n",
+		"O",
 		nil,
 		nil,
 	}, {
 		"unless $test ((title o) (title k)) ((title k) (title o))",
-		"K\n",
+		"K",
 		nil,
 		nil,
 	}, {
 		"unless $test ((title o) k)",
-		"k\n",
+		"k",
 		nil,
 		nil,
 	}, {

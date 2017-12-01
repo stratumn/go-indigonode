@@ -37,28 +37,30 @@ func (Bang) Name() string {
 
 // Short returns a short description of the command.
 func (Bang) Short() string {
-	return "Execute external commands"
+	return "Execute and output external commands"
 }
 
 // Long returns a long description of the command.
 func (Bang) Long() string {
-	return `Execute external commands
+	return `Execute and output external commands
 
 Usage:
   !<Command> args...
 
 Bang executes the external command immediately following the exclamation point.
 
-If a name doesn't immediately follow the exclamation point, the first element 
-is the name of the command, the optional second element are arguments for the
-command, and the optional third element will be written to the input stream of 
-the command.
+If there isn't space between the exclamation point and the command name, the
+remaining expressions will be evaluated as the command's arguments.
+
+If there is whitespace before the name, the first expression is the name of the
+command, the optional second expression are the command's arguments, and the
+optional third expression will be written to the input stream of the command.
 
 Examples:
   !ls -l -a
   ! wc () (echo hello world !) ; use a pipe, notice the space before the command
   ! less () (manager-list)
-  ! grep "manager" (manager-list)
+  ! grep manager (manager-list)
 `
 }
 
@@ -89,27 +91,27 @@ func (Bang) Match(name string) bool {
 func (Bang) Exec(
 	ctx context.Context,
 	c CLI,
-	w io.Writer,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	var stdin io.Reader
 
-	args, err := exp.Cdr.ResolveEvalEach(closure.Resolve, eval)
+	vals, err := exp.Cdr.ResolveEvalEach(closure.Resolve, call)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	args := vals.Strings(false)
 	name := exp.Str[1:]
 
 	if len(name) < 1 {
 		argc := len(args)
 		if argc < 1 {
-			return NewUseError("expected command name")
+			return nil, NewUseError("expected command name")
 		}
 		if argc > 3 {
-			return NewUseError("expected at most three expressions")
+			return nil, NewUseError("expected at most three expressions")
 		}
 
 		name = args[0]
@@ -137,14 +139,16 @@ func (Bang) Exec(
 		stdin = os.Stdin
 	}
 
+	buf := bytes.NewBuffer(nil)
+
 	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Stdout = w
+	cmd.Stdout = buf
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = stdin
 
 	err = cmd.Start()
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	ch := make(chan error, 1)
@@ -152,5 +156,14 @@ func (Bang) Exec(
 		ch <- cmd.Wait()
 	}()
 
-	return errors.WithStack(<-ch)
+	if err := <-ch; err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &script.SExp{
+		Type:   script.TypeStr,
+		Str:    strings.TrimSuffix(buf.String(), "\n"),
+		Line:   exp.Line,
+		Offset: exp.Offset,
+	}, nil
 }

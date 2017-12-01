@@ -16,8 +16,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
-	"io"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
@@ -27,39 +25,42 @@ import (
 var Cdr = BasicCmdWrapper{BasicCmd{
 	Name:     "cdr",
 	Use:      "cdr (quote (a b c))",
-	Short:    "Print the tail a list",
+	Short:    "Output the tail a list",
 	ExecSExp: cdr,
 }}
 
 func cdr(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
-		return NewUseError("expected a single expression")
+		return nil, NewUseError("expected a single expression")
 	}
 
-	v, err := exp.Cdr.ResolveEval(closure.Resolve, eval)
+	v, err := exp.Cdr.ResolveEval(closure.Resolve, call)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	scanner := script.NewScanner(script.OptErrorHandler(cli.PrintError))
-	parser := script.NewParser(scanner)
-
-	list, err := parser.List(v)
-	if err != nil {
-		return err
+	if v.Type != script.TypeList {
+		return nil, NewUseError("expected a list")
 	}
 
-	if list == nil {
-		return errors.WithStack(ErrCdrNil)
+	if v.List == nil {
+		return nil, errors.WithStack(ErrCdrNil)
 	}
 
-	fmt.Fprintln(w, list.Cdr.String())
+	if v.List.Cdr == nil {
+		return nil, errors.WithStack(ErrCdrNil)
+	}
 
-	return nil
+	return &script.SExp{
+		Type:   script.TypeList,
+		List:   v.List.Cdr,
+		Line:   exp.Line,
+		Offset: exp.Offset,
+	}, nil
 }

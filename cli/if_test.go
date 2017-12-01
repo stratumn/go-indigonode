@@ -25,27 +25,27 @@ import (
 func TestIf(t *testing.T) {
 	tests := []ExecTest{{
 		"if (title test) ok ko",
-		"ok\n",
+		"ok",
 		nil,
 		nil,
 	}, {
 		"if (test) ok ko",
-		"ko\n",
+		"ko",
 		nil,
 		nil,
 	}, {
 		"if (title test) (title ok) (title ko)",
-		"Ok\n",
+		"Ok",
 		nil,
 		nil,
 	}, {
 		"if (test) (title ok) (title ko)",
-		"Ko\n",
+		"Ko",
 		nil,
 		nil,
 	}, {
 		"if (title test) ok",
-		"ok\n",
+		"ok",
 		nil,
 		nil,
 	}, {
@@ -55,27 +55,27 @@ func TestIf(t *testing.T) {
 		nil,
 	}, {
 		"if test ok",
-		"ok\n",
+		"ok",
 		nil,
 		nil,
 	}, {
 		"if $test ok ko",
-		"ko\n",
+		"ko",
 		nil,
 		nil,
 	}, {
 		"if test ((title o) (title k)) ((title k) (title o))",
-		"K\n",
+		"K",
 		nil,
 		nil,
 	}, {
 		"if $test ((title o) (title k)) ((title k) (title o))",
-		"O\n",
+		"O",
 		nil,
 		nil,
 	}, {
 		"if test ((title o) k)",
-		"k\n",
+		"k",
 		nil,
 		nil,
 	}, {

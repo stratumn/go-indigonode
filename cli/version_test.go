@@ -25,17 +25,17 @@ import (
 func TestVersion(t *testing.T) {
 	tests := []ExecTest{{
 		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		release.Version + "@" + release.GitCommit,
 		nil,
 		nil,
 	}, {
 		"cli-version",
-		release.Version + "@" + release.GitCommit + "\n",
+		release.Version + "@" + release.GitCommit,
 		nil,
 		nil,
 	}, {
 		"cli-version --git-commit-length 100",
-		release.Version + "@" + release.GitCommit + "\n",
+		release.Version + "@" + release.GitCommit,
 		nil,
 		nil,
 	}, {

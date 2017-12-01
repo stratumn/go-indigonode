@@ -16,7 +16,6 @@ package cli
 
 import (
 	"context"
-	"io"
 
 	"github.com/stratumn/alice/cli/script"
 )
@@ -25,25 +24,25 @@ import (
 var Eval = BasicCmdWrapper{BasicCmd{
 	Name:     "eval",
 	Use:      "eval exp",
-	Short:    "Evaluates the result of an expression.",
+	Short:    "Evaluate an expression",
 	ExecSExp: evalExec,
 }}
 
 func evalExec(
 	ctx context.Context,
-	cli CLI, w io.Writer,
+	cli CLI,
 	closure *script.Closure,
-	eval script.Evaluator,
+	call script.CallHandler,
 	exp *script.SExp,
-) error {
+) (*script.SExp, error) {
 	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
-		return NewUseError("expected a single expression")
+		return nil, NewUseError("expected a single expression")
 	}
 
-	v, err := exp.Cdr.ResolveEval(closure.Resolve, eval)
+	v, err := exp.Cdr.ResolveEval(closure.Resolve, call)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return cli.Eval(ctx, v)
+	return v.ResolveEval(closure.Resolve, call)
 }

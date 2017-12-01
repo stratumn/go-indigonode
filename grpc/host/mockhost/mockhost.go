@@ -6,11 +6,10 @@ package mockhost
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	host "github.com/stratumn/alice/grpc/host"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockHost_AddressesServer is a mock of Host_AddressesServer interface

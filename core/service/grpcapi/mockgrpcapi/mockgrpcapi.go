@@ -5,11 +5,10 @@
 package mockgrpcapi
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	manager "github.com/stratumn/alice/core/manager"
 	grpc "google.golang.org/grpc"
+	reflect "reflect"
 )
 
 // MockManager is a mock of Manager interface

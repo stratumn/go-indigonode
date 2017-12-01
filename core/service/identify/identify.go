@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockidentify -destination mockidentify/mockidentify.go github.com/stratumn/alice/core/service/identify Host
+
 // Package identify defines a service that identifies peers on the network.
 package identify
 

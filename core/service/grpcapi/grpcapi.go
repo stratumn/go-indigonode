@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockgrpcapi -destination mockgrpcapi/mockgrpcapi.go github.com/stratumn/alice/core/service/grpcapi Manager,Registrable
+
 /*
 Package grpcapi defines a service that exposes a gRPC API.
 

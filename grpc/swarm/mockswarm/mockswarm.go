@@ -6,11 +6,10 @@ package mockswarm
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	swarm "github.com/stratumn/alice/grpc/swarm"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockSwarm_PeersServer is a mock of Swarm_PeersServer interface

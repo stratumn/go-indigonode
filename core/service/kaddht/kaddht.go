@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockkaddht -destination mockkaddht/mockkaddht.go github.com/stratumn/alice/core/service/kaddht Host
+
 /*
 Package kaddht defines a service that runs an instance of a Kademlia
 distributed hash table server or client that can be used to route peer IDs to

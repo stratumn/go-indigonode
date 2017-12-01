@@ -48,8 +48,6 @@ var cliCmd = &cobra.Command{
 
 			// We don't use Run so we can handle the errors here.
 			if err := c.Exec(ctx, cliCommand); err != nil {
-				// If it is a usage error, print the usage
-				// message.
 				cause := errors.Cause(err)
 				stack := cli.StackTrace(err)
 
@@ -63,6 +61,8 @@ var cliCmd = &cobra.Command{
 					fmt.Fprintf(os.Stderr, "%+v\n", stack)
 				}
 
+				// If it is a usage error, print the usage
+				// message.
 				if userr, ok := cause.(*cli.UseError); ok {
 					fmt.Fprintln(os.Stderr, "\n"+userr.Use())
 				}

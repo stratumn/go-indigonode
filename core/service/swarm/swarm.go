@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockswarm -destination mockswarm/mockswarm.go github.com/stratumn/alice/core/service/swarm Transport
+
 // Package swarm defines a service that maintains a swarm of connections
 // between this node and its peers.
 package swarm

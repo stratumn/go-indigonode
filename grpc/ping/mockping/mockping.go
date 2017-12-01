@@ -6,11 +6,10 @@ package mockping
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	ping "github.com/stratumn/alice/grpc/ping"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockPing_PingServer is a mock of Ping_PingServer interface

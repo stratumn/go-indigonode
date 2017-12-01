@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mocknatmgr -destination mocknatmgr/mocknatmgr.go github.com/stratumn/alice/core/service/natmgr Host
+
 // Package natmgr defines a service that deals with setting NAT port mappings
 // to allow nodes to connect to a node behind a firewall.
 package natmgr

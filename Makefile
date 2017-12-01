@@ -45,6 +45,7 @@ DOCKER_BUILD=$(DOCKER_CMD) build
 DOCKER_PUSH=$(DOCKER_CMD) push
 
 PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor)
+MOCK_FILES=$(shell find . -name 'mock*.go' | grep -v vendor)
 TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
 COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
 COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
@@ -71,7 +72,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -94,6 +95,19 @@ graphpkg:
 deps: gx dep gometalinter graphpkg
 	gx install
 	dep ensure
+
+# == generate =================================================================
+
+generate:
+	@for d in $(PACKAGES); do \
+		echo $(GO_CMD) generate $$d; \
+		$(GO_CMD) generate $$d 2> /dev/null; \
+	done
+	
+	@for f in $(MOCK_FILES); do \
+		sed -i'.bak' 's|github.com/stratumn/alice/vendor/||g' $$f; \
+		rm $$f.bak; \
+	done
 
 # == protobuf =================================================================
 

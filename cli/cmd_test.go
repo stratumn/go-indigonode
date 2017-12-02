@@ -17,6 +17,7 @@ package cli_test
 import (
 	"bytes"
 	"context"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -52,8 +53,8 @@ type ExecTest struct {
 	Expect func(*mockcli.MockCLI)
 }
 
-// Test runs the test against the command.
-func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
+// Exec executes the test command.
+func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (*script.SExp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -61,50 +62,11 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	defer ctrl.Finish()
 
 	c := mockcli.NewMockCLI(ctrl)
-
-	buf := bytes.NewBuffer(nil)
-	cons := cli.NewConsole(buf, false)
+	cons := cli.NewConsole(w, false)
 
 	c.EXPECT().Console().Return(cons).AnyTimes()
 	if e.Expect != nil {
 		e.Expect(c)
-	}
-
-	var call script.CallHandler
-
-	call = func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
-		if exp.Str == "quote" {
-			if exp.Cdr != nil && exp.Cdr.Cdr != nil {
-				return nil, cli.NewUseError("expected a single expression")
-			}
-			return exp.Cdr, nil
-		}
-
-		args, err := exp.Cdr.ResolveEvalEach(resolve, call)
-		if err != nil {
-			return nil, err
-		}
-
-		str := args.JoinCars(" ", false)
-
-		switch exp.Str {
-		case "echo":
-			return &script.SExp{
-				Type:   script.TypeStr,
-				Str:    str,
-				Line:   exp.Line,
-				Offset: exp.Offset,
-			}, nil
-		case "title":
-			return &script.SExp{
-				Type:   script.TypeStr,
-				Str:    strings.Title(str),
-				Line:   exp.Line,
-				Offset: exp.Offset,
-			}, nil
-		}
-
-		return nil, script.ErrInvalidOperand
 	}
 
 	parser := script.NewParser(script.NewScanner())
@@ -113,14 +75,20 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
+	if head == nil {
+		return nil, nil
+	}
+
 	closure := script.NewClosure(script.OptResolver(cli.Resolver))
 
-	var exp *script.SExp
+	return cmd.Exec(ctx, c, closure, execCall, head.List)
+}
 
-	if head != nil {
-		exp, err = cmd.Exec(ctx, c, closure, call, head.List)
-		err = errors.Cause(err)
-	}
+// Test runs the test against the command.
+func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
+	buf := bytes.NewBuffer(nil)
+	exp, err := e.Exec(t, buf, cmd)
+	err = errors.Cause(err)
 
 	switch {
 	case e.Err == ErrAny && err != nil:
@@ -138,4 +106,39 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	if got != e.Want {
 		t.Errorf("%s =>\n%s\nwant\n\n%s", e.Command, got, e.Want)
 	}
+}
+
+func execCall(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
+	if exp.Str == "quote" {
+		if exp.Cdr != nil && exp.Cdr.Cdr != nil {
+			return nil, cli.NewUseError("expected a single expression")
+		}
+		return exp.Cdr, nil
+	}
+
+	args, err := exp.Cdr.ResolveEvalEach(resolve, execCall)
+	if err != nil {
+		return nil, err
+	}
+
+	str := args.JoinCars(" ", false)
+
+	switch exp.Str {
+	case "echo":
+		return &script.SExp{
+			Type:   script.TypeStr,
+			Str:    str,
+			Line:   exp.Line,
+			Offset: exp.Offset,
+		}, nil
+	case "title":
+		return &script.SExp{
+			Type:   script.TypeStr,
+			Str:    strings.Title(str),
+			Line:   exp.Line,
+			Offset: exp.Offset,
+		}, nil
+	}
+
+	return nil, script.ErrInvalidOperand
 }

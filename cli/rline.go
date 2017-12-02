@@ -68,7 +68,7 @@ func (p *Rline) Run(ctx context.Context, r io.Reader) {
 		if err != nil {
 			break
 		}
-		p.c.Exec(ctx, line)
+		p.c.Run(ctx, line)
 	}
 }
 

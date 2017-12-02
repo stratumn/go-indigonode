@@ -28,6 +28,10 @@ type ClosureOpt func(*Closure)
 func OptParent(parent *Closure) ClosureOpt {
 	return func(c *Closure) {
 		c.parent = parent
+
+		if parent != nil && c.resolve == nil {
+			c.resolve = parent.resolve
+		}
 	}
 }
 
@@ -128,7 +132,7 @@ func (c *Closure) Resolve(sym *SExp) (*SExp, error) {
 			return c.resolve(sym)
 		}
 
-		return nil, errors.WithStack(ErrSymNotFound)
+		return nil, errors.Wrap(ErrSymNotFound, sym.CarString(false))
 	}
 
 	return v, nil

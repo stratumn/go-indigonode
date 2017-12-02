@@ -32,7 +32,7 @@ func init() {
 func vt100Run(ctx context.Context, c CLI) {
 	prompt.New(
 		func(in string) {
-			c.Exec(ctx, in)
+			c.Run(ctx, in)
 		},
 		func(d prompt.Document) []prompt.Suggest {
 			// Don't show suggestions right after a command was

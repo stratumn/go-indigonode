@@ -188,7 +188,7 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 		}, nil
 	}
 
-	call, err := p.cells(true, isCall)
+	cells, err := p.cells(true, isCall)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 
 	return &SExp{
 		Type:   TypeList,
-		List:   call,
+		List:   cells,
 		Line:   tok.Line,
 		Offset: tok.Offset,
 	}, nil

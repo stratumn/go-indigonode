@@ -15,43 +15,43 @@
 package cli_test
 
 import (
-	"bytes"
-	"context"
+	"fmt"
 	"testing"
-	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
 )
 
-func TestRline(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestLet(t *testing.T) {
+	tests := []ExecTest{{
+		"let a hello",
+		"hello",
+		nil,
+		nil,
+	}, {
+		"let a (echo hello world)",
+		"hello world",
+		nil,
+		nil,
+	}, {
+		"let a",
+		"",
+		nil,
+		nil,
+	}, {
+		"let",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"let 'a'",
+		"",
+		ErrUse,
+		nil,
+	}}
 
-	c := mockcli.NewMockCLI(ctrl)
-	buf := bytes.NewBuffer(nil)
-
-	p := cli.NewRline(c)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	runCh := make(chan struct{})
-	go func() {
-		p.Run(ctx, buf)
-		close(runCh)
-	}()
-
-	c.EXPECT().Suggest(gomock.Any()).Return([]cli.Suggest{{
-		Text: "help",
-	}})
-	c.EXPECT().Run(ctx, "help")
-	buf.WriteString("he\t\n")
-
-	cancel()
-
-	select {
-	case <-runCh:
-	case <-time.After(time.Second):
-		t.Errorf("prompt did not stop")
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
+			tt.Test(t, cli.Let)
+		})
 	}
 }

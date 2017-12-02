@@ -15,7 +15,7 @@
 package script
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -47,12 +47,13 @@ const (
 
 // SExp is an S-Expression.
 type SExp struct {
-	Type   Type // car type
-	List   *SExp
-	Str    string
-	Cdr    *SExp
-	Line   int
-	Offset int
+	Type     Type // car type
+	List     *SExp
+	Str      string
+	Cdr      *SExp
+	Line     int
+	Offset   int
+	UserData interface{} // for external use
 }
 
 // String returns a string representation of the S-Expression.
@@ -84,7 +85,7 @@ func (s *SExp) CarString(quote bool) string {
 		return s.Str
 	case TypeStr:
 		if quote {
-			return fmt.Sprintf("%q", s.Str)
+			return strconv.Quote(s.Str)
 		}
 		return s.Str
 	}
@@ -99,12 +100,13 @@ func (s *SExp) Clone() *SExp {
 	}
 
 	return &SExp{
-		Type:   s.Type,
-		List:   s.List.Clone(),
-		Str:    s.Str,
-		Cdr:    s.Cdr.Clone(),
-		Line:   s.Line,
-		Offset: s.Offset,
+		Type:     s.Type,
+		List:     s.List.Clone(),
+		Str:      s.Str,
+		Cdr:      s.Cdr.Clone(),
+		Line:     s.Line,
+		Offset:   s.Offset,
+		UserData: s.UserData,
 	}
 }
 

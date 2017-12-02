@@ -73,6 +73,8 @@ var cmds = []Cmd{
 	Exit,
 	Help,
 	If,
+	Lambda,
+	Let,
 	Quote,
 	Unless,
 	Version,
@@ -151,15 +153,18 @@ var (
 	ErrUnsupportedReflectType = errors.New("the type is not currently supported by reflection")
 
 	// ErrParse is returned when a value could not be parsed.
-	ErrParse = errors.New("could not parse value")
+	ErrParse = errors.New("could not parse the value")
 
-	// ErrCarNil is retrurned when calling car on an S-Expression that doesn't
-	// have one.
-	ErrCarNil = errors.New("car is nil")
+	// ErrCarNil is returned when calling car on an S-Expression that
+	// doesn't have one.
+	ErrCarNil = errors.New("the car is nil")
 
-	// ErrCdrNil is retrurned when calling cdr on an S-Expression that doesn't
-	// have one.
-	ErrCdrNil = errors.New("cdr is nil")
+	// ErrCdrNil is returned when calling cdr on an S-Expression that
+	// doesn't have one.
+	ErrCdrNil = errors.New("the cdr is nil")
+
+	// ErrNotFunc is returned when an S-Expression is not a function.
+	ErrNotFunc = errors.New("the expression is not a function")
 )
 
 // Content represents console content used to find suggestions.
@@ -483,6 +488,11 @@ func (c *cli) call(
 	closure *script.Closure,
 	exp *script.SExp,
 ) (*script.SExp, error) {
+	val, ok := closure.Get("$" + exp.Str)
+	if ok {
+		return ExecFunc(ctx, closure, c.callWithClosure, val, exp.Cdr)
+	}
+
 	for _, cmd := range c.allCmds {
 		if cmd.Match(exp.Str) {
 			return c.execCmd(ctx, closure, cmd, exp)
@@ -496,6 +506,16 @@ func (c *cli) call(
 		exp.Offset,
 		exp.Str,
 	)
+}
+
+// callWithClosure creates an S-Expression call handler with a closure.
+func (c *cli) callWithClosure(
+	ctx context.Context,
+	closure *script.Closure,
+) script.CallHandler {
+	return func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
+		return c.call(ctx, closure, exp)
+	}
 }
 
 // execCmd executes the given command.
@@ -547,18 +567,10 @@ func (c *cli) PrintError(err error) {
 	}
 }
 
-// callWithClosure creates an S-Expression call handler with a closure.
-func (c *cli) callWithClosure(
-	ctx context.Context,
-	closure *script.Closure,
-) script.CallHandler {
-	return func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
-		return c.call(ctx, closure, exp)
-	}
-}
-
 // Exec executes the given input.
 func (c *cli) Exec(ctx context.Context, in string) error {
+	defer func() { c.executed = true }()
+
 	head, err := c.parser.Parse(in)
 	if err != nil {
 		return errors.WithStack(err)

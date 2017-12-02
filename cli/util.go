@@ -42,7 +42,9 @@ func StackTrace(err error) errors.StackTrace {
 //
 // If the car isn't a list, it is directly evaluated.
 func evalSExpBody(
-	resolve script.ResolveHandler, eval script.CallHandler, body *script.SExp,
+	resolve script.ResolveHandler,
+	call script.CallHandler,
+	body *script.SExp,
 ) (*script.SExp, error) {
 	exp := body
 
@@ -54,7 +56,7 @@ func evalSExpBody(
 		// Ignore result of every expression in the list except the
 		// last one
 		for exp = exp.List; exp.Cdr != nil; exp = exp.Cdr {
-			_, err := exp.ResolveEval(resolve, eval)
+			_, err := exp.ResolveEval(resolve, call)
 			if err != nil {
 				return nil, err
 			}
@@ -63,5 +65,5 @@ func evalSExpBody(
 
 	// At this point exp is either the given expression or the last
 	// expression in the list. In any case we want to return its result.
-	return exp.ResolveEval(resolve, eval)
+	return exp.ResolveEval(resolve, call)
 }

@@ -23,11 +23,6 @@ import (
 
 func TestQuote(t *testing.T) {
 	tests := []ExecTest{{
-		"quote",
-		"",
-		nil,
-		nil,
-	}, {
 		"quote hello",
 		"hello",
 		nil,
@@ -51,6 +46,11 @@ func TestQuote(t *testing.T) {
 		"quote (quote (quote hello))",
 		"(quote (quote hello))",
 		nil,
+		nil,
+	}, {
+		"quote",
+		"",
+		ErrUse,
 		nil,
 	}, {
 		"quote hello world",

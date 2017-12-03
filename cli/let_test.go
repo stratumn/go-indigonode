@@ -47,6 +47,11 @@ func TestLet(t *testing.T) {
 		"",
 		ErrUse,
 		nil,
+	}, {
+		"echo (let a hello) (let a world)",
+		"",
+		ErrUse,
+		nil,
 	}}
 
 	for i, tt := range tests {

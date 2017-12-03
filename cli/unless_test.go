@@ -18,11 +18,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/mockcli"
 	"github.com/stratumn/alice/cli/script"
 )
 
 func TestUnless(t *testing.T) {
+	expectPrintError := func(c *mockcli.MockCLI) {
+		c.EXPECT().PrintError(gomock.Any())
+	}
+
 	tests := []ExecTest{{
 		"unless (title test) ko ok",
 		"ok",
@@ -32,7 +38,7 @@ func TestUnless(t *testing.T) {
 		"unless (test) ko ok",
 		"ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless (title test) (title ko) (title ok)",
 		"Ok",
@@ -42,7 +48,7 @@ func TestUnless(t *testing.T) {
 		"unless (test) (title ko) (title ok)",
 		"Ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless (title test) ko",
 		"",
@@ -52,7 +58,7 @@ func TestUnless(t *testing.T) {
 		"unless (test) ko",
 		"ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless test ko ok",
 		"ok",
@@ -62,7 +68,7 @@ func TestUnless(t *testing.T) {
 		"unless $test ko ok",
 		"ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless test ((title o) (title k)) ((title k) (title o))",
 		"O",
@@ -72,12 +78,12 @@ func TestUnless(t *testing.T) {
 		"unless $test ((title o) (title k)) ((title k) (title o))",
 		"K",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless $test ((title o) k)",
 		"k",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"unless",
 		"",
@@ -97,7 +103,7 @@ func TestUnless(t *testing.T) {
 		"unless (test) $ko ok",
 		"",
 		script.ErrSymNotFound,
-		nil,
+		expectPrintError,
 	}, {
 		"unless (title test)",
 		"",

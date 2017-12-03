@@ -18,11 +18,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/cli/mockcli"
 	"github.com/stratumn/alice/cli/script"
 )
 
 func TestIf(t *testing.T) {
+	expectPrintError := func(c *mockcli.MockCLI) {
+		c.EXPECT().PrintError(gomock.Any())
+	}
+
 	tests := []ExecTest{{
 		"if (title test) ok ko",
 		"ok",
@@ -32,7 +38,7 @@ func TestIf(t *testing.T) {
 		"if (test) ok ko",
 		"ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"if (title test) (title ok) (title ko)",
 		"Ok",
@@ -42,7 +48,7 @@ func TestIf(t *testing.T) {
 		"if (test) (title ok) (title ko)",
 		"Ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"if (title test) ok",
 		"ok",
@@ -52,7 +58,7 @@ func TestIf(t *testing.T) {
 		"if (test) ok",
 		"",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"if test ok",
 		"ok",
@@ -62,7 +68,7 @@ func TestIf(t *testing.T) {
 		"if $test ok ko",
 		"ko",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"if test ((title o) (title k)) ((title k) (title o))",
 		"K",
@@ -72,7 +78,7 @@ func TestIf(t *testing.T) {
 		"if $test ((title o) (title k)) ((title k) (title o))",
 		"O",
 		nil,
-		nil,
+		expectPrintError,
 	}, {
 		"if test ((title o) k)",
 		"k",
@@ -97,7 +103,7 @@ func TestIf(t *testing.T) {
 		"if (test) ok $ok",
 		"",
 		script.ErrSymNotFound,
-		nil,
+		expectPrintError,
 	}, {
 		"if (title test)",
 		"",

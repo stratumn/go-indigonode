@@ -15,6 +15,7 @@
 package script
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -26,7 +27,7 @@ type parserTest struct {
 
 var parseTests = []parserTest{{
 	"",
-	"()",
+	"<nil>",
 	"",
 }, {
 	"one",
@@ -70,11 +71,11 @@ var parseTests = []parserTest{{
 	"",
 }, {
 	"one ()",
-	"((one ()))",
+	"((one <nil>))",
 	"",
 }, {
 	"one () two",
-	"((one () two))",
+	"((one <nil> two))",
 	"",
 }, {
 	"one ((two))",
@@ -120,7 +121,7 @@ var parseTests = []parserTest{{
 
 var listTests = []parserTest{{
 	"()",
-	"()",
+	"<nil>",
 	"",
 }, {
 	"(a b c)",
@@ -138,6 +139,10 @@ var listTests = []parserTest{{
 	"(a b) (c d)",
 	"",
 	"1:7: unexpected token (",
+}, {
+	"(one",
+	"",
+	"1:5: unexpected token <EOF>",
 }}
 
 func TestParser_Parse(t *testing.T) {
@@ -149,16 +154,16 @@ func TestParser_Parse(t *testing.T) {
 		if err != nil {
 			if tt.err != "" {
 				if err.Error() != tt.err {
-					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
+					t.Errorf("%v: error = %v want %v", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				t.Errorf("%v: error: %s", tt.input, err)
 			}
 			continue
 		}
 
-		if got, want := exp.String(), tt.sexp; got != want {
-			t.Errorf("%q: sexp = %q want %q", tt.input, got, want)
+		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
+			t.Errorf("%v: sexp = %v want %v", tt.input, got, want)
 		}
 	}
 }
@@ -172,16 +177,16 @@ func TestParser_List(t *testing.T) {
 		if err != nil {
 			if tt.err != "" {
 				if err.Error() != tt.err {
-					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
+					t.Errorf("%v: error = %v want %v", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				t.Errorf("%v: error: %s", tt.input, err)
 			}
 			continue
 		}
 
-		if got, want := exp.String(), tt.sexp; got != want {
-			t.Errorf("%q: sexp = %q want %q", tt.input, got, want)
+		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
+			t.Errorf("%v: sexp = %v want %v", tt.input, got, want)
 		}
 	}
 }

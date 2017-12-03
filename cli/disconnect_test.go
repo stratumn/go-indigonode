@@ -25,7 +25,7 @@ import (
 func TestDisconnect(t *testing.T) {
 	tests := []ExecTest{{
 		"api-disconnect",
-		"Disconnected.",
+		"Disconnected.\n",
 		nil,
 		func(c *mockcli.MockCLI) {
 			c.EXPECT().Disconnect()

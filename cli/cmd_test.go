@@ -54,7 +54,7 @@ type ExecTest struct {
 }
 
 // Exec executes the test command.
-func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (*script.SExp, error) {
+func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -70,24 +70,31 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (*script.SExp, er
 	}
 
 	parser := script.NewParser(script.NewScanner())
-	head, err := parser.Parse(e.Command)
+	list, err := parser.Parse(e.Command)
 	if err != nil {
 		t.Fatalf("%s: parser error: %s", e.Command, err)
 	}
 
-	if head == nil {
+	if list == nil {
 		return nil, nil
+	}
+
+	var args script.SCell
+
+	cmdCdr := list.MustCellVal().Car().MustCellVal().Cdr()
+	if cmdCdr != nil {
+		args = cmdCdr.MustCellVal()
 	}
 
 	closure := script.NewClosure(script.OptResolver(cli.Resolver))
 
-	return cmd.Exec(ctx, c, closure, execCall, head.List)
+	return cmd.Exec(ctx, c, closure, execCall, args, script.Meta{})
 }
 
 // Test runs the test against the command.
 func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	buf := bytes.NewBuffer(nil)
-	exp, err := e.Exec(t, buf, cmd)
+	val, err := e.Exec(t, buf, cmd)
 	err = errors.Cause(err)
 
 	switch {
@@ -101,44 +108,55 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		t.Errorf("%s: error = %v want %v", e.Command, err, e.Err)
 	}
 
-	got := buf.String() + exp.CarString(false)
+	got := buf.String()
+
+	if val != nil {
+		if val.UnderlyingType() == script.TypeString {
+			// So we don't get a quoted string.
+			got += val.MustStringVal()
+		} else {
+			got += val.String()
+		}
+	}
 
 	if got != e.Want {
 		t.Errorf("%s =>\n%s\nwant\n\n%s", e.Command, got, e.Want)
 	}
 }
 
-func execCall(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
-	if exp.Str == "quote" {
-		if exp.Cdr != nil && exp.Cdr.Cdr != nil {
+func execCall(
+	resolve script.ResolveHandler,
+	name string,
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	if name == "quote" {
+		if args == nil || args.Cdr() != nil {
 			return nil, cli.NewUseError("expected a single expression")
 		}
-		return exp.Cdr, nil
+
+		return args.Car(), nil
 	}
 
-	args, err := exp.Cdr.ResolveEvalEach(resolve, execCall)
+	argv, err := script.EvalListToStrings(resolve, execCall, args)
 	if err != nil {
 		return nil, err
 	}
 
-	str := args.JoinCars(" ", false)
+	str := strings.Join(argv, " ")
 
-	switch exp.Str {
+	switch name {
 	case "echo":
-		return &script.SExp{
-			Type:   script.TypeStr,
-			Str:    str,
-			Line:   exp.Line,
-			Offset: exp.Offset,
-		}, nil
+		return script.String(str, meta), nil
 	case "title":
-		return &script.SExp{
-			Type:   script.TypeStr,
-			Str:    strings.Title(str),
-			Line:   exp.Line,
-			Offset: exp.Offset,
-		}, nil
+		title := strings.Title(str)
+		return script.String(title, meta), nil
 	}
 
-	return nil, script.ErrInvalidOperand
+	return nil, errors.Errorf(
+		"%d:%d: %s: unknown function",
+		meta.Line,
+		meta.Offset,
+		name,
+	)
 }

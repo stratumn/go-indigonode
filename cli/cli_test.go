@@ -302,8 +302,8 @@ func TestCli_DidJustExecute(t *testing.T) {
 	}
 }
 
-func sym(s string) *script.SExp {
-	return &script.SExp{Type: script.TypeSym, Str: s}
+func sym(s string) script.SExp {
+	return script.Symbol(s, script.Meta{})
 }
 
 func TestResolver(t *testing.T) {
@@ -311,7 +311,7 @@ func TestResolver(t *testing.T) {
 	if err != nil {
 		t.Error(`cliResolver(sym("a")): error: `, err)
 	} else {
-		if got, want := got.String(), `("a")`; got != want {
+		if got, want := got.String(), `"a"`; got != want {
 			t.Errorf(`cliResolver(sym("a")): v = %s want %s `, got, want)
 		}
 	}

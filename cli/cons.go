@@ -20,15 +20,15 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-// Eval is a command that evaluates the contents of a string.
-var Eval = BasicCmdWrapper{BasicCmd{
-	Name:     "eval",
-	Use:      "eval <Expression>",
-	Short:    "Evaluate an expression",
-	ExecSExp: evalExec,
+// Cons is a command that constructs a cell.
+var Cons = BasicCmdWrapper{BasicCmd{
+	Name:     "cons",
+	Use:      "cons <Car> <Cdr>",
+	Short:    "Construct a cons cell",
+	ExecSExp: consExec,
 }}
 
-func evalExec(
+func consExec(
 	ctx context.Context,
 	cli CLI,
 	closure *script.Closure,
@@ -36,16 +36,43 @@ func evalExec(
 	args script.SCell,
 	meta script.Meta,
 ) (script.SExp, error) {
-	// Eval is a simple command, all it does is evaluate the car twice.
+	// Get:
+	//
+	//	1. car (the cell car)
 
-	if args == nil || args.Cdr() != nil {
-		return nil, NewUseError("expected a single expression")
+	if args == nil {
+		return nil, NewUseError("missing car")
 	}
 
-	v, err := script.Eval(closure.Resolve, call, args.Car())
+	car := args.Car()
+
+	//	2. cadr (the call cdr)
+	cdr := args.Cdr()
+	if cdr == nil {
+		return nil, NewUseError("missing cdr")
+	}
+
+	cdrCell, ok := cdr.CellVal()
+	if !ok {
+		return nil, NewUseError("invalid cdr")
+	}
+
+	cadr := cdrCell.Car()
+
+	// Evaluate them.
+	carVal, err := script.Eval(closure.Resolve, call, car)
 	if err != nil {
 		return nil, err
 	}
 
-	return script.Eval(closure.Resolve, call, v)
+	cadrVal, err := script.Eval(closure.Resolve, call, cadr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Construst the cell.
+	return script.Cons(carVal, cadrVal, script.Meta{
+		Line:   meta.Line,
+		Offset: meta.Offset,
+	}), nil
 }

@@ -45,7 +45,7 @@ func disconnectExec(
 		return errors.WithStack(err)
 	}
 
-	cli.Console().Print("Disconnected.")
+	cli.Console().Println("Disconnected.")
 
 	return nil
 }

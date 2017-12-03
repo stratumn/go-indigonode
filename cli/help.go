@@ -50,7 +50,7 @@ func helpExec(
 		cmd := args[0]
 		for _, v := range cli.Commands() {
 			if v.Name() == cmd {
-				fmt.Fprint(w, v.Long())
+				fmt.Fprintln(w, v.Long())
 				return nil
 			}
 		}
@@ -62,11 +62,8 @@ func helpExec(
 	tw := new(tabwriter.Writer)
 	tw.Init(w, 0, 8, 2, ' ', 0)
 
-	for i, v := range cli.Commands() {
-		if i > 0 {
-			fmt.Fprintln(tw)
-		}
-		fmt.Fprint(tw, v.Use()+"\t"+v.Short())
+	for _, v := range cli.Commands() {
+		fmt.Fprintln(tw, v.Use()+"\t"+v.Short())
 	}
 
 	return errors.WithStack(tw.Flush())

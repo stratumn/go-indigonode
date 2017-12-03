@@ -53,14 +53,16 @@ type BasicCmd struct {
 	// arguments.
 	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
 
-	// ExecSExp is a function that executes the command against an
-	// S-Expression.
+	// ExecSExp is a function that executes the command against a
+	// S-Expression arguments.
 	ExecSExp func(
 		context.Context,
 		CLI,
 		*script.Closure,
-		script.CallHandler, *script.SExp,
-	) (*script.SExp, error)
+		script.CallHandler,
+		script.SCell,
+		script.Meta,
+	) (script.SExp, error)
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -208,18 +210,19 @@ func (cmd BasicCmdWrapper) Exec(
 	ctx context.Context,
 	cli CLI,
 	closure *script.Closure,
-	call script.CallHandler, exp *script.SExp,
-) (*script.SExp, error) {
+	call script.CallHandler,
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
 	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx, cli, closure, call, exp)
+		return cmd.Cmd.ExecSExp(ctx, cli, closure, call, args, meta)
 	}
 
-	vals, err := exp.Cdr.ResolveEvalEach(closure.Resolve, call)
+	argv, err := script.EvalListToStrings(closure.Resolve, call, args)
 	if err != nil {
 		return nil, err
 	}
 
-	argv := vals.Strings(false)
 	flags := cmd.createFlags()
 
 	// Discard flags output, we do our own error handling.
@@ -249,12 +252,7 @@ func (cmd BasicCmdWrapper) Exec(
 		return nil, err
 	}
 
-	return &script.SExp{
-		Type:   script.TypeStr,
-		Str:    buf.String(),
-		Line:   exp.Line,
-		Offset: exp.Offset,
-	}, nil
+	return script.String(buf.String(), meta), nil
 }
 
 // createFlags creates a set of flags for the command. There will be at least

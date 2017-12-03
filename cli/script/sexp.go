@@ -15,168 +15,425 @@
 package script
 
 import (
+	"bytes"
+	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 )
 
 // ResolveHandler resolves symbols.
-type ResolveHandler func(sym *SExp) (*SExp, error)
+type ResolveHandler func(sym SExp) (SExp, error)
 
 // ResolveName resolves symbols with their names.
-func ResolveName(sym *SExp) (*SExp, error) {
-	exp := sym.Clone()
-	exp.Type = TypeStr
-
-	return exp, nil
+func ResolveName(sym SExp) (SExp, error) {
+	return String(sym.MustSymbolVal(), sym.Meta()), nil
 }
 
 // CallHandler handles function calls.
-type CallHandler func(ResolveHandler, *SExp) (*SExp, error)
+type CallHandler func(
+	resolve ResolveHandler,
+	fn string,
+	args SCell,
+	meta Meta,
+) (SExp, error)
 
-// Type is a type of S-Expression.
+// Type is an SExp type.
 type Type uint8
 
-// Available S-Expression types.
+// SExp types.
 const (
-	TypeList Type = iota
-	TypeSym
-	TypeStr
+	TypeInvalid Type = iota
+	TypeString
+	TypeSymbol
+	TypeCell
 )
 
-// SExp is an S-Expression.
-type SExp struct {
-	Type     Type // car type
-	List     *SExp
-	Str      string
-	Cdr      *SExp
-	Line     int
-	Offset   int
-	UserData interface{} // for external use
+// Maps types to their names.
+var typeMap = map[Type]string{
+	TypeInvalid: "invalid",
+	TypeString:  "string",
+	TypeSymbol:  "symbol",
+	TypeCell:    "cell",
 }
 
-// String returns a string representation of the S-Expression.
-func (s *SExp) String() string {
-	var elems []string
-
-	for curr := s; curr != nil; curr = curr.Cdr {
-		elems = append(elems, curr.CarString(true))
-	}
-
-	return "(" + strings.Join(elems, " ") + ")"
+// String returns a string representation of the type.
+func (t Type) String() string {
+	return typeMap[t]
 }
 
-// CarString returns a string representation of the card of the S-Expression.
+// Meta contains metadata for an S-Expression.
+type Meta struct {
+	Line   int
+	Offset int
+
+	// UserData is custom external data.
+	UserData interface{}
+}
+
+// SExp is represents an S-Expression.
 //
-// If quite is true then strings are quoted.
-func (s *SExp) CarString(quote bool) string {
-	if s == nil {
-		return ""
-	}
+// See:
+//
+//	https://en.wikipedia.org/wiki/S-expression
+type SExp interface {
+	String() string
 
-	switch s.Type {
-	case TypeList:
-		if s.List == nil {
-			return "()"
-		}
-		return s.List.String()
-	case TypeSym:
-		return s.Str
-	case TypeStr:
-		if quote {
-			return strconv.Quote(s.Str)
-		}
-		return s.Str
-	}
+	Meta() Meta
 
-	return "<error>"
+	UnderlyingType() Type
+
+	StringVal() (string, bool)
+	SymbolVal() (string, bool)
+	CellVal() (SCell, bool)
+
+	MustStringVal() string
+	MustSymbolVal() string
+	MustCellVal() SCell
 }
 
-// Clone creates a copy of the S-Expression.
-func (s *SExp) Clone() *SExp {
-	if s == nil {
-		return nil
+// SExpSlice is a slice of S-Expressions.
+type SExpSlice []SExp
+
+// Strings returns the strings value of every S-Expression in the slice.
+//
+// If quote is true, strings are quoted.
+func (s SExpSlice) Strings(quote bool) []string {
+	strings := make([]string, len(s))
+	for i, exp := range s {
+		if !quote && exp != nil {
+			if str, ok := exp.StringVal(); ok {
+				strings[i] = str
+				continue
+			}
+		}
+		strings[i] = fmt.Sprint(exp)
 	}
 
-	return &SExp{
-		Type:     s.Type,
-		List:     s.List.Clone(),
-		Str:      s.Str,
-		Cdr:      s.Cdr.Clone(),
-		Line:     s.Line,
-		Offset:   s.Offset,
-		UserData: s.UserData,
-	}
+	return strings
 }
 
-// ResolveEval resolves symbols and evaluates the S-Expression.
-func (s *SExp) ResolveEval(resolve ResolveHandler, call CallHandler) (*SExp, error) {
-	switch s.Type {
-	case TypeList:
-		if s.List == nil {
-			return nil, nil
+// SCell represents a cell S-Expression.
+type SCell interface {
+	SExp
+	Car() SExp
+	Cdr() SExp
+	SetCdr(SExp)
+	IsList() bool
+	ToSlice() (SExpSlice, bool)
+	MustToSlice() SExpSlice
+}
+
+// sexp is the base S-Expression type.
+type sexp struct {
+	meta Meta
+}
+
+func (s sexp) Meta() Meta {
+	return s.meta
+}
+
+func (s sexp) UnderlyingType() Type {
+	panic("S-Expression is invalid")
+}
+
+func (s sexp) StringVal() (string, bool) {
+	return "", false
+}
+
+func (s sexp) SymbolVal() (string, bool) {
+	return "", false
+}
+
+func (s sexp) CellVal() (SCell, bool) {
+	return nil, false
+}
+
+func (s sexp) MustStringVal() string {
+	panic("S-Expression is not a string")
+}
+
+func (s sexp) MustSymbolVal() string {
+	panic("S-Expression is not a symbol")
+}
+
+func (s sexp) MustCellVal() SCell {
+	panic("S-Expression is not a cell")
+}
+
+// atomString is a string atom.
+type atomString struct {
+	sexp
+	val string
+}
+
+// String creates a new string atom.
+func String(val string, meta Meta) SExp {
+	return atomString{sexp{meta}, val}
+}
+
+func (a atomString) String() string {
+	return strconv.Quote(a.val)
+}
+
+func (a atomString) UnderlyingType() Type {
+	return TypeString
+}
+
+func (a atomString) StringVal() (string, bool) {
+	return a.MustStringVal(), true
+}
+
+func (a atomString) MustStringVal() string {
+	return a.val
+}
+
+// atomSymbol is a symbol atom.
+type atomSymbol struct {
+	sexp
+	val string
+}
+
+// Symbol creates a new symbol atom.
+func Symbol(val string, meta Meta) SExp {
+	return atomSymbol{sexp{meta}, val}
+}
+
+func (a atomSymbol) String() string {
+	return (a.val)
+}
+
+func (a atomSymbol) UnderlyingType() Type {
+	return TypeSymbol
+}
+
+func (a atomSymbol) SymbolVal() (string, bool) {
+	return a.MustSymbolVal(), true
+}
+
+func (a atomSymbol) MustSymbolVal() string {
+	return a.val
+}
+
+// scell is a cell S-Expression.
+type scell struct {
+	sexp
+	car SExp
+	cdr SExp
+}
+
+// Cons creates a new cell.
+func Cons(car, cdr SExp, meta Meta) SCell {
+	return &scell{sexp{meta}, car, cdr}
+}
+
+func (c scell) String() string {
+	if c.IsList() {
+		var buf bytes.Buffer
+
+		buf.WriteRune('(')
+		buf.WriteString(fmt.Sprint(c.car))
+		cdr := c.cdr
+
+		for cdr != nil {
+			buf.WriteRune(' ')
+			cell := cdr.MustCellVal()
+			buf.WriteString(fmt.Sprint(cell.Car()))
+			cdr = cell.Cdr()
 		}
-		if s.List.Type != TypeSym {
-			return nil, errors.Wrapf(
-				ErrInvalidOperand,
-				"%d:%d",
-				s.List.Line,
-				s.List.Offset,
-			)
+
+		buf.WriteRune(')')
+
+		return buf.String()
+	}
+
+	return fmt.Sprintf("(%v . %v)", c.car, c.cdr)
+}
+
+func (c *scell) UnderlyingType() Type {
+	return TypeCell
+}
+
+func (c *scell) CellVal() (SCell, bool) {
+	return c.MustCellVal(), true
+}
+
+func (c *scell) MustCellVal() SCell {
+	return c
+}
+
+func (c *scell) Car() SExp {
+	return c.car
+}
+
+func (c *scell) Cdr() SExp {
+	return c.cdr
+}
+
+func (c *scell) SetCdr(cdr SExp) {
+	c.cdr = cdr
+}
+
+func (c *scell) IsList() bool {
+	cdr := c.cdr
+	for cdr != nil {
+		stype := cdr.UnderlyingType()
+		if stype != TypeCell {
+			return false
 		}
-		return call(resolve, s.List)
-	case TypeSym:
-		v, err := resolve(s)
+		cell := cdr.MustCellVal()
+		cdr = cell.Cdr()
+	}
+
+	return true
+}
+
+func (c *scell) ToSlice() (SExpSlice, bool) {
+	if c.IsList() {
+		return c.MustToSlice(), true
+	}
+
+	return nil, false
+}
+
+func (c *scell) MustToSlice() SExpSlice {
+	slice := SExpSlice{c.car}
+	cdr := c.cdr
+
+	for cdr != nil {
+		cell := cdr.MustCellVal()
+		slice = append(slice, cell.Car())
+		cdr = cell.Cdr()
+	}
+
+	return slice
+}
+
+// Eval evaluates an expression.
+func Eval(resolve ResolveHandler, call CallHandler, exp SExp) (SExp, error) {
+	if exp == nil {
+		return nil, nil
+	}
+
+	switch exp.UnderlyingType() {
+	case TypeCell:
+		list := exp.MustCellVal()
+		meta := list.Meta()
+		if list != nil && list.IsList() {
+			operand := list.Car()
+			if operand.UnderlyingType() == TypeSymbol {
+				var args SCell
+				if cdr := list.Cdr(); cdr != nil {
+					args = cdr.MustCellVal()
+				}
+				return call(
+					resolve,
+					operand.MustSymbolVal(),
+					args,
+					operand.Meta(),
+				)
+			}
+			meta = list.Meta()
+		}
+
+		return nil, errors.Wrapf(
+			ErrInvalidOperand,
+			"%d:%d: %v",
+			meta.Line,
+			meta.Offset,
+			list.Car(),
+		)
+
+	case TypeSymbol:
+		v, err := resolve(exp)
 		if err != nil {
 			return nil, err
 		}
 		return v, nil
+
 	default:
-		return s, nil
+		return exp, nil
 	}
 }
 
-// ResolveEvalEach resolves symbols and evaluates each expression in a list.
-func (s *SExp) ResolveEvalEach(resolve ResolveHandler, call CallHandler) (SExpSlice, error) {
-	if s == nil {
+// EvalList evaluates each expression in a list and returns a list.
+func EvalList(resolve ResolveHandler, call CallHandler, list SCell) (SCell, error) {
+	if list == nil {
 		return nil, nil
 	}
 
-	var elems SExpSlice
+	slice := list.MustToSlice()
 
-	for curr := s; curr != nil; curr = curr.Cdr {
-		v, err := curr.ResolveEval(resolve, call)
+	var head, tail SCell
+
+	for _, exp := range slice {
+		val, err := Eval(resolve, call, exp)
 		if err != nil {
 			return nil, err
 		}
 
-		elems = append(elems, v)
+		var meta Meta
+
+		if val != nil {
+			meta = Meta{
+				Line:   exp.Meta().Line,
+				Offset: exp.Meta().Offset,
+			}
+		}
+
+		if head == nil {
+			head = Cons(val, nil, meta)
+			tail = head
+			continue
+		}
+
+		cdr := Cons(val, nil, meta)
+		tail.SetCdr(cdr)
+		tail = cdr
 	}
 
-	return elems, nil
+	return head, nil
 }
 
-// SExpSlice is a slice of S-Expressions.
-type SExpSlice []*SExp
-
-// Strings returns the string values of the car of every S-Expression in the
-// slice.
-//
-// If quote is true strings are quoted.
-func (s SExpSlice) Strings(quote bool) []string {
-	str := make([]string, len(s))
-	for i, exp := range s {
-		str[i] = exp.CarString(quote)
+// EvalListToSlice evaluates each expression in a list and returns a slice of
+// expressions.
+func EvalListToSlice(
+	resolve ResolveHandler,
+	call CallHandler,
+	list SCell,
+) (SExpSlice, error) {
+	vals, err := EvalList(resolve, call, list)
+	if err != nil {
+		return nil, err
 	}
 
-	return str
+	if vals == nil {
+		return nil, nil
+	}
+
+	return vals.MustToSlice(), nil
 }
 
-// JoinCars returns the string values of the car of every S-Expression in the
-// slice separated by the given string.
-//
-// If quote is true strings are quoted.
-func (s SExpSlice) JoinCars(sep string, quote bool) string {
-	return strings.Join(s.Strings(quote), sep)
+// EvalListToStrings evaluates each expression in a list and returns a slice
+// containing the string values of each result.
+func EvalListToStrings(
+	resolve ResolveHandler,
+	call CallHandler,
+	list SCell,
+) ([]string, error) {
+	vals, err := EvalListToSlice(resolve, call, list)
+	if err != nil {
+		return nil, err
+	}
+
+	strings := vals.Strings(false)
+
+	// Replace <nil> with empty strings.
+	for i, v := range vals {
+		if v == nil {
+			strings[i] = ""
+		}
+	}
+
+	return strings, nil
 }

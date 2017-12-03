@@ -61,7 +61,7 @@ func versionExec(
 		commit = commit[:l]
 	}
 
-	fmt.Fprint(w, release.Version+"@"+commit)
+	fmt.Fprintln(w, release.Version+"@"+commit)
 
 	return nil
 }

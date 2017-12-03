@@ -19,29 +19,49 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
 )
 
-func TestAddr(t *testing.T) {
-	addr := "/ip4/127.0.0.1/tcp/8904"
-
+func TestCons(t *testing.T) {
 	tests := []ExecTest{{
-		"api-address",
-		addr + "\n",
+		"cons () ()",
+		"(<nil>)",
 		nil,
-		func(c *mockcli.MockCLI) {
-			c.EXPECT().Address().Return(addr)
-		},
+		nil,
 	}, {
-		"api-address earth",
+		"cons (quote a) (quote b)",
+		"(a . b)",
+		nil,
+		nil,
+	}, {
+		"cons (quote a) (quote (b c))",
+		"(a b c)",
+		nil,
+		nil,
+	}, {
+		"cons",
 		"",
 		ErrUse,
+		nil,
+	}, {
+		"cons ()",
+		"",
+		ErrUse,
+		nil,
+	}, {
+		"cons (hello) ()",
+		"",
+		ErrAny,
+		nil,
+	}, {
+		"cons () (hello)",
+		"",
+		ErrAny,
 		nil,
 	}}
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
-			tt.Test(t, cli.Addr)
+			tt.Test(t, cli.Cons)
 		})
 	}
 }

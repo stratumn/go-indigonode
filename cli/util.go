@@ -35,35 +35,53 @@ func StackTrace(err error) errors.StackTrace {
 	return nil
 }
 
-// evalSExpBody evaluates an S-Expression "body".
+// evalSExpBody evaluates an S-Expression 'body'.
 //
-// If the car of the expression is a list beginning with a list, it evaluates
-// each expression in that list and returns the last value.
+// If the expression is a list beginning with a list, it evaluates each
+// expression in the list and returns the last value.
 //
-// If the car isn't a list, it is directly evaluated.
+// Otherwise the expression is evaluated directly.
 func evalSExpBody(
 	resolve script.ResolveHandler,
 	call script.CallHandler,
-	body *script.SExp,
-) (*script.SExp, error) {
-	exp := body
-
-	isList := func(x *script.SExp) bool {
-		return x.Type == script.TypeList
+	body script.SExp,
+) (script.SExp, error) {
+	evalDirectly := func() (script.SExp, error) {
+		return script.Eval(resolve, call, body)
 	}
 
-	if isList(exp) && exp.List != nil && isList(exp.List) {
-		// Ignore result of every expression in the list except the
-		// last one
-		for exp = exp.List; exp.Cdr != nil; exp = exp.Cdr {
-			_, err := exp.ResolveEval(resolve, call)
-			if err != nil {
-				return nil, err
-			}
-		}
+	// Eval directly unless body is a list or car is a list.
+
+	if body == nil {
+		return evalDirectly()
 	}
 
-	// At this point exp is either the given expression or the last
-	// expression in the list. In any case we want to return its result.
-	return exp.ResolveEval(resolve, call)
+	cell, ok := body.CellVal()
+	if !ok || !cell.IsList() {
+		return evalDirectly()
+	}
+
+	car := cell.Car()
+	if car == nil {
+		return evalDirectly()
+	}
+
+	carCell, ok := car.CellVal()
+	if !ok || !carCell.IsList() {
+		return evalDirectly()
+	}
+
+	// Eval each expression in the body list.
+	vals, err := script.EvalListToSlice(resolve, call, cell)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the last evaluated expression if there is one.
+	l := len(vals)
+	if l > 0 {
+		return vals[l-1], nil
+	}
+
+	return nil, nil
 }

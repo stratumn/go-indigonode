@@ -28,6 +28,7 @@ import (
 var Echo = BasicCmdWrapper{BasicCmd{
 	Name:        "echo",
 	Short:       "Output text",
+	Use:         "echo [Expressions...]",
 	Flags:       echoFlags,
 	ExecStrings: echoExec,
 }}
@@ -35,6 +36,7 @@ var Echo = BasicCmdWrapper{BasicCmd{
 func echoFlags() *pflag.FlagSet {
 	flags := pflag.NewFlagSet("echo", pflag.ContinueOnError)
 	flags.StringP("log", "s", "", "Print log message (debug, info, normal, success, warning, error)")
+
 	return flags
 }
 
@@ -56,19 +58,19 @@ func echoExec(
 
 	switch log {
 	case "debug":
-		cons.Debug(s)
+		cons.Debugln(s)
 	case "normal":
-		cons.Print(s)
+		cons.Println(s)
 	case "info":
-		cons.Info(s)
+		cons.Infoln(s)
 	case "success":
-		cons.Success(s)
+		cons.Successln(s)
 	case "warning":
-		cons.Warning(s)
+		cons.Warningln(s)
 	case "error":
-		cons.Error(s)
+		cons.Errorln(s)
 	default:
-		fmt.Fprint(w, s)
+		fmt.Fprintln(w, s)
 	}
 
 	return nil

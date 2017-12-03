@@ -32,7 +32,12 @@ func TestLambda(t *testing.T) {
 		nil,
 	}, {
 		"(lambda () ((echo $a) (echo $b) (echo $c)))",
-		"(lambda () ((echo $a) (echo $b) (echo $c)))",
+		"(lambda <nil> ((echo $a) (echo $b) (echo $c)))",
+		nil,
+		nil,
+	}, {
+		"(lambda () 'a')",
+		"(lambda <nil> \"a\")",
 		nil,
 		nil,
 	}, {
@@ -55,11 +60,6 @@ func TestLambda(t *testing.T) {
 		"",
 		ErrUse,
 		nil,
-	}, {
-		"(lambda () 'a')",
-		"",
-		ErrUse,
-		nil,
 	}}
 
 	for i, tt := range tests {
@@ -75,6 +75,10 @@ func TestLambda_exec(t *testing.T) {
 		args    string
 		want    string
 	}{{
+		"(lambda () hello)",
+		"()",
+		"hello",
+	}, {
 		"(lambda () (echo hello world!))",
 		"()",
 		"hello world!",
@@ -109,13 +113,19 @@ func TestLambda_exec(t *testing.T) {
 				t.Fatalf("%s: parser error: %s", tt.args, err)
 			}
 
-			ctx := context.Background()
-			exp, err := cli.ExecFunc(ctx, closure, createCall, fn, args)
+			exp, err := cli.ExecFunc(
+				context.Background(),
+				closure,
+				createCall,
+				"test",
+				fn,
+				args,
+			)
 			if err != nil {
 				t.Fatalf("%s %s: exec error: %s", tt.command, tt.args, err)
 			}
 
-			if got := exp.CarString(false); got != tt.want {
+			if got := exp.MustStringVal(); got != tt.want {
 				t.Errorf("%s %s: val = %v want %v", tt.command, tt.args, got, tt.want)
 			}
 		})

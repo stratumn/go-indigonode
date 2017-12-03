@@ -40,6 +40,7 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -67,6 +68,7 @@ var cmds = []Cmd{
 	Connect,
 	Car,
 	Cdr,
+	Cons,
 	Disconnect,
 	Echo,
 	Eval,
@@ -155,14 +157,6 @@ var (
 	// ErrParse is returned when a value could not be parsed.
 	ErrParse = errors.New("could not parse the value")
 
-	// ErrCarNil is returned when calling car on an S-Expression that
-	// doesn't have one.
-	ErrCarNil = errors.New("the car is nil")
-
-	// ErrCdrNil is returned when calling cdr on an S-Expression that
-	// doesn't have one.
-	ErrCdrNil = errors.New("the cdr is nil")
-
 	// ErrNotFunc is returned when an S-Expression is not a function.
 	ErrNotFunc = errors.New("the expression is not a function")
 )
@@ -203,13 +197,15 @@ type Cmd interface {
 	// command name.
 	Match(string) bool
 
-	// Exec executes the given S-Expression.
+	// Exec executes the given S-Expression arguments.
 	Exec(
 		context.Context,
 		CLI,
 		*script.Closure,
-		script.CallHandler, *script.SExp,
-	) (*script.SExp, error)
+		script.CallHandler,
+		script.SCell,
+		script.Meta,
+	) (script.SExp, error)
 }
 
 // Suggest implements a suggestion.
@@ -486,25 +482,27 @@ func (c *cli) Disconnect() error {
 func (c *cli) call(
 	ctx context.Context,
 	closure *script.Closure,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	val, ok := closure.Get("$" + exp.Str)
+	name string,
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	val, ok := closure.Get("$" + name)
 	if ok {
-		return ExecFunc(ctx, closure, c.callWithClosure, val, exp.Cdr)
+		return ExecFunc(ctx, closure, c.callWithClosure, name, val, args)
 	}
 
 	for _, cmd := range c.allCmds {
-		if cmd.Match(exp.Str) {
-			return c.execCmd(ctx, closure, cmd, exp)
+		if cmd.Match(name) {
+			return c.execCmd(ctx, closure, cmd, name, args, meta)
 		}
 	}
 
 	return nil, errors.Wrapf(
 		ErrInvalidInstr,
 		"%d:%d: %s",
-		exp.Line,
-		exp.Offset,
-		exp.Str,
+		meta.Line,
+		meta.Offset,
+		name,
 	)
 }
 
@@ -513,8 +511,13 @@ func (c *cli) callWithClosure(
 	ctx context.Context,
 	closure *script.Closure,
 ) script.CallHandler {
-	return func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
-		return c.call(ctx, closure, exp)
+	return func(
+		resolve script.ResolveHandler,
+		name string,
+		args script.SCell,
+		meta script.Meta,
+	) (script.SExp, error) {
+		return c.call(ctx, closure, name, args, meta)
 	}
 }
 
@@ -523,10 +526,12 @@ func (c *cli) execCmd(
 	ctx context.Context,
 	closure *script.Closure,
 	cmd Cmd,
-	sexp *script.SExp,
-) (*script.SExp, error) {
+	name string,
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
 	call := c.callWithClosure(ctx, closure)
-	val, err := cmd.Exec(ctx, c, closure, call, sexp)
+	val, err := cmd.Exec(ctx, c, closure, call, args, meta)
 
 	if err != nil {
 		cause := errors.Cause(err)
@@ -536,15 +541,13 @@ func (c *cli) execCmd(
 			userr.use = cmd.LongUse()
 		}
 
-		err = errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"%d:%d: %s",
-			sexp.Line,
-			sexp.Offset,
-			sexp.Str,
+			meta.Line,
+			meta.Offset,
+			name,
 		)
-
-		return nil, err
 	}
 
 	return val, nil
@@ -562,8 +565,10 @@ func (c *cli) PrintError(err error) {
 		c.cons.Debugf("%+v\n", stack)
 	}
 
-	if userr, ok := errors.Cause(err).(*UseError); ok {
-		c.cons.Print("\n" + userr.Use())
+	if useError, ok := errors.Cause(err).(*UseError); ok {
+		if use := useError.Use(); use != "" {
+			c.cons.Print("\n" + use)
+		}
 	}
 }
 
@@ -571,18 +576,38 @@ func (c *cli) PrintError(err error) {
 func (c *cli) Exec(ctx context.Context, in string) error {
 	defer func() { c.executed = true }()
 
-	head, err := c.parser.Parse(in)
+	instrs, err := c.parser.Parse(in)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	for ; head != nil; head = head.Cdr {
-		exp, err := c.callWithClosure(ctx, c.closure)(nil, head.List)
-		if err != nil {
-			return err
-		}
+	call := c.callWithClosure(ctx, c.closure)
 
-		c.cons.Println(exp.CarString(false))
+	if instrs != nil {
+		list := instrs.MustToSlice()
+
+		for _, instr := range list {
+			v, err := script.Eval(c.closure.Resolve, call, instr)
+			if err != nil {
+				return err
+			}
+
+			if v != nil {
+				// Dont't print quotes.
+				if v.UnderlyingType() == script.TypeString {
+					str := v.MustStringVal()
+					if str == "" {
+						continue
+					}
+					c.cons.Print(str)
+					if !strings.HasSuffix(str, "\n") {
+						c.cons.Println()
+					}
+				} else {
+					c.cons.Println(fmt.Sprint(v))
+				}
+			}
+		}
 	}
 
 	return nil
@@ -645,17 +670,19 @@ func (c *cli) DidJustExecute() bool {
 
 // Resolver resolves the name of the symbol if it doesn't begin with a dollar
 // sign.
-func Resolver(sym *script.SExp) (*script.SExp, error) {
-	if strings.HasPrefix(sym.Str, "$") {
+func Resolver(sym script.SExp) (script.SExp, error) {
+	name := sym.MustSymbolVal()
+	meta := sym.Meta()
+
+	if strings.HasPrefix(name, "$") {
 		return nil, errors.Wrapf(
 			script.ErrSymNotFound,
 			"%d:%d: %s",
-			sym.Line, sym.Offset, sym.Str,
+			meta.Line,
+			meta.Offset,
+			name,
 		)
 	}
 
-	atom := sym.Clone()
-	atom.Type = script.TypeStr
-
-	return atom, nil
+	return script.ResolveName(sym)
 }

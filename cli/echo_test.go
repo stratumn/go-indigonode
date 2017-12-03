@@ -24,7 +24,7 @@ import (
 func TestEcho(t *testing.T) {
 	tests := []ExecTest{{
 		"echo hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}, {
@@ -34,27 +34,27 @@ func TestEcho(t *testing.T) {
 		nil,
 	}, {
 		"echo --log normal hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}, {
 		"echo --log info hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}, {
 		"echo --log success hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}, {
 		"echo --log warning hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}, {
 		"echo --log error hello world",
-		"hello world",
+		"hello world\n",
 		nil,
 		nil,
 	}}

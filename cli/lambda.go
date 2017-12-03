@@ -23,7 +23,7 @@ import (
 // Lambda is a command that creates an anomymous function.
 var Lambda = BasicCmdWrapper{BasicCmd{
 	Name:     "lambda",
-	Use:      "lambda (args...) (body...)",
+	Use:      "lambda <Arguments> <Body>",
 	Short:    "Create anonymous function",
 	ExecSExp: lambdaExec,
 }}
@@ -33,39 +33,60 @@ func lambdaExec(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	args := exp.Cdr
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Make sure that:
+	//
+	//	1. car is nil or a list of symbols (function arguments)
+
 	if args == nil {
-		return nil, NewUseError("missing arguments")
+		return nil, NewUseError("missing function arguments")
 	}
 
-	if args.Type != script.TypeList {
-		return nil, NewUseError("expected arguments to be a list")
-	}
+	car := args.Car()
+	if car != nil {
+		carCell, ok := car.CellVal()
+		if !ok || !carCell.IsList() {
+			return nil, NewUseError("function arguments are not a list")
+		}
 
-	for head := args.List; head != nil; head = head.Cdr {
-		if head.Type != script.TypeSym {
-			return nil, NewUseError("expected argument to be a symbol")
+		for _, exp := range carCell.MustToSlice() {
+			if exp.UnderlyingType() != script.TypeSymbol {
+				return nil, NewUseError("function argument is not a symbol")
+			}
 		}
 	}
 
-	body := args.Cdr
-	if body == nil {
-		return nil, NewUseError("missing body")
+	//	2. cadr (function body) is there but can be anything including
+	//	   nil
+
+	cdr := args.Cdr()
+	if cdr == nil {
+		return nil, NewUseError("missing function body")
 	}
 
-	if body.Type != script.TypeList {
-		return nil, NewUseError("expected body to be a list")
+	cdrCell, ok := cdr.CellVal()
+	if !ok {
+		return nil, NewUseError("invalid function body")
 	}
 
-	lambda := &script.SExp{
-		Type:     script.TypeList,
-		List:     exp.Clone(),
-		Line:     exp.Line,
-		Offset:   exp.Offset,
-		UserData: FuncData{closure},
+	if cdrCell.Cdr() != nil {
+		return nil, NewUseError("extra expressions after function body")
 	}
+
+	// To differenciate lambda functions from other expressions, FuncData
+	// is stored in the meta, which is also used to store the parent
+	// closure of the function.
+	lambda := script.Cons(
+		script.Symbol("lambda", meta),
+		args,
+		script.Meta{
+			Line:     meta.Line,
+			Offset:   meta.Offset,
+			UserData: FuncData{closure},
+		},
+	)
 
 	return lambda, nil
 }

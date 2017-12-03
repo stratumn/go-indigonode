@@ -54,11 +54,11 @@ func execConnect(
 	c.Infof("Connecting to %q...\n", addr)
 
 	if err := cli.Connect(ctx, addr); err != nil {
-		c.Errorf("Could not connect to %q.", addr)
+		c.Errorf("Could not connect to %q.\n", addr)
 		return err
 	}
 
-	c.Successf("Connected to %q.", addr)
+	c.Successf("Connected to %q.\n", addr)
 
 	return nil
 }

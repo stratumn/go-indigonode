@@ -23,7 +23,7 @@ import (
 // Quote is a command that prints an expression without evaluating it.
 var Quote = BasicCmdWrapper{BasicCmd{
 	Name:     "quote",
-	Use:      "quote exp",
+	Use:      "quote <Expression>",
 	Short:    "Output an expression without evaluating it",
 	ExecSExp: quoteExec,
 }}
@@ -33,11 +33,14 @@ func quoteExec(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	if exp.Cdr != nil && exp.Cdr.Cdr != nil {
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Quote is the simplest command, it just returns the car as is.
+
+	if args == nil || args.Cdr() != nil {
 		return nil, NewUseError("expected a single expression")
 	}
 
-	return exp.Cdr, nil
+	return args.Car(), nil
 }

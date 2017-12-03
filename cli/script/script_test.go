@@ -27,7 +27,7 @@ func Example() {
 		; This is a comment.
 
 		echo (title hello world!)
-	
+
 		(echo
 			(title goodbye)
 			(title world!))
@@ -35,28 +35,35 @@ func Example() {
 
 	var call script.CallHandler
 
-	call = func(resolve script.ResolveHandler, exp *script.SExp) (*script.SExp, error) {
-		args, err := exp.Cdr.ResolveEvalEach(resolve, call)
+	// call takes care of evaluating function calls.
+	call = func(
+		resolve script.ResolveHandler,
+		name string,
+		args script.SCell,
+		meta script.Meta,
+	) (script.SExp, error) {
+		// In this case we just evaluable and join the arguments.
+		argv, err := script.EvalListToStrings(resolve, call, args)
 		if err != nil {
 			return nil, err
 		}
 
-		str := args.JoinCars(" ", false)
+		str := strings.Join(argv, " ")
 
-		switch exp.Str {
+		switch name {
 		case "echo":
-			fmt.Println(str)
-			return nil, nil
+			return script.String(str, meta), nil
 		case "title":
-			return &script.SExp{
-				Type:   script.TypeStr,
-				Str:    strings.Title(str),
-				Line:   exp.Line,
-				Offset: exp.Offset,
-			}, nil
+			title := strings.Title(str)
+			return script.String(title, meta), nil
 		}
 
-		return nil, errors.Errorf("%d:%d: unknown function %q", exp.Line, exp.Offset, exp.Str)
+		return nil, errors.Errorf(
+			"%d:%d: %s: unknown function",
+			meta.Line,
+			meta.Offset,
+			name,
+		)
 	}
 
 	printErr := func(err error) {
@@ -66,17 +73,19 @@ func Example() {
 	scanner := script.NewScanner(script.OptErrorHandler(printErr))
 	parser := script.NewParser(scanner)
 
-	head, err := parser.Parse(src)
+	// Parser returns a list of instructions.
+	list, err := parser.Parse(src)
 	if err != nil {
 		panic(err)
 	}
 
-	for ; head != nil; head = head.Cdr {
-		_, err = call(script.ResolveName, head.List)
-		if err != nil {
-			panic(err)
-		}
+	// Evaluate each expressions in the list.
+	vals, err := script.EvalListToStrings(script.ResolveName, call, list)
+	if err != nil {
+		panic(err)
 	}
+
+	fmt.Println(strings.Join(vals, "\n"))
 
 	// Output:
 	// Hello World!

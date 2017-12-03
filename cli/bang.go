@@ -45,20 +45,15 @@ func (Bang) Long() string {
 	return `Execute and output external commands
 
 Usage:
-  !<Command> args...
+  ! <Command> [Args] [Input]
 
-Bang executes the external command immediately following the exclamation point.
-
-If there isn't space between the exclamation point and the command name, the
-remaining expressions will be evaluated as the command's arguments.
-
-If there is whitespace before the name, the first expression is the name of the
-command, the optional second expression are the command's arguments, and the
-optional third expression will be written to the input stream of the command.
+The first expression is the name of the executable, the optional second
+expression are is a list of command arguments, and the optional third expression will
+be written to the input stream of the command.
 
 Examples:
-  !ls -l -a
-  ! wc () (echo hello world !) ; use a pipe, notice the space before the command
+  ! ls '-l -a'
+  ! wc () (echo hello world !)
   ! less () (manager-list)
   ! grep manager (manager-list)
 `
@@ -66,12 +61,12 @@ Examples:
 
 // Use returns a short string showing how to use the command.
 func (Bang) Use() string {
-	return "!<Command> args..."
+	return "! <Command> [Args] [Input]"
 }
 
 // LongUse returns a long string showing how to use the command.
 func (Bang) LongUse() string {
-	return "!<Command> args..."
+	return "! <Command> [Args] [Input]"
 }
 
 // Suggest gives a chance for the command to add auto-complete
@@ -93,64 +88,69 @@ func (Bang) Exec(
 	c CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	var stdin io.Reader
-
-	vals, err := exp.Cdr.ResolveEvalEach(closure.Resolve, call)
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Evaluate all the arguments to strings.
+	argv, err := script.EvalListToStrings(closure.Resolve, call, args)
 	if err != nil {
 		return nil, err
 	}
 
-	args := vals.Strings(false)
-	name := exp.Str[1:]
+	// Check number of arguments.
+	argc := len(argv)
 
-	if len(name) < 1 {
-		argc := len(args)
-		if argc < 1 {
-			return nil, NewUseError("expected command name")
-		}
-		if argc > 3 {
-			return nil, NewUseError("expected at most three expressions")
-		}
+	if argc < 1 {
+		return nil, NewUseError("missing executable name")
+	}
 
-		name = args[0]
+	if argc > 3 {
+		return nil, NewUseError("unexpected expression")
+	}
 
-		if argc > 2 {
-			stdin = bytes.NewBuffer([]byte(args[2]))
-		}
+	// Executable name is the first argument.
+	execName := argv[0]
 
-		if argc > 1 {
-			args = strings.Split(args[1], " ")
-		} else {
-			args = nil
+	// Find executable arguments.
+	var execArgs []string
+
+	if argc > 1 {
+		execArgs = strings.Split(argv[1], " ")
+
+		// Filter out empty arguments.
+		tmp := execArgs
+		execArgs = execArgs[:0]
+
+		for _, a := range tmp {
+			if a != "" {
+				execArgs = append(execArgs, a)
+			}
 		}
 	}
 
-	// Filter out empty arguments.
-	tmp, args := args, args[:0]
-	for _, a := range tmp {
-		if a != "" {
-			args = append(args, a)
-		}
+	// Set executable input
+	var stdin io.Reader = os.Stdin
+
+	if argc > 2 {
+		stdin = bytes.NewBuffer([]byte(argv[2]))
 	}
 
-	if stdin == nil {
-		stdin = os.Stdin
-	}
-
+	// Use a buffer to capture executable output.
 	buf := bytes.NewBuffer(nil)
 
-	cmd := exec.CommandContext(ctx, name, args...)
+	// Set up the command.
+	cmd := exec.CommandContext(ctx, execName, execArgs...)
 	cmd.Stdout = buf
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = stdin
 
+	// Start the process.
 	err = cmd.Start()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
+	// Wait for it to complete async.
 	ch := make(chan error, 1)
 	go func() {
 		ch <- cmd.Wait()
@@ -160,10 +160,5 @@ func (Bang) Exec(
 		return nil, errors.WithStack(err)
 	}
 
-	return &script.SExp{
-		Type:   script.TypeStr,
-		Str:    strings.TrimSuffix(buf.String(), "\n"),
-		Line:   exp.Line,
-		Offset: exp.Offset,
-	}, nil
+	return script.String(buf.String(), meta), nil
 }

@@ -23,7 +23,7 @@ import (
 // Unless is a command that does the opposite of the If command.
 var Unless = BasicCmdWrapper{BasicCmd{
 	Name:     "unless",
-	Use:      "unless cond then [else]",
+	Use:      "unless <Condition> <Then> [Else]",
 	Short:    "Opposite of the if command",
 	ExecSExp: unlessExec,
 }}
@@ -33,26 +33,72 @@ func unlessExec(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	cond := exp.Cdr
-	if cond == nil {
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Get:
+	//
+	//	1. car (condition)
+	if args == nil {
 		return nil, NewUseError("missing condition expression")
 	}
 
-	then := cond.Cdr
-	if then == nil {
+	car := args.Car()
+	if car == nil {
+		return nil, NewUseError("missing condition expression")
+	}
+
+	//	2. cadr (then)
+
+	cdr := args.Cdr()
+	if cdr == nil {
 		return nil, NewUseError("missing then expression")
 	}
 
-	_, err := cond.ResolveEval(closure.Resolve, call)
-
-	if err != nil {
-		return evalSExpBody(closure.Resolve, call, then)
+	cdrCell, ok := cdr.CellVal()
+	if !ok {
+		return nil, NewUseError("invalid then expression")
 	}
 
-	if then.Cdr != nil {
-		return evalSExpBody(closure.Resolve, call, then.Cdr)
+	cadr := cdrCell.Car()
+	if cadr == nil {
+		return nil, NewUseError("missing then expression")
+	}
+
+	//	3. caddr, optional (else)
+
+	cddr := cdrCell.Cdr()
+	var caddr script.SExp
+
+	if cddr != nil {
+		cddrCell, ok := cddr.CellVal()
+		if !ok {
+			return nil, NewUseError("invalid else expression")
+		}
+		caddr = cddrCell.Car()
+
+		// Make sure there isn't an extra expression.
+		if cddrCell.Cdr() != nil {
+			return nil, NewUseError("unexpected expression")
+		}
+	}
+
+	// Eval car (condition).
+	val, err := script.Eval(closure.Resolve, call, car)
+
+	// Print error, but keep going.
+	if err != nil {
+		cli.PrintError(err)
+	}
+
+	if val == nil {
+		// If val is nil, eval cadr (then).
+		return evalSExpBody(closure.Resolve, call, cadr)
+	}
+
+	if caddr != nil {
+		// Otherwise eval caddr (else), if any.
+		return evalSExpBody(closure.Resolve, call, caddr)
 	}
 
 	return nil, nil

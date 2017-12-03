@@ -33,19 +33,24 @@ func TestCar(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"car (quote ())",
+		"",
+		nil,
+		nil,
+	}, {
 		"car",
 		"",
 		ErrUse,
 		nil,
 	}, {
-		"car (quote ())",
-		"",
-		cli.ErrCarNil,
-		nil,
-	}, {
 		"car a",
 		"",
-		ErrAny,
+		ErrUse,
+		nil,
+	}, {
+		"car (a) (b)",
+		"",
+		ErrUse,
 		nil,
 	}, {
 		"car (a b c)",

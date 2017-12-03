@@ -20,8 +20,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func sym(s string) *SExp {
-	return &SExp{Type: TypeSym, Str: s}
+func sym(s string) SExp {
+	return Symbol(s, Meta{})
 }
 
 func TestNewClosure_env(t *testing.T) {
@@ -30,14 +30,14 @@ func TestNewClosure_env(t *testing.T) {
 	got, ok := c.Get("$a")
 	if !ok {
 		t.Errorf(`c.Get("$a"): ok = %v want true`, ok)
-	} else if got.String() != "(\"one\")" {
+	} else if got.String() != "\"one\"" {
 		t.Errorf(`c.Get("$a") = %v want ("one")`, got.String())
 	}
 
 	got, ok = c.Get("$b")
 	if !ok {
 		t.Errorf(`c.Get("$b"): ok = %v want true`, ok)
-	} else if got.String() != "(\"two\")" {
+	} else if got.String() != "\"two\"" {
 		t.Errorf(`c.Get("$b") = %v want ("two")`, got.String())
 	}
 }
@@ -49,8 +49,8 @@ func TestClosure_Set(t *testing.T) {
 	got, ok := c.Get("a")
 	if !ok {
 		t.Errorf(`c.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(one)" {
-		t.Errorf(`c.Get("a") = %v want (one)`, got.String())
+	} else if got.String() != "one" {
+		t.Errorf(`c.Get("a") = %v want one`, got.String())
 	}
 }
 
@@ -64,15 +64,15 @@ func TestClosure_Set_overwriteParent(t *testing.T) {
 	got, ok := c1.Get("a")
 	if !ok {
 		t.Errorf(`c1.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(two)" {
-		t.Errorf(`c1.Get("a") = %v want (two)`, got.String())
+	} else if got.String() != "two" {
+		t.Errorf(`c1.Get("a") = %v want two`, got.String())
 	}
 
 	got, ok = c2.Get("a")
 	if !ok {
 		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(two)" {
-		t.Errorf(`c2.Get("a") = %v want (two)`, got.String())
+	} else if got.String() != "two" {
+		t.Errorf(`c2.Get("a") = %v want two`, got.String())
 	}
 }
 
@@ -90,8 +90,8 @@ func TestClosure_Set_new(t *testing.T) {
 	got, ok := c2.Get("a")
 	if !ok {
 		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(one)" {
-		t.Errorf(`c2.Get("a") = %v want (one)`, got.String())
+	} else if got.String() != "one" {
+		t.Errorf(`c2.Get("a") = %v want one`, got.String())
 	}
 }
 
@@ -105,15 +105,26 @@ func TestClosure_SetLocal(t *testing.T) {
 	got, ok := c1.Get("a")
 	if !ok {
 		t.Errorf(`c1.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(one)" {
-		t.Errorf(`c1.Get("a") = %v want (one)`, got.String())
+	} else if got.String() != "one" {
+		t.Errorf(`c1.Get("a") = %v want one`, got.String())
 	}
 
 	got, ok = c2.Get("a")
 	if !ok {
 		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "(two)" {
-		t.Errorf(`c2.Get("a") = %v want (two)`, got.String())
+	} else if got.String() != "two" {
+		t.Errorf(`c2.Get("a") = %v want two`, got.String())
+	}
+}
+
+func TestClosure_Local(t *testing.T) {
+	c1 := NewClosure()
+	c1.Set("a", sym("one"))
+
+	c2 := NewClosure(OptParent(c1))
+
+	if _, ok := c2.Local("a"); ok {
+		t.Errorf(`c2.Local("a"): ok = %v want false`, ok)
 	}
 }
 
@@ -124,8 +135,8 @@ func TestClosure_Resolve(t *testing.T) {
 	got, err := c.Resolve(sym("a"))
 	if err != nil {
 		t.Error(`c.Resolve(sym("a")): error: `, err)
-	} else if got.String() != "(one)" {
-		t.Errorf(`c.Resolve(sym("a")) = %v want (one)`, got.String())
+	} else if got.String() != "one" {
+		t.Errorf(`c.Resolve(sym("a")) = %v want one`, got.String())
 	}
 
 	_, err = c.Resolve(sym("b"))
@@ -141,14 +152,14 @@ func TestClosure_Resolve_resolver(t *testing.T) {
 	got, err := c.Resolve(sym("a"))
 	if err != nil {
 		t.Error(`c.Resolve(sym("a")): error: `, err)
-	} else if got.String() != "(one)" {
-		t.Errorf(`c.Resolve(sym("a")) = %v want (one)`, got.String())
+	} else if got.String() != "one" {
+		t.Errorf(`c.Resolve(sym("a")) = %v want one`, got.String())
 	}
 
 	got, err = c.Resolve(sym("b"))
 	if err != nil {
 		t.Error(`c.Resolve(sym("b")): error: `, err)
-	} else if got.String() != `("b")` {
-		t.Errorf(`c.Resolve(sym("b")) = %v want ("b")`, got.String())
+	} else if got.String() != `"b"` {
+		t.Errorf(`c.Resolve(sym("b")) = %v want "b"`, got.String())
 	}
 }

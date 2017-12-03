@@ -17,15 +17,14 @@ package cli
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
-// Car is a command that prints the first element of a list.
+// Car is a command that prints the first element of a cell.
 var Car = BasicCmdWrapper{BasicCmd{
 	Name:     "car",
-	Use:      "car (quote (a b c))",
-	Short:    "Output the first element of a list",
+	Use:      "car <Cell>",
+	Short:    "Output the car of a cons cell",
 	ExecSExp: carExec,
 }}
 
@@ -34,27 +33,28 @@ func carExec(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
-		return nil, NewUseError("expected a single expression")
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Return the car of the evaluated car cell.
+
+	if args == nil || args.Cdr() != nil {
+		return nil, NewUseError("expected a single element")
 	}
 
-	v, err := exp.Cdr.ResolveEval(closure.Resolve, call)
+	v, err := script.Eval(closure.Resolve, call, args.Car())
 	if err != nil {
 		return nil, err
 	}
 
-	if v.Type != script.TypeList {
-		return nil, NewUseError("expected a list")
+	if v == nil {
+		return nil, nil
 	}
 
-	if v.List == nil {
-		return nil, errors.WithStack(ErrCarNil)
+	cell, ok := v.CellVal()
+	if !ok {
+		return nil, NewUseError("expected a cell")
 	}
 
-	car := v.List
-	car.Cdr = nil
-
-	return car, nil
+	return cell.Car(), nil
 }

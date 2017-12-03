@@ -74,16 +74,16 @@ func (p *Parser) skipLines() {
 
 // Parse parses instructions in the given input.
 //
-// It returns a list of S-Expressions which can be evaluated.
-func (p *Parser) Parse(in string) (*SExp, error) {
+// It returns a list of S-Expressions which can be evaluated. It returns nil
+// if there are not instructions.
+func (p *Parser) Parse(in string) (SCell, error) {
 	p.scanner.SetInput(in)
 	p.scan()
 
-	var head, tail *SExp
+	var head, tail SCell
 
 	for {
 		instr, err := p.instr()
-
 		if err != nil {
 			return nil, err
 		}
@@ -92,23 +92,27 @@ func (p *Parser) Parse(in string) (*SExp, error) {
 			return head, nil
 		}
 
-		if tail == nil {
-			head = instr
-			tail = instr
+		if head == nil {
+			head = Cons(instr, nil, Meta{
+				Line:   1,
+				Offset: 1,
+			})
+			tail = head
 			continue
 		}
 
-		tail.Cdr = instr
-		tail = instr
+		cdr := Cons(instr, nil, instr.Meta())
+		tail.SetCdr(cdr)
+		tail = cdr
 	}
 }
 
 // List parses a list.
-func (p *Parser) List(in string) (*SExp, error) {
+func (p *Parser) List(in string) (SCell, error) {
 	p.scanner.SetInput(in)
 	p.scan()
 
-	exp, err := p.list(false)
+	head, err := p.list(false)
 	if err != nil {
 		return nil, err
 	}
@@ -119,10 +123,10 @@ func (p *Parser) List(in string) (*SExp, error) {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	return exp.List, nil
+	return head, nil
 }
 
-func (p *Parser) instr() (*SExp, error) {
+func (p *Parser) instr() (SCell, error) {
 	p.skipLines()
 
 	if tok := p.consume(TokEOF); tok != nil {
@@ -132,7 +136,7 @@ func (p *Parser) instr() (*SExp, error) {
 	tok := p.tok
 
 	if tok.Type == TokLParen {
-		call, err := p.list(true)
+		head, err := p.list(true)
 		if err != nil {
 			return nil, err
 		}
@@ -141,23 +145,13 @@ func (p *Parser) instr() (*SExp, error) {
 			return nil, errors.WithStack(ParseError{p.tok})
 		}
 
-		return call, nil
+		return head, nil
 	}
 
-	cells, err := p.cells(false, true)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SExp{
-		Type:   TypeList,
-		List:   cells,
-		Line:   tok.Line,
-		Offset: tok.Offset,
-	}, nil
+	return p.cells(false, true)
 }
 
-func (p *Parser) sexp(inParen bool) (*SExp, error) {
+func (p *Parser) sexp(inParen bool) (SExp, error) {
 	if inParen {
 		p.skipLines()
 	}
@@ -169,7 +163,7 @@ func (p *Parser) sexp(inParen bool) (*SExp, error) {
 	return p.atom(inParen)
 }
 
-func (p *Parser) list(isCall bool) (*SExp, error) {
+func (p *Parser) list(isCall bool) (SCell, error) {
 	p.skipLines()
 
 	tok := p.consume(TokLParen)
@@ -181,14 +175,10 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 	p.skipLines()
 
 	if !isCall && p.consume(TokRParen) != nil {
-		return &SExp{
-			Type:   TypeList,
-			Line:   tok.Line,
-			Offset: tok.Offset,
-		}, nil
+		return nil, nil
 	}
 
-	cells, err := p.cells(true, isCall)
+	head, err := p.cells(true, isCall)
 	if err != nil {
 		return nil, err
 	}
@@ -199,28 +189,26 @@ func (p *Parser) list(isCall bool) (*SExp, error) {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	return &SExp{
-		Type:   TypeList,
-		List:   cells,
-		Line:   tok.Line,
-		Offset: tok.Offset,
-	}, nil
+	return head, nil
 }
 
-func (p *Parser) cells(inParen, isCall bool) (*SExp, error) {
-	var head *SExp
+func (p *Parser) cells(inParen, isCall bool) (SCell, error) {
+	var head SCell
+	var first SExp
 	var err error
 
 	if isCall {
-		head, err = p.sym(inParen)
+		first, err = p.sym(inParen)
+
 	} else {
-		head, err = p.sexp(inParen)
+		first, err = p.sexp(inParen)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
+	head = Cons(first, nil, first.Meta())
 	tail := head
 
 	for {
@@ -236,17 +224,25 @@ func (p *Parser) cells(inParen, isCall bool) (*SExp, error) {
 			return head, nil
 		}
 
-		operand, err := p.sexp(inParen)
+		exp, err := p.sexp(inParen)
 		if err != nil {
 			return nil, err
 		}
 
-		tail.Cdr = operand
-		tail = operand
+		var cdr SCell
+
+		if exp == nil {
+			cdr = Cons(nil, nil, tail.Meta())
+		} else {
+			cdr = Cons(exp, nil, exp.Meta())
+		}
+
+		tail.SetCdr(cdr)
+		tail = cdr
 	}
 }
 
-func (p *Parser) atom(inParen bool) (*SExp, error) {
+func (p *Parser) atom(inParen bool) (SExp, error) {
 	switch p.tok.Type {
 	case TokSym:
 		return p.sym(inParen)
@@ -257,7 +253,7 @@ func (p *Parser) atom(inParen bool) (*SExp, error) {
 	return nil, errors.WithStack(ParseError{p.tok})
 }
 
-func (p *Parser) sym(inParen bool) (*SExp, error) {
+func (p *Parser) sym(inParen bool) (SExp, error) {
 	if inParen {
 		p.skipLines()
 	}
@@ -268,15 +264,13 @@ func (p *Parser) sym(inParen bool) (*SExp, error) {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	return &SExp{
-		Type:   TypeSym,
-		Str:    tok.Value,
+	return Symbol(tok.Value, Meta{
 		Line:   tok.Line,
 		Offset: tok.Offset,
-	}, nil
+	}), nil
 }
 
-func (p *Parser) string(inParen bool) (*SExp, error) {
+func (p *Parser) string(inParen bool) (SExp, error) {
 	if inParen {
 		p.skipLines()
 	}
@@ -287,10 +281,8 @@ func (p *Parser) string(inParen bool) (*SExp, error) {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	return &SExp{
-		Type:   TypeStr,
-		Str:    tok.Value,
+	return String(tok.Value, Meta{
 		Line:   tok.Line,
 		Offset: tok.Offset,
-	}, nil
+	}), nil
 }

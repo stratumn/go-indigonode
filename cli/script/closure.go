@@ -42,10 +42,7 @@ func OptEnv(prefix string, env []string) ClosureOpt {
 	return func(c *Closure) {
 		for _, e := range env {
 			parts := strings.Split(e, "=")
-			c.values[prefix+parts[0]] = &SExp{
-				Type: TypeStr,
-				Str:  parts[1],
-			}
+			c.values[prefix+parts[0]] = String(parts[1], Meta{})
 		}
 	}
 }
@@ -63,13 +60,13 @@ type Closure struct {
 	resolve ResolveHandler
 
 	mu     sync.RWMutex
-	values map[string]*SExp
+	values map[string]SExp
 }
 
 // NewClosure creates a new closure with an optional parent.
 func NewClosure(opts ...ClosureOpt) *Closure {
 	c := &Closure{
-		values: map[string]*SExp{},
+		values: map[string]SExp{},
 	}
 
 	for _, o := range opts {
@@ -79,15 +76,15 @@ func NewClosure(opts ...ClosureOpt) *Closure {
 	return c
 }
 
-// Get returns a copy of a value.
+// Get returns a value.
 //
 // It travels up the closures until it finds the key.
-func (c *Closure) Get(key string) (*SExp, bool) {
+func (c *Closure) Get(key string) (SExp, bool) {
 	for curr := c; curr != nil; curr = curr.parent {
 		curr.mu.RLock()
 		if v, ok := curr.values[key]; ok {
 			curr.mu.RUnlock()
-			return v.Clone(), true
+			return v, true
 		}
 		curr.mu.RUnlock()
 	}
@@ -95,17 +92,25 @@ func (c *Closure) Get(key string) (*SExp, bool) {
 	return nil, false
 }
 
+// Local returns a local value.
+func (c *Closure) Local(key string) (SExp, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	v, ok := c.values[key]
+
+	return v, ok
+}
+
 // Set sets a value.
-//
-// The values is copied.
 //
 // It travels up the closure until it finds the key. If it doesn't find one,
 // it sets a local.
-func (c *Closure) Set(key string, val *SExp) {
+func (c *Closure) Set(key string, val SExp) {
 	for curr := c; curr != nil; curr = curr.parent {
 		curr.mu.Lock()
 		if _, ok := curr.values[key]; ok {
-			curr.values[key] = val.Clone()
+			curr.values[key] = val
 			curr.mu.Unlock()
 			return
 		}
@@ -116,23 +121,21 @@ func (c *Closure) Set(key string, val *SExp) {
 }
 
 // SetLocal sets a local value.
-//
-// The value is copied.
-func (c *Closure) SetLocal(key string, val *SExp) {
+func (c *Closure) SetLocal(key string, val SExp) {
 	c.mu.Lock()
-	c.values[key] = val.Clone()
+	c.values[key] = val
 	c.mu.Unlock()
 }
 
 // Resolve resolves a symbol.
-func (c *Closure) Resolve(sym *SExp) (*SExp, error) {
-	v, ok := c.Get(sym.Str)
+func (c *Closure) Resolve(sym SExp) (SExp, error) {
+	v, ok := c.Get(sym.MustSymbolVal())
 	if !ok {
 		if c.resolve != nil {
 			return c.resolve(sym)
 		}
 
-		return nil, errors.Wrap(ErrSymNotFound, sym.CarString(false))
+		return nil, errors.Wrap(ErrSymNotFound, sym.MustSymbolVal())
 	}
 
 	return v, nil

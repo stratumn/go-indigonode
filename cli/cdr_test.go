@@ -38,24 +38,34 @@ func TestCdr(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"cdr (quote ())",
+		"",
+		nil,
+		nil,
+	}, {
+		"cdr (quote (a))",
+		"",
+		nil,
+		nil,
+	}, {
+		"cdr (quote (b))",
+		"",
+		nil,
+		nil,
+	}, {
 		"cdr",
 		"",
 		ErrUse,
 		nil,
 	}, {
-		"cdr (quote ())",
-		"",
-		cli.ErrCdrNil,
-		nil,
-	}, {
-		"cdr (quote (a))",
-		"",
-		cli.ErrCdrNil,
-		nil,
-	}, {
 		"cdr a",
 		"",
 		ErrAny,
+		nil,
+	}, {
+		"cdr (a) (b)",
+		"",
+		ErrUse,
 		nil,
 	}, {
 		"cdr (a b c)",

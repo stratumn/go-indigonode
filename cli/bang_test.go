@@ -19,23 +19,17 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/script"
 )
 
 func TestBang(t *testing.T) {
 	tests := []ExecTest{{
-		"!echo hello outside world!",
-		"hello outside world!",
-		nil,
-		nil,
-	}, {
 		"! echo",
-		"",
+		"\n",
 		nil,
 		nil,
 	}, {
 		"! echo 'hello outside world!'",
-		"hello outside world!",
+		"hello outside world!\n",
 		nil,
 		nil,
 	}, {
@@ -50,13 +44,13 @@ func TestBang(t *testing.T) {
 		nil,
 	}, {
 		"! grep outside 'hello\noutside\nworld!'",
-		"outside",
+		"outside\n",
 		nil,
 		nil,
 	}, {
 		"! (a)",
 		"",
-		script.ErrInvalidOperand,
+		ErrAny,
 		nil,
 	}, {
 		"!",
@@ -69,7 +63,7 @@ func TestBang(t *testing.T) {
 		ErrUse,
 		nil,
 	}, {
-		"!1234567890",
+		"! 1234567890",
 		"",
 		ErrAny,
 		nil,

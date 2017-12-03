@@ -23,8 +23,8 @@ import (
 // Let is a command that binds a symbol to a value
 var Let = BasicCmdWrapper{BasicCmd{
 	Name:     "let",
-	Use:      "let sym value",
-	Short:    "Bind a symbol to a value",
+	Use:      "let <Symbol> <Value>",
+	Short:    "Bind a symbol to a value in current closure",
 	ExecSExp: letExec,
 }}
 
@@ -33,26 +33,54 @@ func letExec(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	sym := exp.Cdr
-	if sym == nil || sym.Type != script.TypeSym {
-		return nil, NewUseError("expected a symbol")
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Get:
+	//
+	//	1. car symbol value
+	if args == nil {
+		return nil, NewUseError("missing symbol")
 	}
 
-	val := sym.Cdr
-
-	if val == nil {
-		closure.SetLocal(sym.Str, nil)
-		return nil, nil
+	car := args.Car()
+	if args == nil {
+		return nil, NewUseError("missing symbol")
 	}
 
-	v, err := val.ResolveEval(closure.Resolve, call)
+	carSymbol, ok := car.SymbolVal()
+	if !ok {
+		return nil, NewUseError("not a symbol")
+	}
+
+	//	2. cadr, optional (value)
+	cdr := args.Cdr()
+	var cadr script.SExp
+
+	if cdr != nil {
+		cdrCell, ok := cdr.CellVal()
+		if !ok {
+			return nil, NewUseError("invalid value")
+		}
+
+		cadr = cdrCell.Car()
+	}
+
+	//	3. a value isn't already bound to symbol in the current
+	//	   closure
+
+	if _, ok := closure.Local("$" + carSymbol); ok {
+		return nil, NewUseError("a value is already bound to the symbol")
+	}
+
+	// Evaluate cadr (the value).
+	v, err := script.Eval(closure.Resolve, call, cadr)
 	if err != nil {
 		return nil, err
 	}
 
-	closure.SetLocal("$"+sym.Str, v)
+	// Bind the value to the symbol and return the value.
+	closure.SetLocal("$"+carSymbol, v)
 
 	return v, nil
 }

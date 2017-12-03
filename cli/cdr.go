@@ -17,15 +17,14 @@ package cli
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
 // Cdr is a command that prints the tail of a list.
 var Cdr = BasicCmdWrapper{BasicCmd{
 	Name:     "cdr",
-	Use:      "cdr (quote (a b c))",
-	Short:    "Output the tail a list",
+	Use:      "cdr <Cell>",
+	Short:    "Output the cdr of a cons cell",
 	ExecSExp: cdr,
 }}
 
@@ -34,33 +33,28 @@ func cdr(
 	cli CLI,
 	closure *script.Closure,
 	call script.CallHandler,
-	exp *script.SExp,
-) (*script.SExp, error) {
-	if exp.Cdr == nil || exp.Cdr.Cdr != nil {
-		return nil, NewUseError("expected a single expression")
+	args script.SCell,
+	meta script.Meta,
+) (script.SExp, error) {
+	// Return the cdr of the evaluated car cell.
+
+	if args == nil || args.Cdr() != nil {
+		return nil, NewUseError("expected a single element")
 	}
 
-	v, err := exp.Cdr.ResolveEval(closure.Resolve, call)
+	v, err := script.Eval(closure.Resolve, call, args.Car())
 	if err != nil {
 		return nil, err
 	}
 
-	if v.Type != script.TypeList {
-		return nil, NewUseError("expected a list")
+	if v == nil {
+		return nil, nil
 	}
 
-	if v.List == nil {
-		return nil, errors.WithStack(ErrCdrNil)
+	cell, ok := v.CellVal()
+	if !ok {
+		return nil, NewUseError("expected a cell")
 	}
 
-	if v.List.Cdr == nil {
-		return nil, errors.WithStack(ErrCdrNil)
-	}
-
-	return &script.SExp{
-		Type:   script.TypeList,
-		List:   v.List.Cdr,
-		Line:   exp.Line,
-		Offset: exp.Offset,
-	}, nil
+	return cell.Cdr(), nil
 }

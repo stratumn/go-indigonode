@@ -41,7 +41,7 @@ func addrExec(
 		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
 	}
 
-	fmt.Fprint(w, cli.Address())
+	fmt.Fprintln(w, cli.Address())
 
 	return nil
 }

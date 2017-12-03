@@ -17,6 +17,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 
 var (
 	cliCommand = ""
+	cliOpen    = ""
 )
 
 // cliCmd represents the cli command.
@@ -41,13 +43,21 @@ var cliCmd = &cobra.Command{
 
 		ctx := context.Background()
 
-		if cliCommand != "" {
+		if cliCommand != "" || cliOpen != "" {
+			script := cliCommand
+
+			if cliOpen != "" {
+				b, err := ioutil.ReadFile(cliOpen)
+				fail(err)
+				script = string(b)
+			}
+
 			if err := c.Connect(ctx, ""); err != nil {
 				fail(err)
 			}
 
 			// We don't use Run so we can handle the errors here.
-			if err := c.Exec(ctx, cliCommand); err != nil {
+			if err := c.Exec(ctx, script); err != nil {
 				cause := errors.Cause(err)
 				stack := cli.StackTrace(err)
 
@@ -63,8 +73,8 @@ var cliCmd = &cobra.Command{
 
 				// If it is a usage error, print the usage
 				// message.
-				if userr, ok := cause.(*cli.UseError); ok {
-					fmt.Fprintln(os.Stderr, "\n"+userr.Use())
+				if useError, ok := cause.(*cli.UseError); ok {
+					fmt.Fprintln(os.Stderr, "\n"+useError.Use())
 				}
 
 				os.Exit(1)
@@ -81,4 +91,5 @@ func init() {
 	RootCmd.AddCommand(cliCmd)
 
 	cliCmd.Flags().StringVarP(&cliCommand, "command", "c", "", "execute command and exit")
+	cliCmd.Flags().StringVarP(&cliOpen, "open", "o", "", "execute file and exit")
 }

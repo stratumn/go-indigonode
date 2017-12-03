@@ -46,7 +46,7 @@ func consExec(
 
 	car := args.Car()
 
-	//	2. cadr (the call cdr)
+	//	2. cadr (the cell cdr)
 	cdr := args.Cdr()
 	if cdr == nil {
 		return nil, NewUseError("missing cdr")
@@ -70,7 +70,7 @@ func consExec(
 		return nil, err
 	}
 
-	// Construst the cell.
+	// Construct the cell.
 	return script.Cons(carVal, cadrVal, script.Meta{
 		Line:   meta.Line,
 		Offset: meta.Offset,

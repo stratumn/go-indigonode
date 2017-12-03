@@ -43,36 +43,36 @@ func ExecFunc(
 	closure *script.Closure,
 	createCall CallerWithClosure,
 	name string,
-	def script.SExp,
+	lambda script.SExp,
 	args script.SCell,
 ) (script.SExp, error) {
 	// Make sure that is a function (has FuncData in meta).
-	data, ok := def.Meta().UserData.(FuncData)
+	data, ok := lambda.Meta().UserData.(FuncData)
 	if !ok {
 		return nil, errors.WithStack(ErrNotFunc)
 	}
 
 	// Assumes the function has already been checked when created.
 	//
-	// Ignore car or def which normally contains the symbol 'lambda'.
+	// Ignore car of lambda which normally contains the symbol 'lambda'.
 	//
 	// Get:
 	//
-	//	1. cadr of def (the argument symbols)
-	defCell := def.MustCellVal()
-	defCdr := defCell.Cdr()
-	defCdrCell := defCdr.MustCellVal()
-	defCadr := defCdrCell.Car()
+	//	1. cadr of lambda (the argument symbols)
+	lambdaCell := lambda.MustCellVal()
+	lambdaCdr := lambdaCell.Cdr()
+	lambdaCdrCell := lambdaCdr.MustCellVal()
+	lambdaCadr := lambdaCdrCell.Car()
 
-	var defCadrCell script.SCell
-	if defCadr != nil {
-		defCadrCell = defCadr.MustCellVal()
+	var lambdaCadrCell script.SCell
+	if lambdaCadr != nil {
+		lambdaCadrCell = lambdaCadr.MustCellVal()
 	}
 
-	//	2. caddr of def (the function body)
-	defCddr := defCdrCell.Cdr()
-	defCddrCell := defCddr.MustCellVal()
-	defCaddr := defCddrCell.Car()
+	//	2. caddr of lambda (the function body)
+	lambdaCddr := lambdaCdrCell.Cdr()
+	lambdaCddrCell := lambdaCddr.MustCellVal()
+	lambdaCaddr := lambdaCddrCell.Car()
 
 	// Now evaluate the function arguments in the given context.
 	argv, err := script.EvalListToSlice(
@@ -84,15 +84,15 @@ func ExecFunc(
 		return nil, err
 	}
 
-	// Transform cadr of def (the argument symbols) to a slice if it isn't
-	// nil.
-	var defCadrSlice script.SExpSlice
-	if defCadrCell != nil {
-		defCadrSlice = defCadrCell.MustToSlice()
+	// Transform cadr of lambda (the argument symbols) to a slice if it
+	// isn't nil.
+	var lambdaCadrSlice script.SExpSlice
+	if lambdaCadrCell != nil {
+		lambdaCadrSlice = lambdaCadrCell.MustToSlice()
 	}
 
 	// Make sure the number of arguments is correct.
-	if len(argv) != len(defCadrSlice) {
+	if len(argv) != len(lambdaCadrSlice) {
 		return nil, NewUseError("unexpected number of arguments")
 	}
 
@@ -100,12 +100,12 @@ func ExecFunc(
 	bodyClosure := script.NewClosure(script.OptParent(data.ParentClosure))
 
 	// Bind the argument vector to symbol values.
-	for i, symbol := range defCadrSlice {
+	for i, symbol := range lambdaCadrSlice {
 		bodyClosure.Set("$"+symbol.MustSymbolVal(), argv[i])
 	}
 
 	// Finally, evaluate the function body.
 	bodyCall := createCall(ctx, bodyClosure)
 
-	return evalSExpBody(bodyClosure.Resolve, bodyCall, defCaddr)
+	return evalSExpBody(bodyClosure.Resolve, bodyCall, lambdaCaddr)
 }

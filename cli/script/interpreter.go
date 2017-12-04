@@ -74,6 +74,12 @@ type InterpreterContext struct {
 	EvalList          func(context.Context, *Closure, SCell) (SCell, error)
 	EvalListToSlice   func(context.Context, *Closure, SCell) (SExpSlice, error)
 	EvalListToStrings func(context.Context, *Closure, SCell) ([]string, error)
+
+	// Creates an error with meta information.
+	Error func(string) error
+
+	// Wraps an error with meta information.
+	WrapError func(error) error
 }
 
 // Interpreter evaluates S-Expressions.
@@ -191,6 +197,10 @@ func (itr *Interpreter) evalCell(
 	meta := Meta{}
 
 	wrapError := func(err error) error {
+		if err == nil {
+			return nil
+		}
+
 		if cell == nil {
 			return errors.WithStack(err)
 		}
@@ -233,11 +243,14 @@ func (itr *Interpreter) evalCell(
 				EvalList:          itr.evalList,
 				EvalListToSlice:   itr.evalListToSlice,
 				EvalListToStrings: itr.evalListToStrings,
+				Error: func(s string) error {
+					return wrapError(errors.New(s))
+				},
+				WrapError: wrapError,
 			}
 
 			val, err := handler(handlerCtx)
 			if err != nil {
-				err = wrapError(err)
 				itr.errHandler(err)
 			}
 

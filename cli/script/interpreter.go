@@ -75,6 +75,10 @@ type InterpreterContext struct {
 	EvalListToSlice   func(context.Context, *Closure, SCell) (SExpSlice, error)
 	EvalListToStrings func(context.Context, *Closure, SCell) ([]string, error)
 
+	// This one evaluates a "body", such as a function body that may
+	// contain multiple expressions.
+	EvalBody func(context.Context, *Closure, SExp) (SExp, error)
+
 	// Creates an error with meta information.
 	Error func(string) error
 
@@ -243,6 +247,7 @@ func (itr *Interpreter) evalCell(
 				EvalList:          itr.evalList,
 				EvalListToSlice:   itr.evalListToSlice,
 				EvalListToStrings: itr.evalListToStrings,
+				EvalBody:          itr.evalBody,
 				Error: func(s string) error {
 					return wrapError(errors.New(s))
 				},
@@ -358,4 +363,49 @@ func (itr *Interpreter) evalListToStrings(
 	}
 
 	return strings, nil
+}
+
+// evalBody evaluates a "body" such as a function body.
+func (itr *Interpreter) evalBody(
+	ctx context.Context,
+	closure *Closure,
+	body SExp,
+) (SExp, error) {
+	evalDirectly := func() (SExp, error) {
+		return itr.eval(ctx, closure, body)
+	}
+
+	// Eval directly unless body is a list or car is a list.
+	if body == nil {
+		return evalDirectly()
+	}
+
+	cell, ok := body.CellVal()
+	if !ok || !cell.IsList() {
+		return evalDirectly()
+	}
+
+	car := cell.Car()
+	if car == nil {
+		return evalDirectly()
+	}
+
+	carCell, ok := car.CellVal()
+	if !ok || !carCell.IsList() {
+		return evalDirectly()
+	}
+
+	// Eval each expression in the body list.
+	vals, err := itr.evalListToSlice(ctx, closure, cell)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the last evaluated expression if there is one.
+	l := len(vals)
+	if l > 0 {
+		return vals[l-1], nil
+	}
+
+	return nil, nil
 }

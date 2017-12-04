@@ -134,7 +134,7 @@ func TestScanner_Emit(t *testing.T) {
 			errors = append(errors, err.Error())
 		}
 
-		s := NewScanner(OptErrorHandler(errHandler))
+		s := NewScanner(ScannerOptErrorHandler(errHandler))
 		s.SetInput(tt.input)
 
 		for {
@@ -160,7 +160,7 @@ func TestScanner_Emit(t *testing.T) {
 func TestScanner_invalidUTF8(t *testing.T) {
 	var got error
 
-	s := NewScanner(OptErrorHandler(func(err error) {
+	s := NewScanner(ScannerOptErrorHandler(func(err error) {
 		got = errors.Cause(err)
 	}))
 

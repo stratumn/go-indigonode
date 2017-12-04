@@ -33,7 +33,7 @@ func ResolveName(sym SExp) (SExp, error) {
 // CallHandler handles function calls.
 type CallHandler func(
 	resolve ResolveHandler,
-	fn string,
+	name string,
 	args SCell,
 	meta Meta,
 ) (SExp, error)

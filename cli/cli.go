@@ -183,8 +183,8 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 
 	// Create the top closure with env variables.
 	closure := script.NewClosure(
-		script.OptEnv("$", os.Environ()),
-		script.OptResolver(Resolver),
+		script.ClosureOptEnv("$", os.Environ()),
+		script.ClosureOptResolver(Resolver),
 	)
 
 	c := cli{
@@ -198,7 +198,7 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		addr:       config.APIAddress,
 	}
 
-	scanner := script.NewScanner(script.OptErrorHandler(c.PrintError))
+	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.PrintError))
 	c.parser = script.NewParser(scanner)
 
 	sort.Slice(c.staticCmds, func(i, j int) bool {

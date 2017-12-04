@@ -86,7 +86,7 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 		args = cmdCdr.MustCellVal()
 	}
 
-	closure := script.NewClosure(script.OptResolver(cli.Resolver))
+	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
 
 	return cmd.Exec(&cli.ExecContext{
 		Ctx:     ctx,

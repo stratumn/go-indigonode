@@ -24,8 +24,8 @@ import (
 // ClosureOpt is a closure options.
 type ClosureOpt func(*Closure)
 
-// OptParent sets the parent closure.
-func OptParent(parent *Closure) ClosureOpt {
+// ClosureOptParent sets the parent closure.
+func ClosureOptParent(parent *Closure) ClosureOpt {
 	return func(c *Closure) {
 		c.parent = parent
 
@@ -35,10 +35,10 @@ func OptParent(parent *Closure) ClosureOpt {
 	}
 }
 
-// OptEnv sets values from environment variables of the form "key=value".
+// ClosureOptEnv sets values from environment variables of the form "key=value".
 //
 // The given string will be prefixed to variable names.
-func OptEnv(prefix string, env []string) ClosureOpt {
+func ClosureOptEnv(prefix string, env []string) ClosureOpt {
 	return func(c *Closure) {
 		for _, e := range env {
 			parts := strings.Split(e, "=")
@@ -47,8 +47,8 @@ func OptEnv(prefix string, env []string) ClosureOpt {
 	}
 }
 
-// OptResolver sets the resolver which is used if a key is not found.
-func OptResolver(resolve ResolveHandler) ClosureOpt {
+// ClosureOptResolver sets the resolver which is used if a symbol is not found.
+func ClosureOptResolver(resolve ResolveHandler) ClosureOpt {
 	return func(c *Closure) {
 		c.resolve = resolve
 	}

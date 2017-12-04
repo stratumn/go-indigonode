@@ -100,7 +100,7 @@ func ExecFunc(ctx *FuncContext) (script.SExp, error) {
 	}
 
 	// Create a closure for the function body.
-	bodyClosure := script.NewClosure(script.OptParent(data.ParentClosure))
+	bodyClosure := script.NewClosure(script.ClosureOptParent(data.ParentClosure))
 
 	// Bind the argument vector to symbol values.
 	for i, symbol := range lambdaCadrSlice {

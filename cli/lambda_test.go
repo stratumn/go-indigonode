@@ -93,7 +93,7 @@ func TestLambda_exec(t *testing.T) {
 	}}
 
 	parser := script.NewParser(script.NewScanner())
-	closure := script.NewClosure(script.OptResolver(cli.Resolver))
+	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
 
 	createCall := func(context.Context, *script.Closure) script.CallHandler {
 		return execCall

@@ -60,7 +60,7 @@ type Cmd interface {
 	Exec(*ExecContext) (script.SExp, error)
 }
 
-// ExecContext is passes to a command when executing it.
+// ExecContext is passed to a command when executing it.
 type ExecContext struct {
 	Ctx     context.Context
 	CLI     CLI

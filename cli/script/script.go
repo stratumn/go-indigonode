@@ -38,8 +38,6 @@
 //      SExp            = List | Atom
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
 //	Atom            = symbol | string
-//
-// There are no builtin operators.
 package script
 
 import "github.com/pkg/errors"
@@ -51,6 +49,9 @@ var (
 
 	// ErrFuncName is returned when a function name is not a symbol.
 	ErrFuncName = errors.New("function name is not a symbol")
+
+	// ErrUnknownFunc is returned when a function is not found.
+	ErrUnknownFunc = errors.New("unknown function")
 
 	// ErrSymNotFound is returned when a symbol could not be resolved.
 	ErrSymNotFound = errors.New("could not resolve symbol")

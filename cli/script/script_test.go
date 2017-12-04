@@ -15,79 +15,64 @@
 package script_test
 
 import (
-	"fmt"
+	"context"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
 
 func Example() {
+	// Script that will be evaluated.
 	src := `
 		; This is a comment.
 
-		echo (title hello world!)
+		echo (title "hello world!")
 
 		(echo
-			(title goodbye)
-			(title world!))
+			(title "goodbye")
+			(title "world!"))
 `
 
-	var call script.CallHandler
+	// Define custom functions for the interpreter.
+	funcs := map[string]script.InterpreterFuncHandler{
+		"echo": func(ctx *script.InterpreterContext) (script.SExp, error) {
+			// Evaluate the arguments to strings.
+			args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+			if err != nil {
+				return nil, err
+			}
 
-	// call takes care of evaluating function calls.
-	call = func(
-		resolve script.ResolveHandler,
-		name string,
-		args script.SCell,
-		meta script.Meta,
-	) (script.SExp, error) {
-		// In this case we just evaluable and join the arguments.
-		argv, err := script.EvalListToStrings(resolve, call, args)
-		if err != nil {
-			return nil, err
-		}
+			// Join the argument strings.
+			str := strings.Join(args, " ")
 
-		str := strings.Join(argv, " ")
+			// Return a string value.
+			return script.String(str, ctx.Meta), nil
+		},
+		"title": func(ctx *script.InterpreterContext) (script.SExp, error) {
+			// Evaluate the arguments to strings.
+			args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+			if err != nil {
+				return nil, err
+			}
 
-		switch name {
-		case "echo":
-			return script.String(str, meta), nil
-		case "title":
-			title := strings.Title(str)
-			return script.String(title, meta), nil
-		}
+			// Join the argument strings and convert it to a title.
+			title := strings.Title(strings.Join(args, " "))
 
-		return nil, errors.Errorf(
-			"%d:%d: %s: unknown function",
-			meta.Line,
-			meta.Offset,
-			name,
-		)
+			// Return a string value.
+			return script.String(title, ctx.Meta), nil
+		},
 	}
 
-	printErr := func(err error) {
-		panic(err)
-	}
+	// Initialize an interpreter with the custom functions.
+	itr := script.NewInterpreter(script.InterpreterOptFuncHandlers(funcs))
 
-	scanner := script.NewScanner(script.OptErrorHandler(printErr))
-	parser := script.NewParser(scanner)
-
-	// Parser returns a list of instructions.
-	list, err := parser.Parse(src)
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
 	if err != nil {
 		panic(err)
 	}
-
-	// Evaluate each expressions in the list.
-	vals, err := script.EvalListToStrings(script.ResolveName, call, list)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(strings.Join(vals, "\n"))
 
 	// Output:
-	// Hello World!
-	// Goodbye World!
+	// "Hello World!"
+	// "Goodbye World!"
 }

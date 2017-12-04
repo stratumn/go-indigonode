@@ -72,6 +72,16 @@ func (err ScanError) Error() string {
 	return fmt.Sprintf("%d:%d: unexpected character %q", err.Line, err.Offset, err.Rune)
 }
 
+// ScannerOpt is a scanner option.
+type ScannerOpt func(*Scanner)
+
+// ScannerOptErrorHandler sets the scanner's error handler.
+func ScannerOptErrorHandler(h func(error)) ScannerOpt {
+	return func(s *Scanner) {
+		s.errHandler = h
+	}
+}
+
 // Scanner produces tokens from a string.
 type Scanner struct {
 	reader     io.RuneScanner
@@ -84,16 +94,6 @@ type Scanner struct {
 	end        bool
 
 	errHandler func(error)
-}
-
-// ScannerOpt is a scanner option.
-type ScannerOpt func(*Scanner)
-
-// OptErrorHandler sets the scanner's error handler.
-func OptErrorHandler(h func(error)) ScannerOpt {
-	return func(s *Scanner) {
-		s.errHandler = h
-	}
 }
 
 // NewScanner creates a new scanner.

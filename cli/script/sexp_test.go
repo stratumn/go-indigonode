@@ -22,13 +22,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-type evalTest struct {
+type legacyEvalTest struct {
 	input  string
 	output string
 	err    string
 }
 
-var evalTests = []evalTest{{
+var legacyEvalTests = []legacyEvalTest{{
 	"",
 	"",
 	"",
@@ -103,7 +103,7 @@ func TestSExp_eval(t *testing.T) {
 	s := NewScanner()
 	p := NewParser(s)
 
-	for _, tt := range evalTests {
+	for _, tt := range legacyEvalTests {
 		list, err := p.Parse(tt.input)
 		if err != nil {
 			t.Errorf("%q: error: %s", tt.input, err)

@@ -77,10 +77,7 @@ func (p *Parser) skipLines() {
 // It returns a list of S-Expressions which can be evaluated. It returns nil
 // if there are not instructions.
 func (p *Parser) Parse(in string) (SCell, error) {
-	if err := p.scanner.SetInput(in); err != nil {
-		return nil, err
-	}
-
+	p.scanner.SetInput(in)
 	p.scan()
 
 	return p.script()
@@ -88,10 +85,7 @@ func (p *Parser) Parse(in string) (SCell, error) {
 
 // List parses a single list.
 func (p *Parser) List(in string) (SCell, error) {
-	if err := p.scanner.SetInput(in); err != nil {
-		return nil, err
-	}
-
+	p.scanner.SetInput(in)
 	p.scan()
 
 	p.skipLines()

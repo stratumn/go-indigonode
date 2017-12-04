@@ -16,6 +16,8 @@ package script
 
 import (
 	"fmt"
+	"io"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/pkg/errors"
@@ -72,8 +74,9 @@ func (err ScanError) Error() string {
 
 // Scanner produces tokens from a string.
 type Scanner struct {
-	runes      []rune
-	len        int
+	reader     io.RuneScanner
+	ch         rune
+	prevCh     rune
 	line       int
 	pos        int
 	offset     int
@@ -95,11 +98,7 @@ func OptErrorHandler(h func(error)) ScannerOpt {
 
 // NewScanner creates a new scanner.
 func NewScanner(opts ...ScannerOpt) *Scanner {
-	s := &Scanner{
-		runes:      nil,
-		len:        0,
-		errHandler: func(error) {},
-	}
+	s := &Scanner{errHandler: func(error) {}}
 
 	for _, o := range opts {
 		o(s)
@@ -108,21 +107,21 @@ func NewScanner(opts ...ScannerOpt) *Scanner {
 	return s
 }
 
-// SetInput resets the scanner and sets its input string.
-func (s *Scanner) SetInput(in string) error {
-	if !utf8.ValidString(in) {
-		return errors.WithStack(ErrInvalidUTF8)
-	}
-
-	s.runes = []rune(in)
-	s.len = len(s.runes)
+// SetReader resets the scanner ands sets its reader.
+func (s *Scanner) SetReader(reader io.RuneScanner) {
+	s.reader = reader
+	s.ch = 0
+	s.prevCh = 0
 	s.pos = 0
 	s.line = 1
 	s.offset = 0
 	s.prevOffset = 0
 	s.end = false
+}
 
-	return nil
+// SetInput resets the scanner and sets its reader from an input string.
+func (s *Scanner) SetInput(in string) {
+	s.SetReader(strings.NewReader(in))
 }
 
 // Emit emits the next token.
@@ -130,23 +129,23 @@ func (s *Scanner) SetInput(in string) error {
 // It returns TokEOF if all tokens have been read, and TokInvalid if no valid
 // token was found.
 func (s *Scanner) Emit() Token {
-	c := s.read()
+	s.read()
 
-	for isSpace(c) || c == ';' {
-		for isSpace(c) {
-			c = s.read()
+	for isSpace(s.ch) || s.ch == ';' {
+		for isSpace(s.ch) {
+			s.read()
 		}
 
-		if c == ';' {
-			c = s.stripComment()
+		if s.ch == ';' {
+			s.stripComment()
 		}
 	}
 
-	if isLine(c) {
+	if isLine(s.ch) {
 		return Token{TokLine, "", s.line, s.offset}
 	}
 
-	switch c {
+	switch s.ch {
 	case 0:
 		return Token{TokEOF, "", s.line, s.offset}
 	case '(':
@@ -155,91 +154,101 @@ func (s *Scanner) Emit() Token {
 		return Token{TokRParen, "", s.line, s.offset}
 	}
 
-	return s.strOrSym(c)
+	return s.strOrSym()
 }
 
-func (s *Scanner) read() rune {
+func (s *Scanner) read() {
 	s.prevOffset = s.offset
+	s.prevCh = s.ch
 
-	if s.pos >= s.len {
+	ch, _, err := s.reader.ReadRune()
+	s.ch = ch
+
+	if err == io.EOF {
 		if !s.end {
 			s.offset++
 			s.end = true
 		}
-
-		return 0
+		return
+	} else if err != nil {
+		s.errHandler(errors.WithStack(err))
 	}
 
-	c := s.runes[s.pos]
+	if ch == 0 || ch == utf8.RuneError {
+		s.errHandler(ErrInvalidUTF8)
+	}
 
 	s.pos++
 	s.offset++
 
-	if isLine(c) {
+	if isLine(ch) {
 		s.line++
 		s.offset = 0
 	}
-
-	return c
 }
 
-// back should be called at most once per Emit.
+// back can only be called once after a read.
 func (s *Scanner) back() {
+	if err := s.reader.UnreadRune(); err != nil {
+		s.errHandler(errors.WithStack(err))
+	}
+
 	s.pos--
 	s.offset--
 
-	if isLine(s.runes[s.pos]) {
+	if isLine(s.ch) {
 		s.line--
 		s.offset = s.prevOffset
 	}
+
+	s.ch = s.prevCh
+	s.prevCh = 0
 }
 
-func (s *Scanner) stripComment() rune {
-	c := s.read()
+func (s *Scanner) stripComment() {
+	s.read()
 
-	for !isLine(c) && c != 0 {
-		c = s.read()
+	for !isLine(s.ch) && s.ch != 0 {
+		s.read()
 	}
-
-	return c
 }
 
-func (s *Scanner) error(line, pos int, c rune) {
-	s.errHandler(errors.WithStack(ScanError{line, pos, c}))
+func (s *Scanner) error(line, pos int, ch rune) {
+	s.errHandler(errors.WithStack(ScanError{line, pos, ch}))
 }
 
-func (s *Scanner) strOrSym(c rune) Token {
-	switch c {
+func (s *Scanner) strOrSym() Token {
+	switch s.ch {
 	case '"':
-		return s.text(c, '"')
+		return s.text('"')
 	case '\'':
-		return s.text(c, '\'')
+		return s.text('\'')
 	}
 
-	return s.text(c, 0)
+	return s.text(0)
 }
 
-func (s *Scanner) text(c rune, quote rune) Token {
+func (s *Scanner) text(quote rune) Token {
 	buf := ""
 
 	line, offset := s.line, s.offset
 
-	if c == quote {
-		c = s.read()
+	if s.ch == quote {
+		s.read()
 	}
 
 	for {
 		switch {
-		case c == 0 && quote == 0:
+		case s.ch == 0 && quote == 0:
 			return Token{TokSym, buf, line, offset}
-		case c == 0:
+		case s.ch == 0:
 			s.error(s.line, s.offset, 0)
 			return Token{TokInvalid, buf, line, offset}
-		case c == quote:
+		case s.ch == quote:
 			return Token{TokString, buf, line, offset}
-		case c == '\\' && quote != 0:
-			c = s.read()
-			switch c {
+		case s.ch == '\\' && quote != 0:
+			s.read()
+			switch s.ch {
 			case 'n':
 				buf += "\n"
 			case 'r':
@@ -247,31 +256,31 @@ func (s *Scanner) text(c rune, quote rune) Token {
 			case 't':
 				buf += "\t"
 			case quote:
-				buf += string(c)
+				buf += string(s.ch)
 			default:
-				s.error(s.line, s.offset, c)
+				s.error(s.line, s.offset, s.ch)
 				s.back()
 				return Token{TokInvalid, buf, line, offset}
 			}
-			c = s.read()
-		case isSpecial(c) && quote == 0:
+			s.read()
+		case isSpecial(s.ch) && quote == 0:
 			s.back()
 			return Token{TokSym, buf, line, offset}
 		default:
-			buf += string(c)
-			c = s.read()
+			buf += string(s.ch)
+			s.read()
 		}
 	}
 }
 
-func isSpace(c rune) bool {
-	return c == ' ' || c == '\t'
+func isSpace(ch rune) bool {
+	return ch == ' ' || ch == '\t'
 }
 
-func isLine(c rune) bool {
-	return c == '\n' || c == '\r'
+func isLine(ch rune) bool {
+	return ch == '\n' || ch == '\r'
 }
 
-func isSpecial(c rune) bool {
-	return c == '(' || c == ')' || c == ';' || isSpace(c) || isLine(c)
+func isSpecial(ch rune) bool {
+	return ch == '(' || ch == ')' || ch == ';' || isSpace(ch) || isLine(ch)
 }

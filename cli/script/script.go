@@ -45,8 +45,8 @@ package script
 import "github.com/pkg/errors"
 
 var (
-	// ErrInvalidUTF8 is returned when setting the input of the scanner
-	// to an invalid UTF8 string.
+	// ErrInvalidUTF8 is returned when a strings contains an invalid UTF8
+	// character.
 	ErrInvalidUTF8 = errors.New("invalid UTF8 string")
 
 	// ErrFuncName is returned when a function name is not a symbol.

@@ -135,10 +135,7 @@ func TestScanner_Emit(t *testing.T) {
 		}
 
 		s := NewScanner(OptErrorHandler(errHandler))
-		if err := s.SetInput(tt.input); err != nil {
-			t.Errorf("%q: s.SetInput(tt.input): error: %s", tt.input, err)
-			continue
-		}
+		s.SetInput(tt.input)
 
 		for {
 			tok := s.Emit()
@@ -160,9 +157,16 @@ func TestScanner_Emit(t *testing.T) {
 	}
 }
 
-func TestScanner_SetInput_invalidUTF8(t *testing.T) {
-	s := NewScanner()
-	got := errors.Cause(s.SetInput(string([]byte{0xff, 0xfe, 0xfd})))
+func TestScanner_invalidUTF8(t *testing.T) {
+	var got error
+
+	s := NewScanner(OptErrorHandler(func(err error) {
+		got = errors.Cause(err)
+	}))
+
+	s.SetInput(string([]byte{0xff, 0xfe, 0xfd}))
+	s.Emit()
+
 	if want := ErrInvalidUTF8; got != want {
 		t.Errorf("error = %v want %v", got, want)
 	}

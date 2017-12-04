@@ -17,8 +17,6 @@ package script
 import (
 	"fmt"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 type parserTest struct {
@@ -210,21 +208,5 @@ func TestParser_List(t *testing.T) {
 		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
 			t.Errorf("%q: sexp = %v want %v", tt.input, got, want)
 		}
-	}
-}
-
-func TestScanner_Scan_invalidUTF8(t *testing.T) {
-	p := NewParser(NewScanner())
-	_, err := p.Parse(string([]byte{0xff, 0xfe, 0xfd}))
-	if got, want := errors.Cause(err), ErrInvalidUTF8; got != want {
-		t.Errorf("error = %v want %v", got, want)
-	}
-}
-
-func TestScanner_List_invalidUTF8(t *testing.T) {
-	p := NewParser(NewScanner())
-	_, err := p.List(string([]byte{0xff, 0xfe, 0xfd}))
-	if got, want := errors.Cause(err), ErrInvalidUTF8; got != want {
-		t.Errorf("error = %v want %v", got, want)
 	}
 }

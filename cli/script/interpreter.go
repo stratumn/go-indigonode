@@ -32,6 +32,13 @@ func InterpreterOptClosure(c *Closure) InterpreterOpt {
 	}
 }
 
+// InterpreterOptVarPrefix sets a prefix for variables.
+func InterpreterOptVarPrefix(p string) InterpreterOpt {
+	return func(itr *Interpreter) {
+		itr.varPrefix = p
+	}
+}
+
 // InterpreterOptErrorHandler sets the error handler.
 func InterpreterOptErrorHandler(h func(error)) InterpreterOpt {
 	return func(itr *Interpreter) {
@@ -57,6 +64,23 @@ func InterpreterOptFuncHandlers(m map[string]InterpreterFuncHandler) Interpreter
 	}
 }
 
+var libs = []map[string]InterpreterFuncHandler{
+	LibCell,
+	LibClosure,
+	LibCond,
+	LibLambda,
+	LibMeta,
+}
+
+// InterpreterOptBuiltinLibs adds all the builtin function libraries.
+func InterpreterOptBuiltinLibs(itr *Interpreter) {
+	for _, l := range libs {
+		for k, h := range l {
+			itr.funcHandlers[k] = h
+		}
+	}
+}
+
 // InterpreterFuncHandler handle a call to a function.
 type InterpreterFuncHandler func(*InterpreterContext) (SExp, error)
 
@@ -68,6 +92,8 @@ type InterpreterContext struct {
 	Closure *Closure
 	Args    SCell
 	Meta    Meta
+
+	VarPrefix string
 
 	// These can be used to evaluate arguments.
 	Eval              func(context.Context, *Closure, SExp) (SExp, error)
@@ -86,9 +112,17 @@ type InterpreterContext struct {
 	WrapError func(error) error
 }
 
+// FuncData contains information about a funciton.
+type FuncData struct {
+	// ParentClosure is the closure the function was defined within.
+	ParentClosure *Closure
+}
+
 // Interpreter evaluates S-Expressions.
 type Interpreter struct {
 	closure *Closure
+
+	varPrefix string
 
 	funcHandlers map[string]InterpreterFuncHandler
 	errHandler   func(error)
@@ -224,12 +258,6 @@ func (itr *Interpreter) evalCell(
 
 		if car.UnderlyingType() == TypeSymbol {
 			name := car.MustSymbolVal()
-			handler, ok := itr.funcHandlers[name]
-			if !ok {
-				err := wrapError(ErrUnknownFunc)
-				itr.errHandler(err)
-				return nil, err
-			}
 
 			var args SCell
 
@@ -237,12 +265,13 @@ func (itr *Interpreter) evalCell(
 				args = cdr.MustCellVal()
 			}
 
-			handlerCtx := &InterpreterContext{
+			funcCtx := &InterpreterContext{
 				Ctx:               ctx,
 				Name:              name,
 				Closure:           closure,
 				Args:              args,
 				Meta:              meta,
+				VarPrefix:         itr.varPrefix,
 				Eval:              itr.eval,
 				EvalList:          itr.evalList,
 				EvalListToSlice:   itr.evalListToSlice,
@@ -254,7 +283,19 @@ func (itr *Interpreter) evalCell(
 				WrapError: wrapError,
 			}
 
-			val, err := handler(handlerCtx)
+			lambda, ok := closure.Get(itr.varPrefix + name)
+			if ok {
+				return itr.execFunc(funcCtx, lambda)
+			}
+
+			handler, ok := itr.funcHandlers[name]
+			if !ok {
+				err := wrapError(ErrUnknownFunc)
+				itr.errHandler(err)
+				return nil, err
+			}
+
+			val, err := handler(funcCtx)
 			if err != nil {
 				itr.errHandler(err)
 			}
@@ -408,4 +449,71 @@ func (itr *Interpreter) evalBody(
 	}
 
 	return nil, nil
+}
+
+// execFunc executes a script function.
+//
+// The function arguments are evaluated in the given closure. A new closure
+// is created for the function body. The parent of the function body closure
+// is the one stored in the FuncData.
+//
+// It is assumed that the function was properly created, using Lambda for
+// instance.
+func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, error) {
+	// Make sure that is a function (has FuncData in meta).
+	data, ok := lambda.Meta().UserData.(FuncData)
+	if !ok {
+		return nil, errors.WithStack(ErrNotFunc)
+	}
+
+	// Assumes the function has already been checked when created.
+	//
+	// Ignore car of lambda which normally contains the symbol 'lambda'.
+	//
+	// Get:
+	//
+	//	1. cadr of lambda (the argument symbols)
+	lambdaCell := lambda.MustCellVal()
+	lambdaCdr := lambdaCell.Cdr()
+	lambdaCdrCell := lambdaCdr.MustCellVal()
+	lambdaCadr := lambdaCdrCell.Car()
+
+	var lambdaCadrCell SCell
+	if lambdaCadr != nil {
+		lambdaCadrCell = lambdaCadr.MustCellVal()
+	}
+
+	//	2. caddr of lambda (the function body)
+	lambdaCddr := lambdaCdrCell.Cdr()
+	lambdaCddrCell := lambdaCddr.MustCellVal()
+	lambdaCaddr := lambdaCddrCell.Car()
+
+	// Now evaluate the function arguments in the given context.
+	argv, err := itr.evalListToSlice(ctx.Ctx, ctx.Closure, ctx.Args)
+	if err != nil {
+		return nil, ctx.WrapError(err)
+	}
+
+	// Transform cadr of lambda (the argument symbols) to a slice if it
+	// isn't nil.
+	var lambdaCadrSlice SExpSlice
+	if lambdaCadrCell != nil {
+		lambdaCadrSlice = lambdaCadrCell.MustToSlice()
+	}
+
+	// Make sure the number of arguments is correct.
+	if len(argv) != len(lambdaCadrSlice) {
+		return nil, ctx.Error("unexpected number of arguments")
+	}
+
+	// Create a closure for the function body.
+	bodyClosure := NewClosure(ClosureOptParent(data.ParentClosure))
+
+	// Bind the argument vector to symbol values.
+	for i, symbol := range lambdaCadrSlice {
+		bodyClosure.Set(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
+	}
+
+	// Finally, evaluate the function body.
+	return itr.evalBody(ctx.Ctx, bodyClosure, lambdaCaddr)
 }

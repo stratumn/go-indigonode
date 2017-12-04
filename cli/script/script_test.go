@@ -21,11 +21,78 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-func Example() {
+func Example_simple() {
 	// Script that will be evaluated.
 	src := `
-		; This is a comment.
+		; You can have comments
 
+		; You can create lists by quoting symbols
+		quote (A B C)
+
+		; You can bind a value to a symbol:
+		let my-list (quote (A B C))
+
+		; You have do conditional expressions:
+		if my-list 'list exists' 'list does not exist'
+
+		; You can manipulate lists:
+		car my-list
+		cdr my-list
+		car (cdr my-list)
+`
+
+	// Initialize an interpreter with the builtin libraries.
+	itr := script.NewInterpreter(script.InterpreterOptBuiltinLibs)
+
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// (A B C)
+	// (A B C)
+	// "list exists"
+	// A
+	// (B C)
+	// B
+}
+
+func Example_recursion() {
+	// Script that will be evaluated.
+	src := `
+		; Reverses a list recusively.
+		let reverse (lambda (list) (
+			; Define a nested recursive function with an accumulator.
+			(let reverse-rec (lambda (list tail) (
+			(unless list 
+				tail
+				(reverse-rec (cdr list) (cons (car list) tail))))))
+			; Start the recursion
+			(reverse-rec list ())))
+
+		; Test it out.
+		reverse (quote (A L I C E))
+`
+
+	// Initialize an interpreter with the builtin libraries.
+	itr := script.NewInterpreter(script.InterpreterOptBuiltinLibs)
+
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// (lambda (list) ((let reverse-rec (lambda (list tail) ((unless list tail (reverse-rec (cdr list) (cons (car list) tail)))))) (reverse-rec list <nil>)))
+	// (E C I L A)
+}
+
+func Example_customFunctions() {
+	// Script that will be evaluated.
+	src := `
 		echo (title "hello world!")
 
 		(echo

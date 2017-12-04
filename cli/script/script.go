@@ -55,4 +55,10 @@ var (
 
 	// ErrSymNotFound is returned when a symbol could not be resolved.
 	ErrSymNotFound = errors.New("could not resolve symbol")
+
+	// ErrNotFunc is returned when an S-Expression is not a function.
+	ErrNotFunc = errors.New("the expression is not a function")
 )
+
+// LambdaSymbol is the symbol used to declare lambda functions.
+const LambdaSymbol = "lambda"

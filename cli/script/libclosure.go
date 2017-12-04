@@ -14,58 +14,64 @@
 
 package script
 
-// LibClosure contains functions to work with closures.
-var LibClosure = map[string]InterpreterFuncHandler{
-	"let": LibClosureLet,
+// LibLambda contains functions to work with lambda functions.
+var LibLambda = map[string]InterpreterFuncHandler{
+	"lambda": LibLambdaLambda,
 }
 
-// LibClosureLet binds a value to a symbol in the current closure.
-func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
-	// Get:
+// LibLambdaLambda creates a lambda function.
+func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
+	// Make sure that:
 	//
-	//	1. car symbol value
+	//	1. car is nil or a list of symbols (function arguments)
 	if ctx.Args == nil {
-		return nil, ctx.Error("missing symbol")
+		return nil, ctx.Error("missing function arguments")
 	}
 
 	car := ctx.Args.Car()
-	if ctx.Args == nil {
-		return nil, ctx.Error("missing symbol")
-	}
-
-	carSymbol, ok := car.SymbolVal()
-	if !ok {
-		return nil, ctx.Error("not a symbol")
-	}
-
-	//	2. cadr, optional (value)
-	cdr := ctx.Args.Cdr()
-	var cadr SExp
-
-	if cdr != nil {
-		cdrCell, ok := cdr.CellVal()
-		if !ok {
-			return nil, ctx.Error("invalid value")
+	if car != nil {
+		carCell, ok := car.CellVal()
+		if !ok || !carCell.IsList() {
+			return nil, ctx.Error("function arguments are not a list")
 		}
 
-		cadr = cdrCell.Car()
+		for _, exp := range carCell.MustToSlice() {
+			if exp.UnderlyingType() != TypeSymbol {
+				return nil, ctx.Error("function argument is not a symbol")
+			}
+		}
 	}
 
-	//	3. a value isn't already bound to symbol in the current
-	//	   closure
-
-	if _, ok := ctx.Closure.Local("$" + carSymbol); ok {
-		return nil, ctx.Error("a value is already bound to the symbol")
+	//	2. cadr (function body) is there but can be anything including
+	//	   nil
+	cdr := ctx.Args.Cdr()
+	if cdr == nil {
+		return nil, ctx.Error("missing function body")
 	}
 
-	// Evaluate cadr (the value).
-	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, cadr)
-	if err != nil {
-		return nil, err
+	cdrCell, ok := cdr.CellVal()
+	if !ok {
+		return nil, ctx.Error("invalid function body")
 	}
 
-	// Bind the value to the symbol and return the value.
-	ctx.Closure.SetLocal("$"+carSymbol, v)
+	if cdrCell.Cdr() != nil {
+		return nil, ctx.Error("extra expressions after function body")
+	}
 
-	return v, nil
+	// To differenciate lambda functions from other expressions, FuncData
+	// is stored in the meta, which is also used to store the parent
+	// closure of the function.
+	lambda := Cons(
+		Symbol(LambdaSymbol, ctx.Meta),
+		ctx.Args,
+		Meta{
+			Line:   ctx.Meta.Line,
+			Offset: ctx.Meta.Offset,
+			UserData: FuncData{
+				ParentClosure: ctx.Closure,
+			},
+		},
+	)
+
+	return lambda, nil
 }

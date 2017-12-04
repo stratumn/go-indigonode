@@ -50,16 +50,16 @@ type BasicCmd struct {
 
 	// ExecStrings is a function that executes the command against string
 	// arguments and outputs to a writer.
-	ExecStrings func(*StringsContext) error
+	ExecStrings func(*StringsContext, CLI) error
 
-	// ExecSExp is a function that executes the command against a
+	// ExecSExp is a function that executes the command against
 	// S-Expression arguments.
-	ExecSExp func(*ExecContext) (script.SExp, error)
+	ExecSExp func(*script.InterpreterContext, CLI) (script.SExp, error)
 }
 
 // StringsContext is passed to ExecStrings when executing a basic command.
 type StringsContext struct {
-	ExecContext
+	script.InterpreterContext
 	Writer io.Writer
 	Args   []string
 	Flags  *pflag.FlagSet
@@ -206,12 +206,12 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 }
 
 // Exec executes the basic command.
-func (cmd BasicCmdWrapper) Exec(ctx *ExecContext) (script.SExp, error) {
+func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script.SExp, error) {
 	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx)
+		return cmd.Cmd.ExecSExp(ctx, cli)
 	}
 
-	argv, err := script.EvalListToStrings(ctx.Closure.Resolve, ctx.Call, ctx.Args)
+	argv, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -237,18 +237,18 @@ func (cmd BasicCmdWrapper) Exec(ctx *ExecContext) (script.SExp, error) {
 		// args.
 		args := append([]string{cmd.Name()}, flags.Args()...)
 		err = cmd.Cmd.ExecStrings(&StringsContext{
-			ExecContext: *ctx,
-			Writer:      buf,
-			Args:        args,
-			Flags:       flags,
-		})
+			InterpreterContext: *ctx,
+			Writer:             buf,
+			Args:               args,
+			Flags:              flags,
+		}, cli)
 	} else {
 		err = cmd.Cmd.ExecStrings(&StringsContext{
-			ExecContext: *ctx,
-			Writer:      buf,
-			Args:        flags.Args(),
-			Flags:       flags,
-		})
+			InterpreterContext: *ctx,
+			Writer:             buf,
+			Args:               flags.Args(),
+			Flags:              flags,
+		}, cli)
 	}
 
 	if err != nil {

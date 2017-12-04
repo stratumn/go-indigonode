@@ -67,7 +67,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 			flags.String("flag", "", "")
 			return flags
 		},
-		ExecStrings: func(*StringsContext) error {
+		ExecStrings: func(*StringsContext, CLI) error {
 			return nil
 		},
 	}}
@@ -125,7 +125,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	cmd := BasicCmdWrapper{BasicCmd{
 		Name:  "cmd",
 		Short: "A test command",
-		ExecStrings: func(*StringsContext) error {
+		ExecStrings: func(*StringsContext, CLI) error {
 			close(execCh)
 			return nil
 		},
@@ -136,10 +136,13 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := cmd.Exec(&ExecContext{
+	_, err := cmd.Exec(&script.InterpreterContext{
 		Ctx:     ctx,
 		Closure: closure,
-	})
+		EvalListToStrings: func(context.Context, *script.Closure, script.SCell) ([]string, error) {
+			return nil, nil
+		},
+	}, nil)
 
 	if err != nil {
 		t.Errorf(`cmd.Exec(): error: %s`, err)

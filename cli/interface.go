@@ -56,19 +56,8 @@ type Cmd interface {
 	// command name.
 	Match(string) bool
 
-	// Exec executes the given S-Expression arguments.
-	Exec(*ExecContext) (script.SExp, error)
-}
-
-// ExecContext is passed to a command when executing it.
-type ExecContext struct {
-	Ctx     context.Context
-	CLI     CLI
-	Closure *script.Closure
-	Name    string
-	Call    script.CallHandler
-	Args    script.SCell
-	Meta    script.Meta
+	// Exec executes the commands.
+	Exec(*script.InterpreterContext, CLI) (script.SExp, error)
 }
 
 // Suggest implements a suggestion.

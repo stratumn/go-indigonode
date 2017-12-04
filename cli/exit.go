@@ -30,7 +30,7 @@ var Exit = BasicCmdWrapper{BasicCmd{
 	ExecStrings: exitExec,
 }}
 
-func exitExec(ctx *StringsContext) error {
+func exitExec(ctx *StringsContext, cli CLI) error {
 	argc := len(ctx.Args)
 	if argc > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
@@ -46,7 +46,7 @@ func exitExec(ctx *StringsContext) error {
 		}
 	}
 
-	ctx.CLI.Console().Println("Goodbye!")
+	cli.Console().Println("Goodbye!")
 	os.Exit(status)
 
 	return nil

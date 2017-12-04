@@ -44,9 +44,6 @@ var (
 
 	// ErrParse is returned when a value could not be parsed.
 	ErrParse = errors.New("could not parse the value")
-
-	// ErrNotFunc is returned when an S-Expression is not a function.
-	ErrNotFunc = errors.New("the expression is not a function")
 )
 
 // UseError represents a usage error.

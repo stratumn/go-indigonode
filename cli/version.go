@@ -37,7 +37,7 @@ func versionFlags() *pflag.FlagSet {
 	return flags
 }
 
-func versionExec(ctx *StringsContext) error {
+func versionExec(ctx *StringsContext, cli CLI) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}

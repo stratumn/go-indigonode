@@ -201,11 +201,13 @@ func TestCli_Exec_error(t *testing.T) {
 		t.Errorf("New(config): error: %s", err)
 	}
 
+	c.Console().Writer = ioutil.Discard
+
 	ctx := context.Background()
 	err = errors.Cause(c.Exec(ctx, "version"))
 
-	if err != ErrInvalidInstr {
-		t.Errorf("c.Exec(ctx, \"version\"): error = %v want %v", err, ErrInvalidInstr)
+	if err != script.ErrUnknownFunc {
+		t.Errorf("c.Exec(ctx, \"version\"): error = %v want %v", err, script.ErrUnknownFunc)
 	}
 }
 
@@ -244,7 +246,7 @@ func TestCli_Run_error(t *testing.T) {
 	c.Run(ctx, "version")
 
 	got := buf.String()
-	want := ansiRed + "Error: 1:1: version: the instruction is invalid.\n" + ansiReset
+	want := ansiRed + "Error: 1:1: version: unknown function.\n" + ansiReset
 
 	if got != want {
 		t.Errorf("c.Run(ctx, \"version\") =>\n%s\nwant\n\n%s", got, want)

@@ -60,25 +60,15 @@ import (
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
-// List all the builtin CLI commands here.
-var cmds = []Cmd{
+// StaticCmds is the list of builtin static CLI commands.
+var StaticCmds = []Cmd{
 	Addr,
-	Bang{},
-	Block,
+	Bang,
 	Connect,
-	Car,
-	Cdr,
-	Cons,
 	Disconnect,
 	Echo,
-	Eval,
 	Exit,
 	Help,
-	If,
-	Lambda,
-	Let,
-	Quote,
-	Unless,
 	Version,
 }
 
@@ -103,12 +93,7 @@ echo
 echo --log debug Debuf output is enabled.
 
 ; Connect to the API.
-(unless
-	(api-connect)
-	(block
-		(echo)
-		(echo Looks like the API is offline.)
-		(echo You can try to connect again using "'api-connect'")))
+api-connect
 
 echo
 echo Enter "'help'" to list available commands.
@@ -154,10 +139,11 @@ type cli struct {
 	cons   *Console
 	prompt func(context.Context, CLI)
 
-	closure    *script.Closure
-	parser     *script.Parser
-	reflector  ServerReflector
+	itr       *script.Interpreter
+	reflector ServerReflector
+
 	staticCmds []Cmd
+	apiCmds    []Cmd
 	allCmds    []Cmd
 
 	addr string
@@ -181,25 +167,31 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
+	c := cli{
+		conf:       config,
+		cons:       cons,
+		prompt:     prompt,
+		reflector:  NewServerReflector(cons, 0),
+		staticCmds: StaticCmds,
+		allCmds:    StaticCmds,
+		addr:       config.APIAddress,
+	}
+
 	// Create the top closure with env variables.
 	closure := script.NewClosure(
 		script.ClosureOptEnv("$", os.Environ()),
 		script.ClosureOptResolver(Resolver),
 	)
 
-	c := cli{
-		conf:       config,
-		cons:       cons,
-		prompt:     prompt,
-		closure:    closure,
-		reflector:  NewServerReflector(cons, 0),
-		staticCmds: cmds,
-		allCmds:    cmds,
-		addr:       config.APIAddress,
-	}
+	c.itr = script.NewInterpreter(
+		script.InterpreterOptBuiltinLibs,
+		script.InterpreterOptVarPrefix("$"),
+		script.InterpreterOptClosure(closure),
+		script.InterpreterOptErrorHandler(c.PrintError),
+		script.InterpreterOptValueHandler(c.printValue),
+	)
 
-	scanner := script.NewScanner(script.ScannerOptErrorHandler(c.PrintError))
-	c.parser = script.NewParser(scanner)
+	c.addCmdsToInterpreter(StaticCmds)
 
 	sort.Slice(c.staticCmds, func(i, j int) bool {
 		return c.staticCmds[i].Name() < c.staticCmds[j].Name()
@@ -312,7 +304,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return errors.WithStack(err)
 	}
 
-	apiCmds, err := c.reflector.Reflect(ctx, conn)
+	c.apiCmds, err = c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			c.cons.Debugf("Could not close connection: %s.", err)
@@ -320,10 +312,12 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return err
 	}
 
-	c.allCmds = append(c.staticCmds, apiCmds...)
+	c.allCmds = append(c.staticCmds, c.apiCmds...)
 	sort.Slice(c.allCmds, func(i, j int) bool {
 		return c.allCmds[i].Name() < c.allCmds[j].Name()
 	})
+
+	c.addCmdsToInterpreter(c.apiCmds)
 
 	c.conn = conn
 
@@ -336,9 +330,12 @@ func (c *cli) Disconnect() error {
 		return errors.WithStack(ErrDisconnected)
 	}
 
+	c.removeCmdsFromInterpreter(c.apiCmds)
+
 	conn := c.conn
 	c.conn = nil
 	c.allCmds = c.staticCmds
+	c.apiCmds = nil
 
 	return errors.WithStack(conn.Close())
 }
@@ -362,45 +359,31 @@ func (c *cli) PrintError(err error) {
 	}
 }
 
+// printValue prints an interpreted value.
+func (c *cli) printValue(val script.SExp) {
+	if val != nil {
+		// Dont't print quotes.
+		if val.UnderlyingType() == script.TypeString {
+			str := val.MustStringVal()
+			if str == "" {
+				return
+			}
+
+			c.cons.Print(str)
+			if !strings.HasSuffix(str, "\n") {
+				c.cons.Println()
+			}
+		} else {
+			c.cons.Println(fmt.Sprint(val))
+		}
+	}
+}
+
 // Exec executes the given input.
 func (c *cli) Exec(ctx context.Context, in string) error {
 	defer func() { c.executed = true }()
 
-	instrs, err := c.parser.Parse(in)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	call := c.callWithClosure(ctx, c.closure)
-
-	if instrs != nil {
-		list := instrs.MustToSlice()
-
-		for _, instr := range list {
-			v, err := script.Eval(c.closure.Resolve, call, instr)
-			if err != nil {
-				return err
-			}
-
-			if v != nil {
-				// Dont't print quotes.
-				if v.UnderlyingType() == script.TypeString {
-					str := v.MustStringVal()
-					if str == "" {
-						continue
-					}
-					c.cons.Print(str)
-					if !strings.HasSuffix(str, "\n") {
-						c.cons.Println()
-					}
-				} else {
-					c.cons.Println(fmt.Sprint(v))
-				}
-			}
-		}
-	}
-
-	return nil
+	return c.itr.EvalInput(ctx, in)
 }
 
 // Run executes the given input, handling errors and cancellation signals.
@@ -412,25 +395,23 @@ func (c *cli) Run(ctx context.Context, in string) {
 		cancel()
 	}()
 
-	done := make(chan error, 1)
+	done := make(chan struct{})
 	sigc := make(chan os.Signal, 2)
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		done <- c.Exec(execCtx, in)
+		// Errors are already printed.
+		_ = c.Exec(execCtx, in)
+		close(done)
 	}()
-
-	var err error
 
 	// Handle exit conditions.
 	select {
 	case <-sigc:
 		cancel()
-		err = <-done
-	case err = <-done:
+		<-done
+	case <-done:
 	}
-
-	c.PrintError(err)
 }
 
 // Suggest finds all command suggestions.
@@ -458,78 +439,24 @@ func (c *cli) DidJustExecute() bool {
 	return c.executed
 }
 
-// execCmd executes the given command.
-func (c *cli) execCmd(ctx *ExecContext, cmd Cmd) (script.SExp, error) {
-	val, err := cmd.Exec(ctx)
-
-	if err != nil {
-		cause := errors.Cause(err)
-
-		// If it is a usage error, add the use string to it.
-		if useError, ok := cause.(*UseError); ok {
-			useError.use = cmd.LongUse()
-		}
-
-		return nil, errors.Wrapf(
-			err,
-			"%d:%d: %s",
-			ctx.Meta.Line,
-			ctx.Meta.Offset,
-			ctx.Name,
-		)
+// addCmdsToInterpreter adds commands to the interpreter.
+func (c *cli) addCmdsToInterpreter(cmds []Cmd) {
+	for _, cmd := range cmds {
+		c.itr.AddFuncHandler(cmd.Name(), c.wrapCmdExec(cmd))
 	}
-
-	return val, nil
 }
 
-// call handles function calls.
-func (c *cli) call(ctx *ExecContext) (script.SExp, error) {
-	lambda, ok := ctx.Closure.Get("$" + ctx.Name)
-	if ok {
-		return ExecFunc(&FuncContext{
-			Ctx:               ctx.Ctx,
-			Closure:           ctx.Closure,
-			CallerWithClosure: c.callWithClosure,
-			Name:              ctx.Name,
-			Lambda:            lambda,
-			Args:              ctx.Args,
-		})
+// removeCmdsFromInterpreter removes a command from the interpreter.
+func (c *cli) removeCmdsFromInterpreter(cmds []Cmd) {
+	for _, cmd := range cmds {
+		c.itr.DeleteFuncHandler(cmd.Name())
 	}
-
-	for _, cmd := range c.allCmds {
-		if cmd.Match(ctx.Name) {
-			return c.execCmd(ctx, cmd)
-		}
-	}
-
-	return nil, errors.Wrapf(
-		ErrInvalidInstr,
-		"%d:%d: %s",
-		ctx.Meta.Line,
-		ctx.Meta.Offset,
-		ctx.Name,
-	)
 }
 
-// callWithClosure creates an S-Expression call handler bound to a closure.
-func (c *cli) callWithClosure(
-	ctx context.Context,
-	closure *script.Closure,
-) script.CallHandler {
-	return func(
-		resolve script.ResolveHandler,
-		name string,
-		args script.SCell,
-		meta script.Meta,
-	) (script.SExp, error) {
-		return c.call(&ExecContext{
-			Ctx:     ctx,
-			CLI:     c,
-			Name:    name,
-			Closure: closure,
-			Call:    c.callWithClosure(ctx, closure),
-			Args:    args,
-			Meta:    meta,
-		})
+// wrapCmdExec makes the exec function of a command compatible with the
+// interpreter.
+func (c *cli) wrapCmdExec(cmd Cmd) script.InterpreterFuncHandler {
+	return func(ctx *script.InterpreterContext) (script.SExp, error) {
+		return cmd.Exec(ctx, c)
 	}
 }

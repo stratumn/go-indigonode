@@ -605,17 +605,17 @@ BYTERATE REPEATED FIELD
 }, {
 	"missing arg",
 	"test-unaryreq",
-	"",
+	ansiRed + "Error: invalid usage: missing argument(s).\n" + ansiReset,
 	errUse,
 }, {
 	"extra arg",
 	"test-unaryreq a b",
-	"",
+	ansiRed + "Error: invalid usage: unexpected argument(s): b.\n" + ansiReset,
 	errUse,
 }, {
 	"invalid flag",
 	"test-unaryreq --boolean 1",
-	"",
+	ansiRed + "Error: invalid usage: missing argument(s).\n" + ansiReset,
 	errUse,
 }}
 

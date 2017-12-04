@@ -749,8 +749,8 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 		return r.flags(d.GetFullyQualifiedName(), optional, d.IsServerStreaming())
 	}
 
-	cmd.ExecStrings = func(ctx *StringsContext) error {
-		return r.reflectExec(ctx, d, required, optional, conn)
+	cmd.ExecStrings = func(ctx *StringsContext, cli CLI) error {
+		return r.reflectExec(ctx, cli, d, required, optional, conn)
 	}
 
 	return BasicCmdWrapper{cmd}, nil
@@ -862,6 +862,7 @@ func (r ServerReflector) flags(
 // reflectExec executes a command.
 func (r ServerReflector) reflectExec(
 	ctx *StringsContext,
+	cli CLI,
 	method *desc.MethodDescriptor,
 	required []*desc.FieldDescriptor,
 	optional []*desc.FieldDescriptor,
@@ -888,7 +889,7 @@ func (r ServerReflector) reflectExec(
 
 	stub := grpcdynamic.NewStub(conn)
 
-	to, err := time.ParseDuration(ctx.CLI.Config().DialTimeout)
+	to, err := time.ParseDuration(cli.Config().DialTimeout)
 	if err != nil {
 		return errors.WithStack(err)
 	}

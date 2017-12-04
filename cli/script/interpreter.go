@@ -158,6 +158,16 @@ func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
 	return itr
 }
 
+// AddFuncHandler adds a function handler.
+func (itr *Interpreter) AddFuncHandler(name string, handler InterpreterFuncHandler) {
+	itr.funcHandlers[name] = handler
+}
+
+// DeleteFuncHandler removes a function handler.
+func (itr *Interpreter) DeleteFuncHandler(name string) {
+	delete(itr.funcHandlers, name)
+}
+
 // EvalInput evaluates the given input.
 func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 	var scanError error

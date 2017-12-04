@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -55,9 +54,6 @@ type ExecTest struct {
 
 // Exec executes the test command.
 func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -79,22 +75,31 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 		return nil, nil
 	}
 
-	var args script.SCell
-
-	cmdCdr := list.MustCellVal().Car().MustCellVal().Cdr()
-	if cmdCdr != nil {
-		args = cmdCdr.MustCellVal()
-	}
+	var val script.SExp
 
 	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
 
-	return cmd.Exec(&cli.ExecContext{
-		Ctx:     ctx,
-		CLI:     c,
-		Closure: closure,
-		Call:    execCall,
-		Args:    args,
+	itr := script.NewInterpreter(
+		script.InterpreterOptVarPrefix("$"),
+		script.InterpreterOptClosure(closure),
+		script.InterpreterOptErrorHandler(func(error) {}),
+		script.InterpreterOptValueHandler(func(v script.SExp) {
+			val = v
+		}),
+	)
+
+	// Find command name.
+	name := list.Car().MustCellVal().Car().MustSymbolVal()
+	itr.AddFuncHandler(name, func(ctx *script.InterpreterContext) (script.SExp, error) {
+		return cmd.Exec(ctx, c)
 	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	err = itr.EvalInput(ctx, e.Command)
+
+	return val, err
 }
 
 // Test runs the test against the command.
@@ -128,41 +133,4 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	if got != e.Want {
 		t.Errorf("%s =>\n%s\nwant\n\n%s", e.Command, got, e.Want)
 	}
-}
-
-func execCall(
-	resolve script.ResolveHandler,
-	name string,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
-	if name == "quote" {
-		if args == nil || args.Cdr() != nil {
-			return nil, cli.NewUseError("expected a single expression")
-		}
-
-		return args.Car(), nil
-	}
-
-	argv, err := script.EvalListToStrings(resolve, execCall, args)
-	if err != nil {
-		return nil, err
-	}
-
-	str := strings.Join(argv, " ")
-
-	switch name {
-	case "echo":
-		return script.String(str, meta), nil
-	case "title":
-		title := strings.Title(str)
-		return script.String(title, meta), nil
-	}
-
-	return nil, errors.Errorf(
-		"%d:%d: %s: unknown function",
-		meta.Line,
-		meta.Offset,
-		name,
-	)
 }

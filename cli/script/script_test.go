@@ -26,7 +26,7 @@ func Example_simple() {
 	src := `
 		; You can have comments
 
-		; You can create lists by quoting symbols
+		; You can create lists by quoting symbols:
 		quote (A B C)
 
 		; You can bind a value to a symbol:
@@ -63,14 +63,14 @@ func Example_recursion() {
 	// Script that will be evaluated.
 	src := `
 		; Reverses a list recusively.
-		let reverse (lambda (list) (
+		let reverse (lambda (l) (
 			; Define a nested recursive function with an accumulator.
-			(let reverse-rec (lambda (list tail) (
-			(unless list 
-				tail
-				(reverse-rec (cdr list) (cons (car list) tail))))))
+			(let reverse-rec (lambda (l tail) (
+				(unless l 
+					tail
+					(reverse-rec (cdr l) (cons (car l) tail))))))
 			; Start the recursion
-			(reverse-rec list ())))
+			(reverse-rec l ())))
 
 		; Test it out.
 		reverse (quote (A L I C E))
@@ -86,7 +86,7 @@ func Example_recursion() {
 	}
 
 	// Output:
-	// (lambda (list) ((let reverse-rec (lambda (list tail) ((unless list tail (reverse-rec (cdr list) (cons (car list) tail)))))) (reverse-rec list <nil>)))
+	// (lambda (l) ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
 	// (E C I L A)
 }
 

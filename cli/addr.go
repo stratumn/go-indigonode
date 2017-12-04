@@ -26,12 +26,12 @@ var Addr = BasicCmdWrapper{BasicCmd{
 	ExecStrings: addrExec,
 }}
 
-func addrExec(ctx *StringsContext) error {
+func addrExec(ctx *StringsContext, cli CLI) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	fmt.Fprintln(ctx.Writer, ctx.CLI.Address())
+	fmt.Fprintln(ctx.Writer, cli.Address())
 
 	return nil
 }

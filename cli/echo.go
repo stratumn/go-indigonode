@@ -38,7 +38,7 @@ func echoFlags() *pflag.FlagSet {
 	return flags
 }
 
-func echoExec(ctx *StringsContext) error {
+func echoExec(ctx *StringsContext, cli CLI) error {
 	s := strings.Join(ctx.Args, " ")
 
 	log, err := ctx.Flags.GetString("log")
@@ -46,7 +46,7 @@ func echoExec(ctx *StringsContext) error {
 		return errors.WithStack(err)
 	}
 
-	cons := ctx.CLI.Console()
+	cons := cli.Console()
 
 	switch log {
 	case "debug":

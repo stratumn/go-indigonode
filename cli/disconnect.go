@@ -27,16 +27,16 @@ var Disconnect = BasicCmdWrapper{BasicCmd{
 	ExecStrings: disconnectExec,
 }}
 
-func disconnectExec(ctx *StringsContext) error {
+func disconnectExec(ctx *StringsContext, cli CLI) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	if err := ctx.CLI.Disconnect(); err != nil {
+	if err := cli.Disconnect(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	ctx.CLI.Console().Println("Disconnected.")
+	cli.Console().Println("Disconnected.")
 
 	return nil
 }

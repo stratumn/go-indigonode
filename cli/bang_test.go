@@ -33,8 +33,8 @@ func TestBang(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"! cat '' (title 'hello outside world!')",
-		"Hello Outside World!",
+		"! cat '' 'hello outside world!'",
+		"hello outside world!",
 		nil,
 		nil,
 	}, {
@@ -71,13 +71,13 @@ func TestBang(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.Command), func(t *testing.T) {
-			tt.Test(t, cli.Bang{})
+			tt.Test(t, cli.Bang)
 		})
 	}
 }
 
 func TestBang_strings(t *testing.T) {
-	bang := cli.Bang{}
+	bang := cli.Bang
 
 	tests := []struct {
 		name  string

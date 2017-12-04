@@ -35,7 +35,7 @@
 //	SExpListInParen = { SExpInParen }
 //	SExpList        = { SExp }
 //	SExpInParen     = { NewLine } SExp
-//      SExp            = List | Atom
+//	SExp            = List | Atom
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
 //	Atom            = symbol | string
 package script

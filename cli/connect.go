@@ -26,7 +26,7 @@ var Connect = BasicCmdWrapper{BasicCmd{
 	ExecStrings: execConnect,
 }}
 
-func execConnect(ctx *StringsContext) error {
+func execConnect(ctx *StringsContext, cli CLI) error {
 	argc := len(ctx.Args)
 	if argc > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
@@ -37,14 +37,14 @@ func execConnect(ctx *StringsContext) error {
 	if argc > 0 {
 		addr = ctx.Args[0]
 	} else {
-		addr = ctx.CLI.Address()
+		addr = cli.Address()
 	}
 
-	c := ctx.CLI.Console()
+	c := cli.Console()
 
 	c.Infof("Connecting to %q...\n", addr)
 
-	if err := ctx.CLI.Connect(ctx.Ctx, addr); err != nil {
+	if err := cli.Connect(ctx.Ctx, addr); err != nil {
 		c.Errorf("Could not connect to %q.\n", addr)
 		return err
 	}

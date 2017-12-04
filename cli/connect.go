@@ -15,11 +15,7 @@
 package cli
 
 import (
-	"context"
-	"io"
 	"strings"
-
-	"github.com/spf13/pflag"
 )
 
 // Connect is a command that creates a connection to the API server.
@@ -30,30 +26,25 @@ var Connect = BasicCmdWrapper{BasicCmd{
 	ExecStrings: execConnect,
 }}
 
-func execConnect(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	if len(args) > 1 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
+func execConnect(ctx *StringsContext) error {
+	argc := len(ctx.Args)
+	if argc > 1 {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
 	}
 
 	var addr string
 
-	if len(args) > 0 {
-		addr = args[0]
+	if argc > 0 {
+		addr = ctx.Args[0]
 	} else {
-		addr = cli.Address()
+		addr = ctx.CLI.Address()
 	}
 
-	c := cli.Console()
+	c := ctx.CLI.Console()
 
 	c.Infof("Connecting to %q...\n", addr)
 
-	if err := cli.Connect(ctx, addr); err != nil {
+	if err := ctx.CLI.Connect(ctx.Ctx, addr); err != nil {
 		c.Errorf("Could not connect to %q.\n", addr)
 		return err
 	}

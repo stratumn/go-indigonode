@@ -15,14 +15,11 @@
 package cli
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 )
 
 // Help is a command that lists all the available commands or displays help for
@@ -34,23 +31,18 @@ var Help = BasicCmdWrapper{BasicCmd{
 	ExecStrings: helpExec,
 }}
 
-func helpExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	if len(args) > 1 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
+func helpExec(ctx *StringsContext) error {
+	argc := len(ctx.Args)
+	if argc > 1 {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
 	}
 
-	if len(args) > 0 {
+	if argc > 0 {
 		// Show help for a specific command.
-		cmd := args[0]
-		for _, v := range cli.Commands() {
+		cmd := ctx.Args[0]
+		for _, v := range ctx.CLI.Commands() {
 			if v.Name() == cmd {
-				fmt.Fprintln(w, v.Long())
+				fmt.Fprintln(ctx.Writer, v.Long())
 				return nil
 			}
 		}
@@ -60,9 +52,9 @@ func helpExec(
 
 	// List all the available commands using a tab writer.
 	tw := new(tabwriter.Writer)
-	tw.Init(w, 0, 8, 2, ' ', 0)
+	tw.Init(ctx.Writer, 0, 8, 2, ' ', 0)
 
-	for _, v := range cli.Commands() {
+	for _, v := range ctx.CLI.Commands() {
 		fmt.Fprintln(tw, v.Use()+"\t"+v.Short())
 	}
 

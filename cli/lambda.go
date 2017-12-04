@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,23 +26,16 @@ var Lambda = BasicCmdWrapper{BasicCmd{
 	ExecSExp: lambdaExec,
 }}
 
-func lambdaExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func lambdaExec(ctx *ExecContext) (script.SExp, error) {
 	// Make sure that:
 	//
 	//	1. car is nil or a list of symbols (function arguments)
 
-	if args == nil {
+	if ctx.Args == nil {
 		return nil, NewUseError("missing function arguments")
 	}
 
-	car := args.Car()
+	car := ctx.Args.Car()
 	if car != nil {
 		carCell, ok := car.CellVal()
 		if !ok || !carCell.IsList() {
@@ -61,7 +52,7 @@ func lambdaExec(
 	//	2. cadr (function body) is there but can be anything including
 	//	   nil
 
-	cdr := args.Cdr()
+	cdr := ctx.Args.Cdr()
 	if cdr == nil {
 		return nil, NewUseError("missing function body")
 	}
@@ -79,12 +70,14 @@ func lambdaExec(
 	// is stored in the meta, which is also used to store the parent
 	// closure of the function.
 	lambda := script.Cons(
-		script.Symbol("lambda", meta),
-		args,
+		script.Symbol("lambda", ctx.Meta),
+		ctx.Args,
 		script.Meta{
-			Line:     meta.Line,
-			Offset:   meta.Offset,
-			UserData: FuncData{closure},
+			Line:   ctx.Meta.Line,
+			Offset: ctx.Meta.Offset,
+			UserData: FuncData{
+				ParentClosure: ctx.Closure,
+			},
 		},
 	)
 

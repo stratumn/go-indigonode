@@ -15,14 +15,11 @@
 package cli
 
 import (
-	"context"
-	"io"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 )
 
 // Exit is a command that terminates the current process.
@@ -33,28 +30,23 @@ var Exit = BasicCmdWrapper{BasicCmd{
 	ExecStrings: exitExec,
 }}
 
-func exitExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	if len(args) > 1 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args[1:], " "))
+func exitExec(ctx *StringsContext) error {
+	argc := len(ctx.Args)
+	if argc > 1 {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
 	}
 
 	status := 0
 
-	if len(args) > 0 {
-		statusArg := args[0]
+	if argc > 0 {
+		statusArg := ctx.Args[0]
 		var err error
 		if status, err = strconv.Atoi(statusArg); err != nil {
 			return errors.WithStack(ErrInvalidExitCode)
 		}
 	}
 
-	cli.Console().Println("Goodbye!")
+	ctx.CLI.Console().Println("Goodbye!")
 	os.Exit(status)
 
 	return nil

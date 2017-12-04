@@ -16,7 +16,6 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -50,19 +49,20 @@ type BasicCmd struct {
 	Flags func() *pflag.FlagSet
 
 	// ExecStrings is a function that executes the command against string
-	// arguments.
-	ExecStrings func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error
+	// arguments and outputs to a writer.
+	ExecStrings func(*StringsContext) error
 
 	// ExecSExp is a function that executes the command against a
 	// S-Expression arguments.
-	ExecSExp func(
-		context.Context,
-		CLI,
-		*script.Closure,
-		script.CallHandler,
-		script.SCell,
-		script.Meta,
-	) (script.SExp, error)
+	ExecSExp func(*ExecContext) (script.SExp, error)
+}
+
+// StringsContext is passed to ExecStrings when executing a basic command.
+type StringsContext struct {
+	ExecContext
+	Writer io.Writer
+	Args   []string
+	Flags  *pflag.FlagSet
 }
 
 // BasicCmdWrapper wraps a basic command to make it compatible with the Cmd
@@ -206,19 +206,12 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 }
 
 // Exec executes the basic command.
-func (cmd BasicCmdWrapper) Exec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func (cmd BasicCmdWrapper) Exec(ctx *ExecContext) (script.SExp, error) {
 	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx, cli, closure, call, args, meta)
+		return cmd.Cmd.ExecSExp(ctx)
 	}
 
-	argv, err := script.EvalListToStrings(closure.Resolve, call, args)
+	argv, err := script.EvalListToStrings(ctx.Closure.Resolve, ctx.Call, ctx.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -243,16 +236,26 @@ func (cmd BasicCmdWrapper) Exec(
 		// Invoke help command, pass the command name and remaining
 		// args.
 		args := append([]string{cmd.Name()}, flags.Args()...)
-		err = Help.Cmd.ExecStrings(ctx, cli, buf, args, flags)
+		err = cmd.Cmd.ExecStrings(&StringsContext{
+			ExecContext: *ctx,
+			Writer:      buf,
+			Args:        args,
+			Flags:       flags,
+		})
 	} else {
-		err = cmd.Cmd.ExecStrings(ctx, cli, buf, flags.Args(), flags)
+		err = cmd.Cmd.ExecStrings(&StringsContext{
+			ExecContext: *ctx,
+			Writer:      buf,
+			Args:        flags.Args(),
+			Flags:       flags,
+		})
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return script.String(buf.String(), meta), nil
+	return script.String(buf.String(), ctx.Meta), nil
 }
 
 // createFlags creates a set of flags for the command. There will be at least

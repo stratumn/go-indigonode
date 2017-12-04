@@ -15,9 +15,7 @@
 package cli
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -39,18 +37,12 @@ func versionFlags() *pflag.FlagSet {
 	return flags
 }
 
-func versionExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	if len(args) > 0 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
+func versionExec(ctx *StringsContext) error {
+	if len(ctx.Args) > 0 {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	l, err := flags.GetInt("git-commit-length")
+	l, err := ctx.Flags.GetInt("git-commit-length")
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -61,7 +53,7 @@ func versionExec(
 		commit = commit[:l]
 	}
 
-	fmt.Fprintln(w, release.Version+"@"+commit)
+	fmt.Fprintln(ctx.Writer, release.Version+"@"+commit)
 
 	return nil
 }

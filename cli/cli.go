@@ -96,7 +96,7 @@ const initScript = `
 echo
 echo --log info "` + art + `"
 echo
-echo (cli-version --git-commit-length 7) :: Copyright © 2017 Stratumn SAS
+cli-version --git-commit-length 7
 echo
 
 ; Only visible in debug mode.
@@ -128,173 +128,37 @@ func registerPrompt(name string, run func(context.Context, CLI)) {
 	promptsMu.Unlock()
 }
 
-var (
-	// ErrInvalidConfig is returned when the configuration is invalid.
-	ErrInvalidConfig = errors.New("the configuration is invalid")
+// Resolver resolves the name of the symbol if it doesn't begin with a dollar
+// sign.
+func Resolver(sym script.SExp) (script.SExp, error) {
+	name := sym.MustSymbolVal()
+	meta := sym.Meta()
 
-	// ErrPromptNotFound is returned when the requested prompt backend was
-	// not found.
-	ErrPromptNotFound = errors.New("the requested prompt was not found")
+	if strings.HasPrefix(name, "$") {
+		return nil, errors.Wrapf(
+			script.ErrSymNotFound,
+			"%d:%d: %s",
+			meta.Line,
+			meta.Offset,
+			name,
+		)
+	}
 
-	// ErrDisconnected is returned when the CLI is not connected to the
-	// API.
-	ErrDisconnected = errors.New("the client is not connected to API")
-
-	// ErrInvalidInstr is returned when the user entered an invalid
-	// instruction.
-	ErrInvalidInstr = errors.New("the instruction is invalid")
-
-	// ErrCmdNotFound is returned when a command was not found.
-	ErrCmdNotFound = errors.New("the command was not found")
-
-	// ErrInvalidExitCode is returned when an invalid exit code was given.
-	ErrInvalidExitCode = errors.New("the exit code is invalid")
-
-	// ErrUnsupportedReflectType is returned when a type is not currently
-	// supported by reflection.
-	ErrUnsupportedReflectType = errors.New("the type is not currently supported by reflection")
-
-	// ErrParse is returned when a value could not be parsed.
-	ErrParse = errors.New("could not parse the value")
-
-	// ErrNotFunc is returned when an S-Expression is not a function.
-	ErrNotFunc = errors.New("the expression is not a function")
-)
-
-// Content represents console content used to find suggestions.
-type Content interface {
-	// TextBeforeCursor returns all the text before the cursor.
-	TextBeforeCursor() string
-
-	// GetWordBeforeCursor returns the word before the current cursor
-	// position.
-	GetWordBeforeCursor() string
-}
-
-// Cmd is an interface that must be implemented by commands.
-type Cmd interface {
-	// Name returns the name of the command (used by `help command`
-	// to find the command).
-	Name() string
-
-	// Short returns a short description of the command.
-	Short() string
-
-	// Long returns a long description of the command.
-	Long() string
-
-	// Use returns a short string showing how to use the command.
-	Use() string
-
-	// LongUse returns a long string showing how to use the command.
-	LongUse() string
-
-	// Suggest gives a chance for the command to add auto-complete
-	// suggestions for the current content.
-	Suggest(Content) []Suggest
-
-	// Match returns whether the command can execute against the given
-	// command name.
-	Match(string) bool
-
-	// Exec executes the given S-Expression arguments.
-	Exec(
-		context.Context,
-		CLI,
-		*script.Closure,
-		script.CallHandler,
-		script.SCell,
-		script.Meta,
-	) (script.SExp, error)
-}
-
-// Suggest implements a suggestion.
-type Suggest struct {
-	// Text is the text that will replace the current word.
-	Text string
-
-	// Desc is a short description of the suggestion.
-	Desc string
-}
-
-// UseError represents a usage error.
-//
-// Make it a pointer receiver so that errors.Cause() can be used to retrieve
-// and modify the use string after the error is created. This is actually
-// being done by the executor after a command if it returns a usage error.
-type UseError struct {
-	msg string
-	use string
-}
-
-// NewUseError creates a new usage error.
-func NewUseError(msg string) error {
-	return errors.WithStack(&UseError{msg: msg})
-}
-
-// Error returns the error message.
-func (err *UseError) Error() string {
-	return "invalid usage: " + err.msg
-}
-
-// Use returns the usage message.
-func (err *UseError) Use() string {
-	return err.use
-}
-
-// CLI represents a command line interface.
-type CLI interface {
-	// Config returns the configuration.
-	Config() Config
-
-	// Console returns the console.
-	Console() *Console
-
-	// Commands returns all the commands.
-	Commands() []Cmd
-
-	// Address returns the address of the API server.
-	Address() string
-
-	// Connect connects to the API server.
-	Connect(ctx context.Context, addr string) error
-
-	// Disconnect closes the API client connection.
-	Disconnect() error
-
-	// Start starts the command line interface until the user kills it.
-	Start(context.Context)
-
-	// Exec executes the given input.
-	Exec(ctx context.Context, in string) error
-
-	// Run executes the given input, handling errors and cancellation
-	// signals.
-	Run(ctx context.Context, in string)
-
-	// Suggest finds all command suggestions.
-	Suggest(cnt Content) []Suggest
-
-	// PrintError prints an error if it isn't nil.
-	PrintError(error)
-
-	// DidJustExecute returns true the first time it is called after a
-	// command executed. This is a hack used by the VT100 prompt to hide
-	// suggestions after a command was executed.
-	DidJustExecute() bool
+	return script.ResolveName(sym)
 }
 
 // cli implements the command line interface.
 type cli struct {
-	conf   Config
+	conf Config
+
 	cons   *Console
 	prompt func(context.Context, CLI)
 
-	closure   *script.Closure
-	reflector ServerReflector
-	parser    *script.Parser
-	cmds      []Cmd
-	allCmds   []Cmd
+	closure    *script.Closure
+	parser     *script.Parser
+	reflector  ServerReflector
+	staticCmds []Cmd
+	allCmds    []Cmd
 
 	addr string
 	conn *grpc.ClientConn
@@ -317,27 +181,28 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		return nil, errors.WithStack(ErrPromptNotFound)
 	}
 
+	// Create the top closure with env variables.
 	closure := script.NewClosure(
 		script.OptEnv("$", os.Environ()),
 		script.OptResolver(Resolver),
 	)
 
 	c := cli{
-		conf:      config,
-		cons:      cons,
-		prompt:    prompt,
-		closure:   closure,
-		reflector: NewServerReflector(cons, 0),
-		cmds:      cmds,
-		allCmds:   cmds,
-		addr:      config.APIAddress,
+		conf:       config,
+		cons:       cons,
+		prompt:     prompt,
+		closure:    closure,
+		reflector:  NewServerReflector(cons, 0),
+		staticCmds: cmds,
+		allCmds:    cmds,
+		addr:       config.APIAddress,
 	}
 
 	scanner := script.NewScanner(script.OptErrorHandler(c.PrintError))
 	c.parser = script.NewParser(scanner)
 
-	sort.Slice(c.cmds, func(i, j int) bool {
-		return c.cmds[i].Name() < c.cmds[j].Name()
+	sort.Slice(c.staticCmds, func(i, j int) bool {
+		return c.staticCmds[i].Name() < c.staticCmds[j].Name()
 	})
 
 	c.cons.SetDebug(config.EnableDebugOutput)
@@ -348,14 +213,14 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 // Start starts the command line interface until the user kills it.
 func (c *cli) Start(ctx context.Context) {
 	defer func() {
-		if err := c.Disconnect(); err != nil && errors.Cause(err) != ErrDisconnected {
-			c.cons.Debugf("Could not disconnect: %s.", err)
+		if err := c.Disconnect(); err != nil {
+			if errors.Cause(err) != ErrDisconnected {
+				c.cons.Debugf("Could not disconnect: %s.", err)
+			}
 		}
 	}()
 
 	c.Run(ctx, initScript)
-
-	// Start the input prompt.
 	c.prompt(ctx, c)
 }
 
@@ -455,7 +320,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return err
 	}
 
-	c.allCmds = append(c.cmds, apiCmds...)
+	c.allCmds = append(c.staticCmds, apiCmds...)
 	sort.Slice(c.allCmds, func(i, j int) bool {
 		return c.allCmds[i].Name() < c.allCmds[j].Name()
 	})
@@ -473,84 +338,9 @@ func (c *cli) Disconnect() error {
 
 	conn := c.conn
 	c.conn = nil
-	c.allCmds = c.cmds
+	c.allCmds = c.staticCmds
 
 	return errors.WithStack(conn.Close())
-}
-
-// call handles function calls.
-func (c *cli) call(
-	ctx context.Context,
-	closure *script.Closure,
-	name string,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
-	val, ok := closure.Get("$" + name)
-	if ok {
-		return ExecFunc(ctx, closure, c.callWithClosure, name, val, args)
-	}
-
-	for _, cmd := range c.allCmds {
-		if cmd.Match(name) {
-			return c.execCmd(ctx, closure, cmd, name, args, meta)
-		}
-	}
-
-	return nil, errors.Wrapf(
-		ErrInvalidInstr,
-		"%d:%d: %s",
-		meta.Line,
-		meta.Offset,
-		name,
-	)
-}
-
-// callWithClosure creates an S-Expression call handler with a closure.
-func (c *cli) callWithClosure(
-	ctx context.Context,
-	closure *script.Closure,
-) script.CallHandler {
-	return func(
-		resolve script.ResolveHandler,
-		name string,
-		args script.SCell,
-		meta script.Meta,
-	) (script.SExp, error) {
-		return c.call(ctx, closure, name, args, meta)
-	}
-}
-
-// execCmd executes the given command.
-func (c *cli) execCmd(
-	ctx context.Context,
-	closure *script.Closure,
-	cmd Cmd,
-	name string,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
-	call := c.callWithClosure(ctx, closure)
-	val, err := cmd.Exec(ctx, c, closure, call, args, meta)
-
-	if err != nil {
-		cause := errors.Cause(err)
-
-		// If it is a usage error, add the use string to it.
-		if userr, ok := cause.(*UseError); ok {
-			userr.use = cmd.LongUse()
-		}
-
-		return nil, errors.Wrapf(
-			err,
-			"%d:%d: %s",
-			meta.Line,
-			meta.Offset,
-			name,
-		)
-	}
-
-	return val, nil
 }
 
 // PrintError prints the error if it isn't nil.
@@ -668,21 +458,78 @@ func (c *cli) DidJustExecute() bool {
 	return c.executed
 }
 
-// Resolver resolves the name of the symbol if it doesn't begin with a dollar
-// sign.
-func Resolver(sym script.SExp) (script.SExp, error) {
-	name := sym.MustSymbolVal()
-	meta := sym.Meta()
+// execCmd executes the given command.
+func (c *cli) execCmd(ctx *ExecContext, cmd Cmd) (script.SExp, error) {
+	val, err := cmd.Exec(ctx)
 
-	if strings.HasPrefix(name, "$") {
+	if err != nil {
+		cause := errors.Cause(err)
+
+		// If it is a usage error, add the use string to it.
+		if useError, ok := cause.(*UseError); ok {
+			useError.use = cmd.LongUse()
+		}
+
 		return nil, errors.Wrapf(
-			script.ErrSymNotFound,
+			err,
 			"%d:%d: %s",
-			meta.Line,
-			meta.Offset,
-			name,
+			ctx.Meta.Line,
+			ctx.Meta.Offset,
+			ctx.Name,
 		)
 	}
 
-	return script.ResolveName(sym)
+	return val, nil
+}
+
+// call handles function calls.
+func (c *cli) call(ctx *ExecContext) (script.SExp, error) {
+	lambda, ok := ctx.Closure.Get("$" + ctx.Name)
+	if ok {
+		return ExecFunc(&FuncContext{
+			Ctx:               ctx.Ctx,
+			Closure:           ctx.Closure,
+			CallerWithClosure: c.callWithClosure,
+			Name:              ctx.Name,
+			Lambda:            lambda,
+			Args:              ctx.Args,
+		})
+	}
+
+	for _, cmd := range c.allCmds {
+		if cmd.Match(ctx.Name) {
+			return c.execCmd(ctx, cmd)
+		}
+	}
+
+	return nil, errors.Wrapf(
+		ErrInvalidInstr,
+		"%d:%d: %s",
+		ctx.Meta.Line,
+		ctx.Meta.Offset,
+		ctx.Name,
+	)
+}
+
+// callWithClosure creates an S-Expression call handler bound to a closure.
+func (c *cli) callWithClosure(
+	ctx context.Context,
+	closure *script.Closure,
+) script.CallHandler {
+	return func(
+		resolve script.ResolveHandler,
+		name string,
+		args script.SCell,
+		meta script.Meta,
+	) (script.SExp, error) {
+		return c.call(&ExecContext{
+			Ctx:     ctx,
+			CLI:     c,
+			Name:    name,
+			Closure: closure,
+			Call:    c.callWithClosure(ctx, closure),
+			Args:    args,
+			Meta:    meta,
+		})
+	}
 }

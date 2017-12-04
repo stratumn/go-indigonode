@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,29 +26,22 @@ var Unless = BasicCmdWrapper{BasicCmd{
 	ExecSExp: unlessExec,
 }}
 
-func unlessExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func unlessExec(ctx *ExecContext) (script.SExp, error) {
 	// Get:
 	//
 	//	1. car (condition)
-	if args == nil {
+	if ctx.Args == nil {
 		return nil, NewUseError("missing condition expression")
 	}
 
-	car := args.Car()
+	car := ctx.Args.Car()
 	if car == nil {
 		return nil, NewUseError("missing condition expression")
 	}
 
 	//	2. cadr (then)
 
-	cdr := args.Cdr()
+	cdr := ctx.Args.Cdr()
 	if cdr == nil {
 		return nil, NewUseError("missing then expression")
 	}
@@ -84,21 +75,21 @@ func unlessExec(
 	}
 
 	// Eval car (condition).
-	val, err := script.Eval(closure.Resolve, call, car)
+	val, err := script.Eval(ctx.Closure.Resolve, ctx.Call, car)
 
 	// Print error, but keep going.
 	if err != nil {
-		cli.PrintError(err)
+		ctx.CLI.PrintError(err)
 	}
 
 	if val == nil {
 		// If val is nil, eval cadr (then).
-		return evalSExpBody(closure.Resolve, call, cadr)
+		return evalSExpBody(ctx.Closure.Resolve, ctx.Call, cadr)
 	}
 
 	if caddr != nil {
 		// Otherwise eval caddr (else), if any.
-		return evalSExpBody(closure.Resolve, call, caddr)
+		return evalSExpBody(ctx.Closure.Resolve, ctx.Call, caddr)
 	}
 
 	return nil, nil

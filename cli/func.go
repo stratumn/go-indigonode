@@ -27,8 +27,18 @@ type FuncData struct {
 	ParentClosure *script.Closure
 }
 
-// CallerWithClosure create a call handler for a closure.
+// CallerWithClosure creates a call handler bound to a closure.
 type CallerWithClosure func(context.Context, *script.Closure) script.CallHandler
+
+// FuncContext is passed when a function is executed.
+type FuncContext struct {
+	Ctx               context.Context
+	Closure           *script.Closure
+	CallerWithClosure CallerWithClosure
+	Name              string
+	Lambda            script.SExp
+	Args              script.SCell
+}
 
 // ExecFunc executes a script function.
 //
@@ -38,16 +48,9 @@ type CallerWithClosure func(context.Context, *script.Closure) script.CallHandler
 //
 // It is assumed that the function was properly created, using Lambda for
 // instance.
-func ExecFunc(
-	ctx context.Context,
-	closure *script.Closure,
-	createCall CallerWithClosure,
-	name string,
-	lambda script.SExp,
-	args script.SCell,
-) (script.SExp, error) {
+func ExecFunc(ctx *FuncContext) (script.SExp, error) {
 	// Make sure that is a function (has FuncData in meta).
-	data, ok := lambda.Meta().UserData.(FuncData)
+	data, ok := ctx.Lambda.Meta().UserData.(FuncData)
 	if !ok {
 		return nil, errors.WithStack(ErrNotFunc)
 	}
@@ -59,7 +62,7 @@ func ExecFunc(
 	// Get:
 	//
 	//	1. cadr of lambda (the argument symbols)
-	lambdaCell := lambda.MustCellVal()
+	lambdaCell := ctx.Lambda.MustCellVal()
 	lambdaCdr := lambdaCell.Cdr()
 	lambdaCdrCell := lambdaCdr.MustCellVal()
 	lambdaCadr := lambdaCdrCell.Car()
@@ -76,9 +79,9 @@ func ExecFunc(
 
 	// Now evaluate the function arguments in the given context.
 	argv, err := script.EvalListToSlice(
-		closure.Resolve,
-		createCall(ctx, closure),
-		args,
+		ctx.Closure.Resolve,
+		ctx.CallerWithClosure(ctx.Ctx, ctx.Closure),
+		ctx.Args,
 	)
 	if err != nil {
 		return nil, err
@@ -105,7 +108,7 @@ func ExecFunc(
 	}
 
 	// Finally, evaluate the function body.
-	bodyCall := createCall(ctx, bodyClosure)
+	bodyCall := ctx.CallerWithClosure(ctx.Ctx, bodyClosure)
 
 	return evalSExpBody(bodyClosure.Resolve, bodyCall, lambdaCaddr)
 }

@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,26 +26,19 @@ var Cons = BasicCmdWrapper{BasicCmd{
 	ExecSExp: consExec,
 }}
 
-func consExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func consExec(ctx *ExecContext) (script.SExp, error) {
 	// Get:
 	//
 	//	1. car (the cell car)
 
-	if args == nil {
+	if ctx.Args == nil {
 		return nil, NewUseError("missing car")
 	}
 
-	car := args.Car()
+	car := ctx.Args.Car()
 
 	//	2. cadr (the cell cdr)
-	cdr := args.Cdr()
+	cdr := ctx.Args.Cdr()
 	if cdr == nil {
 		return nil, NewUseError("missing cdr")
 	}
@@ -60,19 +51,19 @@ func consExec(
 	cadr := cdrCell.Car()
 
 	// Evaluate them.
-	carVal, err := script.Eval(closure.Resolve, call, car)
+	carVal, err := script.Eval(ctx.Closure.Resolve, ctx.Call, car)
 	if err != nil {
 		return nil, err
 	}
 
-	cadrVal, err := script.Eval(closure.Resolve, call, cadr)
+	cadrVal, err := script.Eval(ctx.Closure.Resolve, ctx.Call, cadr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Construct the cell.
 	return script.Cons(carVal, cadrVal, script.Meta{
-		Line:   meta.Line,
-		Offset: meta.Offset,
+		Line:   ctx.Meta.Line,
+		Offset: ctx.Meta.Offset,
 	}), nil
 }

@@ -17,7 +17,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -68,7 +67,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 			flags.String("flag", "", "")
 			return flags
 		},
-		ExecStrings: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
+		ExecStrings: func(*StringsContext) error {
 			return nil
 		},
 	}}
@@ -126,7 +125,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	cmd := BasicCmdWrapper{BasicCmd{
 		Name:  "cmd",
 		Short: "A test command",
-		ExecStrings: func(context.Context, CLI, io.Writer, []string, *pflag.FlagSet) error {
+		ExecStrings: func(*StringsContext) error {
 			close(execCh)
 			return nil
 		},
@@ -137,14 +136,10 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := cmd.Exec(
-		ctx,
-		nil,
-		closure,
-		nil,
-		script.Cons(nil, nil, script.Meta{}),
-		script.Meta{},
-	)
+	_, err := cmd.Exec(&ExecContext{
+		Ctx:     ctx,
+		Closure: closure,
+	})
 
 	if err != nil {
 		t.Errorf(`cmd.Exec(): error: %s`, err)

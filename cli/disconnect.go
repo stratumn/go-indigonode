@@ -15,12 +15,9 @@
 package cli
 
 import (
-	"context"
-	"io"
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 )
 
 // Disconnect is a command that closes the connection to the API server.
@@ -30,22 +27,16 @@ var Disconnect = BasicCmdWrapper{BasicCmd{
 	ExecStrings: disconnectExec,
 }}
 
-func disconnectExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	if len(args) > 0 {
-		return NewUseError("unexpected argument(s): " + strings.Join(args, " "))
+func disconnectExec(ctx *StringsContext) error {
+	if len(ctx.Args) > 0 {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	if err := cli.Disconnect(); err != nil {
+	if err := ctx.CLI.Disconnect(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	cli.Console().Println("Disconnected.")
+	ctx.CLI.Console().Println("Disconnected.")
 
 	return nil
 }

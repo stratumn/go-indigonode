@@ -88,7 +88,13 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 
 	closure := script.NewClosure(script.OptResolver(cli.Resolver))
 
-	return cmd.Exec(ctx, c, closure, execCall, args, script.Meta{})
+	return cmd.Exec(&cli.ExecContext{
+		Ctx:     ctx,
+		CLI:     c,
+		Closure: closure,
+		Call:    execCall,
+		Args:    args,
+	})
 }
 
 // Test runs the test against the command.

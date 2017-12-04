@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,24 +26,17 @@ var Eval = BasicCmdWrapper{BasicCmd{
 	ExecSExp: evalExec,
 }}
 
-func evalExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func evalExec(ctx *ExecContext) (script.SExp, error) {
 	// Eval is a simple command, all it does is evaluate the car twice.
 
-	if args == nil || args.Cdr() != nil {
+	if ctx.Args == nil || ctx.Args.Cdr() != nil {
 		return nil, NewUseError("expected a single expression")
 	}
 
-	v, err := script.Eval(closure.Resolve, call, args.Car())
+	v, err := script.Eval(ctx.Closure.Resolve, ctx.Call, ctx.Args.Car())
 	if err != nil {
 		return nil, err
 	}
 
-	return script.Eval(closure.Resolve, call, v)
+	return script.Eval(ctx.Closure.Resolve, ctx.Call, v)
 }

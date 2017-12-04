@@ -143,8 +143,7 @@ func (c *Core) bootScreen(ctx context.Context) error {
 	fmt.Println()
 	fmt.Println(art)
 	fmt.Println()
-	fmt.Print(release.Version + "@" + release.GitCommit[:7])
-	fmt.Println(" -- Copyright © 2017 Stratumn SAS")
+	fmt.Println(release.Version + "@" + release.GitCommit[:7])
 	fmt.Println()
 
 	if err := c.bootStatus(ctx); err != nil {

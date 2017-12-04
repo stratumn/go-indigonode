@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,21 +26,14 @@ var Car = BasicCmdWrapper{BasicCmd{
 	ExecSExp: carExec,
 }}
 
-func carExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func carExec(ctx *ExecContext) (script.SExp, error) {
 	// Return the car of the evaluated car cell.
 
-	if args == nil || args.Cdr() != nil {
+	if ctx.Args == nil || ctx.Args.Cdr() != nil {
 		return nil, NewUseError("expected a single element")
 	}
 
-	v, err := script.Eval(closure.Resolve, call, args.Car())
+	v, err := script.Eval(ctx.Closure.Resolve, ctx.Call, ctx.Args.Car())
 	if err != nil {
 		return nil, err
 	}

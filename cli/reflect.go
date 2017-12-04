@@ -749,8 +749,8 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 		return r.flags(d.GetFullyQualifiedName(), optional, d.IsServerStreaming())
 	}
 
-	cmd.ExecStrings = func(ctx context.Context, cli CLI, w io.Writer, args []string, flags *pflag.FlagSet) error {
-		return r.reflectExec(ctx, cli, w, args, flags, d, required, optional, conn)
+	cmd.ExecStrings = func(ctx *StringsContext) error {
+		return r.reflectExec(ctx, d, required, optional, conn)
 	}
 
 	return BasicCmdWrapper{cmd}, nil
@@ -861,87 +861,85 @@ func (r ServerReflector) flags(
 
 // reflectExec executes a command.
 func (r ServerReflector) reflectExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
+	ctx *StringsContext,
 	method *desc.MethodDescriptor,
 	required []*desc.FieldDescriptor,
 	optional []*desc.FieldDescriptor,
 	conn *grpc.ClientConn,
 ) error {
-	argsLen := len(args)
+	argc := len(ctx.Args)
 	reqLen := len(required)
 
-	if argsLen < reqLen {
+	if argc < reqLen {
 		return NewUseError("missing argument(s)")
 	}
-	if argsLen > reqLen {
-		return NewUseError("unexpected argument(s): " + strings.Join(args[reqLen:], " "))
+	if argc > reqLen {
+		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[reqLen:], " "))
 	}
 
 	req := dynamic.NewMessage(method.GetInputType())
 
-	if err := r.setArgs(req, required, args); err != nil {
+	if err := r.setArgs(req, required, ctx.Args); err != nil {
 		return err
 	}
-	if err := r.setFlags(req, optional, flags); err != nil {
+	if err := r.setFlags(req, optional, ctx.Flags); err != nil {
 		return err
 	}
 
 	stub := grpcdynamic.NewStub(conn)
 
-	to, err := time.ParseDuration(cli.Config().DialTimeout)
+	to, err := time.ParseDuration(ctx.CLI.Config().DialTimeout)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	noTimeout, err := flags.GetBool("no-timeout")
+	noTimeout, err := ctx.Flags.GetBool("no-timeout")
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	reqCtx := ctx.Ctx
 
 	if !noTimeout {
 		var cancel func()
-		ctx, cancel = context.WithTimeout(ctx, to)
+		reqCtx, cancel = context.WithTimeout(ctx.Ctx, to)
 		defer cancel()
 	}
 
 	if method.IsServerStreaming() {
-		ss, err := stub.InvokeRpcServerStream(ctx, method, req)
+		ss, err := stub.InvokeRpcServerStream(reqCtx, method, req)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		streaming, err := flags.GetBool("stream")
+		streaming, err := ctx.Flags.GetBool("stream")
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
 		if streaming {
-			return r.printStreaming(w, ss)
+			return r.printStreaming(ctx.Writer, ss)
 		}
 
-		noTrunc, err := flags.GetBool("no-truncate")
+		noTrunc, err := ctx.Flags.GetBool("no-truncate")
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		noBord, err := flags.GetBool("no-borders")
+		noBord, err := ctx.Flags.GetBool("no-borders")
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
-		return r.printStream(w, ss, !noTrunc, !noBord)
+		return r.printStream(ctx.Writer, ss, !noTrunc, !noBord)
 	}
 
-	res, err := stub.InvokeRpc(ctx, method, req)
+	res, err := stub.InvokeRpc(reqCtx, method, req)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	return r.printMsg(w, res.(*dynamic.Message))
+	return r.printMsg(ctx.Writer, res.(*dynamic.Message))
 }
 
 // setArgs sets argument values.

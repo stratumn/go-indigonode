@@ -103,7 +103,7 @@ func TestLambda_exec(t *testing.T) {
 		t.Run(fmt.Sprintf("%d-%s", i, tt.command), func(t *testing.T) {
 			et := ExecTest{Command: tt.command}
 
-			fn, err := et.Exec(t, ioutil.Discard, cli.Lambda)
+			lambda, err := et.Exec(t, ioutil.Discard, cli.Lambda)
 			if err != nil {
 				t.Fatalf("tt.Exec(t, cli.Lambda, buf): error: %s", err)
 			}
@@ -113,14 +113,14 @@ func TestLambda_exec(t *testing.T) {
 				t.Fatalf("%s: parser error: %s", tt.args, err)
 			}
 
-			exp, err := cli.ExecFunc(
-				context.Background(),
-				closure,
-				createCall,
-				"test",
-				fn,
-				args,
-			)
+			exp, err := cli.ExecFunc(&cli.FuncContext{
+				Ctx:               context.Background(),
+				Closure:           closure,
+				CallerWithClosure: createCall,
+				Name:              "test",
+				Lambda:            lambda,
+				Args:              args,
+			})
 			if err != nil {
 				t.Fatalf("%s %s: exec error: %s", tt.command, tt.args, err)
 			}

@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,19 +26,12 @@ var Quote = BasicCmdWrapper{BasicCmd{
 	ExecSExp: quoteExec,
 }}
 
-func quoteExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func quoteExec(ctx *ExecContext) (script.SExp, error) {
 	// Quote is the simplest command, it just returns the car as is.
 
-	if args == nil || args.Cdr() != nil {
+	if ctx.Args == nil || ctx.Args.Cdr() != nil {
 		return nil, NewUseError("expected a single expression")
 	}
 
-	return args.Car(), nil
+	return ctx.Args.Car(), nil
 }

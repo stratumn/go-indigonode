@@ -16,7 +16,6 @@ package cli
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -83,16 +82,9 @@ func (Bang) Match(name string) bool {
 
 // Exec executes the given S-Expression.
 //
-func (Bang) Exec(
-	ctx context.Context,
-	c CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func (Bang) Exec(ctx *ExecContext) (script.SExp, error) {
 	// Evaluate all the arguments to strings.
-	argv, err := script.EvalListToStrings(closure.Resolve, call, args)
+	argv, err := script.EvalListToStrings(ctx.Closure.Resolve, ctx.Call, ctx.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +131,7 @@ func (Bang) Exec(
 	buf := bytes.NewBuffer(nil)
 
 	// Set up the command.
-	cmd := exec.CommandContext(ctx, execName, execArgs...)
+	cmd := exec.CommandContext(ctx.Ctx, execName, execArgs...)
 	cmd.Stdout = buf
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = stdin
@@ -160,5 +152,5 @@ func (Bang) Exec(
 		return nil, errors.WithStack(err)
 	}
 
-	return script.String(buf.String(), meta), nil
+	return script.String(buf.String(), ctx.Meta), nil
 }

@@ -15,8 +15,6 @@
 package cli
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/cli/script"
 )
 
@@ -28,23 +26,16 @@ var Let = BasicCmdWrapper{BasicCmd{
 	ExecSExp: letExec,
 }}
 
-func letExec(
-	ctx context.Context,
-	cli CLI,
-	closure *script.Closure,
-	call script.CallHandler,
-	args script.SCell,
-	meta script.Meta,
-) (script.SExp, error) {
+func letExec(ctx *ExecContext) (script.SExp, error) {
 	// Get:
 	//
 	//	1. car symbol value
-	if args == nil {
+	if ctx.Args == nil {
 		return nil, NewUseError("missing symbol")
 	}
 
-	car := args.Car()
-	if args == nil {
+	car := ctx.Args.Car()
+	if ctx.Args == nil {
 		return nil, NewUseError("missing symbol")
 	}
 
@@ -54,7 +45,7 @@ func letExec(
 	}
 
 	//	2. cadr, optional (value)
-	cdr := args.Cdr()
+	cdr := ctx.Args.Cdr()
 	var cadr script.SExp
 
 	if cdr != nil {
@@ -69,18 +60,18 @@ func letExec(
 	//	3. a value isn't already bound to symbol in the current
 	//	   closure
 
-	if _, ok := closure.Local("$" + carSymbol); ok {
+	if _, ok := ctx.Closure.Local("$" + carSymbol); ok {
 		return nil, NewUseError("a value is already bound to the symbol")
 	}
 
 	// Evaluate cadr (the value).
-	v, err := script.Eval(closure.Resolve, call, cadr)
+	v, err := script.Eval(ctx.Closure.Resolve, ctx.Call, cadr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Bind the value to the symbol and return the value.
-	closure.SetLocal("$"+carSymbol, v)
+	ctx.Closure.SetLocal("$"+carSymbol, v)
 
 	return v, nil
 }

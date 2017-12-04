@@ -15,9 +15,7 @@
 package cli
 
 import (
-	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -40,21 +38,15 @@ func echoFlags() *pflag.FlagSet {
 	return flags
 }
 
-func echoExec(
-	ctx context.Context,
-	cli CLI,
-	w io.Writer,
-	args []string,
-	flags *pflag.FlagSet,
-) error {
-	s := strings.Join(args, " ")
+func echoExec(ctx *StringsContext) error {
+	s := strings.Join(ctx.Args, " ")
 
-	log, err := flags.GetString("log")
+	log, err := ctx.Flags.GetString("log")
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	cons := cli.Console()
+	cons := ctx.CLI.Console()
 
 	switch log {
 	case "debug":
@@ -70,7 +62,7 @@ func echoExec(
 	case "error":
 		cons.Errorln(s)
 	default:
-		fmt.Fprintln(w, s)
+		fmt.Fprintln(ctx.Writer, s)
 	}
 
 	return nil

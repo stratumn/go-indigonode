@@ -15,25 +15,8 @@
 package cli
 
 import (
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli/script"
 )
-
-// stackTracer is used to get the stack trace from errors created by the
-// github.com/pkg/errors package.
-type stackTracer interface {
-	StackTrace() errors.StackTrace
-}
-
-// StackTrace returns the stack trace from an error created using the
-// github.com/pkg/errors package.
-func StackTrace(err error) errors.StackTrace {
-	if err, ok := err.(stackTracer); ok {
-		return err.StackTrace()
-	}
-
-	return nil
-}
 
 // evalSExpBody evaluates an S-Expression 'body'.
 //

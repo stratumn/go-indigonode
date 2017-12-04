@@ -16,6 +16,7 @@ package script
 
 import (
 	"fmt"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
@@ -108,7 +109,11 @@ func NewScanner(opts ...ScannerOpt) *Scanner {
 }
 
 // SetInput resets the scanner and sets its input string.
-func (s *Scanner) SetInput(in string) {
+func (s *Scanner) SetInput(in string) error {
+	if !utf8.ValidString(in) {
+		return errors.WithStack(ErrInvalidUTF8)
+	}
+
 	s.runes = []rune(in)
 	s.len = len(s.runes)
 	s.pos = 0
@@ -116,6 +121,8 @@ func (s *Scanner) SetInput(in string) {
 	s.offset = 0
 	s.prevOffset = 0
 	s.end = false
+
+	return nil
 }
 
 // Emit emits the next token.

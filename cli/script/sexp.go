@@ -118,7 +118,6 @@ type SCell interface {
 	SExp
 	Car() SExp
 	Cdr() SExp
-	SetCdr(SExp)
 	IsList() bool
 	ToSlice() (SExpSlice, bool)
 	MustToSlice() SExpSlice
@@ -270,22 +269,18 @@ func (c *scell) Cdr() SExp {
 	return c.cdr
 }
 
-func (c *scell) SetCdr(cdr SExp) {
-	c.cdr = cdr
-}
-
 func (c *scell) IsList() bool {
 	cdr := c.cdr
-	for cdr != nil {
-		stype := cdr.UnderlyingType()
-		if stype != TypeCell {
-			return false
-		}
-		cell := cdr.MustCellVal()
-		cdr = cell.Cdr()
+	if cdr == nil {
+		return true
 	}
 
-	return true
+	stype := cdr.UnderlyingType()
+	if stype != TypeCell {
+		return false
+	}
+
+	return cdr.MustCellVal().IsList()
 }
 
 func (c *scell) ToSlice() (SExpSlice, bool) {
@@ -317,32 +312,7 @@ func Eval(resolve ResolveHandler, call CallHandler, exp SExp) (SExp, error) {
 
 	switch exp.UnderlyingType() {
 	case TypeCell:
-		list := exp.MustCellVal()
-		meta := list.Meta()
-		if list != nil && list.IsList() {
-			operand := list.Car()
-			if operand.UnderlyingType() == TypeSymbol {
-				var args SCell
-				if cdr := list.Cdr(); cdr != nil {
-					args = cdr.MustCellVal()
-				}
-				return call(
-					resolve,
-					operand.MustSymbolVal(),
-					args,
-					operand.Meta(),
-				)
-			}
-			meta = list.Meta()
-		}
-
-		return nil, errors.Wrapf(
-			ErrInvalidOperand,
-			"%d:%d: %v",
-			meta.Line,
-			meta.Offset,
-			list.Car(),
-		)
+		return evalCell(resolve, call, exp.MustCellVal())
 
 	case TypeSymbol:
 		v, err := resolve(exp)
@@ -356,47 +326,87 @@ func Eval(resolve ResolveHandler, call CallHandler, exp SExp) (SExp, error) {
 	}
 }
 
+func evalCell(resolve ResolveHandler, call CallHandler, cell SCell) (SExp, error) {
+	meta := Meta{}
+
+	if cell != nil && cell.IsList() {
+		name := cell.Car()
+
+		if name.UnderlyingType() == TypeSymbol {
+			var args SCell
+
+			if cdr := cell.Cdr(); cdr != nil {
+				args = cdr.MustCellVal()
+			}
+
+			return call(
+				resolve,
+				name.MustSymbolVal(),
+				args,
+				name.Meta(),
+			)
+		}
+
+		meta = cell.Meta()
+	}
+
+	return nil, errors.Wrapf(
+		ErrFuncName,
+		"%d:%d: %v",
+		meta.Line,
+		meta.Offset,
+		cell.Car(),
+	)
+}
+
 // EvalList evaluates each expression in a list and returns a list.
+//
+// It assumes a valid list is given.
 func EvalList(resolve ResolveHandler, call CallHandler, list SCell) (SCell, error) {
 	if list == nil {
 		return nil, nil
 	}
 
-	slice := list.MustToSlice()
+	car := list.Car()
 
-	var head, tail SCell
-
-	for _, exp := range slice {
-		val, err := Eval(resolve, call, exp)
-		if err != nil {
-			return nil, err
-		}
-
-		var meta Meta
-
-		if val != nil {
-			meta = Meta{
-				Line:   exp.Meta().Line,
-				Offset: exp.Meta().Offset,
-			}
-		}
-
-		if head == nil {
-			head = Cons(val, nil, meta)
-			tail = head
-			continue
-		}
-
-		cdr := Cons(val, nil, meta)
-		tail.SetCdr(cdr)
-		tail = cdr
+	carVal, err := Eval(resolve, call, car)
+	if err != nil {
+		return nil, err
 	}
 
-	return head, nil
+	var meta Meta
+
+	if carVal != nil {
+		carValMeta := carVal.Meta()
+		meta = Meta{
+			Line:   carValMeta.Line,
+			Offset: carValMeta.Offset,
+		}
+	} else if car != nil {
+		carMeta := car.Meta()
+		meta = Meta{
+			Line:   carMeta.Line,
+			Offset: carMeta.Offset,
+		}
+	}
+
+	cdr := list.Cdr()
+	if cdr == nil {
+		return Cons(carVal, nil, meta), nil
+	}
+
+	cdrVal, err := EvalList(resolve, call, cdr.MustCellVal())
+	if err != nil {
+		return nil, err
+	}
+
+	return Cons(carVal, cdrVal, meta), nil
 }
 
 // EvalListToSlice evaluates each expression in a list and returns a slice of
 // expressions.
+//
+// It assumes a valid list is given.
 func EvalListToSlice(
 	resolve ResolveHandler,
 	call CallHandler,
@@ -416,6 +426,10 @@ func EvalListToSlice(
 
 // EvalListToStrings evaluates each expression in a list and returns a slice
 // containing the string values of each result.
+//
+// Nil values will be empty strings.
+//
+// It assumes a valid list is given.
 func EvalListToStrings(
 	resolve ResolveHandler,
 	call CallHandler,

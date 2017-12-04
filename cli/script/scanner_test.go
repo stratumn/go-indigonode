@@ -17,6 +17,8 @@ package script
 import (
 	"reflect"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 type scanTest struct {
@@ -102,6 +104,14 @@ var scanTests = []scanTest{{
 	},
 	nil,
 }, {
+	"♥ world",
+	[]Token{
+		{TokSym, "♥", 1, 1},
+		{TokSym, "world", 1, 3},
+		{TokEOF, "", 1, 8},
+	},
+	nil,
+}, {
 	"'hello world",
 	[]Token{
 		{TokInvalid, "hello world", 1, 1},
@@ -125,7 +135,10 @@ func TestScanner_Emit(t *testing.T) {
 		}
 
 		s := NewScanner(OptErrorHandler(errHandler))
-		s.SetInput(tt.input)
+		if err := s.SetInput(tt.input); err != nil {
+			t.Errorf("%q: s.SetInput(tt.input): error: %s", tt.input, err)
+			continue
+		}
 
 		for {
 			tok := s.Emit()
@@ -144,5 +157,13 @@ func TestScanner_Emit(t *testing.T) {
 		if !reflect.DeepEqual(errors, tt.errors) {
 			t.Errorf("%q: errors = %q want %q", tt.input, errors, tt.errors)
 		}
+	}
+}
+
+func TestScanner_SetInput_invalidUTF8(t *testing.T) {
+	s := NewScanner()
+	got := errors.Cause(s.SetInput(string([]byte{0xff, 0xfe, 0xfd})))
+	if want := ErrInvalidUTF8; got != want {
+		t.Errorf("error = %v want %v", got, want)
 	}
 }

@@ -79,7 +79,7 @@ var evalTests = []evalTest{{
 }, {
 	"echo ('echo' 1 2)",
 	"",
-	"1:7: \"echo\": operand must be a symbol",
+	"1:7: \"echo\": function name is not a symbol",
 }}
 
 func testCall(resolve ResolveHandler, name string, args SCell, meta Meta) (SExp, error) {

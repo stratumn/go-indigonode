@@ -17,6 +17,8 @@ package script
 import (
 	"fmt"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 type parserTest struct {
@@ -110,13 +112,29 @@ var parseTests = []parserTest{{
 	"",
 	"2:3: unexpected token <sym>",
 }, {
+	"'one'",
+	"",
+	"1:1: unexpected token <string>",
+}, {
 	"one )",
 	"",
 	"1:5: unexpected token )",
 }, {
+	"one '",
+	"",
+	"1:5: unexpected token <invalid>",
+}, {
+	"one two )",
+	"",
+	"1:9: unexpected token )",
+}, {
 	"one\t(two",
 	"",
 	"1:9: unexpected token <EOF>",
+}, {
+	"one\n(two",
+	"",
+	"2:5: unexpected token <EOF>",
 }}
 
 var listTests = []parserTest{{
@@ -143,6 +161,10 @@ var listTests = []parserTest{{
 	"(one",
 	"",
 	"1:5: unexpected token <EOF>",
+}, {
+	"(one two",
+	"",
+	"1:9: unexpected token <EOF>",
 }}
 
 func TestParser_Parse(t *testing.T) {
@@ -154,16 +176,16 @@ func TestParser_Parse(t *testing.T) {
 		if err != nil {
 			if tt.err != "" {
 				if err.Error() != tt.err {
-					t.Errorf("%v: error = %v want %v", tt.input, err, tt.err)
+					t.Errorf("%q: error = %v want %v", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%v: error: %s", tt.input, err)
+				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
 		}
 
 		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
-			t.Errorf("%v: sexp = %v want %v", tt.input, got, want)
+			t.Errorf("%q: sexp = %v want %v", tt.input, got, want)
 		}
 	}
 }
@@ -177,16 +199,32 @@ func TestParser_List(t *testing.T) {
 		if err != nil {
 			if tt.err != "" {
 				if err.Error() != tt.err {
-					t.Errorf("%v: error = %v want %v", tt.input, err, tt.err)
+					t.Errorf("%q: error = %v want %v", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%v: error: %s", tt.input, err)
+				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
 		}
 
 		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
-			t.Errorf("%v: sexp = %v want %v", tt.input, got, want)
+			t.Errorf("%q: sexp = %v want %v", tt.input, got, want)
 		}
+	}
+}
+
+func TestScanner_Scan_invalidUTF8(t *testing.T) {
+	p := NewParser(NewScanner())
+	_, err := p.Parse(string([]byte{0xff, 0xfe, 0xfd}))
+	if got, want := errors.Cause(err), ErrInvalidUTF8; got != want {
+		t.Errorf("error = %v want %v", got, want)
+	}
+}
+
+func TestScanner_List_invalidUTF8(t *testing.T) {
+	p := NewParser(NewScanner())
+	_, err := p.List(string([]byte{0xff, 0xfe, 0xfd}))
+	if got, want := errors.Cause(err), ErrInvalidUTF8; got != want {
+		t.Errorf("error = %v want %v", got, want)
 	}
 }

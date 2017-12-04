@@ -12,11 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package script defines types to implement a very rudimentary script
-// interpreter.
+// Package script defines types to implement a simple script interpreter with
+// Lisp-like syntax.
 //
-// It is designed with shell-like scripting in mind. It uses simple
-// S-Expressions that can hold either symbols, strings or lists.
+// It producces S-Expressions that can hold either symbols, strings, or cons
+// cells.
+//
+// It is designed with shell-like scripting in mind. A script is a list of
+// instructions. Instructions are function calls. For convenience, top-level
+// function calls don't need to be wrapped in parenthesis if they are
+// one-liners. The is useful, especially in the context of a command line
+// interface, but it introduces more complexity in the grammar because new
+// lines are meaningful.
+//
+// The syntax is:
+//
+//	Script          = { Instr }
+//	Instr           = { NewLine } ( Call | InCall )
+//	Call            = { NewLine } "(" InCallInParen { NewLine } ")"
+//	InCallInParen   = { NewLine } Symbol SExpListInParen
+//	InCall          = Symbol SExpList
+//	SExpListInParen = { SExpInParen }
+//	SExpList        = { SExp }
+//	SExpInParen     = { NewLine } SExp
+//      SExp            = List | Atom
+//	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
+//	Atom            = symbol | string
 //
 // There are no builtin operators.
 package script
@@ -24,8 +45,12 @@ package script
 import "github.com/pkg/errors"
 
 var (
-	// ErrInvalidOperand is returned when an operand is not a symbol.
-	ErrInvalidOperand = errors.New("operand must be a symbol")
+	// ErrInvalidUTF8 is returned when setting the input of the scanner
+	// to an invalid UTF8 string.
+	ErrInvalidUTF8 = errors.New("invalid UTF8 string")
+
+	// ErrFuncName is returned when a function name is not a symbol.
+	ErrFuncName = errors.New("function name is not a symbol")
 
 	// ErrSymNotFound is returned when a symbol could not be resolved.
 	ErrSymNotFound = errors.New("could not resolve symbol")

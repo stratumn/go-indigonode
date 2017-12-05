@@ -16,6 +16,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -25,14 +26,8 @@ import (
 	"github.com/stratumn/alice/cli/script"
 )
 
-// BasicCmd implements a basic command that matches the first word of the
-// input.
-//
-// Either ExecStrings or ExecSExp should be defined. ExecSExp is meant for
-// commands that need to manipulate S-Expressions, such as conditional
-// commands.
-//
-// Not that in the case of ExecInstr command flags are not supported.
+// BasicCmd is designed for simple commands to just need to parse flags and
+// output text.
 type BasicCmd struct {
 	// Name is the name of the command, used to match a word to the command
 	// amongst other things.
@@ -48,18 +43,15 @@ type BasicCmd struct {
 	// Flags can be defined to return a set of flags for the command.
 	Flags func() *pflag.FlagSet
 
-	// ExecStrings is a function that executes the command against string
+	// Exec is a function that executes the command against string
 	// arguments and outputs to a writer.
-	ExecStrings func(*StringsContext, CLI) error
-
-	// ExecSExp is a function that executes the command against
-	// S-Expression arguments.
-	ExecSExp func(*script.InterpreterContext, CLI) (script.SExp, error)
+	Exec func(*BasicContext) error
 }
 
-// StringsContext is passed to ExecStrings when executing a basic command.
-type StringsContext struct {
-	script.InterpreterContext
+// BasicContext is passed to ExecStrings when executing a basic command.
+type BasicContext struct {
+	Ctx    context.Context
+	CLI    CLI
 	Writer io.Writer
 	Args   []string
 	Flags  *pflag.FlagSet
@@ -103,11 +95,8 @@ func (cmd BasicCmdWrapper) LongUse() string {
 
 	long := "Usage:\n"
 	long += "  " + cmd.Use()
-
-	if cmd.Cmd.ExecSExp == nil {
-		long += "\n\nFlags:\n"
-		long += strings.TrimSuffix(flags.FlagUsages(), "\n")
-	}
+	long += "\n\nFlags:\n"
+	long += strings.TrimSuffix(flags.FlagUsages(), "\n")
 
 	return long
 }
@@ -207,10 +196,6 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 
 // Exec executes the basic command.
 func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script.SExp, error) {
-	if cmd.Cmd.ExecSExp != nil {
-		return cmd.Cmd.ExecSExp(ctx, cli)
-	}
-
 	argv, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
 	if err != nil {
 		return nil, err
@@ -232,23 +217,21 @@ func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script
 
 	buf := bytes.NewBuffer(nil)
 
+	basicCtx := &BasicContext{
+		Ctx:    ctx.Ctx,
+		CLI:    cli,
+		Writer: buf,
+		Flags:  flags,
+	}
+
 	if help {
 		// Invoke help command, pass the command name and remaining
 		// args.
-		args := append([]string{cmd.Name()}, flags.Args()...)
-		err = cmd.Cmd.ExecStrings(&StringsContext{
-			InterpreterContext: *ctx,
-			Writer:             buf,
-			Args:               args,
-			Flags:              flags,
-		}, cli)
+		basicCtx.Args = append([]string{cmd.Name()}, flags.Args()...)
+		err = cmd.Cmd.Exec(basicCtx)
 	} else {
-		err = cmd.Cmd.ExecStrings(&StringsContext{
-			InterpreterContext: *ctx,
-			Writer:             buf,
-			Args:               flags.Args(),
-			Flags:              flags,
-		}, cli)
+		basicCtx.Args = flags.Args()
+		err = cmd.Cmd.Exec(basicCtx)
 	}
 
 	if err != nil {

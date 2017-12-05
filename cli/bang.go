@@ -26,13 +26,13 @@ import (
 
 // Bang is a command that executes external commands.
 var Bang = BasicCmdWrapper{BasicCmd{
-	Name:        "!",
-	Use:         "! <Command> [args] [input]",
-	Short:       "Executes external commands",
-	ExecStrings: bangExec,
+	Name:  "!",
+	Use:   "! <Command> [args] [input]",
+	Short: "Executes external commands",
+	Exec:  bangExec,
 }}
 
-func bangExec(ctx *StringsContext, cli CLI) error {
+func bangExec(ctx *BasicContext) error {
 	// Check number of arguments.
 	argc := len(ctx.Args)
 

@@ -278,7 +278,7 @@ func NewBoolReflector() Reflector {
 				return false, nil
 			}
 
-			return false, errors.WithStack(ErrParse)
+			return false, errors.WithStack(ErrReflectParse)
 		},
 	}
 }
@@ -392,7 +392,7 @@ func NewEnumReflector() Reflector {
 				}
 			}
 
-			return int32(0), errors.WithStack(ErrParse)
+			return int32(0), errors.WithStack(ErrReflectParse)
 		},
 	}
 }
@@ -449,7 +449,7 @@ func NewBase58Reflector() Reflector {
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
 			v := base58.Decode(s)
 			if len(v) < 1 {
-				return []byte{}, errors.WithStack(ErrParse)
+				return []byte{}, errors.WithStack(ErrReflectParse)
 			}
 
 			return v, nil
@@ -749,8 +749,8 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 		return r.flags(d.GetFullyQualifiedName(), optional, d.IsServerStreaming())
 	}
 
-	cmd.ExecStrings = func(ctx *StringsContext, cli CLI) error {
-		return r.reflectExec(ctx, cli, d, required, optional, conn)
+	cmd.Exec = func(ctx *BasicContext) error {
+		return r.reflectExec(ctx, d, required, optional, conn)
 	}
 
 	return BasicCmdWrapper{cmd}, nil
@@ -861,8 +861,7 @@ func (r ServerReflector) flags(
 
 // reflectExec executes a command.
 func (r ServerReflector) reflectExec(
-	ctx *StringsContext,
-	cli CLI,
+	ctx *BasicContext,
 	method *desc.MethodDescriptor,
 	required []*desc.FieldDescriptor,
 	optional []*desc.FieldDescriptor,
@@ -889,7 +888,7 @@ func (r ServerReflector) reflectExec(
 
 	stub := grpcdynamic.NewStub(conn)
 
-	to, err := time.ParseDuration(cli.Config().DialTimeout)
+	to, err := time.ParseDuration(ctx.CLI.Config().DialTimeout)
 	if err != nil {
 		return errors.WithStack(err)
 	}

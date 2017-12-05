@@ -25,13 +25,13 @@ import (
 // Help is a command that lists all the available commands or displays help for
 // specific command.
 var Help = BasicCmdWrapper{BasicCmd{
-	Name:        "help",
-	Use:         "help [Command]",
-	Short:       "Get help on commands",
-	ExecStrings: helpExec,
+	Name:  "help",
+	Use:   "help [Command]",
+	Short: "Get help on commands",
+	Exec:  helpExec,
 }}
 
-func helpExec(ctx *StringsContext, cli CLI) error {
+func helpExec(ctx *BasicContext) error {
 	argc := len(ctx.Args)
 	if argc > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
@@ -40,7 +40,7 @@ func helpExec(ctx *StringsContext, cli CLI) error {
 	if argc > 0 {
 		// Show help for a specific command.
 		cmd := ctx.Args[0]
-		for _, v := range cli.Commands() {
+		for _, v := range ctx.CLI.Commands() {
 			if v.Name() == cmd {
 				fmt.Fprintln(ctx.Writer, v.Long())
 				return nil
@@ -54,7 +54,7 @@ func helpExec(ctx *StringsContext, cli CLI) error {
 	tw := new(tabwriter.Writer)
 	tw.Init(ctx.Writer, 0, 8, 2, ' ', 0)
 
-	for _, v := range cli.Commands() {
+	for _, v := range ctx.CLI.Commands() {
 		fmt.Fprintln(tw, v.Use()+"\t"+v.Short())
 	}
 

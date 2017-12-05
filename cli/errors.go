@@ -28,10 +28,6 @@ var (
 	// API.
 	ErrDisconnected = errors.New("the client is not connected to API")
 
-	// ErrInvalidInstr is returned when the user entered an invalid
-	// instruction.
-	ErrInvalidInstr = errors.New("the instruction is invalid")
-
 	// ErrCmdNotFound is returned when a command was not found.
 	ErrCmdNotFound = errors.New("the command was not found")
 
@@ -42,8 +38,9 @@ var (
 	// supported by reflection.
 	ErrUnsupportedReflectType = errors.New("the type is not currently supported by reflection")
 
-	// ErrParse is returned when a value could not be parsed.
-	ErrParse = errors.New("could not parse the value")
+	// ErrReflectParse is returned when a value could not be parsed by a
+	// reflector.
+	ErrReflectParse = errors.New("could not parse the value")
 )
 
 // UseError represents a usage error.

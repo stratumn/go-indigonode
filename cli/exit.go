@@ -24,13 +24,13 @@ import (
 
 // Exit is a command that terminates the current process.
 var Exit = BasicCmdWrapper{BasicCmd{
-	Name:        "exit",
-	Use:         "exit [Status]",
-	Short:       "Exit program",
-	ExecStrings: exitExec,
+	Name:  "exit",
+	Use:   "exit [Status]",
+	Short: "Exit program",
+	Exec:  exitExec,
 }}
 
-func exitExec(ctx *StringsContext, cli CLI) error {
+func exitExec(ctx *BasicContext) error {
 	argc := len(ctx.Args)
 	if argc > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
@@ -46,7 +46,7 @@ func exitExec(ctx *StringsContext, cli CLI) error {
 		}
 	}
 
-	cli.Console().Println("Goodbye!")
+	ctx.CLI.Console().Println("Goodbye!")
 	os.Exit(status)
 
 	return nil

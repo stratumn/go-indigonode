@@ -25,10 +25,10 @@ import (
 
 // Version is a command that displays the client version string.
 var Version = BasicCmdWrapper{BasicCmd{
-	Name:        "cli-version",
-	Short:       "Output program version string",
-	Flags:       versionFlags,
-	ExecStrings: versionExec,
+	Name:  "cli-version",
+	Short: "Output program version string",
+	Flags: versionFlags,
+	Exec:  versionExec,
 }}
 
 func versionFlags() *pflag.FlagSet {
@@ -37,7 +37,7 @@ func versionFlags() *pflag.FlagSet {
 	return flags
 }
 
-func versionExec(ctx *StringsContext, cli CLI) error {
+func versionExec(ctx *BasicContext) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}

@@ -21,17 +21,17 @@ import (
 
 // Addr is a command that displays the API server's address.
 var Addr = BasicCmdWrapper{BasicCmd{
-	Name:        "api-address",
-	Short:       "Output API server address",
-	ExecStrings: addrExec,
+	Name:  "api-address",
+	Short: "Output API server address",
+	Exec:  addrExec,
 }}
 
-func addrExec(ctx *StringsContext, cli CLI) error {
+func addrExec(ctx *BasicContext) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	fmt.Fprintln(ctx.Writer, cli.Address())
+	fmt.Fprintln(ctx.Writer, ctx.CLI.Address())
 
 	return nil
 }

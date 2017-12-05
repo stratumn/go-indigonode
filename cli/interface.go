@@ -102,9 +102,6 @@ type CLI interface {
 	// Suggest finds all command suggestions.
 	Suggest(cnt Content) []Suggest
 
-	// PrintError prints an error if it isn't nil.
-	PrintError(error)
-
 	// DidJustExecute returns true the first time it is called after a
 	// command executed. This is a hack used by the VT100 prompt to hide
 	// suggestions after a command was executed.

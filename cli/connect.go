@@ -20,13 +20,13 @@ import (
 
 // Connect is a command that creates a connection to the API server.
 var Connect = BasicCmdWrapper{BasicCmd{
-	Name:        "api-connect",
-	Use:         "api-connect [Multiaddress]",
-	Short:       "Connect or reconnect to API server",
-	ExecStrings: execConnect,
+	Name:  "api-connect",
+	Use:   "api-connect [Multiaddress]",
+	Short: "Connect or reconnect to API server",
+	Exec:  execConnect,
 }}
 
-func execConnect(ctx *StringsContext, cli CLI) error {
+func execConnect(ctx *BasicContext) error {
 	argc := len(ctx.Args)
 	if argc > 1 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args[1:], " "))
@@ -37,14 +37,14 @@ func execConnect(ctx *StringsContext, cli CLI) error {
 	if argc > 0 {
 		addr = ctx.Args[0]
 	} else {
-		addr = cli.Address()
+		addr = ctx.CLI.Address()
 	}
 
-	c := cli.Console()
+	c := ctx.CLI.Console()
 
 	c.Infof("Connecting to %q...\n", addr)
 
-	if err := cli.Connect(ctx.Ctx, addr); err != nil {
+	if err := ctx.CLI.Connect(ctx.Ctx, addr); err != nil {
 		c.Errorf("Could not connect to %q.\n", addr)
 		return err
 	}

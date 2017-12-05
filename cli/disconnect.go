@@ -22,21 +22,21 @@ import (
 
 // Disconnect is a command that closes the connection to the API server.
 var Disconnect = BasicCmdWrapper{BasicCmd{
-	Name:        "api-disconnect",
-	Short:       "Disconnect from API server",
-	ExecStrings: disconnectExec,
+	Name:  "api-disconnect",
+	Short: "Disconnect from API server",
+	Exec:  disconnectExec,
 }}
 
-func disconnectExec(ctx *StringsContext, cli CLI) error {
+func disconnectExec(ctx *BasicContext) error {
 	if len(ctx.Args) > 0 {
 		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
 	}
 
-	if err := cli.Disconnect(); err != nil {
+	if err := ctx.CLI.Disconnect(); err != nil {
 		return errors.WithStack(err)
 	}
 
-	cli.Console().Println("Disconnected.")
+	ctx.CLI.Console().Println("Disconnected.")
 
 	return nil
 }

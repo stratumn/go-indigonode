@@ -24,11 +24,11 @@ import (
 
 // Echo is a command that outputs text.
 var Echo = BasicCmdWrapper{BasicCmd{
-	Name:        "echo",
-	Short:       "Output text",
-	Use:         "echo [Expressions...]",
-	Flags:       echoFlags,
-	ExecStrings: echoExec,
+	Name:  "echo",
+	Short: "Output text",
+	Use:   "echo [Expressions...]",
+	Flags: echoFlags,
+	Exec:  echoExec,
 }}
 
 func echoFlags() *pflag.FlagSet {
@@ -38,7 +38,7 @@ func echoFlags() *pflag.FlagSet {
 	return flags
 }
 
-func echoExec(ctx *StringsContext, cli CLI) error {
+func echoExec(ctx *BasicContext) error {
 	s := strings.Join(ctx.Args, " ")
 
 	log, err := ctx.Flags.GetString("log")
@@ -46,7 +46,7 @@ func echoExec(ctx *StringsContext, cli CLI) error {
 		return errors.WithStack(err)
 	}
 
-	cons := cli.Console()
+	cons := ctx.CLI.Console()
 
 	switch log {
 	case "debug":

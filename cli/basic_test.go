@@ -67,7 +67,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 			flags.String("flag", "", "")
 			return flags
 		},
-		ExecStrings: func(*StringsContext, CLI) error {
+		Exec: func(*BasicContext) error {
 			return nil
 		},
 	}}
@@ -125,7 +125,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	cmd := BasicCmdWrapper{BasicCmd{
 		Name:  "cmd",
 		Short: "A test command",
-		ExecStrings: func(*StringsContext, CLI) error {
+		Exec: func(*BasicContext) error {
 			close(execCh)
 			return nil
 		},

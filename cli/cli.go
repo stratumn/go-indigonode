@@ -177,25 +177,29 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		addr:       config.APIAddress,
 	}
 
-	// Create the top closure with env variables.
+	// Create the top closure.
 	closure := script.NewClosure(
+		// Add env variables prefixed with a dollar.
 		script.ClosureOptEnv("$", os.Environ()),
+		// Resolve symbols without a dollar sign to their names.
 		script.ClosureOptResolver(Resolver),
 	)
 
 	c.itr = script.NewInterpreter(
-		script.InterpreterOptBuiltinLibs,
-		script.InterpreterOptVarPrefix("$"),
 		script.InterpreterOptClosure(closure),
-		script.InterpreterOptErrorHandler(c.PrintError),
+		// Add all builtin script functions.
+		script.InterpreterOptBuiltinLibs,
+		// Prefix variables with a dollar.
+		script.InterpreterOptVarPrefix("$"),
+		// Print errors.
+		script.InterpreterOptErrorHandler(c.printError),
+		// Print evaluated instructino values.
 		script.InterpreterOptValueHandler(c.printValue),
 	)
 
+	// Register static commands.
+	sortCmds(c.staticCmds)
 	c.addCmdsToInterpreter(StaticCmds)
-
-	sort.Slice(c.staticCmds, func(i, j int) bool {
-		return c.staticCmds[i].Name() < c.staticCmds[j].Name()
-	})
 
 	c.cons.SetDebug(config.EnableDebugOutput)
 
@@ -259,10 +263,12 @@ func (c *cli) dialOpts(ctx context.Context, address string) ([]grpc.DialOption, 
 		if override != "" {
 			c.cons.Warningln("WARNING: API server authenticity is not checked because TLS server name override is enabled.")
 		}
+
 		creds, err := credentials.NewClientTLSFromFile(cert, override)
 		if err != nil {
 			return nil, err
 		}
+
 		opts = append(opts, grpc.WithTransportCredentials(creds))
 	} else {
 		c.cons.Warningln("WARNING: API connection is not encrypted because TLS is disabled.")
@@ -298,12 +304,12 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return err
 	}
 
-	// Connect to the API.
 	conn, err := grpc.DialContext(dialCtx, c.addr, opts...)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
+	// Reflect API commands.
 	c.apiCmds, err = c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
@@ -340,8 +346,8 @@ func (c *cli) Disconnect() error {
 	return errors.WithStack(conn.Close())
 }
 
-// PrintError prints the error if it isn't nil.
-func (c *cli) PrintError(err error) {
+// printError prints the error if it isn't nil.
+func (c *cli) printError(err error) {
 	if err == nil {
 		return
 	}
@@ -361,22 +367,26 @@ func (c *cli) PrintError(err error) {
 
 // printValue prints an interpreted value.
 func (c *cli) printValue(val script.SExp) {
-	if val != nil {
-		// Dont't print quotes.
-		if val.UnderlyingType() == script.TypeString {
-			str := val.MustStringVal()
-			if str == "" {
-				return
-			}
-
-			c.cons.Print(str)
-			if !strings.HasSuffix(str, "\n") {
-				c.cons.Println()
-			}
-		} else {
-			c.cons.Println(fmt.Sprint(val))
-		}
+	if val == nil {
+		return
 	}
+
+	// Handle strings differently so they are not surrounded by quotes.
+	if val.UnderlyingType() == script.TypeString {
+		str := val.MustStringVal()
+		if str == "" {
+			return
+		}
+
+		c.cons.Print(str)
+		if !strings.HasSuffix(str, "\n") {
+			c.cons.Println()
+		}
+
+		return
+	}
+
+	c.cons.Println(fmt.Sprint(val))
 }
 
 // Exec executes the given input.
@@ -400,7 +410,7 @@ func (c *cli) Run(ctx context.Context, in string) {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		// Errors are already printed.
+		// Errors are already printed, so ignore this one.
 		_ = c.Exec(execCtx, in)
 		close(done)
 	}()
@@ -459,4 +469,11 @@ func (c *cli) wrapCmdExec(cmd Cmd) script.InterpreterFuncHandler {
 	return func(ctx *script.InterpreterContext) (script.SExp, error) {
 		return cmd.Exec(ctx, c)
 	}
+}
+
+// sortCmds sorts a slice of commands by name.
+func sortCmds(cmds []Cmd) {
+	sort.Slice(cmds, func(i, j int) bool {
+		return cmds[i].Name() < cmds[j].Name()
+	})
 }

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"github.com/stratumn/alice/cli/script"
+	"github.com/stratumn/alice/script"
 )
 
 type basicContentMock string

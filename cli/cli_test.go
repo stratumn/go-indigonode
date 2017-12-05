@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/cli/script"
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/release"
+	"github.com/stratumn/alice/script"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

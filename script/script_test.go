@@ -18,7 +18,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/stratumn/alice/cli/script"
+	"github.com/stratumn/alice/script"
 )
 
 func Example_simple() {

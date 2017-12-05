@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
-	"github.com/stratumn/alice/cli/script"
+	"github.com/stratumn/alice/script"
 )
 
 var (

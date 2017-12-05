@@ -51,8 +51,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/cli/script"
 	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/script"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

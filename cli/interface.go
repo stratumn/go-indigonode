@@ -17,7 +17,7 @@ package cli
 import (
 	"context"
 
-	"github.com/stratumn/alice/cli/script"
+	"github.com/stratumn/alice/script"
 )
 
 // Content represents console content used to find suggestions.

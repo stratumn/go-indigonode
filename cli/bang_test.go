@@ -75,35 +75,3 @@ func TestBang(t *testing.T) {
 		})
 	}
 }
-
-func TestBang_strings(t *testing.T) {
-	bang := cli.Bang
-
-	tests := []struct {
-		name  string
-		value string
-	}{{
-		"Name()",
-		bang.Name(),
-	}, {
-		"Short()",
-		bang.Short(),
-	}, {
-		"Long()",
-		bang.Long(),
-	}, {
-		"Use()",
-		bang.Use(),
-	}, {
-		"LongUse()",
-		bang.LongUse(),
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.value == "" {
-				t.Errorf("%s is blank", tt.value)
-			}
-		})
-	}
-}

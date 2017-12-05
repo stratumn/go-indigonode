@@ -17,8 +17,6 @@ package script
 import (
 	"strings"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 // ClosureOpt is a closure options.
@@ -135,7 +133,7 @@ func (c *Closure) Resolve(sym SExp) (SExp, error) {
 			return c.resolve(sym)
 		}
 
-		return nil, errors.Wrap(ErrSymNotFound, sym.MustSymbolVal())
+		return nil, WrapError(ErrSymNotFound, sym.Meta(), sym.MustSymbolVal())
 	}
 
 	return v, nil

@@ -525,6 +525,42 @@ type reflectorServerTest struct {
 	err  error
 }
 
+const reflectTestUsage = `
+Usage:
+  test-unaryreq <required field>
+
+Flags:
+      --base58 string                      base58 field
+      --base58_repeated stringSlice        base58 repeated field
+      --boolean string                     bool field
+      --boolean_repeated stringSlice       bool repeated field
+      --buf string                         bytes field
+      --buf_repeated stringSlice           bytes repeated field
+      --byterate string                    byterate field
+      --byterate_repeated stringSlice      byterate repeated field
+      --bytesize string                    bytesize field
+      --bytesize_repeated stringSlice      bytesize repeated field
+      --duration string                    duration field
+      --duration_repeated stringSlice      duration repeated field
+      --enumeration string                 enum field
+      --enumeration_repeated stringSlice   enum repeated field
+  -h, --help                               Invoke help on command
+      --i32 string                         int32 field
+      --i32_repeated stringSlice           int32 repeated field
+      --i64 string                         int64 field
+      --i64_repeated stringSlice           int64 repeated field
+      --multiaddr string                   multiaddr field
+      --multiaddr_repeated stringSlice     multiaddr repeated field
+      --no-timeout                         Disable request timeout
+      --noext string                       noext
+      --str string                         string field
+      --str_repeated stringSlice           string repeated field
+      --u32 string                         uint32 field
+      --u32_repeated stringSlice           uint32 repeated field
+      --u64 string                         uint64 field
+      --u64_repeated stringSlice           uint64 repeated field
+`
+
 var serverReflectorTests = []reflectorServerTest{{
 	"unary",
 	"test-unaryreq hello --boolean true --bytesize_repeated 1k --bytesize_repeated 1m",
@@ -605,17 +641,17 @@ BYTERATE REPEATED FIELD
 }, {
 	"missing arg",
 	"test-unaryreq",
-	ansiRed + "Error: invalid usage: missing argument(s).\n" + ansiReset,
+	ansiRed + "Error: 1:1: test-unaryreq: invalid usage: missing argument(s).\n" + ansiReset + reflectTestUsage,
 	errUse,
 }, {
 	"extra arg",
 	"test-unaryreq a b",
-	ansiRed + "Error: invalid usage: unexpected argument(s): b.\n" + ansiReset,
+	ansiRed + "Error: 1:1: test-unaryreq: invalid usage: unexpected argument(s): b.\n" + ansiReset + reflectTestUsage,
 	errUse,
 }, {
 	"invalid flag",
 	"test-unaryreq --boolean 1",
-	ansiRed + "Error: invalid usage: missing argument(s).\n" + ansiReset,
+	ansiRed + "Error: 1:1: test-unaryreq: invalid usage: missing argument(s).\n" + ansiReset + reflectTestUsage,
 	errUse,
 }}
 

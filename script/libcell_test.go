@@ -45,11 +45,11 @@ var libCellTests = []libTest{{
 }, {
 	"cons ('hello') ()",
 	"",
-	`1:1: cons: 1:7: "hello": function name is not a symbol`,
+	"1:1: cons: 1:7: function name is not a symbol",
 }, {
 	"cons () ('hello')",
 	"",
-	`1:1: cons: 1:10: "hello": function name is not a symbol`,
+	"1:1: cons: 1:10: function name is not a symbol",
 }, {
 	"car ()",
 	"",
@@ -69,7 +69,7 @@ var libCellTests = []libTest{{
 }, {
 	"car 'a'",
 	"",
-	"1:1: car: not a cell",
+	"1:1: car: 1:5: not a cell",
 }, {
 	"car (a)",
 	"",
@@ -93,7 +93,7 @@ var libCellTests = []libTest{{
 }, {
 	"cdr 'a'",
 	"",
-	"1:1: cdr: not a cell",
+	"1:1: cdr: 1:5: not a cell",
 }, {
 	"cdr (a)",
 	"",

@@ -57,7 +57,7 @@ var libMetaTests = []libTest{{
 }, {
 	"eval a",
 	"",
-	"1:1: eval: a: could not resolve symbol",
+	"1:1: eval: 1:6: a: could not resolve symbol",
 }, {
 	"eval a b",
 	"",
@@ -65,7 +65,7 @@ var libMetaTests = []libTest{{
 }, {
 	"eval (quote ('hello world'))",
 	``,
-	`1:1: eval: 1:14: "hello world": function name is not a symbol`,
+	`1:1: eval: 1:14: function name is not a symbol`,
 }}
 
 func TestLibMeta(t *testing.T) {

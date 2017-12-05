@@ -58,6 +58,10 @@ var (
 
 	// ErrNotFunc is returned when an S-Expression is not a function.
 	ErrNotFunc = errors.New("the expression is not a function")
+
+	// ErrInvalidCall is returned when an S-Expression is not a function
+	// call.
+	ErrInvalidCall = errors.New("invalid function call")
 )
 
 // LambdaSymbol is the symbol used to declare lambda functions.

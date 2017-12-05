@@ -14,64 +14,60 @@
 
 package script
 
-// LibLambda contains functions to work with lambda functions.
-var LibLambda = map[string]InterpreterFuncHandler{
-	"lambda": LibLambdaLambda,
+import "github.com/pkg/errors"
+
+// LibClosure contains functions to work with closures.
+var LibClosure = map[string]InterpreterFuncHandler{
+	"let": LibClosureLet,
 }
 
-// LibLambdaLambda creates a lambda function.
-func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
-	// Make sure that:
+// LibClosureLet binds a value to a symbol in the current closure.
+func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
+	// Get:
 	//
-	//	1. car is nil or a list of symbols (function arguments)
+	//	1. car symbol value
 	if ctx.Args == nil {
-		return nil, ctx.Error("missing function arguments")
+		return nil, errors.New("missing symbol")
 	}
 
 	car := ctx.Args.Car()
-	if car != nil {
-		carCell, ok := car.CellVal()
-		if !ok || !carCell.IsList() {
-			return nil, ctx.Error("function arguments are not a list")
-		}
-
-		for _, exp := range carCell.MustToSlice() {
-			if exp.UnderlyingType() != TypeSymbol {
-				return nil, ctx.Error("function argument is not a symbol")
-			}
-		}
+	if ctx.Args == nil {
+		return nil, errors.New("missing symbol")
 	}
 
-	//	2. cadr (function body) is there but can be anything including
-	//	   nil
-	cdr := ctx.Args.Cdr()
-	if cdr == nil {
-		return nil, ctx.Error("missing function body")
-	}
-
-	cdrCell, ok := cdr.CellVal()
+	carSymbol, ok := car.SymbolVal()
 	if !ok {
-		return nil, ctx.Error("invalid function body")
+		return nil, Error("not a symbol", car.Meta(), "")
 	}
 
-	if cdrCell.Cdr() != nil {
-		return nil, ctx.Error("extra expressions after function body")
+	//	2. cadr, optional (value)
+	cdr := ctx.Args.Cdr()
+	var cadr SExp
+
+	if cdr != nil {
+		cdrCell, ok := cdr.CellVal()
+		if !ok {
+			return nil, Error("invalid value", cdr.Meta(), "")
+		}
+
+		cadr = cdrCell.Car()
 	}
 
-	// To differenciate lambda functions from other expressions, FuncData
-	// is stored in the meta, which is also used to store the parent
-	// closure of the function.
-	lambda := Cons(
-		Symbol(LambdaSymbol, ctx.Meta),
-		ctx.Args,
-		Meta{
-			Line:   ctx.Meta.Line,
-			Offset: ctx.Meta.Offset,
-			UserData: FuncData{
-				ParentClosure: ctx.Closure,
-			},
-		},
-	)
+	//	3. a value isn't already bound to symbol in the current
+	//	   closure
 
-	return lambda, nil
+	if _, ok := ctx.Closure.Local(ctx.VarPrefix + carSymbol); ok {
+		return nil, errors.New("a value is already bound to the symbol")
+	}
+
+	// Evaluate cadr (the value).
+	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, cadr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Bind the value to the symbol and return the value.
+	ctx.Closure.SetLocal(ctx.VarPrefix+carSymbol, v)
+
+	return v, nil
 }

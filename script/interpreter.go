@@ -169,6 +169,9 @@ func (itr *Interpreter) DeleteFuncHandler(name string) {
 }
 
 // EvalInput evaluates the given input.
+//
+// All errors are sent the the error handler, but the last one is returned for
+// convenience.
 func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 	var scanError error
 
@@ -188,7 +191,12 @@ func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 		return err
 	}
 
-	return itr.evalInstrs(ctx, instrs)
+	if err := itr.evalInstrs(ctx, instrs); err != nil {
+		itr.errHandler(err)
+		return err
+	}
+
+	return nil
 }
 
 // evalInstrs evaluates a list of instructions.
@@ -242,81 +250,78 @@ func (itr *Interpreter) evalCell(
 	closure *Closure,
 	cell SCell,
 ) (SExp, error) {
-	meta := Meta{}
+	meta := cell.Meta()
+	name := ""
 
 	wrapError := func(err error) error {
-		if err == nil {
-			return nil
-		}
-
-		if cell == nil {
-			return errors.WithStack(err)
-		}
-
-		return errors.Wrapf(
-			err,
-			"%d:%d: %v",
-			meta.Line,
-			meta.Offset,
-			cell.Car(),
-		)
+		return WrapError(err, meta, name)
 	}
 
-	if cell != nil && cell.IsList() {
-		meta = cell.Meta()
-		car := cell.Car()
+	if cell == nil {
+		return nil, wrapError(ErrInvalidCall)
+	}
 
-		if car.UnderlyingType() == TypeSymbol {
-			name := car.MustSymbolVal()
+	if !cell.IsList() {
+		return nil, wrapError(ErrInvalidCall)
+	}
 
-			var args SCell
+	car := cell.Car()
 
-			if cdr := cell.Cdr(); cdr != nil {
-				args = cdr.MustCellVal()
-			}
+	if car != nil {
+		meta = car.Meta()
+	}
 
-			funcCtx := &InterpreterContext{
-				Ctx:               ctx,
-				Name:              name,
-				Closure:           closure,
-				Args:              args,
-				Meta:              meta,
-				VarPrefix:         itr.varPrefix,
-				Eval:              itr.eval,
-				EvalList:          itr.evalList,
-				EvalListToSlice:   itr.evalListToSlice,
-				EvalListToStrings: itr.evalListToStrings,
-				EvalBody:          itr.evalBody,
-				Error: func(s string) error {
-					return wrapError(errors.New(s))
-				},
-				WrapError: wrapError,
-			}
+	if car.UnderlyingType() != TypeSymbol {
+		return nil, wrapError(ErrFuncName)
+	}
 
-			lambda, ok := closure.Get(itr.varPrefix + name)
-			if ok {
-				return itr.execFunc(funcCtx, lambda)
-			}
+	name = car.MustSymbolVal()
 
-			handler, ok := itr.funcHandlers[name]
-			if !ok {
-				err := wrapError(ErrUnknownFunc)
-				itr.errHandler(err)
-				return nil, err
-			}
-
-			val, err := handler(funcCtx)
-			if err != nil {
-				itr.errHandler(err)
-			}
-
-			return val, err
+	var args SCell
+	if cdr := cell.Cdr(); cdr != nil {
+		var ok bool
+		args, ok = cdr.CellVal()
+		if !ok {
+			meta = cdr.Meta()
+			return nil, wrapError(ErrInvalidCall)
 		}
 	}
 
-	err := wrapError(ErrFuncName)
-	itr.errHandler(err)
-	return nil, err
+	funcCtx := &InterpreterContext{
+		Ctx:               ctx,
+		Name:              name,
+		Closure:           closure,
+		Args:              args,
+		Meta:              cell.Meta(),
+		VarPrefix:         itr.varPrefix,
+		Eval:              itr.eval,
+		EvalList:          itr.evalList,
+		EvalListToSlice:   itr.evalListToSlice,
+		EvalListToStrings: itr.evalListToStrings,
+		EvalBody:          itr.evalBody,
+		Error: func(s string) error {
+			return wrapError(errors.New(s))
+		},
+		WrapError: wrapError,
+	}
+
+	lambda, ok := closure.Get(itr.varPrefix + name)
+	if ok {
+		return itr.execFunc(funcCtx, lambda)
+	}
+
+	handler, ok := itr.funcHandlers[name]
+	if !ok {
+		return nil, wrapError(ErrUnknownFunc)
+	}
+
+	val, err := handler(funcCtx)
+
+	if err != nil {
+		return nil, wrapError(err)
+	}
+
+	return val, nil
 }
 
 // evalList evaluates each expression in a list and returns a list.
@@ -467,7 +472,7 @@ func (itr *Interpreter) evalBody(
 // is created for the function body. The parent of the function body closure
 // is the one stored in the FuncData.
 //
-// It is assumed that the function was properly created, using Lambda for
+// It assumes that the function was properly created, using Lambda for
 // instance.
 func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, error) {
 	// Make sure that is a function (has FuncData in meta).
@@ -526,4 +531,33 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 
 	// Finally, evaluate the function body.
 	return itr.evalBody(ctx.Ctx, bodyClosure, lambdaCaddr)
+}
+
+// Error creates an error with S-Expression meta.
+func Error(msg string, meta Meta, ident string) error {
+	return WrapError(errors.New(msg), meta, ident)
+}
+
+// WrapError wraps an error with S-Expression meta.
+func WrapError(err error, meta Meta, ident string) error {
+	if err == nil {
+		return nil
+	}
+
+	if ident == "" {
+		return errors.Wrapf(
+			err,
+			"%d:%d",
+			meta.Line,
+			meta.Offset,
+		)
+	}
+
+	return errors.Wrapf(
+		err,
+		"%d:%d: %v",
+		meta.Line,
+		meta.Offset,
+		ident,
+	)
 }

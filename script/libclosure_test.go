@@ -33,10 +33,10 @@ var libClosureTests = []libTest{{
 }, {
 	"let 'a'",
 	"",
-	"1:1: let: not a symbol",
+	"1:1: let: 1:5: not a symbol",
 }, {
 	"let a 'hello'\nlet a 'world'",
-	"",
+	`"hello"`,
 	"2:1: let: a value is already bound to the symbol",
 }}
 

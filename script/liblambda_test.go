@@ -41,11 +41,11 @@ var libLambdaTests = []libTest{{
 }, {
 	"(lambda ('a') ())",
 	"",
-	"1:2: lambda: function argument is not a symbol",
+	"1:2: lambda: 1:10: function argument is not a symbol",
 }, {
 	"(lambda 'a' ())",
 	"",
-	"1:2: lambda: function arguments are not a list",
+	"1:2: lambda: 1:9: function arguments are not a list",
 }}
 
 func TestLibLambda(t *testing.T) {

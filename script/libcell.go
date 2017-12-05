@@ -14,6 +14,8 @@
 
 package script
 
+import "github.com/pkg/errors"
+
 // LibCell contains functions to work with cons cells.
 var LibCell = map[string]InterpreterFuncHandler{
 	"cons": LibCellCons,
@@ -28,7 +30,7 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 	//	1. car (the cell car)
 
 	if ctx.Args == nil {
-		return nil, ctx.Error("missing car")
+		return nil, errors.New("missing car")
 	}
 
 	car := ctx.Args.Car()
@@ -36,12 +38,12 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 	//	2. cadr (the cell cdr)
 	cdr := ctx.Args.Cdr()
 	if cdr == nil {
-		return nil, ctx.Error("missing cdr")
+		return nil, errors.New("missing cdr")
 	}
 
 	cdrCell, ok := cdr.CellVal()
 	if !ok {
-		return nil, ctx.Error("invalid arguments")
+		return nil, errors.New("invalid arguments")
 	}
 
 	cadr := cdrCell.Car()
@@ -49,12 +51,12 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 	// Evaluate them.
 	carVal, err := ctx.Eval(ctx.Ctx, ctx.Closure, car)
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	cadrVal, err := ctx.Eval(ctx.Ctx, ctx.Closure, cadr)
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	// Construct the cell.
@@ -68,12 +70,12 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 	// Return the car of the evaluated car cell.
 	if ctx.Args == nil || ctx.Args.Cdr() != nil {
-		return nil, ctx.Error("expected a single element")
+		return nil, errors.New("expected a single element")
 	}
 
 	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	if v == nil {
@@ -82,7 +84,7 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 
 	cell, ok := v.CellVal()
 	if !ok {
-		return nil, ctx.Error("not a cell")
+		return nil, Error("not a cell", v.Meta(), "")
 	}
 
 	return cell.Car(), nil
@@ -92,12 +94,12 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 	// Return the cdr of the evaluated car cell.
 	if ctx.Args == nil || ctx.Args.Cdr() != nil {
-		return nil, ctx.Error("expected a single element")
+		return nil, errors.New("expected a single element")
 	}
 
 	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	if v == nil {
@@ -106,7 +108,7 @@ func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 
 	cell, ok := v.CellVal()
 	if !ok {
-		return nil, ctx.Error("not a cell")
+		return nil, Error("not a cell", v.Meta(), "")
 	}
 
 	return cell.Cdr(), nil

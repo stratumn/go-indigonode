@@ -263,6 +263,10 @@ func (s *Scanner) text(quote rune) Token {
 				return Token{TokInvalid, buf, line, offset}
 			}
 			s.read()
+		case s.ch == '"' || s.ch == '\'' && quote == 0:
+			s.error(s.line, s.offset, s.ch)
+			s.back()
+			return Token{TokInvalid, buf, line, offset}
 		case isSpecial(s.ch) && quote == 0:
 			s.back()
 			return Token{TokSym, buf, line, offset}

@@ -53,6 +53,8 @@ func testLib(t *testing.T, lib map[string]InterpreterFuncHandler, tests []libTes
 				t.Errorf("%q: error: %s", tt.input, err)
 			}
 			continue
+		} else if tt.err != "" {
+			t.Errorf("%q: error = <nil> want %q", tt.input, tt.err)
 		}
 
 		if got != tt.want {

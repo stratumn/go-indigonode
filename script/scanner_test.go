@@ -118,6 +118,12 @@ var scanTests = []scanTest{{
 	},
 	[]string{"1:13: unexpected character '\\x00'"},
 }, {
+	"hello'",
+	[]Token{
+		{TokInvalid, "hello", 1, 1},
+	},
+	[]string{"1:6: unexpected character '\\''"},
+}, {
 	"'hello \\\"'",
 	[]Token{
 		{TokInvalid, "hello ", 1, 1},

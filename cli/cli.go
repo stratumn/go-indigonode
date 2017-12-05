@@ -467,7 +467,13 @@ func (c *cli) removeCmdsFromInterpreter(cmds []Cmd) {
 // interpreter.
 func (c *cli) wrapCmdExec(cmd Cmd) script.InterpreterFuncHandler {
 	return func(ctx *script.InterpreterContext) (script.SExp, error) {
-		return cmd.Exec(ctx, c)
+		val, err := cmd.Exec(ctx, c)
+
+		if useError, ok := errors.Cause(err).(*UseError); ok {
+			useError.use = cmd.LongUse()
+		}
+
+		return val, err
 	}
 }
 

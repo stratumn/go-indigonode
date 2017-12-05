@@ -14,6 +14,8 @@
 
 package script
 
+import "github.com/pkg/errors"
+
 // LibMeta contains functions to quote and evaluate expressions.
 var LibMeta = map[string]InterpreterFuncHandler{
 	"quote": LibMetaQuote,
@@ -25,7 +27,7 @@ func LibMetaQuote(ctx *InterpreterContext) (SExp, error) {
 	// Quote is the simplest command, it just returns the car as is.
 
 	if ctx.Args == nil || ctx.Args.Cdr() != nil {
-		return nil, ctx.Error("expected a single expression")
+		return nil, errors.New("expected a single expression")
 	}
 
 	return ctx.Args.Car(), nil
@@ -35,17 +37,17 @@ func LibMetaQuote(ctx *InterpreterContext) (SExp, error) {
 func LibMetaEval(ctx *InterpreterContext) (SExp, error) {
 	// Eval is a simple command, all it does is evaluate the car twice.
 	if ctx.Args == nil || ctx.Args.Cdr() != nil {
-		return nil, ctx.Error("expected a single expression")
+		return nil, errors.New("expected a single expression")
 	}
 
 	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	v, err = ctx.Eval(ctx.Ctx, ctx.Closure, v)
 	if err != nil {
-		return nil, ctx.WrapError(err)
+		return nil, err
 	}
 
 	return v, nil

@@ -53,19 +53,19 @@ var libCondTests = []libTest{{
 }, {
 	"if 'test' ok",
 	"",
-	"1:1: if: ok: could not resolve symbol",
+	"1:1: if: 1:11: ok: could not resolve symbol",
 }, {
 	"if () 'ok' ko",
 	"",
-	"1:1: if: ko: could not resolve symbol",
+	"1:1: if: 1:12: ko: could not resolve symbol",
 }, {
 	"if 'test' 'ok' 'ko' 'uncertain'",
 	"",
-	"1:1: if: unexpected expression",
+	"1:1: if: 1:21: unexpected expression",
 }, {
 	"if test 'ok'",
 	"",
-	"1:1: if: test: could not resolve symbol",
+	"1:1: if: 1:4: test: could not resolve symbol",
 }, {
 	"unless 'test' 'ok' 'ko'",
 	`"ko"`,
@@ -99,21 +99,21 @@ var libCondTests = []libTest{{
 	"",
 	"1:1: unless: missing then expression",
 }, {
-	"unless 'test' ok",
-	"",
-	"1:1: unless: ok: could not resolve symbol",
+	"unless () ok ko",
+	``,
+	"1:1: unless: 1:11: ok: could not resolve symbol",
 }, {
-	"unless () ok 'ko'",
+	"unless 'test' 'ok' ko",
 	"",
-	"1:1: unless: ok: could not resolve symbol",
+	"1:1: unless: 1:20: ko: could not resolve symbol",
 }, {
 	"unless 'test' 'ok' 'ko' 'uncertain'",
 	"",
-	"1:1: unless: unexpected expression",
+	"1:1: unless: 1:25: unexpected expression",
 }, {
 	"unless test 'ok'",
 	"",
-	"1:1: unless: test: could not resolve symbol",
+	"1:1: unless: 1:8: test: could not resolve symbol",
 }}
 
 func TestLibCond(t *testing.T) {

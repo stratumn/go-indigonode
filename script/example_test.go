@@ -24,21 +24,28 @@ import (
 func Example_simple() {
 	// Script that will be evaluated.
 	src := `
-		; You can have comments
+		; You can have comments.
 
-		; You can create lists by quoting symbols:
+		; You can choose not to evaluate a list by quoting it:
 		quote (A B C)
 
 		; You can bind a value to a symbol:
 		let my-list (quote (A B C))
 
-		; You have do conditional expressions:
-		if my-list 'list exists' 'list does not exist'
+		; You can do conditional expressions:
+		if my-list "list exists" "list does not exist"
 
 		; You can manipulate lists:
 		car my-list
 		cdr my-list
 		car (cdr my-list)
+
+		; You can create functions:
+		let cadr (lambda (l) (car (cdr l)))
+		cadr my-list
+
+		; By the way can use parenthesis at the top level if you want:
+		(cadr my-list)
 `
 
 	// Initialize an interpreter with the builtin libraries.
@@ -56,6 +63,9 @@ func Example_simple() {
 	// "list exists"
 	// A
 	// (B C)
+	// B
+	// (lambda (l) (car (cdr l)))
+	// B
 	// B
 }
 

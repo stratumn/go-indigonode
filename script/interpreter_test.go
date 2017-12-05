@@ -82,7 +82,7 @@ var evalTests = []evalTest{{
 }, {
 	"echo ('echo' 1 2)",
 	"",
-	`1:1: echo: 1:7: "echo": function name is not a symbol`,
+	`1:1: echo: 1:7: function name is not a symbol`,
 }, {
 	"echo 'echo",
 	"",
@@ -90,14 +90,14 @@ var evalTests = []evalTest{{
 }, {
 	"echo hello",
 	"",
-	"1:1: echo: hello: could not resolve symbol",
+	"1:1: echo: 1:6: hello: could not resolve symbol",
 }}
 
 var testFuncs = map[string]InterpreterFuncHandler{
 	"echo": func(ctx *InterpreterContext) (SExp, error) {
 		args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
 		if err != nil {
-			return nil, ctx.WrapError(err)
+			return nil, err
 		}
 
 		str := strings.Join(args, " ")

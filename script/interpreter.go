@@ -268,7 +268,7 @@ func (itr *Interpreter) eval(
 	exp SExp,
 	isTail bool,
 ) (SExp, error) {
-	for i := 0; ; i++ {
+	for {
 		if exp == nil {
 			return nil, nil
 		}

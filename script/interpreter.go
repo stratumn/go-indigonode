@@ -482,7 +482,7 @@ func (itr *Interpreter) evalBody(
 		return val, err
 	}
 
-	// Eval directly unless body is a list or car is a list.
+	// Eval directly unless body is a list and car is a list.
 	if body == nil {
 		return evalDirectly()
 	}

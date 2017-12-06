@@ -152,13 +152,6 @@ type LazyLambda struct {
 	FuncID uint64
 }
 
-// LazyFuncHandler contains information about a call to a function handler. It
-// is used for tail call optimization.
-type LazyFuncHandler struct {
-	Ctx     *InterpreterContext
-	Handler InterpreterFuncHandler
-}
-
 // Interpreter evaluates S-Expressions.
 type Interpreter struct {
 	closure *Closure

@@ -144,9 +144,9 @@ func FuncID() uint64 {
 	return atomic.AddUint64(&funcID, 1)
 }
 
-// LazyLambda contains information about a call to a lambda function. It is
+// LazyCall contains information about a call to a lambda function. It is
 // used for tail call optimization.
-type LazyLambda struct {
+type LazyCall struct {
 	Ctx    *InterpreterContext
 	Lambda SExp
 	FuncID uint64
@@ -276,7 +276,7 @@ func (itr *Interpreter) eval(
 	case TypeCell:
 		// Do not evaluate lazy lambdas created by tail call
 		// optimizations.
-		_, lazy := exp.Meta().UserData.(LazyLambda)
+		_, lazy := exp.Meta().UserData.(LazyCall)
 		if lazy {
 			return exp, nil
 		}
@@ -543,7 +543,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 		for _, id := range ctx.funcIDs {
 			if id == data.ID {
 				meta := ctx.Meta
-				meta.UserData = LazyLambda{
+				meta.UserData = LazyCall{
 					Ctx:    ctx,
 					Lambda: lambda,
 					FuncID: data.ID,
@@ -607,7 +607,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 				return val, err
 			}
 
-			lazy, ok := val.Meta().UserData.(LazyLambda)
+			lazy, ok := val.Meta().UserData.(LazyCall)
 			if !ok || lazy.FuncID != data.ID {
 				return val, nil
 			}

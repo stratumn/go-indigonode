@@ -28,14 +28,6 @@ func ResolveName(sym SExp) (SExp, error) {
 	return String(sym.MustSymbolVal(), sym.Meta()), nil
 }
 
-// CallHandler handles function calls.
-type CallHandler func(
-	resolve ResolveHandler,
-	name string,
-	args SCell,
-	meta Meta,
-) (SExp, error)
-
 // Type is an SExp type.
 type Type uint8
 

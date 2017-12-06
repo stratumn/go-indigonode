@@ -274,7 +274,7 @@ func (itr *Interpreter) eval(
 
 	switch exp.UnderlyingType() {
 	case TypeCell:
-		// Do not evaluate lazy lambdas created by tail call
+		// Do not evaluate lazy calls created by tail call
 		// optimizations.
 		_, lazy := exp.Meta().UserData.(LazyCall)
 		if lazy {

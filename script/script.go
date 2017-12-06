@@ -54,7 +54,7 @@ package script
 import "github.com/pkg/errors"
 
 var (
-	// ErrInvalidUTF8 is returned when a strings contains an invalid UTF8
+	// ErrInvalidUTF8 is returned when the input contains an invalid UTF8
 	// character.
 	ErrInvalidUTF8 = errors.New("invalid UTF8 string")
 

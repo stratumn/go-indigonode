@@ -75,14 +75,14 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 	}
 
 	// Eval car (condition).
-	cond, err := ctx.Eval(ctx.Ctx, ctx.Closure, car)
+	cond, err := ctx.Eval(ctx, car, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// Evaluate cadr or caddr based on condition.
 	if (cond == nil) == unless {
-		val, err := ctx.EvalBody(ctx.Ctx, ctx.Closure, cadr)
+		val, err := ctx.EvalBody(ctx, cadr, ctx.IsTail)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 	}
 
 	if caddr != nil {
-		val, err := ctx.EvalBody(ctx.Ctx, ctx.Closure, caddr)
+		val, err := ctx.EvalBody(ctx, caddr, ctx.IsTail)
 		if err != nil {
 			return nil, err
 		}

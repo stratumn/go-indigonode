@@ -196,7 +196,7 @@ func (cmd BasicCmdWrapper) Match(name string) bool {
 
 // Exec executes the basic command.
 func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script.SExp, error) {
-	argv, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+	argv, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
 	if err != nil {
 		return nil, err
 	}

@@ -139,7 +139,11 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 	_, err := cmd.Exec(&script.InterpreterContext{
 		Ctx:     ctx,
 		Closure: closure,
-		EvalListToStrings: func(context.Context, *script.Closure, script.SCell) ([]string, error) {
+		EvalListToStrings: func(
+			*script.InterpreterContext,
+			script.SCell,
+			bool,
+		) ([]string, error) {
 			return nil, nil
 		},
 	}, nil)

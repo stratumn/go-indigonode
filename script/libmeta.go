@@ -40,12 +40,12 @@ func LibMetaEval(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("expected a single expression")
 	}
 
-	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
+	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
 	}
 
-	v, err = ctx.Eval(ctx.Ctx, ctx.Closure, v)
+	v, err = ctx.Eval(ctx, v, ctx.IsTail)
 	if err != nil {
 		return nil, err
 	}

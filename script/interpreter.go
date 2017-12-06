@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 )
@@ -29,6 +30,14 @@ type InterpreterOpt func(*Interpreter)
 func InterpreterOptClosure(c *Closure) InterpreterOpt {
 	return func(itr *Interpreter) {
 		itr.closure = c
+	}
+}
+
+// InterpreterOptTailOptimizations sets whether to enable tail call
+// optimizations (on by default).
+func InterpreterOptTailOptimizations(e bool) InterpreterOpt {
+	return func(itr *Interpreter) {
+		itr.tailOptimize = e
 	}
 }
 
@@ -95,34 +104,67 @@ type InterpreterContext struct {
 
 	VarPrefix string
 
-	// These can be used to evaluate arguments.
-	Eval              func(context.Context, *Closure, SExp) (SExp, error)
-	EvalList          func(context.Context, *Closure, SCell) (SCell, error)
-	EvalListToSlice   func(context.Context, *Closure, SCell) (SExpSlice, error)
-	EvalListToStrings func(context.Context, *Closure, SCell) ([]string, error)
+	IsTail bool
+
+	// These can be used to evaluate arguments. The last argument should
+	// be set to IsTail if it is the value being returned.
+	Eval              func(*InterpreterContext, SExp, bool) (SExp, error)
+	EvalList          func(*InterpreterContext, SCell, bool) (SCell, error)
+	EvalListToSlice   func(*InterpreterContext, SCell, bool) (SExpSlice, error)
+	EvalListToStrings func(*InterpreterContext, SCell, bool) ([]string, error)
 
 	// This one evaluates a "body", such as a function body that may
 	// contain multiple expressions.
-	EvalBody func(context.Context, *Closure, SExp) (SExp, error)
+	EvalBody func(*InterpreterContext, SExp, bool) (SExp, error)
 
 	// Creates an error with meta information.
 	Error func(string) error
 
 	// Wraps an error with meta information.
 	WrapError func(error) error
+
+	// funcIDs are the IDs of functions that lead to that point. It is used
+	// to track recursive calls.
+	funcIDs []uint64
 }
 
-// FuncData contains information about a funciton.
+// FuncData contains information about a lambda function.
 type FuncData struct {
+	// ID is a unique ID for the function.
+	ID uint64
+
 	// ParentClosure is the closure the function was defined within.
 	ParentClosure *Closure
+}
+
+var funcID = uint64(0)
+
+// FuncID generates a unique function ID.
+func FuncID() uint64 {
+	return atomic.AddUint64(&funcID, 1)
+}
+
+// LazyLambda contains information about a call to a lambda function. It is
+// used for tail call optimization.
+type LazyLambda struct {
+	Ctx    *InterpreterContext
+	Lambda SExp
+	FuncID uint64
+}
+
+// LazyFuncHandler contains information about a call to a function handler. It
+// is used for tail call optimization.
+type LazyFuncHandler struct {
+	Ctx     *InterpreterContext
+	Handler InterpreterFuncHandler
 }
 
 // Interpreter evaluates S-Expressions.
 type Interpreter struct {
 	closure *Closure
 
-	varPrefix string
+	tailOptimize bool
+	varPrefix    string
 
 	funcHandlers map[string]InterpreterFuncHandler
 	errHandler   func(error)
@@ -132,6 +174,7 @@ type Interpreter struct {
 // NewInterpreter creates a new interpreter.
 func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
 	itr := &Interpreter{
+		tailOptimize: true,
 		funcHandlers: map[string]InterpreterFuncHandler{},
 	}
 
@@ -207,7 +250,11 @@ func (itr *Interpreter) evalInstrs(ctx context.Context, instrs SCell) error {
 
 	car := instrs.Car()
 
-	val, err := itr.eval(ctx, itr.closure, car)
+	val, err := itr.eval(&InterpreterContext{
+		Ctx:     ctx,
+		Closure: itr.closure,
+	}, car, false)
+
 	if err != nil {
 		return err
 	}
@@ -224,52 +271,62 @@ func (itr *Interpreter) evalInstrs(ctx context.Context, instrs SCell) error {
 
 // eval evaluates an expression.
 func (itr *Interpreter) eval(
-	ctx context.Context,
-	closure *Closure,
+	ctx *InterpreterContext,
 	exp SExp,
+	isTail bool,
 ) (SExp, error) {
-	if exp == nil {
-		return nil, nil
-	}
+	for i := 0; ; i++ {
+		if exp == nil {
+			return nil, nil
+		}
 
-	switch exp.UnderlyingType() {
-	case TypeCell:
-		return itr.evalCell(ctx, closure, exp.MustCellVal())
+		switch exp.UnderlyingType() {
+		case TypeCell:
+			// Do not evaluate lazy lambdas created by tail call
+			// optimizations.
+			_, lazy := exp.Meta().UserData.(LazyLambda)
+			if lazy {
+				return exp, nil
+			}
 
-	case TypeSymbol:
-		return closure.Resolve(exp)
+			return itr.evalCall(ctx, exp.MustCellVal(), isTail)
 
-	default:
-		return exp, nil
+		case TypeSymbol:
+			return ctx.Closure.Resolve(exp)
+
+		default:
+			return exp, nil
+		}
 	}
 }
 
-// evalCell evaluates a cell.
-func (itr *Interpreter) evalCell(
-	ctx context.Context,
-	closure *Closure,
-	cell SCell,
+// evalCall evaluates a function call.
+func (itr *Interpreter) evalCall(
+	ctx *InterpreterContext,
+	call SCell,
+	isTail bool,
 ) (SExp, error) {
-	meta := cell.Meta()
+	meta := call.Meta()
 	name := ""
 
 	wrapError := func(err error) error {
 		return WrapError(err, meta, name)
 	}
 
-	if cell == nil {
+	if call == nil {
 		return nil, wrapError(ErrInvalidCall)
 	}
 
-	if !cell.IsList() {
+	if !call.IsList() {
 		return nil, wrapError(ErrInvalidCall)
 	}
 
-	car := cell.Car()
-
-	if car != nil {
-		meta = car.Meta()
+	car := call.Car()
+	if car == nil {
+		return nil, wrapError(ErrInvalidCall)
 	}
+
+	meta = car.Meta()
 
 	if car.UnderlyingType() != TypeSymbol {
 		return nil, wrapError(ErrFuncName)
@@ -278,7 +335,7 @@ func (itr *Interpreter) evalCell(
 	name = car.MustSymbolVal()
 
 	var args SCell
-	if cdr := cell.Cdr(); cdr != nil {
+	if cdr := call.Cdr(); cdr != nil {
 		var ok bool
 		args, ok = cdr.CellVal()
 		if !ok {
@@ -288,12 +345,13 @@ func (itr *Interpreter) evalCell(
 	}
 
 	funcCtx := &InterpreterContext{
-		Ctx:               ctx,
+		Ctx:               ctx.Ctx,
 		Name:              name,
-		Closure:           closure,
+		Closure:           ctx.Closure,
 		Args:              args,
-		Meta:              cell.Meta(),
+		Meta:              call.Meta(),
 		VarPrefix:         itr.varPrefix,
+		IsTail:            isTail,
 		Eval:              itr.eval,
 		EvalList:          itr.evalList,
 		EvalListToSlice:   itr.evalListToSlice,
@@ -303,9 +361,10 @@ func (itr *Interpreter) evalCell(
 			return wrapError(errors.New(s))
 		},
 		WrapError: wrapError,
+		funcIDs:   ctx.funcIDs,
 	}
 
-	lambda, ok := closure.Get(itr.varPrefix + name)
+	lambda, ok := ctx.Closure.Get(itr.varPrefix + name)
 	if ok {
 		return itr.execFunc(funcCtx, lambda)
 	}
@@ -328,17 +387,18 @@ func (itr *Interpreter) evalCell(
 //
 // It assumes a valid list is given.
 func (itr *Interpreter) evalList(
-	ctx context.Context,
-	closure *Closure,
+	ctx *InterpreterContext,
 	list SCell,
+	isTail bool,
 ) (SCell, error) {
 	if list == nil {
 		return nil, nil
 	}
 
 	car := list.Car()
+	cdr := list.Cdr()
 
-	carVal, err := itr.eval(ctx, closure, car)
+	carVal, err := itr.eval(ctx, car, isTail && cdr == nil)
 	if err != nil {
 		return nil, err
 	}
@@ -359,12 +419,11 @@ func (itr *Interpreter) evalList(
 		}
 	}
 
-	cdr := list.Cdr()
 	if cdr == nil {
 		return Cons(carVal, nil, meta), nil
 	}
 
-	cdrVal, err := itr.evalList(ctx, closure, cdr.MustCellVal())
+	cdrVal, err := itr.evalList(ctx, cdr.MustCellVal(), isTail)
 	if err != nil {
 		return nil, err
 	}
@@ -377,11 +436,11 @@ func (itr *Interpreter) evalList(
 //
 // It assumes a valid list is given.
 func (itr *Interpreter) evalListToSlice(
-	ctx context.Context,
-	closure *Closure,
+	ctx *InterpreterContext,
 	list SCell,
+	isTail bool,
 ) (SExpSlice, error) {
-	vals, err := itr.evalList(ctx, closure, list)
+	vals, err := itr.evalList(ctx, list, isTail)
 	if err != nil {
 		return nil, err
 	}
@@ -400,11 +459,11 @@ func (itr *Interpreter) evalListToSlice(
 //
 // It assumes a valid list is given.
 func (itr *Interpreter) evalListToStrings(
-	ctx context.Context,
-	closure *Closure,
+	ctx *InterpreterContext,
 	list SCell,
+	isTail bool,
 ) ([]string, error) {
-	vals, err := itr.evalListToSlice(ctx, closure, list)
+	vals, err := itr.evalListToSlice(ctx, list, isTail)
 	if err != nil {
 		return nil, err
 	}
@@ -423,12 +482,13 @@ func (itr *Interpreter) evalListToStrings(
 
 // evalBody evaluates a "body" such as a function body.
 func (itr *Interpreter) evalBody(
-	ctx context.Context,
-	closure *Closure,
+	ctx *InterpreterContext,
 	body SExp,
+	isTail bool,
 ) (SExp, error) {
 	evalDirectly := func() (SExp, error) {
-		return itr.eval(ctx, closure, body)
+		val, err := itr.eval(ctx, body, isTail)
+		return val, err
 	}
 
 	// Eval directly unless body is a list or car is a list.
@@ -452,7 +512,7 @@ func (itr *Interpreter) evalBody(
 	}
 
 	// Eval each expression in the body list.
-	vals, err := itr.evalListToSlice(ctx, closure, cell)
+	vals, err := itr.evalListToSlice(ctx, cell, isTail)
 	if err != nil {
 		return nil, err
 	}
@@ -476,9 +536,30 @@ func (itr *Interpreter) evalBody(
 // instance.
 func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, error) {
 	// Make sure that is a function (has FuncData in meta).
+	if lambda == nil {
+		return nil, errors.WithStack(ErrNotFunc)
+	}
+
 	data, ok := lambda.Meta().UserData.(FuncData)
 	if !ok {
 		return nil, errors.WithStack(ErrNotFunc)
+	}
+
+	// If this is a tail call and optimizations are enabled, check if this
+	// is a recursive call. If it is the case, return a lazy lambda
+	// instead of evaluating.
+	if itr.tailOptimize && ctx.IsTail {
+		for _, id := range ctx.funcIDs {
+			if id == data.ID {
+				meta := ctx.Meta
+				meta.UserData = LazyLambda{
+					Ctx:    ctx,
+					Lambda: lambda,
+					FuncID: data.ID,
+				}
+				return Cons(nil, nil, meta), nil
+			}
+		}
 	}
 
 	// Assumes the function has already been checked when created.
@@ -503,12 +584,6 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 	lambdaCddrCell := lambdaCddr.MustCellVal()
 	lambdaCaddr := lambdaCddrCell.Car()
 
-	// Now evaluate the function arguments in the given context.
-	argv, err := itr.evalListToSlice(ctx.Ctx, ctx.Closure, ctx.Args)
-	if err != nil {
-		return nil, ctx.WrapError(err)
-	}
-
 	// Transform cadr of lambda (the argument symbols) to a slice if it
 	// isn't nil.
 	var lambdaCadrSlice SExpSlice
@@ -516,21 +591,76 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 		lambdaCadrSlice = lambdaCadrCell.MustToSlice()
 	}
 
-	// Make sure the number of arguments is correct.
-	if len(argv) != len(lambdaCadrSlice) {
-		return nil, ctx.Error("unexpected number of arguments")
-	}
-
 	// Create a closure for the function body.
 	bodyClosure := NewClosure(ClosureOptParent(data.ParentClosure))
 
-	// Bind the argument vector to symbol values.
-	for i, symbol := range lambdaCadrSlice {
-		bodyClosure.Set(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
+	// Set the closure values from the arguments.
+	if err := itr.setArgs(ctx, bodyClosure, lambdaCadrSlice); err != nil {
+		return nil, err
+	}
+
+	// Create the context for executing the body.
+	bodyCtx := &InterpreterContext{
+		Ctx:     ctx.Ctx,
+		Closure: bodyClosure,
+		funcIDs: append(ctx.funcIDs, data.ID),
 	}
 
 	// Finally, evaluate the function body.
-	return itr.evalBody(ctx.Ctx, bodyClosure, lambdaCaddr)
+	val, err := itr.evalBody(bodyCtx, lambdaCaddr, true)
+
+	if itr.tailOptimize {
+		// Handle lazy functions from tail call optimizations.
+		for {
+			if val == nil || err != nil {
+				return val, err
+			}
+
+			lazy, ok := val.Meta().UserData.(LazyLambda)
+			if !ok || lazy.FuncID != data.ID {
+				return val, nil
+			}
+
+			bodyClosure = NewClosure(ClosureOptParent(data.ParentClosure))
+
+			err = itr.setArgs(lazy.Ctx, bodyClosure, lambdaCadrSlice)
+			if err != nil {
+				return nil, err
+			}
+
+			bodyCtx = &InterpreterContext{
+				Ctx:     ctx.Ctx,
+				Closure: bodyClosure,
+				funcIDs: append(ctx.funcIDs, data.ID),
+			}
+
+			val, err = itr.evalBody(bodyCtx, lambdaCaddr, true)
+		}
+	}
+
+	return val, err
+}
+
+// setArgs sets the values of a closure from funciton arguments.
+func (itr *Interpreter) setArgs(
+	callerCtx *InterpreterContext,
+	closure *Closure,
+	argSyms SExpSlice,
+) error {
+	argv, err := itr.evalListToSlice(callerCtx, callerCtx.Args, false)
+	if err != nil {
+		return callerCtx.WrapError(err)
+	}
+
+	if len(argv) != len(argSyms) {
+		return callerCtx.Error("unexpected number of arguments")
+	}
+
+	for i, symbol := range argSyms {
+		closure.Set(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
+	}
+
+	return nil
 }
 
 // Error creates an error with S-Expression meta.

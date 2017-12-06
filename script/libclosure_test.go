@@ -37,7 +37,7 @@ var libClosureTests = []libTest{{
 }, {
 	"let a 'hello'\nlet a 'world'",
 	`"hello"`,
-	"2:1: let: a value is already bound to the symbol",
+	"2:1: let: 2:5: a: a value is already bound to the symbol",
 }}
 
 func TestLibClosure(t *testing.T) {

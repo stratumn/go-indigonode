@@ -18,12 +18,12 @@
 // It producces S-Expressions that can hold either symbols, strings, or cons
 // cells.
 //
-// It is designed with shell-like scripting in mind. A script is a list of
+// It was designed with shell-like scripting in mind. A script is a list of
 // instructions. Instructions are function calls. For convenience, top-level
 // function calls don't need to be wrapped in parenthesis if they are
 // one-liners. The is useful, especially in the context of a command line
 // interface, but it introduces more complexity in the grammar because new
-// lines are meaningful.
+// lines are handled differently depending on context.
 //
 // The syntax is:
 //
@@ -38,6 +38,17 @@
 //	SExp            = List | Atom
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
 //	Atom            = symbol | string
+//
+// The lifecycle of a script is:
+//
+//	Source Code -> Scanner -> Tokens
+//	Tokens -> Parser -> S-Expression
+//	S-Expression -> Interpreter -> Output
+//
+// At this point it's not designed for speed, but it does tail call
+// optimizations (trampoline) to avoid blowing the stack with recursive calls.
+//
+// It comes with a few builtin functions and it's easy to add new functions.
 package script
 
 import "github.com/pkg/errors"

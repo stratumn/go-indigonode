@@ -49,12 +49,12 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 	cadr := cdrCell.Car()
 
 	// Evaluate them.
-	carVal, err := ctx.Eval(ctx.Ctx, ctx.Closure, car)
+	carVal, err := ctx.Eval(ctx, car, false)
 	if err != nil {
 		return nil, err
 	}
 
-	cadrVal, err := ctx.Eval(ctx.Ctx, ctx.Closure, cadr)
+	cadrVal, err := ctx.Eval(ctx, cadr, false)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("expected a single element")
 	}
 
-	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
+	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("expected a single element")
 	}
 
-	v, err := ctx.Eval(ctx.Ctx, ctx.Closure, ctx.Args.Car())
+	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
 	}

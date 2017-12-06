@@ -114,7 +114,7 @@ func Example_customFunctions() {
 	funcs := map[string]script.InterpreterFuncHandler{
 		"echo": func(ctx *script.InterpreterContext) (script.SExp, error) {
 			// Evaluate the arguments to strings.
-			args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+			args, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
 			if err != nil {
 				return nil, err
 			}
@@ -127,7 +127,7 @@ func Example_customFunctions() {
 		},
 		"title": func(ctx *script.InterpreterContext) (script.SExp, error) {
 			// Evaluate the arguments to strings.
-			args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+			args, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
 			if err != nil {
 				return nil, err
 			}

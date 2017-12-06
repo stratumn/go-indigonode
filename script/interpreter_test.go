@@ -91,11 +91,78 @@ var evalTests = []evalTest{{
 	"echo hello",
 	"",
 	"1:1: echo: 1:6: hello: could not resolve symbol",
+}, {
+	`
+	; Reverses a list recusively.
+	let reverse (lambda (l) (
+		; Define a nested recursive function with an accumulator.
+		(let reverse-rec (lambda (l tail) (
+			(unless l
+				tail
+				(reverse-rec (cdr l) (cons (car l) tail))))))
+		; Start the recursion
+		(reverse-rec l ())))
+	
+	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	`,
+	`(lambda (l) ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
+(10 9 8 7 6 5 4 3 2 1)`,
+	"",
+}, {
+	`
+	let reverse (lambda (l) (
+		(let reverse-rec (lambda (l tail) (
+			(let reverse-nested (lambda () (
+				(unless l
+					tail
+					(reverse-rec (cdr l) (cons (car l) tail))))))
+			(reverse-nested))))
+		(reverse-rec l ())))
+	
+	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	`,
+	`(lambda (l) ((let reverse-rec (lambda (l tail) ((let reverse-nested (lambda <nil> ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-nested)))) (reverse-rec l <nil>)))
+(10 9 8 7 6 5 4 3 2 1)`,
+	"",
+}, {
+	`
+	let reverse (lambda (l) (
+		(let start-rec (lambda () (
+			(let reverse-rec (lambda (l tail) (
+				(unless l
+					tail
+					(reverse-rec (cdr l) (cons (car l) tail))))))
+			(reverse-rec l ()))))
+		(start-rec)))
+	
+	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	`,
+	`(lambda (l) ((let start-rec (lambda <nil> ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))) (start-rec)))
+(10 9 8 7 6 5 4 3 2 1)`,
+	"",
+}, {
+	`
+  	let reverse (lambda (l) (
+  		(let reverse-rec-1 (lambda (l tail) (
+  			(unless l
+  				tail
+  				(reverse-rec-2 (cdr l) (cons (car l) tail))))))
+  		(let reverse-rec-2 (lambda (l tail) (
+  			(unless l
+  				tail
+  				(reverse-rec-1 (cdr l) (cons (car l) tail))))))
+  		(reverse-rec-1 l ())))
+
+  	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+  	`,
+	`(lambda (l) ((let reverse-rec-1 (lambda (l tail) ((unless l tail (reverse-rec-2 (cdr l) (cons (car l) tail)))))) (let reverse-rec-2 (lambda (l tail) ((unless l tail (reverse-rec-1 (cdr l) (cons (car l) tail)))))) (reverse-rec-1 l <nil>)))
+(10 9 8 7 6 5 4 3 2 1)`,
+	"",
 }}
 
 var testFuncs = map[string]InterpreterFuncHandler{
 	"echo": func(ctx *InterpreterContext) (SExp, error) {
-		args, err := ctx.EvalListToStrings(ctx.Ctx, ctx.Closure, ctx.Args)
+		args, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
 		if err != nil {
 			return nil, err
 		}
@@ -106,13 +173,14 @@ var testFuncs = map[string]InterpreterFuncHandler{
 }
 
 func TestInterpreter(t *testing.T) {
-	closure := NewClosure()
-	closure.Set("name", String("Alice", Meta{}))
-
 	for _, tt := range evalTests {
 		var got string
 
+		closure := NewClosure()
+		closure.Set("name", String("Alice", Meta{}))
+
 		itr := NewInterpreter(
+			InterpreterOptBuiltinLibs,
 			InterpreterOptClosure(closure),
 			InterpreterOptFuncHandlers(testFuncs),
 			InterpreterOptErrorHandler(func(error) {}),
@@ -128,16 +196,16 @@ func TestInterpreter(t *testing.T) {
 		if err != nil {
 			if tt.err != "" {
 				if err.Error() != tt.err {
-					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
+					t.Errorf("input\n%s:\nerror = %q want %q", tt.input, err, tt.err)
 				}
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				t.Errorf("input\n%s:\nerror: %s", tt.input, err)
 			}
 			continue
 		}
 
 		if got != tt.want {
-			t.Errorf("%q: output = %q want %q", tt.input, got, tt.want)
+			t.Errorf("input\n%s\noutput\n%s\nwant\n%s", tt.input, got, tt.want)
 		}
 	}
 }

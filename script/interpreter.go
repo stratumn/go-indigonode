@@ -268,28 +268,26 @@ func (itr *Interpreter) eval(
 	exp SExp,
 	isTail bool,
 ) (SExp, error) {
-	for {
-		if exp == nil {
-			return nil, nil
-		}
+	if exp == nil {
+		return nil, nil
+	}
 
-		switch exp.UnderlyingType() {
-		case TypeCell:
-			// Do not evaluate lazy lambdas created by tail call
-			// optimizations.
-			_, lazy := exp.Meta().UserData.(LazyLambda)
-			if lazy {
-				return exp, nil
-			}
-
-			return itr.evalCall(ctx, exp.MustCellVal(), isTail)
-
-		case TypeSymbol:
-			return ctx.Closure.Resolve(exp)
-
-		default:
+	switch exp.UnderlyingType() {
+	case TypeCell:
+		// Do not evaluate lazy lambdas created by tail call
+		// optimizations.
+		_, lazy := exp.Meta().UserData.(LazyLambda)
+		if lazy {
 			return exp, nil
 		}
+
+		return itr.evalCall(ctx, exp.MustCellVal(), isTail)
+
+	case TypeSymbol:
+		return ctx.Closure.Resolve(exp)
+
+	default:
+		return exp, nil
 	}
 }
 

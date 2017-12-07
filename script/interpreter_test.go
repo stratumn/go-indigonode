@@ -104,7 +104,7 @@ var evalTests = []evalTest{{
 		; Start the recursion
 		(reverse-rec l ())))
 	
-	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	reverse '(1 2 3 4 5 6 7 8 9 10)
 	`,
 	`(lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,
@@ -120,7 +120,7 @@ var evalTests = []evalTest{{
 			(reverse-nested))))
 		(reverse-rec l ())))
 	
-	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	reverse '(1 2 3 4 5 6 7 8 9 10)
 	`,
 	`(lambda (l) ((let reverse-rec (lambda (l tail) ((let reverse-nested (lambda <nil> ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-nested)))) (reverse-rec l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,
@@ -136,7 +136,7 @@ var evalTests = []evalTest{{
 			(reverse-rec l ()))))
 		(start-rec)))
 	
-	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+	reverse '(1 2 3 4 5 6 7 8 9 10)
 	`,
 	`(lambda (l) ((let start-rec (lambda <nil> ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))) (start-rec)))
 (10 9 8 7 6 5 4 3 2 1)`,
@@ -154,7 +154,7 @@ var evalTests = []evalTest{{
   				(reverse-rec-1 (cdr l) (cons (car l) tail))))))
   		(reverse-rec-1 l ())))
 
-  	reverse (quote (1 2 3 4 5 6 7 8 9 10))
+  	reverse '(1 2 3 4 5 6 7 8 9 10)
   	`,
 	`(lambda (l) ((let reverse-rec-1 (lambda (l tail) ((if (nil? l) tail (reverse-rec-2 (cdr l) (cons (car l) tail)))))) (let reverse-rec-2 (lambda (l tail) ((if (nil? l) tail (reverse-rec-1 (cdr l) (cons (car l) tail)))))) (reverse-rec-1 l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,

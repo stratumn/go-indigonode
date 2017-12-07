@@ -274,11 +274,36 @@ func (p *Parser) sexpInParen() (SExp, error) {
 }
 
 func (p *Parser) sexp() (SExp, error) {
+	if p.tok.Type == TokQuote {
+		return p.quotedSExp()
+	}
+
 	if p.tok.Type == TokLParen {
 		return p.list()
 	}
 
 	return p.atom()
+}
+
+func (p *Parser) quotedSExp() (SExp, error) {
+	tok := p.consume(TokQuote)
+	if tok == nil {
+		// This actually never happens because the caller checks the
+		// token.
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	exp, err := p.sexp()
+	if err != nil {
+		return nil, err
+	}
+
+	meta := Meta{
+		Line:   tok.Line,
+		Offset: tok.Offset,
+	}
+
+	return Cons(Symbol(QuoteSymbol, meta), Cons(exp, nil, meta), meta), nil
 }
 
 func (p *Parser) list() (SCell, error) {

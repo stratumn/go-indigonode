@@ -35,7 +35,8 @@
 //	SExpListInParen = { SExpInParen }
 //	SExpList        = { SExp }
 //	SExpInParen     = { NewLine } SExp
-//	SExp            = List | Atom
+//	SExp            = QuotedSExp | List | Atom
+//	QuotedSExp      = "'" SExp
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
 //	Atom            = symbol | string | int | "true" | "false"
 //
@@ -83,3 +84,6 @@ var (
 
 // LambdaSymbol is the symbol used to declare lambda functions.
 const LambdaSymbol = "lambda"
+
+// QuoteSymbol is the symbol used to quote expressions.
+const QuoteSymbol = "quote"

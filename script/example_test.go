@@ -24,13 +24,8 @@ import (
 func Example_simple() {
 	// Script that will be evaluated.
 	src := `
-		; You can have comments.
-
 		; You can choose not to evaluate a list by quoting it:
-		quote (A B C)
-
-		; You can bind a value to a symbol:
-		let my-list (quote (A B C))
+		let my-list '(A B C)
 
 		; You can do conditional expressions:
 		if (list? my-list) "it's a list" "it's not a list"
@@ -59,7 +54,6 @@ func Example_simple() {
 
 	// Output:
 	// (A B C)
-	// (A B C)
 	// "it's a list"
 	// A
 	// (B C)
@@ -83,7 +77,7 @@ func Example_recursion() {
 			(reverse-rec l ())))
 
 		; Test it out.
-		reverse (quote (A L I C E))
+		reverse '(A L I C E)
 `
 
 	// Initialize an interpreter with the builtin libraries.
@@ -142,7 +136,7 @@ func Example_search_tree() {
 						(search-tree (cdr tree) fn)))))))
 						
 		(search-tree
-			(quote (1 2 (3 (5 6) (7 8)) (9 10))) 
+			'(1 2 (3 (5 6) (7 8)) (9 10)) 
 			(lambda (leaf) (= (mod leaf 4) 0)))
 `
 

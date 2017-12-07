@@ -95,6 +95,10 @@ var parseTests = []parserTest{{
 	"((quote (true false)))",
 	"",
 }, {
+	"echo '(true false)",
+	"((echo (quote (true false))))",
+	"",
+}, {
 	"()",
 	"",
 	"1:2: unexpected token )",

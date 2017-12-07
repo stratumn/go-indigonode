@@ -33,6 +33,7 @@ const (
 	TokLine
 	TokLParen
 	TokRParen
+	TokQuote
 	TokSymbol
 	TokString
 	TokInt
@@ -46,6 +47,7 @@ var tokToStr = map[TokenType]string{
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
+	TokQuote:   "'",
 	TokSymbol:  "<sym>",
 	TokString:  "<string>",
 	TokInt:     "<int>",
@@ -64,9 +66,8 @@ var keywords = map[string]TokenType{
 	"false": TokFalse,
 }
 
-// Characters reserved for futur syntax.
+// Characters reserved for future syntax.
 var reserved = map[rune]struct{}{
-	'\'': struct{}{},
 	'`':  struct{}{},
 	',':  struct{}{},
 	'[':  struct{}{},
@@ -185,6 +186,8 @@ func (s *Scanner) Emit() Token {
 		return Token{TokLParen, "", s.line, s.offset}
 	case ')':
 		return Token{TokRParen, "", s.line, s.offset}
+	case '\'':
+		return Token{TokQuote, "", s.line, s.offset}
 	}
 
 	return s.atom()
@@ -408,7 +411,7 @@ func isLine(ch rune) bool {
 }
 
 func isSpecial(ch rune) bool {
-	return ch == '(' || ch == ')' || ch == ';' || isSpace(ch) || isLine(ch)
+	return ch == '(' || ch == ')' || ch == '\'' || ch == ';' || isSpace(ch) || isLine(ch)
 }
 
 func isDigit(ch rune) bool {

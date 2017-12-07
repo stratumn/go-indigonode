@@ -100,6 +100,35 @@ func Example_recursion() {
 	// (E C I L A)
 }
 
+func Example_fib() {
+	// Script that will be evaluated.
+	src := `
+		; Computes the nth element of the Fibonacci sequence.
+		let fib (lambda (n) (
+			(let fib-rec (lambda (n f1 f2) (
+				(if (< n 1)
+					f1
+					(fib-rec (- n 1) f2 (+ f1 f2))))))
+			(fib-rec n 0 1)))
+
+		; Test it out.
+		fib 10
+`
+
+	// Initialize an interpreter with the builtin libraries.
+	itr := script.NewInterpreter(script.InterpreterOptBuiltinLibs)
+
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// (lambda (n) ((let fib-rec (lambda (n f1 f2) ((if (< n 1) f1 (fib-rec (- n 1) f2 (+ f1 f2)))))) (fib-rec n 0 1)))
+	// 55
+}
+
 func Example_customFunctions() {
 	// Script that will be evaluated.
 	src := `

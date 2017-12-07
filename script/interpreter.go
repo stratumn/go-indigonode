@@ -77,6 +77,7 @@ var libs = []map[string]InterpreterFuncHandler{
 	LibCell,
 	LibClosure,
 	LibCond,
+	LibInt,
 	LibLambda,
 	LibType,
 	LibMeta,
@@ -117,12 +118,6 @@ type InterpreterContext struct {
 	// This one evaluates a "body", such as a function body that may
 	// contain multiple expressions.
 	EvalBody func(*InterpreterContext, SExp, bool) (SExp, error)
-
-	// Creates an error with meta information.
-	Error func(string) error
-
-	// Wraps an error with meta information.
-	WrapError func(error) error
 
 	// funcIDs are the IDs of functions that lead to that point. It is used
 	// to track recursive calls.
@@ -349,11 +344,7 @@ func (itr *Interpreter) evalCall(
 		EvalListToSlice:   itr.evalListToSlice,
 		EvalListToStrings: itr.evalListToStrings,
 		EvalBody:          itr.evalBody,
-		Error: func(s string) error {
-			return wrapError(errors.New(s))
-		},
-		WrapError: wrapError,
-		funcIDs:   ctx.funcIDs,
+		funcIDs:           ctx.funcIDs,
 	}
 
 	lambda, ok := ctx.Closure.Get(itr.varPrefix + name)
@@ -641,11 +632,11 @@ func (itr *Interpreter) setArgs(
 ) error {
 	argv, err := itr.evalListToSlice(callerCtx, callerCtx.Args, false)
 	if err != nil {
-		return callerCtx.WrapError(err)
+		return err
 	}
 
 	if len(argv) != len(argSyms) {
-		return callerCtx.Error("unexpected number of arguments")
+		return errors.New("unexpected number of arguments")
 	}
 
 	for i, symbol := range argSyms {

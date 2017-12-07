@@ -73,13 +73,13 @@ var evalTests = []evalTest{{
 	`"Alice"`,
 	"",
 }, {
-	"+ 1 2",
+	"x 1 2",
 	"",
-	"1:1: +: unknown function",
+	"1:1: x: unknown function",
 }, {
-	"echo (+ 1 2)",
+	"echo (x 1 2)",
 	"",
-	"1:1: echo: 1:7: +: unknown function",
+	"1:1: echo: 1:7: x: unknown function",
 }, {
 	`echo ("echo" 1 2)`,
 	"",

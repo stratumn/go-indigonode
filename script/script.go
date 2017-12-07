@@ -76,6 +76,9 @@ var (
 	// ErrInvalidCall is returned when an S-Expression is not a function
 	// call.
 	ErrInvalidCall = errors.New("invalid function call")
+
+	// ErrDivByZero is returned when dividing by zero.
+	ErrDivByZero = errors.New("division by zero")
 )
 
 // LambdaSymbol is the symbol used to declare lambda functions.

@@ -143,9 +143,8 @@ func FuncID() uint64 {
 // LazyCall contains information about a call to a lambda function. It is
 // used for tail call optimization.
 type LazyCall struct {
-	Ctx    *InterpreterContext
-	Lambda SExp
 	FuncID uint64
+	Args   SExpSlice
 }
 
 // Interpreter evaluates S-Expressions.
@@ -534,23 +533,6 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 		return nil, errors.WithStack(ErrNotFunc)
 	}
 
-	// If this is a tail call and optimizations are enabled, check if this
-	// is a recursive call. If it is the case, return a lazy lambda
-	// instead of evaluating.
-	if itr.tailOptimize && ctx.IsTail {
-		for _, id := range ctx.funcIDs {
-			if id == data.ID {
-				meta := ctx.Meta
-				meta.UserData = LazyCall{
-					Ctx:    ctx,
-					Lambda: lambda,
-					FuncID: data.ID,
-				}
-				return Cons(nil, nil, meta), nil
-			}
-		}
-	}
-
 	// Assumes the function has already been checked when created.
 	//
 	// Ignore car of lambda which normally contains the symbol 'lambda'.
@@ -580,12 +562,34 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 		lambdaCadrSlice = lambdaCadrCell.MustToSlice()
 	}
 
+	// Evalute the arguments.
+	args, err := itr.evalListToSlice(ctx, ctx.Args, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// If this is a tail call and optimizations are enabled, check if this
+	// is a recursive call. If it is the case, return a lazy lambda
+	// instead of evaluating.
+	if itr.tailOptimize && ctx.IsTail {
+		for _, id := range ctx.funcIDs {
+			if id == data.ID {
+				meta := ctx.Meta
+				meta.UserData = LazyCall{
+					FuncID: data.ID,
+					Args:   args,
+				}
+				return Cons(nil, nil, meta), nil
+			}
+		}
+	}
+
 	// Create a closure for the function body.
 	bodyClosure := NewClosure(ClosureOptParent(data.ParentClosure))
 
 	// Set the closure values from the arguments.
-	if err := itr.setArgs(ctx, bodyClosure, lambdaCadrSlice); err != nil {
-		return nil, err
+	if err := itr.setArgs(bodyClosure, lambdaCadrSlice, args); err != nil {
+		return nil, WrapError(err, ctx.Meta, ctx.Name)
 	}
 
 	// Create the context for executing the body.
@@ -612,7 +616,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 
 			bodyClosure = NewClosure(ClosureOptParent(data.ParentClosure))
 
-			err = itr.setArgs(lazy.Ctx, bodyClosure, lambdaCadrSlice)
+			err = itr.setArgs(bodyClosure, lambdaCadrSlice, lazy.Args)
 			if err != nil {
 				return nil, err
 			}
@@ -632,25 +636,16 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 
 // setArgs sets the values of a closure from funciton arguments.
 func (itr *Interpreter) setArgs(
-	callerCtx *InterpreterContext,
 	closure *Closure,
 	argSyms SExpSlice,
+	args SExpSlice,
 ) error {
-	argv, err := itr.evalListToSlice(callerCtx, callerCtx.Args, false)
-	if err != nil {
-		return err
-	}
-
-	if len(argv) != len(argSyms) {
-		return Error(
-			"unexpected number of arguments",
-			callerCtx.Args.Meta(),
-			callerCtx.Name,
-		)
+	if len(args) != len(argSyms) {
+		return errors.New("unexpected number of arguments")
 	}
 
 	for i, symbol := range argSyms {
-		closure.SetLocal(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
+		closure.SetLocal(itr.varPrefix+symbol.MustSymbolVal(), args[i])
 	}
 
 	return nil

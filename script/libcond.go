@@ -80,10 +80,14 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 		return nil, err
 	}
 
+	if cond == nil {
+		return nil, Error("not a boolean", car.Meta(), "<nil>")
+	}
+
 	// Make sure it's a boolean.
 	positive, ok := cond.BoolVal()
 	if !ok {
-		return nil, Error("expression is not a boolean", cond.Meta(), "")
+		return nil, Error("not a boolean", cond.Meta(), cond.String())
 	}
 
 	// Evaluate cadr or caddr based on condition.

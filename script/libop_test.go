@@ -33,19 +33,19 @@ var libOpTests = []libTest{{
 }, {
 	"+ ()",
 	"",
-	"1:1: +: 1:3: not an integer",
+	"1:1: +: 1:3: <nil>: not an integer",
 }, {
 	"+ 1 ()",
 	"",
-	"1:1: +: 1:5: not an integer",
+	"1:1: +: 1:5: <nil>: not an integer",
 }, {
 	"+ true",
 	"",
-	"1:1: +: 1:3: not an integer",
+	"1:1: +: 1:3: true: not an integer",
 }, {
 	"+ 1 true",
 	"",
-	"1:1: +: 1:5: not an integer",
+	"1:1: +: 1:5: true: not an integer",
 }, {
 	"+ test",
 	"",
@@ -69,7 +69,7 @@ var libOpTests = []libTest{{
 }, {
 	"/ 1 0",
 	"",
-	"1:1: /: 1:5: division by zero",
+	"1:1: /: 1:5: 0: division by zero",
 }, {
 	"mod 113 20 10",
 	"3",
@@ -81,7 +81,7 @@ var libOpTests = []libTest{{
 }, {
 	"mod 1 0",
 	"",
-	"1:1: mod: 1:7: division by zero",
+	"1:1: mod: 1:7: 0: division by zero",
 }, {
 	"= 1",
 	"true",
@@ -161,19 +161,19 @@ var libOpTests = []libTest{{
 }, {
 	"< ()",
 	"",
-	"1:1: <: 1:3: not an integer",
+	"1:1: <: 1:3: <nil>: not an integer",
 }, {
 	"< 1 ()",
 	"",
-	"1:1: <: 1:5: not an integer",
+	"1:1: <: 1:5: <nil>: not an integer",
 }, {
 	"< true",
 	"",
-	"1:1: <: 1:3: not an integer",
+	"1:1: <: 1:3: true: not an integer",
 }, {
 	"< 1 true",
 	"",
-	"1:1: <: 1:5: not an integer",
+	"1:1: <: 1:5: true: not an integer",
 }, {
 	"< test",
 	"",
@@ -225,11 +225,11 @@ var libOpTests = []libTest{{
 }, {
 	"not ()",
 	"",
-	"1:1: not: 1:5: not a boolean",
+	"1:1: not: 1:5: <nil>: not a boolean",
 }, {
 	"not 1",
 	"",
-	"1:1: not: 1:5: not a boolean",
+	"1:1: not: 1:5: 1: not a boolean",
 }, {
 	"not test",
 	"",
@@ -257,19 +257,19 @@ var libOpTests = []libTest{{
 }, {
 	"and ()",
 	"",
-	"1:1: and: 1:5: not a boolean",
+	"1:1: and: 1:5: <nil>: not a boolean",
 }, {
 	"and true ()",
 	"",
-	"1:1: and: 1:10: not a boolean",
+	"1:1: and: 1:10: <nil>: not a boolean",
 }, {
 	"and 1",
 	"",
-	"1:1: and: 1:5: not a boolean",
+	"1:1: and: 1:5: 1: not a boolean",
 }, {
 	"and true 1",
 	"",
-	"1:1: and: 1:10: not a boolean",
+	"1:1: and: 1:10: 1: not a boolean",
 }, {
 	"and test",
 	"",
@@ -301,19 +301,19 @@ var libOpTests = []libTest{{
 }, {
 	"or ()",
 	"",
-	"1:1: or: 1:4: not a boolean",
+	"1:1: or: 1:4: <nil>: not a boolean",
 }, {
 	"or false ()",
 	"",
-	"1:1: or: 1:10: not a boolean",
+	"1:1: or: 1:10: <nil>: not a boolean",
 }, {
 	"or 1",
 	"",
-	"1:1: or: 1:4: not a boolean",
+	"1:1: or: 1:4: 1: not a boolean",
 }, {
 	"or false 1",
 	"",
-	"1:1: or: 1:10: not a boolean",
+	"1:1: or: 1:10: 1: not a boolean",
 }, {
 	"or test",
 	"",

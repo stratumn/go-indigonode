@@ -69,7 +69,7 @@ var libCellTests = []libTest{{
 }, {
 	`car "a"`,
 	"",
-	"1:1: car: 1:5: not a cell",
+	`1:1: car: 1:5: "a": not a cell`,
 }, {
 	"car (a)",
 	"",
@@ -93,7 +93,7 @@ var libCellTests = []libTest{{
 }, {
 	`cdr "a"`,
 	"",
-	"1:1: cdr: 1:5: not a cell",
+	`1:1: cdr: 1:5: "a": not a cell`,
 }, {
 	"cdr (a)",
 	"",

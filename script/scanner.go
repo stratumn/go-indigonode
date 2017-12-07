@@ -75,6 +75,7 @@ var reserved = map[rune]struct{}{
 	'}':  struct{}{},
 	'\\': struct{}{},
 	'|':  struct{}{},
+	':':  struct{}{},
 }
 
 // Token represents a token.

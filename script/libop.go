@@ -172,12 +172,12 @@ func libOpInt(
 	}
 
 	if v == nil {
-		return nil, Error("not an integer", tail.Meta(), "")
+		return nil, Error("not an integer", tail.Meta(), "<nil>")
 	}
 
 	acc, ok := v.Int64Val()
 	if !ok {
-		return nil, Error("not an integer", v.Meta(), "")
+		return nil, Error("not an integer", v.Meta(), v.String())
 	}
 
 	cdr := tail.Cdr()
@@ -194,17 +194,17 @@ func libOpInt(
 		}
 
 		if v == nil {
-			return nil, Error("not an integer", tail.Meta(), "")
+			return nil, Error("not an integer", tail.Meta(), "<nil>")
 		}
 
 		i, ok := v.Int64Val()
 		if !ok {
-			return nil, Error("not an integer", v.Meta(), "")
+			return nil, Error("not an integer", v.Meta(), v.String())
 		}
 
 		acc, err = op(acc, i)
 		if err != nil {
-			return nil, WrapError(err, v.Meta(), "")
+			return nil, WrapError(err, v.Meta(), v.String())
 		}
 
 		cdr := tail.Cdr()
@@ -233,12 +233,12 @@ func libOpIntCmp(
 	}
 
 	if v == nil {
-		return nil, Error("not an integer", tail.Meta(), "")
+		return nil, Error("not an integer", tail.Meta(), "<nil>")
 	}
 
 	left, ok := v.Int64Val()
 	if !ok {
-		return nil, Error("not an integer", v.Meta(), "")
+		return nil, Error("not an integer", v.Meta(), v.String())
 	}
 
 	cdr := tail.Cdr()
@@ -255,12 +255,12 @@ func libOpIntCmp(
 		}
 
 		if v == nil {
-			return nil, Error("not an integer", tail.Meta(), "")
+			return nil, Error("not an integer", tail.Meta(), "<nil>")
 		}
 
 		right, ok := v.Int64Val()
 		if !ok {
-			return nil, Error("not an integer", v.Meta(), "")
+			return nil, Error("not an integer", v.Meta(), v.String())
 		}
 
 		if !cmp(left, right) {
@@ -292,12 +292,12 @@ func LibOpNot(ctx *InterpreterContext) (SExp, error) {
 	}
 
 	if v == nil {
-		return nil, Error("not a boolean", ctx.Args.Meta(), "")
+		return nil, Error("not a boolean", ctx.Args.Meta(), "<nil>")
 	}
 
 	b, ok := v.BoolVal()
 	if !ok {
-		return nil, Error("not a boolean", v.Meta(), "")
+		return nil, Error("not a boolean", v.Meta(), v.String())
 	}
 
 	return Bool(!b, ctx.Meta), nil
@@ -317,12 +317,12 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 		}
 
 		if v == nil {
-			return nil, Error("not a boolean", tail.Meta(), "")
+			return nil, Error("not a boolean", tail.Meta(), "<nil>")
 		}
 
 		b, ok := v.BoolVal()
 		if !ok {
-			return nil, Error("not a boolean", v.Meta(), "")
+			return nil, Error("not a boolean", v.Meta(), v.String())
 		}
 
 		if !b {
@@ -354,12 +354,12 @@ func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 		}
 
 		if v == nil {
-			return nil, Error("not a boolean", tail.Meta(), "")
+			return nil, Error("not a boolean", tail.Meta(), "<nil>")
 		}
 
 		b, ok := v.BoolVal()
 		if !ok {
-			return nil, Error("not a boolean", v.Meta(), "")
+			return nil, Error("not a boolean", v.Meta(), v.String())
 		}
 
 		if b {

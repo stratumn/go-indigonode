@@ -349,7 +349,13 @@ func (itr *Interpreter) evalCall(
 
 	lambda, ok := ctx.Closure.Get(itr.varPrefix + name)
 	if ok {
-		return itr.execFunc(funcCtx, lambda)
+		val, err := itr.execFunc(funcCtx, lambda)
+
+		if err != nil {
+			return nil, wrapError(err)
+		}
+
+		return val, nil
 	}
 
 	handler, ok := itr.funcHandlers[name]
@@ -636,11 +642,15 @@ func (itr *Interpreter) setArgs(
 	}
 
 	if len(argv) != len(argSyms) {
-		return errors.New("unexpected number of arguments")
+		return Error(
+			"unexpected number of arguments",
+			callerCtx.Args.Meta(),
+			callerCtx.Name,
+		)
 	}
 
 	for i, symbol := range argSyms {
-		closure.Set(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
+		closure.SetLocal(itr.varPrefix+symbol.MustSymbolVal(), argv[i])
 	}
 
 	return nil

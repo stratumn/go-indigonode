@@ -129,6 +129,37 @@ func Example_fib() {
 	// 55
 }
 
+func Example_search_tree() {
+	// Script that will be evaluated.
+	src := `
+		let search-tree (lambda (tree fn) (
+			(unless (nil? tree)
+				(if (atom? tree) 
+					(if (fn tree) tree)
+					((let match (search-tree (car tree) fn))
+					 (unless (nil? match)
+						match
+						(search-tree (cdr tree) fn)))))))
+						
+		(search-tree
+			(quote (1 2 (3 (5 6) (7 8)) (9 10))) 
+			(lambda (leaf) (= (mod leaf 4) 0)))
+`
+
+	// Initialize an interpreter with the builtin libraries.
+	itr := script.NewInterpreter(script.InterpreterOptBuiltinLibs)
+
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// (lambda (tree fn) ((unless (nil? tree) (if (atom? tree) (if (fn tree) tree) ((let match (search-tree (car tree) fn)) (unless (nil? match) match (search-tree (cdr tree) fn)))))))
+	// 8
+}
+
 func Example_customFunctions() {
 	// Script that will be evaluated.
 	src := `

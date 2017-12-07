@@ -14,7 +14,9 @@
 
 package script
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 // LibCell contains functions to work with cons cells.
 var LibCell = map[string]InterpreterFuncHandler{
@@ -84,7 +86,7 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 
 	cell, ok := v.CellVal()
 	if !ok {
-		return nil, Error("not a cell", v.Meta(), "")
+		return nil, Error("not a cell", v.Meta(), v.String())
 	}
 
 	return cell.Car(), nil
@@ -108,7 +110,7 @@ func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 
 	cell, ok := v.CellVal()
 	if !ok {
-		return nil, Error("not a cell", v.Meta(), "")
+		return nil, Error("not a cell", v.Meta(), v.String())
 	}
 
 	return cell.Cdr(), nil

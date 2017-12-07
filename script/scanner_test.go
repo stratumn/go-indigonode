@@ -237,6 +237,30 @@ var scanTests = []scanTest{{
 		{TokInvalid, "hello ", 1, 1},
 	},
 	[]string{`1:9: unexpected character 'a'`},
+}, {
+	`'`,
+	[]Token{
+		{TokInvalid, "", 1, 1},
+	},
+	[]string{`1:1: unexpected character '\''`},
+}, {
+	`hello'`,
+	[]Token{
+		{TokInvalid, "hello", 1, 1},
+	},
+	[]string{`1:6: unexpected character '\''`},
+}, {
+	`42'`,
+	[]Token{
+		{TokInvalid, "42", 1, 1},
+	},
+	[]string{`1:3: unexpected character '\''`},
+}, {
+	`0x42'`,
+	[]Token{
+		{TokInvalid, "0x42", 1, 1},
+	},
+	[]string{`1:5: unexpected character '\''`},
 }}
 
 func TestScanner_Emit(t *testing.T) {

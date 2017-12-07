@@ -64,6 +64,19 @@ var keywords = map[string]TokenType{
 	"false": TokFalse,
 }
 
+// Characters reserved for futur syntax.
+var reserved = map[rune]struct{}{
+	'\'': struct{}{},
+	'`':  struct{}{},
+	',':  struct{}{},
+	'[':  struct{}{},
+	']':  struct{}{},
+	'{':  struct{}{},
+	'}':  struct{}{},
+	'\\': struct{}{},
+	'|':  struct{}{},
+}
+
 // Token represents a token.
 type Token struct {
 	Type   TokenType
@@ -157,6 +170,11 @@ func (s *Scanner) Emit() Token {
 
 	if isLine(s.ch) {
 		return Token{TokLine, "", s.line, s.offset}
+	}
+
+	if isReserved(s.ch) {
+		s.error(s.line, s.offset, s.ch)
+		return Token{TokInvalid, "", s.line, s.offset}
 	}
 
 	switch s.ch {
@@ -274,7 +292,6 @@ func (s *Scanner) string() Token {
 				buf += string(s.ch)
 			default:
 				s.error(s.line, s.offset, s.ch)
-				s.back()
 				return Token{TokInvalid, buf, line, offset}
 			}
 			s.read()
@@ -297,9 +314,11 @@ func (s *Scanner) appendSymbolOrKeyword(buf string, line, offset int) Token {
 		case isSpecial(s.ch):
 			s.back()
 			return makeSymbolOrKeyword(buf, line, offset)
+		case isReserved(s.ch):
+			s.error(s.line, s.offset, s.ch)
+			return Token{TokInvalid, buf, s.line, offset}
 		case s.ch == '"':
 			s.error(s.line, s.offset, s.ch)
-			s.back()
 			return Token{TokInvalid, buf, line, offset}
 		default:
 			buf += string(s.ch)
@@ -325,6 +344,9 @@ func (s *Scanner) intOrSymbol() Token {
 
 			for {
 				switch {
+				case isReserved(s.ch):
+					s.error(s.line, s.offset, s.ch)
+					return Token{TokInvalid, buf, line, offset}
 				case s.ch == 0:
 					return Token{TokInt, buf, line, offset}
 				case isSpecial(s.ch):
@@ -356,6 +378,9 @@ func (s *Scanner) intOrSymbol() Token {
 
 	for {
 		switch {
+		case isReserved(s.ch):
+			s.error(s.line, s.offset, s.ch)
+			return Token{TokInvalid, buf, line, offset}
 		case s.ch == 0:
 			return Token{TokInt, buf, line, offset}
 		case isSpecial(s.ch):
@@ -395,6 +420,12 @@ func isHex(ch rune) bool {
 
 func isOctal(ch rune) bool {
 	return ch >= '0' && ch <= '7'
+}
+
+func isReserved(ch rune) bool {
+	_, ok := reserved[ch]
+
+	return ok
 }
 
 func makeSymbolOrKeyword(s string, line, offset int) Token {

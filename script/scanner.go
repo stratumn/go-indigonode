@@ -33,8 +33,9 @@ const (
 	TokLine
 	TokLParen
 	TokRParen
-	TokSym
+	TokSymbol
 	TokString
+	TokInt
 )
 
 var tokToStr = map[TokenType]string{
@@ -43,8 +44,9 @@ var tokToStr = map[TokenType]string{
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
-	TokSym:     "<sym>",
+	TokSymbol:  "<sym>",
 	TokString:  "<string>",
+	TokInt:     "<int>",
 }
 
 // String returns a string representation of a token type.
@@ -92,6 +94,7 @@ type Scanner struct {
 	offset     int
 	prevOffset int
 	end        bool
+	endOffset  int
 
 	errHandler func(error)
 }
@@ -117,6 +120,7 @@ func (s *Scanner) SetReader(reader io.RuneScanner) {
 	s.offset = 0
 	s.prevOffset = 0
 	s.end = false
+	s.endOffset = 0
 }
 
 // SetInput resets the scanner and sets its reader from an input string.
@@ -154,7 +158,7 @@ func (s *Scanner) Emit() Token {
 		return Token{TokRParen, "", s.line, s.offset}
 	}
 
-	return s.strOrSym()
+	return s.atom()
 }
 
 func (s *Scanner) read() {
@@ -165,12 +169,16 @@ func (s *Scanner) read() {
 	s.ch = ch
 
 	if err == io.EOF {
-		if !s.end {
+		if s.end {
+			s.offset = s.endOffset
+		} else {
 			s.offset++
+			s.endOffset = s.offset
 			s.end = true
 		}
 		return
 	} else if err != nil {
+		// Should never happen.
 		s.errHandler(errors.WithStack(err))
 	}
 
@@ -189,8 +197,11 @@ func (s *Scanner) read() {
 
 // back can only be called once after a read.
 func (s *Scanner) back() {
-	if err := s.reader.UnreadRune(); err != nil {
-		s.errHandler(errors.WithStack(err))
+	if !s.end {
+		if err := s.reader.UnreadRune(); err != nil {
+			// Should never happen.
+			s.errHandler(errors.WithStack(err))
+		}
 	}
 
 	s.pos--
@@ -217,36 +228,31 @@ func (s *Scanner) error(line, pos int, ch rune) {
 	s.errHandler(errors.WithStack(ScanError{line, pos, ch}))
 }
 
-func (s *Scanner) strOrSym() Token {
-	switch s.ch {
-	case '"':
-		return s.text('"')
-	case '\'':
-		return s.text('\'')
+func (s *Scanner) atom() Token {
+	switch {
+	case s.ch == '"' || s.ch == '\'':
+		return s.string()
+	case isDigit(s.ch) || s.ch == '-':
+		return s.intOrSymbol()
 	}
 
-	return s.text(0)
+	return s.symbol()
 }
 
-func (s *Scanner) text(quote rune) Token {
-	buf := ""
-
+func (s *Scanner) string() Token {
 	line, offset := s.line, s.offset
-
-	if s.ch == quote {
-		s.read()
-	}
+	buf := ""
+	quote := s.ch
+	s.read()
 
 	for {
 		switch {
-		case s.ch == 0 && quote == 0:
-			return Token{TokSym, buf, line, offset}
 		case s.ch == 0:
 			s.error(s.line, s.offset, 0)
 			return Token{TokInvalid, buf, line, offset}
 		case s.ch == quote:
 			return Token{TokString, buf, line, offset}
-		case s.ch == '\\' && quote != 0:
+		case s.ch == '\\':
 			s.read()
 			switch s.ch {
 			case 'n':
@@ -263,16 +269,97 @@ func (s *Scanner) text(quote rune) Token {
 				return Token{TokInvalid, buf, line, offset}
 			}
 			s.read()
-		case s.ch == '"' || s.ch == '\'' && quote == 0:
-			s.error(s.line, s.offset, s.ch)
-			s.back()
-			return Token{TokInvalid, buf, line, offset}
-		case isSpecial(s.ch) && quote == 0:
-			s.back()
-			return Token{TokSym, buf, line, offset}
 		default:
 			buf += string(s.ch)
 			s.read()
+		}
+	}
+}
+
+func (s *Scanner) symbol() Token {
+	return s.appendSymbol("", s.line, s.offset)
+}
+
+func (s *Scanner) appendSymbol(buf string, line, offset int) Token {
+	for {
+		switch {
+		case s.ch == 0:
+			return Token{TokSymbol, buf, line, offset}
+		case isSpecial(s.ch):
+			s.back()
+			return Token{TokSymbol, buf, line, offset}
+		case s.ch == '"' || s.ch == '\'':
+			s.error(s.line, s.offset, s.ch)
+			s.back()
+			return Token{TokInvalid, buf, line, offset}
+		default:
+			buf += string(s.ch)
+			s.read()
+		}
+	}
+}
+
+// Any invalid int is a valid symbol. This is a design decision so that flags
+// can be scanned. Perhaps this could be disabled using an option.
+func (s *Scanner) intOrSymbol() Token {
+	line, offset := s.line, s.offset
+	buf := ""
+	octal := false
+
+	if s.ch == '0' {
+		s.read()
+
+		// Handle hexadecimal number.
+		if s.ch == 'x' || s.ch == 'X' {
+			buf += "0" + string(s.ch)
+			s.read()
+
+			for {
+				switch {
+				case s.ch == 0:
+					return Token{TokInt, buf, line, offset}
+				case isSpecial(s.ch):
+					s.back()
+					return Token{TokInt, buf, line, offset}
+				case isHex(s.ch):
+					buf += string(s.ch)
+					s.read()
+				default:
+					return s.appendSymbol(buf, line, offset)
+				}
+			}
+		}
+
+		s.back()
+		octal = true
+	}
+
+	if s.ch == '-' {
+		buf += string(s.ch)
+		s.read()
+
+		if !isDigit(s.ch) {
+			return s.appendSymbol("-", line, offset)
+		}
+
+		octal = s.ch == '0'
+	}
+
+	for {
+		switch {
+		case s.ch == 0:
+			return Token{TokInt, buf, line, offset}
+		case isSpecial(s.ch):
+			s.back()
+			return Token{TokInt, buf, line, offset}
+		case octal && isOctal(s.ch):
+			buf += string(s.ch)
+			s.read()
+		case !octal && isDigit(s.ch):
+			buf += string(s.ch)
+			s.read()
+		default:
+			return s.appendSymbol(buf, line, offset)
 		}
 	}
 }
@@ -287,4 +374,16 @@ func isLine(ch rune) bool {
 
 func isSpecial(ch rune) bool {
 	return ch == '(' || ch == ')' || ch == ';' || isSpace(ch) || isLine(ch)
+}
+
+func isDigit(ch rune) bool {
+	return ch >= '0' && ch <= '9'
+}
+
+func isHex(ch rune) bool {
+	return isDigit(ch) || ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F'
+}
+
+func isOctal(ch rune) bool {
+	return ch >= '0' && ch <= '7'
 }

@@ -133,6 +133,10 @@ var parseTests = []parserTest{{
 	"one\n(two",
 	"",
 	"2:5: unexpected token <EOF>",
+}, {
+	"echo 999999999999999999999999999999999999999",
+	"",
+	`1:6: strconv.ParseInt: parsing "999999999999999999999999999999999999999": value out of range`,
 }}
 
 var listTests = []parserTest{{

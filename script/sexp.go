@@ -35,6 +35,7 @@ type Type uint8
 const (
 	TypeInvalid Type = iota
 	TypeString
+	TypeInt64
 	TypeSymbol
 	TypeCell
 )
@@ -43,6 +44,7 @@ const (
 var typeMap = map[Type]string{
 	TypeInvalid: "invalid",
 	TypeString:  "string",
+	TypeInt64:   "int64",
 	TypeSymbol:  "symbol",
 	TypeCell:    "cell",
 }
@@ -74,10 +76,12 @@ type SExp interface {
 	UnderlyingType() Type
 
 	StringVal() (string, bool)
+	Int64Val() (int64, bool)
 	SymbolVal() (string, bool)
 	CellVal() (SCell, bool)
 
 	MustStringVal() string
+	MustInt64Val() int64
 	MustSymbolVal() string
 	MustCellVal() SCell
 }
@@ -130,6 +134,10 @@ func (s sexp) StringVal() (string, bool) {
 	return "", false
 }
 
+func (s sexp) Int64Val() (int64, bool) {
+	return 0, false
+}
+
 func (s sexp) SymbolVal() (string, bool) {
 	return "", false
 }
@@ -140,6 +148,10 @@ func (s sexp) CellVal() (SCell, bool) {
 
 func (s sexp) MustStringVal() string {
 	panic("S-Expression is not a string")
+}
+
+func (s sexp) MustInt64Val() int64 {
+	panic("S-Expression is not a 64-bit integer")
 }
 
 func (s sexp) MustSymbolVal() string {
@@ -174,6 +186,33 @@ func (a atomString) StringVal() (string, bool) {
 }
 
 func (a atomString) MustStringVal() string {
+	return a.val
+}
+
+// atomInt64 is a 64-bit integer atom.
+type atomInt64 struct {
+	sexp
+	val int64
+}
+
+// Int64 creates a new 64-bit integer atom.
+func Int64(val int64, meta Meta) SExp {
+	return atomInt64{sexp{meta}, val}
+}
+
+func (a atomInt64) String() string {
+	return fmt.Sprint(a.val)
+}
+
+func (a atomInt64) UnderlyingType() Type {
+	return TypeInt64
+}
+
+func (a atomInt64) Int64Val() (int64, bool) {
+	return a.MustInt64Val(), true
+}
+
+func (a atomInt64) MustInt64Val() int64 {
 	return a.val
 }
 

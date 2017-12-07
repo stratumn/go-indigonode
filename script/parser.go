@@ -16,6 +16,7 @@ package script
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -308,17 +309,19 @@ func (p *Parser) list() (SCell, error) {
 
 func (p *Parser) atom() (SExp, error) {
 	switch p.tok.Type {
-	case TokSym:
+	case TokSymbol:
 		return p.symbol()
 	case TokString:
 		return p.string()
+	case TokInt:
+		return p.int()
 	}
 
 	return nil, errors.WithStack(ParseError{p.tok})
 }
 
 func (p *Parser) symbol() (SExp, error) {
-	tok := p.consume(TokSym)
+	tok := p.consume(TokSymbol)
 
 	if tok == nil {
 		return nil, errors.WithStack(ParseError{p.tok})
@@ -340,6 +343,26 @@ func (p *Parser) string() (SExp, error) {
 	}
 
 	return String(tok.Value, Meta{
+		Line:   tok.Line,
+		Offset: tok.Offset,
+	}), nil
+}
+
+func (p *Parser) int() (SExp, error) {
+	tok := p.consume(TokInt)
+
+	if tok == nil {
+		// This actually never happens because the caller checks the
+		// token.
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	i, err := strconv.ParseInt(tok.Value, 0, 64)
+	if err != nil {
+		return nil, errors.Wrapf(err, "%d:%d", tok.Line, tok.Offset)
+	}
+
+	return Int64(i, Meta{
 		Line:   tok.Line,
 		Offset: tok.Offset,
 	}), nil

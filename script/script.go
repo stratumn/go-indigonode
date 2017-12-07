@@ -15,8 +15,8 @@
 // Package script defines types to implement a simple script interpreter with
 // Lisp-like syntax.
 //
-// It producces S-Expressions that can hold either symbols, strings, or cons
-// cells.
+// It producces S-Expressions that can hold either symbols, strings, 64-bit
+// integers or cons cells.
 //
 // It was designed with shell-like scripting in mind. A script is a list of
 // instructions. Instructions are function calls. For convenience, top-level
@@ -25,7 +25,7 @@
 // interface, but it introduces more complexity in the grammar because new
 // lines are handled differently depending on context.
 //
-// The syntax is:
+// The EBNF syntax is:
 //
 //	Script          = { Instr }
 //	Instr           = { NewLine } ( Call | InCall )
@@ -37,7 +37,7 @@
 //	SExpInParen     = { NewLine } SExp
 //	SExp            = List | Atom
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
-//	Atom            = symbol | string
+//	Atom            = symbol | string | int
 //
 // The lifecycle of a script is:
 //
@@ -47,6 +47,9 @@
 //
 // At this point it's not designed for speed, but it does tail call
 // optimizations (trampoline) to avoid blowing the stack with recursive calls.
+//
+// Eventually there will be a bytecode compiler and static type checking, but
+// the current focus is on the design of the language.
 //
 // It comes with a few builtin functions and it's easy to add new functions.
 package script

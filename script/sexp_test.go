@@ -37,7 +37,11 @@ var cellTest = Cons(nil, nil, Meta{})
 var sexpTests = [...]sexpTest{{
 	sexp:     String("test", Meta{}),
 	wantType: TypeString,
-	wantVal:  string("test"),
+	wantVal:  "test",
+}, {
+	sexp:     Int64(42, Meta{}),
+	wantType: TypeInt64,
+	wantVal:  int64(42),
 }, {
 	sexp:     Symbol("test", Meta{}),
 	wantType: TypeSymbol,
@@ -52,6 +56,8 @@ func getVal(s SExp, typ Type) (interface{}, bool) {
 	switch typ {
 	case TypeString:
 		return s.StringVal()
+	case TypeInt64:
+		return s.Int64Val()
 	case TypeSymbol:
 		return s.SymbolVal()
 	case TypeCell:

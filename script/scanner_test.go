@@ -37,33 +37,34 @@ var scanTests = []scanTest{{
 	"(hello \nworld)",
 	[]Token{
 		{TokLParen, "", 1, 1},
-		{TokSym, "hello", 1, 2},
+		{TokSymbol, "hello", 1, 2},
 		{TokLine, "", 2, 0},
-		{TokSym, "world", 2, 1},
+		{TokSymbol, "world", 2, 1},
 		{TokRParen, "", 2, 6},
 		{TokEOF, "", 2, 7},
 	},
 	nil,
 }, {
-	"one\r(two three)",
+	"one\r(two 3)",
 	[]Token{
-		{TokSym, "one", 1, 1},
+		{TokSymbol, "one", 1, 1},
 		{TokLine, "", 2, 0},
 		{TokLParen, "", 2, 1},
-		{TokSym, "two", 2, 2},
-		{TokSym, "three", 2, 6},
-		{TokRParen, "", 2, 11},
-		{TokEOF, "", 2, 12},
+		{TokSymbol, "two", 2, 2},
+		{TokInt, "3", 2, 6},
+		{TokRParen, "", 2, 7},
+		{TokEOF, "", 2, 8},
 	},
 	nil,
 }, {
-	"(hello world)",
+	"(hello 42 world)",
 	[]Token{
 		{TokLParen, "", 1, 1},
-		{TokSym, "hello", 1, 2},
-		{TokSym, "world", 1, 8},
-		{TokRParen, "", 1, 13},
-		{TokEOF, "", 1, 14},
+		{TokSymbol, "hello", 1, 2},
+		{TokInt, "42", 1, 8},
+		{TokSymbol, "world", 1, 11},
+		{TokRParen, "", 1, 16},
+		{TokEOF, "", 1, 17},
 	},
 	nil,
 }, {
@@ -83,32 +84,125 @@ var scanTests = []scanTest{{
 }, {
 	"hello;world",
 	[]Token{
-		{TokSym, "hello", 1, 1},
+		{TokSymbol, "hello", 1, 1},
 		{TokEOF, "", 1, 12},
 	},
 	nil,
 }, {
 	"hello; world",
 	[]Token{
-		{TokSym, "hello", 1, 1},
+		{TokSymbol, "hello", 1, 1},
 		{TokEOF, "", 1, 13},
 	},
 	nil,
 }, {
 	"hello ; world \n world",
 	[]Token{
-		{TokSym, "hello", 1, 1},
+		{TokSymbol, "hello", 1, 1},
 		{TokLine, "", 2, 0},
-		{TokSym, "world", 2, 2},
+		{TokSymbol, "world", 2, 2},
 		{TokEOF, "", 2, 7},
 	},
 	nil,
 }, {
 	"♥ world",
 	[]Token{
-		{TokSym, "♥", 1, 1},
-		{TokSym, "world", 1, 3},
+		{TokSymbol, "♥", 1, 1},
+		{TokSymbol, "world", 1, 3},
 		{TokEOF, "", 1, 8},
+	},
+	nil,
+}, {
+	"0(",
+	[]Token{
+		{TokInt, "0", 1, 1},
+		{TokLParen, "", 1, 2},
+		{TokEOF, "", 1, 3},
+	},
+	nil,
+}, {
+	"0",
+	[]Token{
+		{TokInt, "0", 1, 1},
+		{TokEOF, "", 1, 2},
+	},
+	nil,
+}, {
+	"-0",
+	[]Token{
+		{TokInt, "-0", 1, 1},
+		{TokEOF, "", 1, 3},
+	},
+	nil,
+}, {
+	"07",
+	[]Token{
+		{TokInt, "07", 1, 1},
+		{TokEOF, "", 1, 3},
+	},
+	nil,
+}, {
+	"-07",
+	[]Token{
+		{TokInt, "-07", 1, 1},
+		{TokEOF, "", 1, 4},
+	},
+	nil,
+}, {
+	"0x0faF",
+	[]Token{
+		{TokInt, "0x0faF", 1, 1},
+		{TokEOF, "", 1, 7},
+	},
+	nil,
+}, {
+	"0xFF)",
+	[]Token{
+		{TokInt, "0xFF", 1, 1},
+		{TokRParen, "", 1, 5},
+		{TokEOF, "", 1, 6},
+	},
+	nil,
+}, {
+	"-",
+	[]Token{
+		{TokSymbol, "-", 1, 1},
+		{TokEOF, "", 1, 2},
+	},
+	nil,
+}, {
+	"-a",
+	[]Token{
+		{TokSymbol, "-a", 1, 1},
+		{TokEOF, "", 1, 3},
+	},
+	nil,
+}, {
+	"0xFQ",
+	[]Token{
+		{TokSymbol, "0xFQ", 1, 1},
+		{TokEOF, "", 1, 5},
+	},
+	nil,
+}, {
+	"-0xFF",
+	[]Token{
+		{TokSymbol, "-0xFF", 1, 1},
+		{TokEOF, "", 1, 6},
+	},
+	nil,
+}, {
+	"028",
+	[]Token{
+		{TokSymbol, "028", 1, 1},
+		{TokEOF, "", 1, 4},
+	},
+	nil,
+}, {
+	"0xFQ",
+	[]Token{
+		{TokSymbol, "0xFQ", 1, 1},
+		{TokEOF, "", 1, 5},
 	},
 	nil,
 }, {

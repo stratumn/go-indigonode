@@ -39,7 +39,7 @@ var evalTests = []evalTest{{
 	`""`,
 	"",
 }, {
-	"echo 'hello'",
+	`echo "hello"`,
 	`"hello"`,
 	"",
 }, {
@@ -47,24 +47,25 @@ var evalTests = []evalTest{{
 	`""`,
 	"",
 }, {
-	"echo 'hello' 'world'",
+	`echo "hello" "world"`,
 	`"hello world"`,
 	"",
 }, {
-	"(echo 'hello')",
+	`(echo "hello")`,
 	`"hello"`,
 	"",
 }, {
-	"echo 'hello  world'",
+	`echo "hello  world"`,
 	`"hello  world"`,
 	"",
 }, {
-	"echo 'hello'\n(echo 'world')",
+	`echo "hello"
+	(echo "world")`,
 	`"hello"
 "world"`,
 	"",
 }, {
-	"(echo (echo 'the world') (echo 'is beautiful') '!')",
+	`(echo (echo "the world") (echo "is beautiful") "!")`,
 	`"the world is beautiful !"`,
 	"",
 }, {
@@ -80,11 +81,11 @@ var evalTests = []evalTest{{
 	"",
 	"1:1: echo: 1:7: +: unknown function",
 }, {
-	"echo ('echo' 1 2)",
+	`echo ("echo" 1 2)`,
 	"",
 	`1:1: echo: 1:7: function name is not a symbol`,
 }, {
-	"echo 'echo",
+	`echo "echo`,
 	"",
 	"1:6: unexpected token <invalid>",
 }, {

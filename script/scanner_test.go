@@ -75,9 +75,9 @@ var scanTests = []scanTest{{
 	},
 	nil,
 }, {
-	"'hello\\tworld\\n\\r\\''",
+	"\"hello\\tworld\\n\\r\\\"\"",
 	[]Token{
-		{TokString, "hello\tworld\n\r'", 1, 1},
+		{TokString, "hello\tworld\n\r\"", 1, 1},
 		{TokEOF, "", 1, 21},
 	},
 	nil,
@@ -220,23 +220,23 @@ var scanTests = []scanTest{{
 	},
 	nil,
 }, {
-	"'hello world",
+	`"hello world`,
 	[]Token{
 		{TokInvalid, "hello world", 1, 1},
 	},
-	[]string{"1:13: unexpected character '\\x00'"},
+	[]string{`1:13: unexpected character '\x00'`},
 }, {
-	"hello'",
+	`hello"`,
 	[]Token{
 		{TokInvalid, "hello", 1, 1},
 	},
-	[]string{"1:6: unexpected character '\\''"},
+	[]string{`1:6: unexpected character '"'`},
 }, {
-	"'hello \\\"'",
+	`"hello \a`,
 	[]Token{
 		{TokInvalid, "hello ", 1, 1},
 	},
-	[]string{"1:9: unexpected character '\"'"},
+	[]string{`1:9: unexpected character 'a'`},
 }}
 
 func TestScanner_Emit(t *testing.T) {

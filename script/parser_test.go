@@ -58,7 +58,8 @@ var parseTests = []parserTest{{
 	"((one))",
 	"",
 }, {
-	"(one\rtwo 'three')",
+	`(one
+	two "three")`,
 	"((one two \"three\"))",
 	"",
 }, {
@@ -98,7 +99,7 @@ var parseTests = []parserTest{{
 	"",
 	"1:2: unexpected token )",
 }, {
-	"('one')",
+	`("one")`,
 	"",
 	"1:2: unexpected token <string>",
 }, {
@@ -118,7 +119,7 @@ var parseTests = []parserTest{{
 	"",
 	"2:3: unexpected token <sym>",
 }, {
-	"'one'",
+	`"one"`,
 	"",
 	"1:1: unexpected token <string>",
 }, {
@@ -126,7 +127,7 @@ var parseTests = []parserTest{{
 	"",
 	"1:5: unexpected token )",
 }, {
-	"one '",
+	`one "`,
 	"",
 	"1:5: unexpected token <invalid>",
 }, {

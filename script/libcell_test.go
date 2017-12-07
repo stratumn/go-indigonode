@@ -23,15 +23,15 @@ var libCellTests = []libTest{{
 	"(<nil>)",
 	"",
 }, {
-	"cons 'a' 'b'",
+	`cons "a" "b"`,
 	`("a" . "b")`,
 	"",
 }, {
-	"cons 'a' ()",
+	`cons "a" ()`,
 	`("a")`,
 	"",
 }, {
-	"cons 'a' (cons 'b' 'c')",
+	`cons "a" (cons "b" "c")`,
 	`("a" . ("b" . "c"))`,
 	"",
 }, {
@@ -43,11 +43,11 @@ var libCellTests = []libTest{{
 	"",
 	"1:1: cons: missing cdr",
 }, {
-	"cons ('hello') ()",
+	`cons ("hello") ()`,
 	"",
 	"1:1: cons: 1:7: function name is not a symbol",
 }, {
-	"cons () ('hello')",
+	`cons () ("hello")`,
 	"",
 	"1:1: cons: 1:10: function name is not a symbol",
 }, {
@@ -55,11 +55,11 @@ var libCellTests = []libTest{{
 	"",
 	"",
 }, {
-	"car (cons 'a' 'b')",
+	`car (cons "a" "b")`,
 	`"a"`,
 	"",
 }, {
-	"car (cons (cons 'a' 'b') 'c')",
+	`car (cons (cons "a" "b") "c")`,
 	`("a" . "b")`,
 	"",
 }, {
@@ -67,7 +67,7 @@ var libCellTests = []libTest{{
 	"",
 	"1:1: car: expected a single element",
 }, {
-	"car 'a'",
+	`car "a"`,
 	"",
 	"1:1: car: 1:5: not a cell",
 }, {
@@ -79,11 +79,11 @@ var libCellTests = []libTest{{
 	"",
 	"",
 }, {
-	"cdr (cons 'a' 'b')",
+	`cdr (cons "a" "b")`,
 	`"b"`,
 	"",
 }, {
-	"cdr (cons 'a' (cons 'b' 'c'))",
+	`cdr (cons "a" (cons "b" "c"))`,
 	`("b" . "c")`,
 	"",
 }, {
@@ -91,7 +91,7 @@ var libCellTests = []libTest{{
 	"",
 	"1:1: cdr: expected a single element",
 }, {
-	"cdr 'a'",
+	`cdr "a"`,
 	"",
 	"1:1: cdr: 1:5: not a cell",
 }, {

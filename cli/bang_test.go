@@ -28,22 +28,22 @@ func TestBang(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"! echo 'hello outside world!'",
+		`! echo "hello outside world!"`,
 		"hello outside world!\n",
 		nil,
 		nil,
 	}, {
-		"! cat '' 'hello outside world!'",
+		`! cat "" "hello outside world!"`,
 		"hello outside world!",
 		nil,
 		nil,
 	}, {
-		"! cat () 'hello outside world!'",
+		`! cat () "hello outside world!"`,
 		"hello outside world!",
 		nil,
 		nil,
 	}, {
-		"! grep outside 'hello\noutside\nworld!'",
+		`! grep outside "hello\noutside\nworld!"`,
 		"outside\n",
 		nil,
 		nil,

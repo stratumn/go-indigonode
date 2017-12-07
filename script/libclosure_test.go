@@ -19,7 +19,7 @@ import (
 )
 
 var libClosureTests = []libTest{{
-	"let a 'hello'",
+	`let a "hello"`,
 	`"hello"`,
 	"",
 }, {
@@ -31,13 +31,14 @@ var libClosureTests = []libTest{{
 	"",
 	"1:1: let: missing symbol",
 }, {
-	"let 'a'",
+	`let "a"`,
 	"",
 	"1:1: let: 1:5: not a symbol",
 }, {
-	"let a 'hello'\nlet a 'world'",
+	`let a "hello"
+	let a "world"`,
 	`"hello"`,
-	"2:1: let: 2:5: a: a value is already bound to the symbol",
+	"2:2: let: 2:6: a: a value is already bound to the symbol",
 }}
 
 func TestLibClosure(t *testing.T) {

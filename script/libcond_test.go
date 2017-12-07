@@ -19,27 +19,27 @@ import (
 )
 
 var libCondTests = []libTest{{
-	"if true 'ok' 'ko'",
+	`if true "ok" "ko"`,
 	`"ok"`,
 	"",
 }, {
-	"if false 'ok' 'ko'",
+	`if false "ok" "ko"`,
 	`"ko"`,
 	"",
 }, {
-	"if true 'ok'",
+	`if true "ok"`,
 	`"ok"`,
 	"",
 }, {
-	"if false 'ok'",
+	`if false "ok"`,
 	"",
 	"",
 }, {
-	"if false 'ko'",
+	`if false "ko"`,
 	"",
 	"",
 }, {
-	"if false () 'ko'",
+	`if false () "ko"`,
 	`"ko"`,
 	"",
 }, {
@@ -55,39 +55,39 @@ var libCondTests = []libTest{{
 	"",
 	"1:1: if: 1:9: ok: could not resolve symbol",
 }, {
-	"if false 'ok' ko",
+	`if false "ok" ko`,
 	"",
 	"1:1: if: 1:15: ko: could not resolve symbol",
 }, {
-	"if true 'ok' 'ko' 'uncertain'",
+	`if true "ok" "ko" "uncertain"`,
 	"",
 	"1:1: if: 1:19: unexpected expression",
 }, {
-	"if test 'ok'",
+	`if test "ok"`,
 	"",
 	"1:1: if: 1:4: test: could not resolve symbol",
 }, {
-	"unless true 'ok' 'ko'",
+	`unless true "ok" "ko"`,
 	`"ko"`,
 	"",
 }, {
-	"unless false 'ok' 'ko'",
+	`unless false "ok" "ko"`,
 	`"ok"`,
 	"",
 }, {
-	"unless true 'ok'",
+	`unless true "ok"`,
 	"",
 	"",
 }, {
-	"unless false 'ok'",
+	`unless false "ok"`,
 	`"ok"`,
 	"",
 }, {
-	"unless true false 'ko'",
+	`unless true false "ko"`,
 	`"ko"`,
 	"",
 }, {
-	"unless false () 'ko'",
+	`unless false () "ko"`,
 	"",
 	"",
 }, {
@@ -103,15 +103,15 @@ var libCondTests = []libTest{{
 	``,
 	"1:1: unless: 1:14: ok: could not resolve symbol",
 }, {
-	"unless true 'ok' ko",
+	`unless true "ok" ko`,
 	"",
 	"1:1: unless: 1:18: ko: could not resolve symbol",
 }, {
-	"unless true 'ok' 'ko' 'uncertain'",
+	`unless true "ok" "ko" "uncertain"`,
 	"",
 	"1:1: unless: 1:23: unexpected expression",
 }, {
-	"unless test 'ok'",
+	`unless test "ok"`,
 	"",
 	"1:1: unless: 1:8: test: could not resolve symbol",
 }}

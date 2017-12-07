@@ -240,7 +240,7 @@ func (s *Scanner) error(line, pos int, ch rune) {
 
 func (s *Scanner) atom() Token {
 	switch {
-	case s.ch == '"' || s.ch == '\'':
+	case s.ch == '"':
 		return s.string()
 	case isDigit(s.ch) || s.ch == '-':
 		return s.intOrSymbol()
@@ -252,7 +252,6 @@ func (s *Scanner) atom() Token {
 func (s *Scanner) string() Token {
 	line, offset := s.line, s.offset
 	buf := ""
-	quote := s.ch
 	s.read()
 
 	for {
@@ -260,7 +259,7 @@ func (s *Scanner) string() Token {
 		case s.ch == 0:
 			s.error(s.line, s.offset, 0)
 			return Token{TokInvalid, buf, line, offset}
-		case s.ch == quote:
+		case s.ch == '"':
 			return Token{TokString, buf, line, offset}
 		case s.ch == '\\':
 			s.read()
@@ -271,7 +270,7 @@ func (s *Scanner) string() Token {
 				buf += "\r"
 			case 't':
 				buf += "\t"
-			case quote:
+			case '"':
 				buf += string(s.ch)
 			default:
 				s.error(s.line, s.offset, s.ch)
@@ -298,7 +297,7 @@ func (s *Scanner) appendSymbolOrKeyword(buf string, line, offset int) Token {
 		case isSpecial(s.ch):
 			s.back()
 			return makeSymbolOrKeyword(buf, line, offset)
-		case s.ch == '"' || s.ch == '\'':
+		case s.ch == '"':
 			s.error(s.line, s.offset, s.ch)
 			s.back()
 			return Token{TokInvalid, buf, line, offset}

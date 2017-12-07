@@ -27,7 +27,7 @@ var libLambdaTests = []libTest{{
 	"(lambda <nil> ((echo a) (echo b) (echo c)))",
 	"",
 }, {
-	"(lambda () 'a')",
+	`(lambda () "a")`,
 	`(lambda <nil> "a")`,
 	"",
 }, {
@@ -39,11 +39,11 @@ var libLambdaTests = []libTest{{
 	"",
 	"1:2: lambda: missing function body",
 }, {
-	"(lambda ('a') ())",
+	`(lambda ("a") ())`,
 	"",
 	"1:2: lambda: 1:10: function argument is not a symbol",
 }, {
-	"(lambda 'a' ())",
+	`(lambda "a" ())`,
 	"",
 	"1:2: lambda: 1:9: function arguments are not a list",
 }}

@@ -43,11 +43,11 @@ var libMetaTests = []libTest{{
 	"",
 	"1:1: quote: expected a single expression",
 }, {
-	"eval 'hello world'",
+	`eval "hello world"`,
 	`"hello world"`,
 	"",
 }, {
-	"eval (quote (quote 'hello world'))",
+	`eval (quote (quote "hello world"))`,
 	`"hello world"`,
 	"",
 }, {
@@ -63,7 +63,7 @@ var libMetaTests = []libTest{{
 	"",
 	"1:1: eval: expected a single expression",
 }, {
-	"eval (quote ('hello world'))",
+	`eval (quote ("hello world"))`,
 	``,
 	`1:1: eval: 1:14: function name is not a symbol`,
 }}

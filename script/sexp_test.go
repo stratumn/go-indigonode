@@ -32,7 +32,13 @@ type sexpTest struct {
 	wantVal  interface{}
 }
 
-var cellTest = Cons(nil, nil, Meta{})
+var (
+	cellTest1 = Cons(nil, nil, Meta{})
+	cellTest2 = Cons(Int64(0, Meta{}), nil, Meta{})
+	cellTest3 = Cons(Int64(1, Meta{}), nil, Meta{})
+	cellTest4 = Cons(nil, Int64(0, Meta{}), Meta{})
+	cellTest5 = Cons(nil, Int64(1, Meta{}), Meta{})
+)
 
 var sexpTests = [...]sexpTest{{
 	sexp:     String("test", Meta{}),
@@ -51,9 +57,25 @@ var sexpTests = [...]sexpTest{{
 	wantType: TypeSymbol,
 	wantVal:  "test",
 }, {
-	sexp:     cellTest,
+	sexp:     cellTest1,
 	wantType: TypeCell,
-	wantVal:  cellTest.(SCell),
+	wantVal:  cellTest1.(SCell),
+}, {
+	sexp:     cellTest2,
+	wantType: TypeCell,
+	wantVal:  cellTest2.(SCell),
+}, {
+	sexp:     cellTest3,
+	wantType: TypeCell,
+	wantVal:  cellTest3.(SCell),
+}, {
+	sexp:     cellTest4,
+	wantType: TypeCell,
+	wantVal:  cellTest4.(SCell),
+}, {
+	sexp:     cellTest5,
+	wantType: TypeCell,
+	wantVal:  cellTest5.(SCell),
 }}
 
 func getVal(s SExp, typ Type) (interface{}, bool) {
@@ -73,14 +95,14 @@ func getVal(s SExp, typ Type) (interface{}, bool) {
 	return nil, false
 }
 
-func testSExp(t *testing.T, test sexpTest) {
+func testSExp(t *testing.T, i int, test sexpTest) {
 	var gotVal interface{}
 	var ok bool
 
 	s := test.sexp
 
 	if got, want := s.UnderlyingType(), test.wantType; got != want {
-		t.Errorf("GetUnderlyingType() = %s want %s", got, want)
+		t.Errorf("UnderlyingType() = %s want %s", got, want)
 	}
 
 	for typ, name := range typeMap {
@@ -101,13 +123,23 @@ func testSExp(t *testing.T, test sexpTest) {
 		} else if ok {
 			t.Errorf("%sVal(): ok = %v want %v", tname, ok, false)
 		}
+
+		if got, want := s.Equals(nil), false; got != want {
+			t.Errorf("s.Equals(<nil>) = %v want %v", got, want)
+		}
+
+		for j, tt := range sexpTests {
+			if got, want := s.Equals(tt.sexp), i == j; got != want {
+				t.Errorf("s.Equals(%v) = %v want %v", tt.sexp, got, want)
+			}
+		}
 	}
 }
 
 func TestSExp(t *testing.T) {
-	for _, tt := range sexpTests {
+	for i, tt := range sexpTests {
 		name := fmt.Sprint(tt.wantType)
-		t.Run(name, func(t *testing.T) { testSExp(t, tt) })
+		t.Run(name, func(t *testing.T) { testSExp(t, i, tt) })
 	}
 }
 

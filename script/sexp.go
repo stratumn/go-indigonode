@@ -88,6 +88,8 @@ type SExp interface {
 	MustSymbolVal() string
 	MustBoolVal() bool
 	MustCellVal() SCell
+
+	Equals(SExp) bool
 }
 
 // SExpSlice is a slice of S-Expressions.
@@ -174,6 +176,10 @@ func (s sexp) MustCellVal() SCell {
 	panic("S-Expression is not a cell")
 }
 
+func (s sexp) Equals(SExp) bool {
+	return false
+}
+
 // atomString is a string atom.
 type atomString struct {
 	sexp
@@ -199,6 +205,16 @@ func (a atomString) StringVal() (string, bool) {
 
 func (a atomString) MustStringVal() string {
 	return a.val
+}
+
+func (a atomString) Equals(exp SExp) bool {
+	if exp == nil {
+		return false
+	}
+
+	v, ok := exp.StringVal()
+
+	return ok && v == a.val
 }
 
 // atomInt64 is a 64-bit integer atom.
@@ -228,6 +244,16 @@ func (a atomInt64) MustInt64Val() int64 {
 	return a.val
 }
 
+func (a atomInt64) Equals(exp SExp) bool {
+	if exp == nil {
+		return false
+	}
+
+	v, ok := exp.Int64Val()
+
+	return ok && v == a.val
+}
+
 // atomBool is a boolean atom.
 type atomBool struct {
 	sexp
@@ -255,6 +281,16 @@ func (a atomBool) MustBoolVal() bool {
 	return a.val
 }
 
+func (a atomBool) Equals(exp SExp) bool {
+	if exp == nil {
+		return false
+	}
+
+	v, ok := exp.BoolVal()
+
+	return ok && v == a.val
+}
+
 // atomSymbol is a symbol atom.
 type atomSymbol struct {
 	sexp
@@ -280,6 +316,16 @@ func (a atomSymbol) SymbolVal() (string, bool) {
 
 func (a atomSymbol) MustSymbolVal() string {
 	return a.val
+}
+
+func (a atomSymbol) Equals(exp SExp) bool {
+	if exp == nil {
+		return false
+	}
+
+	v, ok := exp.SymbolVal()
+
+	return ok && v == a.val
 }
 
 // scell is a cell S-Expression.
@@ -327,6 +373,36 @@ func (c *scell) CellVal() (SCell, bool) {
 
 func (c *scell) MustCellVal() SCell {
 	return c
+}
+
+func (c *scell) Equals(exp SExp) bool {
+	if exp == nil {
+		return false
+	}
+
+	v, ok := exp.CellVal()
+	if !ok {
+		return false
+	}
+
+	vCar, vCdr := v.Car(), v.Cdr()
+
+	switch {
+	case c.car == nil && vCar != nil:
+		return false
+	case c.car != nil && vCar == nil:
+		return false
+	case c.cdr == nil && vCdr != nil:
+		return false
+	case c.cdr != nil && vCdr == nil:
+		return false
+	case c.car != nil && !c.car.Equals(vCar):
+		return false
+	case c.cdr != nil && !c.cdr.Equals(vCdr):
+		return false
+	}
+
+	return true
 }
 
 func (c *scell) Car() SExp {

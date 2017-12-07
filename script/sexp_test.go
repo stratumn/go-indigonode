@@ -43,6 +43,10 @@ var sexpTests = [...]sexpTest{{
 	wantType: TypeInt64,
 	wantVal:  int64(42),
 }, {
+	sexp:     Bool(true, Meta{}),
+	wantType: TypeBool,
+	wantVal:  true,
+}, {
 	sexp:     Symbol("test", Meta{}),
 	wantType: TypeSymbol,
 	wantVal:  "test",
@@ -58,6 +62,8 @@ func getVal(s SExp, typ Type) (interface{}, bool) {
 		return s.StringVal()
 	case TypeInt64:
 		return s.Int64Val()
+	case TypeBool:
+		return s.BoolVal()
 	case TypeSymbol:
 		return s.SymbolVal()
 	case TypeCell:
@@ -83,17 +89,17 @@ func testSExp(t *testing.T, test sexpTest) {
 		if test.wantType == typ {
 			if wantVal := test.wantVal; gotVal != wantVal {
 				t.Errorf(
-					"Get%s(): val = %v want %v",
+					"%sVal(): val = %v want %v",
 					tname,
 					gotVal,
 					wantVal,
 				)
 			}
 			if !ok {
-				t.Errorf("Get%s(): ok = %v want %v", tname, ok, true)
+				t.Errorf("%sVal(): ok = %v want %v", tname, ok, true)
 			}
 		} else if ok {
-			t.Errorf("Get%s(): ok = %v want %v", tname, ok, false)
+			t.Errorf("%sVal(): ok = %v want %v", tname, ok, false)
 		}
 	}
 }

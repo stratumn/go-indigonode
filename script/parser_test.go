@@ -90,6 +90,10 @@ var parseTests = []parserTest{{
 	"((one) (two (three)) (four))",
 	"",
 }, {
+	"(quote (true false))",
+	"((quote (true false)))",
+	"",
+}, {
 	"()",
 	"",
 	"1:2: unexpected token )",
@@ -97,6 +101,10 @@ var parseTests = []parserTest{{
 	"('one')",
 	"",
 	"1:2: unexpected token <string>",
+}, {
+	"(true)",
+	"",
+	"1:2: unexpected token true",
 }, {
 	"(one) two",
 	"",

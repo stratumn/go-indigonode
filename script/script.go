@@ -37,7 +37,7 @@
 //	SExpInParen     = { NewLine } SExp
 //	SExp            = List | Atom
 //	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
-//	Atom            = symbol | string | int
+//	Atom            = symbol | string | int | "true" | "false"
 //
 // The lifecycle of a script is:
 //

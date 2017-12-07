@@ -36,6 +36,8 @@ const (
 	TokSymbol
 	TokString
 	TokInt
+	TokTrue
+	TokFalse
 )
 
 var tokToStr = map[TokenType]string{
@@ -47,11 +49,19 @@ var tokToStr = map[TokenType]string{
 	TokSymbol:  "<sym>",
 	TokString:  "<string>",
 	TokInt:     "<int>",
+	TokTrue:    "true",
+	TokFalse:   "false",
 }
 
 // String returns a string representation of a token type.
 func (tok TokenType) String() string {
 	return tokToStr[tok]
+}
+
+// Keyword token map.
+var keywords = map[string]TokenType{
+	"true":  TokTrue,
+	"false": TokFalse,
 }
 
 // Token represents a token.
@@ -236,7 +246,7 @@ func (s *Scanner) atom() Token {
 		return s.intOrSymbol()
 	}
 
-	return s.symbol()
+	return s.symbolOrKeyword()
 }
 
 func (s *Scanner) string() Token {
@@ -276,18 +286,18 @@ func (s *Scanner) string() Token {
 	}
 }
 
-func (s *Scanner) symbol() Token {
-	return s.appendSymbol("", s.line, s.offset)
+func (s *Scanner) symbolOrKeyword() Token {
+	return s.appendSymbolOrKeyword("", s.line, s.offset)
 }
 
-func (s *Scanner) appendSymbol(buf string, line, offset int) Token {
+func (s *Scanner) appendSymbolOrKeyword(buf string, line, offset int) Token {
 	for {
 		switch {
 		case s.ch == 0:
-			return Token{TokSymbol, buf, line, offset}
+			return makeSymbolOrKeyword(buf, line, offset)
 		case isSpecial(s.ch):
 			s.back()
-			return Token{TokSymbol, buf, line, offset}
+			return makeSymbolOrKeyword(buf, line, offset)
 		case s.ch == '"' || s.ch == '\'':
 			s.error(s.line, s.offset, s.ch)
 			s.back()
@@ -325,7 +335,7 @@ func (s *Scanner) intOrSymbol() Token {
 					buf += string(s.ch)
 					s.read()
 				default:
-					return s.appendSymbol(buf, line, offset)
+					return s.appendSymbolOrKeyword(buf, line, offset)
 				}
 			}
 		}
@@ -339,7 +349,7 @@ func (s *Scanner) intOrSymbol() Token {
 		s.read()
 
 		if !isDigit(s.ch) {
-			return s.appendSymbol("-", line, offset)
+			return s.appendSymbolOrKeyword("-", line, offset)
 		}
 
 		octal = s.ch == '0'
@@ -359,7 +369,7 @@ func (s *Scanner) intOrSymbol() Token {
 			buf += string(s.ch)
 			s.read()
 		default:
-			return s.appendSymbol(buf, line, offset)
+			return s.appendSymbolOrKeyword(buf, line, offset)
 		}
 	}
 }
@@ -386,4 +396,14 @@ func isHex(ch rune) bool {
 
 func isOctal(ch rune) bool {
 	return ch >= '0' && ch <= '7'
+}
+
+func makeSymbolOrKeyword(s string, line, offset int) Token {
+	for k, v := range keywords {
+		if k == s {
+			return Token{v, "", line, offset}
+		}
+	}
+
+	return Token{TokSymbol, s, line, offset}
 }

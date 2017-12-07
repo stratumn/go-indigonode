@@ -36,6 +36,7 @@ const (
 	TypeInvalid Type = iota
 	TypeString
 	TypeInt64
+	TypeBool
 	TypeSymbol
 	TypeCell
 )
@@ -45,6 +46,7 @@ var typeMap = map[Type]string{
 	TypeInvalid: "invalid",
 	TypeString:  "string",
 	TypeInt64:   "int64",
+	TypeBool:    "bool",
 	TypeSymbol:  "symbol",
 	TypeCell:    "cell",
 }
@@ -77,12 +79,14 @@ type SExp interface {
 
 	StringVal() (string, bool)
 	Int64Val() (int64, bool)
+	BoolVal() (bool, bool)
 	SymbolVal() (string, bool)
 	CellVal() (SCell, bool)
 
 	MustStringVal() string
 	MustInt64Val() int64
 	MustSymbolVal() string
+	MustBoolVal() bool
 	MustCellVal() SCell
 }
 
@@ -138,6 +142,10 @@ func (s sexp) Int64Val() (int64, bool) {
 	return 0, false
 }
 
+func (s sexp) BoolVal() (bool, bool) {
+	return false, false
+}
+
 func (s sexp) SymbolVal() (string, bool) {
 	return "", false
 }
@@ -152,6 +160,10 @@ func (s sexp) MustStringVal() string {
 
 func (s sexp) MustInt64Val() int64 {
 	panic("S-Expression is not a 64-bit integer")
+}
+
+func (s sexp) MustBoolVal() bool {
+	panic("S-Expression is not a boolean")
 }
 
 func (s sexp) MustSymbolVal() string {
@@ -213,6 +225,33 @@ func (a atomInt64) Int64Val() (int64, bool) {
 }
 
 func (a atomInt64) MustInt64Val() int64 {
+	return a.val
+}
+
+// atomBool is a boolean atom.
+type atomBool struct {
+	sexp
+	val bool
+}
+
+// Bool creates a new boolean atom.
+func Bool(val bool, meta Meta) SExp {
+	return atomBool{sexp{meta}, val}
+}
+
+func (a atomBool) String() string {
+	return fmt.Sprint(a.val)
+}
+
+func (a atomBool) UnderlyingType() Type {
+	return TypeBool
+}
+
+func (a atomBool) BoolVal() (bool, bool) {
+	return a.MustBoolVal(), true
+}
+
+func (a atomBool) MustBoolVal() bool {
 	return a.val
 }
 

@@ -113,6 +113,20 @@ var scanTests = []scanTest{{
 	},
 	nil,
 }, {
+	"true",
+	[]Token{
+		{TokTrue, "", 1, 1},
+		{TokEOF, "", 1, 5},
+	},
+	nil,
+}, {
+	"false",
+	[]Token{
+		{TokFalse, "", 1, 1},
+		{TokEOF, "", 1, 6},
+	},
+	nil,
+}, {
 	"0(",
 	[]Token{
 		{TokInt, "0", 1, 1},

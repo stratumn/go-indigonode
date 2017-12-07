@@ -315,6 +315,8 @@ func (p *Parser) atom() (SExp, error) {
 		return p.string()
 	case TokInt:
 		return p.int()
+	case TokTrue, TokFalse:
+		return p.bool()
 	}
 
 	return nil, errors.WithStack(ParseError{p.tok})
@@ -366,4 +368,24 @@ func (p *Parser) int() (SExp, error) {
 		Line:   tok.Line,
 		Offset: tok.Offset,
 	}), nil
+}
+
+func (p *Parser) bool() (SExp, error) {
+	if tok := p.consume(TokTrue); tok != nil {
+		return Bool(true, Meta{
+			Line:   tok.Line,
+			Offset: tok.Offset,
+		}), nil
+	}
+
+	if tok := p.consume(TokFalse); tok != nil {
+		return Bool(false, Meta{
+			Line:   tok.Line,
+			Offset: tok.Offset,
+		}), nil
+	}
+
+	// This actually never happens because the caller checks the
+	// token.
+	return nil, errors.WithStack(ParseError{p.tok})
 }

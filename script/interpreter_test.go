@@ -97,7 +97,7 @@ var evalTests = []evalTest{{
 	let reverse (lambda (l) (
 		; Define a nested recursive function with an accumulator.
 		(let reverse-rec (lambda (l tail) (
-			(unless l
+			(if (nil? l)
 				tail
 				(reverse-rec (cdr l) (cons (car l) tail))))))
 		; Start the recursion
@@ -105,7 +105,7 @@ var evalTests = []evalTest{{
 	
 	reverse (quote (1 2 3 4 5 6 7 8 9 10))
 	`,
-	`(lambda (l) ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
+	`(lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,
 	"",
 }, {
@@ -113,7 +113,7 @@ var evalTests = []evalTest{{
 	let reverse (lambda (l) (
 		(let reverse-rec (lambda (l tail) (
 			(let reverse-nested (lambda () (
-				(unless l
+				(if (nil? l)
 					tail
 					(reverse-rec (cdr l) (cons (car l) tail))))))
 			(reverse-nested))))
@@ -121,7 +121,7 @@ var evalTests = []evalTest{{
 	
 	reverse (quote (1 2 3 4 5 6 7 8 9 10))
 	`,
-	`(lambda (l) ((let reverse-rec (lambda (l tail) ((let reverse-nested (lambda <nil> ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-nested)))) (reverse-rec l <nil>)))
+	`(lambda (l) ((let reverse-rec (lambda (l tail) ((let reverse-nested (lambda <nil> ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-nested)))) (reverse-rec l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,
 	"",
 }, {
@@ -129,7 +129,7 @@ var evalTests = []evalTest{{
 	let reverse (lambda (l) (
 		(let start-rec (lambda () (
 			(let reverse-rec (lambda (l tail) (
-				(unless l
+				(if (nil? l)
 					tail
 					(reverse-rec (cdr l) (cons (car l) tail))))))
 			(reverse-rec l ()))))
@@ -137,25 +137,25 @@ var evalTests = []evalTest{{
 	
 	reverse (quote (1 2 3 4 5 6 7 8 9 10))
 	`,
-	`(lambda (l) ((let start-rec (lambda <nil> ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))) (start-rec)))
+	`(lambda (l) ((let start-rec (lambda <nil> ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))) (start-rec)))
 (10 9 8 7 6 5 4 3 2 1)`,
 	"",
 }, {
 	`
   	let reverse (lambda (l) (
   		(let reverse-rec-1 (lambda (l tail) (
-  			(unless l
+  			(if (nil? l)
   				tail
   				(reverse-rec-2 (cdr l) (cons (car l) tail))))))
   		(let reverse-rec-2 (lambda (l tail) (
-  			(unless l
+  			(if (nil? l)
   				tail
   				(reverse-rec-1 (cdr l) (cons (car l) tail))))))
   		(reverse-rec-1 l ())))
 
   	reverse (quote (1 2 3 4 5 6 7 8 9 10))
   	`,
-	`(lambda (l) ((let reverse-rec-1 (lambda (l tail) ((unless l tail (reverse-rec-2 (cdr l) (cons (car l) tail)))))) (let reverse-rec-2 (lambda (l tail) ((unless l tail (reverse-rec-1 (cdr l) (cons (car l) tail)))))) (reverse-rec-1 l <nil>)))
+	`(lambda (l) ((let reverse-rec-1 (lambda (l tail) ((if (nil? l) tail (reverse-rec-2 (cdr l) (cons (car l) tail)))))) (let reverse-rec-2 (lambda (l tail) ((if (nil? l) tail (reverse-rec-1 (cdr l) (cons (car l) tail)))))) (reverse-rec-1 l <nil>)))
 (10 9 8 7 6 5 4 3 2 1)`,
 	"",
 }}

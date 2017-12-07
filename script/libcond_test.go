@@ -19,27 +19,27 @@ import (
 )
 
 var libCondTests = []libTest{{
-	"if 'test' 'ok' 'ko'",
+	"if true 'ok' 'ko'",
 	`"ok"`,
 	"",
 }, {
-	"if () 'ok' 'ko'",
+	"if false 'ok' 'ko'",
 	`"ko"`,
 	"",
 }, {
-	"if 'test' 'ok'",
+	"if true 'ok'",
 	`"ok"`,
 	"",
 }, {
-	"if () 'ok'",
+	"if false 'ok'",
 	"",
 	"",
 }, {
-	"if 'test' () 'ko'",
+	"if false 'ko'",
 	"",
 	"",
 }, {
-	"if () () 'ko'",
+	"if false () 'ko'",
 	`"ko"`,
 	"",
 }, {
@@ -47,47 +47,47 @@ var libCondTests = []libTest{{
 	"",
 	"1:1: if: missing condition expression",
 }, {
-	"if 'test'",
+	"if true",
 	"",
 	"1:1: if: missing then expression",
 }, {
-	"if 'test' ok",
+	"if true ok",
 	"",
-	"1:1: if: 1:11: ok: could not resolve symbol",
+	"1:1: if: 1:9: ok: could not resolve symbol",
 }, {
-	"if () 'ok' ko",
+	"if false 'ok' ko",
 	"",
-	"1:1: if: 1:12: ko: could not resolve symbol",
+	"1:1: if: 1:15: ko: could not resolve symbol",
 }, {
-	"if 'test' 'ok' 'ko' 'uncertain'",
+	"if true 'ok' 'ko' 'uncertain'",
 	"",
-	"1:1: if: 1:21: unexpected expression",
+	"1:1: if: 1:19: unexpected expression",
 }, {
 	"if test 'ok'",
 	"",
 	"1:1: if: 1:4: test: could not resolve symbol",
 }, {
-	"unless 'test' 'ok' 'ko'",
+	"unless true 'ok' 'ko'",
 	`"ko"`,
 	"",
 }, {
-	"unless () 'ok' 'ko'",
+	"unless false 'ok' 'ko'",
 	`"ok"`,
 	"",
 }, {
-	"unless 'test' 'ok'",
+	"unless true 'ok'",
 	"",
 	"",
 }, {
-	"unless () 'ok'",
+	"unless false 'ok'",
 	`"ok"`,
 	"",
 }, {
-	"unless 'test' () 'ko'",
+	"unless true false 'ko'",
 	`"ko"`,
 	"",
 }, {
-	"unless () () 'ko'",
+	"unless false () 'ko'",
 	"",
 	"",
 }, {
@@ -95,21 +95,21 @@ var libCondTests = []libTest{{
 	"",
 	"1:1: unless: missing condition expression",
 }, {
-	"unless 'test'",
+	"unless true",
 	"",
 	"1:1: unless: missing then expression",
 }, {
-	"unless () ok ko",
+	"unless false ok ko",
 	``,
-	"1:1: unless: 1:11: ok: could not resolve symbol",
+	"1:1: unless: 1:14: ok: could not resolve symbol",
 }, {
-	"unless 'test' 'ok' ko",
+	"unless true 'ok' ko",
 	"",
-	"1:1: unless: 1:20: ko: could not resolve symbol",
+	"1:1: unless: 1:18: ko: could not resolve symbol",
 }, {
-	"unless 'test' 'ok' 'ko' 'uncertain'",
+	"unless true 'ok' 'ko' 'uncertain'",
 	"",
-	"1:1: unless: 1:25: unexpected expression",
+	"1:1: unless: 1:23: unexpected expression",
 }, {
 	"unless test 'ok'",
 	"",

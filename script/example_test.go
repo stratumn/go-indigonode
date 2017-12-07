@@ -33,7 +33,7 @@ func Example_simple() {
 		let my-list (quote (A B C))
 
 		; You can do conditional expressions:
-		if my-list "list exists" "list does not exist"
+		if (list? my-list) "it's a list" "it's not a list"
 
 		; You can manipulate lists:
 		car my-list
@@ -60,7 +60,7 @@ func Example_simple() {
 	// Output:
 	// (A B C)
 	// (A B C)
-	// "list exists"
+	// "it's a list"
 	// A
 	// (B C)
 	// B
@@ -76,7 +76,7 @@ func Example_recursion() {
 		let reverse (lambda (l) (
 			; Define a nested recursive function with an accumulator.
 			(let reverse-rec (lambda (l tail) (
-				(unless l 
+				(if (nil? l) 
 					tail
 					(reverse-rec (cdr l) (cons (car l) tail))))))
 			; Start the recursion
@@ -96,7 +96,7 @@ func Example_recursion() {
 	}
 
 	// Output:
-	// (lambda (l) ((let reverse-rec (lambda (l tail) ((unless l tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
+	// (lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
 	// (E C I L A)
 }
 

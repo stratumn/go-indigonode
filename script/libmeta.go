@@ -33,7 +33,7 @@ func LibMetaQuote(ctx *InterpreterContext) (SExp, error) {
 	return ctx.Args.Car(), nil
 }
 
-// LibMetaEval evauluates an expression.
+// LibMetaEval evaluates an expression.
 func LibMetaEval(ctx *InterpreterContext) (SExp, error) {
 	// Eval is a simple command, all it does is evaluate the car twice.
 	if ctx.Args == nil || ctx.Args.Cdr() != nil {

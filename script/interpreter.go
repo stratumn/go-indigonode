@@ -78,6 +78,7 @@ var libs = []map[string]InterpreterFuncHandler{
 	LibClosure,
 	LibCond,
 	LibLambda,
+	LibType,
 	LibMeta,
 }
 

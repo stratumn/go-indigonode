@@ -30,6 +30,7 @@ func testLib(t *testing.T, lib map[string]InterpreterFuncHandler, tests []libTes
 		var got string
 
 		itr := NewInterpreter(
+			InterpreterOptFuncHandlers(LibMeta),
 			InterpreterOptFuncHandlers(lib),
 			InterpreterOptErrorHandler(func(error) {}),
 			InterpreterOptValueHandler(func(exp SExp) {

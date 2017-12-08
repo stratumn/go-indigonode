@@ -187,7 +187,7 @@ func TestCell(t *testing.T) {
 	if got, want := cdr.Car().MustSymbolVal(), "b"; got != want {
 		t.Errorf("cdar = %v want %v", got, want)
 	}
-	if got := cdr.Cdr().IsNil(); got != true {
+	if got := cdr.Cdr().IsNil(); !got {
 		t.Errorf("cddr = %v want %v", got, true)
 	}
 	if got, want := IsList(c), true; got != want {

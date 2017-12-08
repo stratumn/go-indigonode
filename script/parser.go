@@ -274,8 +274,6 @@ func (p *Parser) sexpInParen() (SExp, error) {
 	return p.sexp()
 }
 
-var errContinue = errors.New("continue")
-
 func (p *Parser) sexp() (SExp, error) {
 	switch p.tok.Type {
 	case TokQuote:

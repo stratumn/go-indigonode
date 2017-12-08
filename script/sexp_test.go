@@ -92,7 +92,7 @@ func getVal(s SExp, typ Type) (interface{}, bool) {
 		return s.CellVal()
 	}
 
-	return nil, false
+	return Nil(), false
 }
 
 func testSExp(t *testing.T, i int, test sexpTest) {
@@ -106,6 +106,10 @@ func testSExp(t *testing.T, i int, test sexpTest) {
 	}
 
 	for typ, name := range typeMap {
+		if typ == TypeInvalid {
+			continue
+		}
+
 		tname := strings.Title(name)
 		gotVal, ok = getVal(s, typ)
 		if test.wantType == typ {
@@ -124,8 +128,9 @@ func testSExp(t *testing.T, i int, test sexpTest) {
 			t.Errorf("%sVal(): ok = %v want %v", tname, ok, false)
 		}
 
-		if got, want := s.Equals(nil), false; got != want {
-			t.Errorf("s.Equals(<nil>) = %v want %v", got, want)
+		if got, want := s.Equals(Nil()), s.IsNil(); got != want {
+			fmt.Println(s)
+			t.Errorf("s.Equals(()) = %v want %v", got, want)
 		}
 
 		for j, tt := range sexpTests {
@@ -175,11 +180,7 @@ func TestCell(t *testing.T) {
 	// List.
 	c = Cons(
 		Symbol("a", Meta{}),
-		Cons(
-			Symbol("b", Meta{}),
-			nil,
-			Meta{},
-		),
+		Cons(Symbol("b", Meta{}), nil, Meta{}),
 		Meta{},
 	).MustCellVal()
 
@@ -190,8 +191,8 @@ func TestCell(t *testing.T) {
 	if got, want := cdr.Car().MustSymbolVal(), "b"; got != want {
 		t.Errorf("cdar = %v want %v", got, want)
 	}
-	if got := cdr.Cdr(); got != nil {
-		t.Errorf("cddr = %v want %v", got, nil)
+	if got := cdr.Cdr().IsNil(); got != true {
+		t.Errorf("cddr = %v want %v", got, true)
 	}
 	if got, want := c.IsList(), true; got != want {
 		t.Errorf("list = %v want %v", got, want)

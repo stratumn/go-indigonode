@@ -33,6 +33,8 @@ const (
 	TokLine
 	TokLParen
 	TokRParen
+	TokLBrace
+	TokRBrace
 	TokQuote
 	TokSymbol
 	TokString
@@ -47,6 +49,8 @@ var tokToStr = map[TokenType]string{
 	TokEOF:     "<EOF>",
 	TokLParen:  "(",
 	TokRParen:  ")",
+	TokLBrace:  "{",
+	TokRBrace:  "}",
 	TokQuote:   "'",
 	TokSymbol:  "<sym>",
 	TokString:  "<string>",
@@ -72,8 +76,6 @@ var reserved = map[rune]struct{}{
 	',':  struct{}{},
 	'[':  struct{}{},
 	']':  struct{}{},
-	'{':  struct{}{},
-	'}':  struct{}{},
 	'\\': struct{}{},
 	'|':  struct{}{},
 	':':  struct{}{},
@@ -85,6 +87,11 @@ type Token struct {
 	Value  string
 	Line   int
 	Offset int
+}
+
+// String returns a string representation of the token.
+func (t Token) String() string {
+	return fmt.Sprintf("%d:%d: %s %s", t.Line, t.Offset, t.Type, t.Value)
 }
 
 // ScanError represents an error from the scanner.
@@ -186,6 +193,10 @@ func (s *Scanner) Emit() Token {
 		return Token{TokLParen, "", s.line, s.offset}
 	case ')':
 		return Token{TokRParen, "", s.line, s.offset}
+	case '{':
+		return Token{TokLBrace, "", s.line, s.offset}
+	case '}':
+		return Token{TokRBrace, "", s.line, s.offset}
 	case '\'':
 		return Token{TokQuote, "", s.line, s.offset}
 	}
@@ -411,7 +422,8 @@ func isLine(ch rune) bool {
 }
 
 func isSpecial(ch rune) bool {
-	return ch == '(' || ch == ')' || ch == '\'' || ch == ';' || isSpace(ch) || isLine(ch)
+	return ch == '(' || ch == ')' || ch == '{' || ch == '}' ||
+		ch == '\'' || ch == ';' || isSpace(ch) || isLine(ch)
 }
 
 func isDigit(ch rune) bool {

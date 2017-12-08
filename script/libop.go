@@ -81,7 +81,7 @@ func LibOpMod(ctx *InterpreterContext) (SExp, error) {
 // LibOpEq returns true if all arguments are equal.
 func LibOpEq(ctx *InterpreterContext) (SExp, error) {
 	tail := ctx.Args
-	if tail == nil {
+	if tail.IsNil() {
 		return nil, errors.New("missing argument")
 	}
 
@@ -91,7 +91,7 @@ func LibOpEq(ctx *InterpreterContext) (SExp, error) {
 	}
 
 	cdr := tail.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return Bool(true, ctx.Meta), nil
 	}
 
@@ -103,18 +103,12 @@ func LibOpEq(ctx *InterpreterContext) (SExp, error) {
 			return nil, err
 		}
 
-		switch {
-		case left == nil && right != nil:
-			return Bool(false, ctx.Meta), nil
-		case left != nil && right == nil:
-			return Bool(false, ctx.Meta), nil
-		case left == nil && right == nil:
-		case !left.Equals(right):
+		if !left.Equals(right) {
 			return Bool(false, ctx.Meta), nil
 		}
 
 		cdr = tail.Cdr()
-		if cdr == nil {
+		if cdr.IsNil() {
 			break
 		}
 
@@ -162,7 +156,7 @@ func libOpInt(
 	op func(int64, int64) (int64, error),
 ) (SExp, error) {
 	tail := ctx.Args
-	if tail == nil {
+	if tail.IsNil() {
 		return nil, errors.New("missing argument")
 	}
 
@@ -171,17 +165,13 @@ func libOpInt(
 		return nil, err
 	}
 
-	if v == nil {
-		return nil, Error("not an integer", tail.Meta(), "<nil>")
-	}
-
 	acc, ok := v.Int64Val()
 	if !ok {
-		return nil, Error("not an integer", v.Meta(), v.String())
+		return nil, Error("not an integer", tail.Meta(), v.String())
 	}
 
 	cdr := tail.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return Int64(acc, ctx.Meta), nil
 	}
 
@@ -193,22 +183,18 @@ func libOpInt(
 			return nil, err
 		}
 
-		if v == nil {
-			return nil, Error("not an integer", tail.Meta(), "<nil>")
-		}
-
 		i, ok := v.Int64Val()
 		if !ok {
-			return nil, Error("not an integer", v.Meta(), v.String())
+			return nil, Error("not an integer", tail.Meta(), v.String())
 		}
 
 		acc, err = op(acc, i)
 		if err != nil {
-			return nil, WrapError(err, v.Meta(), v.String())
+			return nil, WrapError(err, tail.Meta(), v.String())
 		}
 
 		cdr := tail.Cdr()
-		if cdr == nil {
+		if cdr.IsNil() {
 			break
 		}
 
@@ -223,7 +209,7 @@ func libOpIntCmp(
 	cmp func(int64, int64) bool,
 ) (SExp, error) {
 	tail := ctx.Args
-	if tail == nil {
+	if tail.IsNil() {
 		return nil, errors.New("missing argument")
 	}
 
@@ -232,17 +218,13 @@ func libOpIntCmp(
 		return nil, err
 	}
 
-	if v == nil {
-		return nil, Error("not an integer", tail.Meta(), "<nil>")
-	}
-
 	left, ok := v.Int64Val()
 	if !ok {
-		return nil, Error("not an integer", v.Meta(), v.String())
+		return nil, Error("not an integer", tail.Meta(), v.String())
 	}
 
 	cdr := tail.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return Bool(true, ctx.Meta), nil
 	}
 
@@ -254,13 +236,9 @@ func libOpIntCmp(
 			return nil, err
 		}
 
-		if v == nil {
-			return nil, Error("not an integer", tail.Meta(), "<nil>")
-		}
-
 		right, ok := v.Int64Val()
 		if !ok {
-			return nil, Error("not an integer", v.Meta(), v.String())
+			return nil, Error("not an integer", tail.Meta(), v.String())
 		}
 
 		if !cmp(left, right) {
@@ -268,7 +246,7 @@ func libOpIntCmp(
 		}
 
 		cdr = tail.Cdr()
-		if cdr == nil {
+		if cdr.IsNil() {
 			break
 		}
 
@@ -282,7 +260,7 @@ func libOpIntCmp(
 // LibOpNot returns true if the expression is false and true if the expression
 // is false.
 func LibOpNot(ctx *InterpreterContext) (SExp, error) {
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single argument")
 	}
 
@@ -291,13 +269,9 @@ func LibOpNot(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	if v == nil {
-		return nil, Error("not a boolean", ctx.Args.Meta(), "<nil>")
-	}
-
 	b, ok := v.BoolVal()
 	if !ok {
-		return nil, Error("not a boolean", v.Meta(), v.String())
+		return nil, Error("not a boolean", ctx.Args.Meta(), v.String())
 	}
 
 	return Bool(!b, ctx.Meta), nil
@@ -306,7 +280,7 @@ func LibOpNot(ctx *InterpreterContext) (SExp, error) {
 // LibOpAnd returns true if all booleans are true.
 func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 	tail := ctx.Args
-	if tail == nil {
+	if tail.IsNil() {
 		return nil, errors.New("missing argument")
 	}
 
@@ -316,13 +290,9 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 			return nil, err
 		}
 
-		if v == nil {
-			return nil, Error("not a boolean", tail.Meta(), "<nil>")
-		}
-
 		b, ok := v.BoolVal()
 		if !ok {
-			return nil, Error("not a boolean", v.Meta(), v.String())
+			return nil, Error("not a boolean", tail.Meta(), v.String())
 		}
 
 		if !b {
@@ -330,7 +300,7 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 		}
 
 		cdr := tail.Cdr()
-		if cdr == nil {
+		if cdr.IsNil() {
 			break
 		}
 
@@ -343,7 +313,7 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 // LibOpOr returns true if at least one boolean is true.
 func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 	tail := ctx.Args
-	if tail == nil {
+	if tail.IsNil() {
 		return nil, errors.New("missing argument")
 	}
 
@@ -353,13 +323,9 @@ func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 			return nil, err
 		}
 
-		if v == nil {
-			return nil, Error("not a boolean", tail.Meta(), "<nil>")
-		}
-
 		b, ok := v.BoolVal()
 		if !ok {
-			return nil, Error("not a boolean", v.Meta(), v.String())
+			return nil, Error("not a boolean", tail.Meta(), v.String())
 		}
 
 		if b {
@@ -367,7 +333,7 @@ func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 		}
 
 		cdr := tail.Cdr()
-		if cdr == nil {
+		if cdr.IsNil() {
 			break
 		}
 

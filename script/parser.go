@@ -66,10 +66,7 @@ func (p *Parser) consume(typ TokenType) *Token {
 }
 
 func (p *Parser) skipLines() {
-	for {
-		if tok := p.consume(TokLine); tok == nil {
-			return
-		}
+	for p.consume(TokLine) != nil {
 	}
 }
 
@@ -106,10 +103,22 @@ func (p *Parser) List(in string) (SCell, error) {
 }
 
 func (p *Parser) script() (SCell, error) {
-	meta := Meta{
-		Line:   p.tok.Line,
-		Offset: p.tok.Offset,
+	head, err := p.inBodyHead()
+	if err != nil {
+		return nil, err
 	}
+
+	p.skipLines()
+
+	if tok := p.consume(TokEOF); tok == nil {
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	return head, nil
+}
+
+func (p *Parser) inBodyHead() (SCell, error) {
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.instr()
 	if err != nil {
@@ -117,10 +126,41 @@ func (p *Parser) script() (SCell, error) {
 	}
 
 	if car == nil {
+		car, err = p.inBodyTail()
+		if err != nil {
+			return nil, err
+		}
+
+		if car == nil {
+			car = Nil()
+		}
+
+		return car, nil
+	}
+
+	cdr, err := p.inBodyTail()
+	if err != nil {
+		return nil, err
+	}
+
+	return Cons(car, cdr, meta), nil
+}
+
+func (p *Parser) inBodyTail() (SCell, error) {
+	if tok := p.consume(TokLine); tok == nil {
 		return nil, nil
 	}
 
-	cdr, err := p.script()
+	p.skipLines()
+
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
+
+	car, err := p.instr()
+	if car == nil || err != nil {
+		return nil, err
+	}
+
+	cdr, err := p.inBodyTail()
 	if err != nil {
 		return nil, err
 	}
@@ -129,35 +169,18 @@ func (p *Parser) script() (SCell, error) {
 }
 
 func (p *Parser) instr() (SCell, error) {
-	p.skipLines()
-
-	if tok := p.consume(TokEOF); tok != nil {
-		return nil, nil
+	switch p.tok.Type {
+	case TokLParen:
+		return p.call()
+	case TokSymbol:
+		return p.inCall()
 	}
 
-	tok := p.tok
-
-	if tok.Type == TokLParen {
-		call, err := p.call()
-		if err != nil {
-			return nil, err
-		}
-
-		if p.tok.Type != TokLine && p.tok.Type != TokEOF {
-			return nil, errors.WithStack(ParseError{p.tok})
-		}
-
-		return call, nil
-	}
-
-	return p.inCall()
+	return nil, nil
 }
 
 func (p *Parser) call() (SCell, error) {
-	p.skipLines()
-
-	tok := p.consume(TokLParen)
-	if tok == nil {
+	if p.consume(TokLParen) == nil {
 		// This actually never happens because the caller checks the
 		// token.
 		return nil, errors.WithStack(ParseError{p.tok})
@@ -182,10 +205,7 @@ func (p *Parser) call() (SCell, error) {
 func (p *Parser) inCallInParen() (SCell, error) {
 	p.skipLines()
 
-	meta := Meta{
-		Line:   p.tok.Line,
-		Offset: p.tok.Offset,
-	}
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.symbol()
 	if err != nil {
@@ -201,10 +221,7 @@ func (p *Parser) inCallInParen() (SCell, error) {
 }
 
 func (p *Parser) inCall() (SCell, error) {
-	meta := Meta{
-		Line:   p.tok.Line,
-		Offset: p.tok.Offset,
-	}
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.symbol()
 	if err != nil {
@@ -220,19 +237,10 @@ func (p *Parser) inCall() (SCell, error) {
 }
 
 func (p *Parser) sexpListInParen() (SCell, error) {
-	p.skipLines()
-
-	meta := Meta{
-		Line:   p.tok.Line,
-		Offset: p.tok.Offset,
-	}
-
-	if p.tok.Type == TokRParen {
-		return nil, nil
-	}
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.sexpInParen()
-	if err != nil {
+	if car == nil || err != nil {
 		return nil, err
 	}
 
@@ -245,17 +253,10 @@ func (p *Parser) sexpListInParen() (SCell, error) {
 }
 
 func (p *Parser) sexpList() (SCell, error) {
-	meta := Meta{
-		Line:   p.tok.Line,
-		Offset: p.tok.Offset,
-	}
-
-	if p.tok.Type == TokLine || p.tok.Type == TokEOF {
-		return nil, nil
-	}
+	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.sexp()
-	if err != nil {
+	if car == nil || err != nil {
 		return nil, err
 	}
 
@@ -273,16 +274,21 @@ func (p *Parser) sexpInParen() (SExp, error) {
 	return p.sexp()
 }
 
+var errContinue = errors.New("continue")
+
 func (p *Parser) sexp() (SExp, error) {
-	if p.tok.Type == TokQuote {
+	switch p.tok.Type {
+	case TokQuote:
 		return p.quotedSExp()
-	}
-
-	if p.tok.Type == TokLParen {
+	case TokLBrace:
+		return p.body()
+	case TokLParen:
 		return p.list()
+	case TokSymbol, TokString, TokInt, TokTrue, TokFalse:
+		return p.atom()
+	default:
+		return nil, nil
 	}
-
-	return p.atom()
 }
 
 func (p *Parser) quotedSExp() (SExp, error) {
@@ -293,27 +299,40 @@ func (p *Parser) quotedSExp() (SExp, error) {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
+	p.skipLines()
+
 	exp, err := p.sexp()
 	if err != nil {
 		return nil, err
 	}
 
-	meta := Meta{
-		Line:   tok.Line,
-		Offset: tok.Offset,
-	}
+	meta := Meta{Line: tok.Line, Offset: tok.Offset}
 
 	return Cons(Symbol(QuoteSymbol, meta), Cons(exp, nil, meta), meta), nil
 }
 
-func (p *Parser) list() (SCell, error) {
-	tok := p.consume(TokLParen)
-	if tok == nil {
+func (p *Parser) body() (SCell, error) {
+	if p.consume(TokLBrace) == nil {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	if p.consume(TokRParen) != nil {
-		return nil, nil
+	head, err := p.inBodyHead()
+	if err != nil {
+		return nil, err
+	}
+
+	p.skipLines()
+
+	if p.consume(TokRBrace) == nil {
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	return head, nil
+}
+
+func (p *Parser) list() (SCell, error) {
+	if p.consume(TokLParen) == nil {
+		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
 	list, err := p.sexpListInParen()
@@ -321,11 +340,13 @@ func (p *Parser) list() (SCell, error) {
 		return nil, err
 	}
 
+	if list == nil {
+		list = Nil()
+	}
+
 	p.skipLines()
 
 	if p.consume(TokRParen) == nil {
-		// This actually never happens because sexpListInParen checks
-		// the token before returning.
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
@@ -349,8 +370,9 @@ func (p *Parser) atom() (SExp, error) {
 
 func (p *Parser) symbol() (SExp, error) {
 	tok := p.consume(TokSymbol)
-
 	if tok == nil {
+		// This actually never happens because the caller checks the
+		// token.
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
@@ -362,7 +384,6 @@ func (p *Parser) symbol() (SExp, error) {
 
 func (p *Parser) string() (SExp, error) {
 	tok := p.consume(TokString)
-
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
@@ -377,7 +398,6 @@ func (p *Parser) string() (SExp, error) {
 
 func (p *Parser) int() (SExp, error) {
 	tok := p.consume(TokInt)
-
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.

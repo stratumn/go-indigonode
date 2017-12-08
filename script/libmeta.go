@@ -25,8 +25,7 @@ var LibMeta = map[string]InterpreterFuncHandler{
 // LibMetaQuote returns an expression without evaluating it.
 func LibMetaQuote(ctx *InterpreterContext) (SExp, error) {
 	// Quote is the simplest command, it just returns the car as is.
-
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 
@@ -36,7 +35,7 @@ func LibMetaQuote(ctx *InterpreterContext) (SExp, error) {
 // LibMetaEval evaluates an expression.
 func LibMetaEval(ctx *InterpreterContext) (SExp, error) {
 	// Eval is a simple command, all it does is evaluate the car twice.
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 

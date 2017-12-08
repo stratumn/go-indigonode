@@ -31,7 +31,7 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 	//
 	//	1. car (the cell car)
 
-	if ctx.Args == nil {
+	if ctx.Args.IsNil() {
 		return nil, errors.New("missing car")
 	}
 
@@ -39,7 +39,7 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 
 	//	2. cadr (the cell cdr)
 	cdr := ctx.Args.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return nil, errors.New("missing cdr")
 	}
 
@@ -71,17 +71,13 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 // LibCellCar returns the car of a cell.
 func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 	// Return the car of the evaluated car cell.
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single element")
 	}
 
 	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
-	}
-
-	if v == nil {
-		return nil, nil
 	}
 
 	cell, ok := v.CellVal()
@@ -95,17 +91,13 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 // LibCellCdr returns the cdr of a cell.
 func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 	// Return the cdr of the evaluated car cell.
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single element")
 	}
 
 	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
-	}
-
-	if v == nil {
-		return nil, nil
 	}
 
 	cell, ok := v.CellVal()

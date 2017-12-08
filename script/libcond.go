@@ -38,7 +38,7 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 	// Get:
 	//
 	//	1. car (condition)
-	if ctx.Args == nil {
+	if ctx.Args.IsNil() {
 		return nil, errors.New("missing condition expression")
 	}
 
@@ -46,7 +46,7 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 
 	//	2. cadr (then)
 	cdr := ctx.Args.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return nil, errors.New("missing then expression")
 	}
 
@@ -56,21 +56,43 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 	}
 
 	cadr := cdrCell.Car()
+	otherwise := Nil().(SExp)
 
-	//	3. caddr, optional (else)
-	cddr := cdrCell.Cdr()
-	var caddr SExp
-
-	if cddr != nil {
+	//	3. optional else symbol
+	if cddr := cdrCell.Cdr(); !cddr.IsNil() {
 		cddrCell, ok := cddr.CellVal()
 		if !ok {
 			return nil, Error("invalid else expression", cddr.Meta(), "")
 		}
-		caddr = cddrCell.Car()
 
-		// Make sure there isn't an extra expression.
-		if cdddr := cddrCell.Cdr(); cdddr != nil {
-			return nil, Error("unexpected expression", cdddr.Meta(), "")
+		caddr := cddrCell.Car()
+
+		if sym, ok := caddr.SymbolVal(); ok && sym == ElseSymbol {
+			// The else token is present, so an else expression is
+			// expected.
+			cdddr := cddrCell.Cdr()
+			if cdddr.IsNil() {
+				return nil, errors.New("missing else expression")
+			}
+
+			cdddrCell, ok := cdddr.CellVal()
+			if !ok {
+				return nil, Error("invalid else expression", cddr.Meta(), "")
+			}
+
+			// Make sure there isn't an extra expression.
+			if cddddr := cdddrCell.Cdr(); !cddddr.IsNil() {
+				return nil, Error("unexpected expression", cddddr.Meta(), "")
+			}
+
+			otherwise = cdddrCell.Car()
+		} else {
+			// Make sure there isn't an extra expression.
+			if cdddr := cddrCell.Cdr(); !cdddr.IsNil() {
+				return nil, Error("unexpected expression", cdddr.Meta(), "")
+			}
+
+			otherwise = caddr
 		}
 	}
 
@@ -80,17 +102,13 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 		return nil, err
 	}
 
-	if cond == nil {
-		return nil, Error("not a boolean", car.Meta(), "<nil>")
-	}
-
 	// Make sure it's a boolean.
 	positive, ok := cond.BoolVal()
 	if !ok {
 		return nil, Error("not a boolean", cond.Meta(), cond.String())
 	}
 
-	// Evaluate cadr or caddr based on condition.
+	// Evaluate cadr or otherwise based on condition.
 	if positive == !unless {
 		val, err := ctx.EvalBody(ctx, cadr, ctx.IsTail)
 		if err != nil {
@@ -100,14 +118,10 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 		return val, nil
 	}
 
-	if caddr != nil {
-		val, err := ctx.EvalBody(ctx, caddr, ctx.IsTail)
-		if err != nil {
-			return nil, err
-		}
-
-		return val, nil
+	val, err := ctx.EvalBody(ctx, otherwise, ctx.IsTail)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	return val, nil
 }

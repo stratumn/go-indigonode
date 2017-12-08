@@ -64,7 +64,7 @@ var libTypeTests = []libTest{{
 	"1:1: atom?: 1:7: a: could not resolve symbol",
 }, {
 	"list? ()",
-	"false",
+	"true",
 	"",
 }, {
 	"list? 10",

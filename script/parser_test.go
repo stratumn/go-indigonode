@@ -27,7 +27,7 @@ type parserTest struct {
 
 var parseTests = []parserTest{{
 	"",
-	"<nil>",
+	"()",
 	"",
 }, {
 	"one",
@@ -72,11 +72,15 @@ var parseTests = []parserTest{{
 	"",
 }, {
 	"one ()",
-	"((one <nil>))",
+	"((one ()))",
+	"",
+}, {
+	"echo (() one)",
+	"((echo (() one)))",
 	"",
 }, {
 	"one () two",
-	"((one <nil> two))",
+	"((one () two))",
 	"",
 }, {
 	"one ((two))",
@@ -97,6 +101,26 @@ var parseTests = []parserTest{{
 }, {
 	"echo '(true false)",
 	"((echo (quote (true false))))",
+	"",
+}, {
+	"lambda (x) { echo one\necho two }",
+	"((lambda (x) ((echo one) (echo two))))",
+	"",
+}, {
+	`
+	; Reverses a list recusively.
+	let reverse (lambda (l) (
+		; Define a nested recursive function with an accumulator.
+		(let reverse-rec (lambda (l tail) (
+			(if (nil? l)
+				tail
+				(reverse-rec (cdr l) (cons (car l) tail))))))
+		; Start the recursion
+		(reverse-rec l ())))
+	
+	reverse '(1 2 3 4 5 6 7 8 9 10)
+	`,
+	"((let reverse (lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l ())))) (reverse (quote (1 2 3 4 5 6 7 8 9 10))))",
 	"",
 }, {
 	"()",
@@ -154,7 +178,7 @@ var parseTests = []parserTest{{
 
 var listTests = []parserTest{{
 	"()",
-	"<nil>",
+	"()",
 	"",
 }, {
 	"(a b c)",

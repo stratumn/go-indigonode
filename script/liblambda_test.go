@@ -24,11 +24,11 @@ var libLambdaTests = []libTest{{
 	"",
 }, {
 	"(lambda () ((echo a) (echo b) (echo c)))",
-	"(lambda <nil> ((echo a) (echo b) (echo c)))",
+	"(lambda () ((echo a) (echo b) (echo c)))",
 	"",
 }, {
 	`(lambda () "a")`,
-	`(lambda <nil> "a")`,
+	`(lambda () "a")`,
 	"",
 }, {
 	"(lambda)",

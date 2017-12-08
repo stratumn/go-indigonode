@@ -76,6 +76,7 @@ type SExp interface {
 	Meta() Meta
 
 	UnderlyingType() Type
+	IsNil() bool
 
 	StringVal() (string, bool)
 	Int64Val() (int64, bool)
@@ -101,7 +102,7 @@ type SExpSlice []SExp
 func (s SExpSlice) Strings(quote bool) []string {
 	strings := make([]string, len(s))
 	for i, exp := range s {
-		if !quote && exp != nil {
+		if !quote {
 			if str, ok := exp.StringVal(); ok {
 				strings[i] = str
 				continue
@@ -123,6 +124,19 @@ type SCell interface {
 	MustToSlice() SExpSlice
 }
 
+// nilVal represents the nil value.
+var nilVal = &scell{sexp{Meta{}}, nil, nil}
+
+func init() {
+	nilVal.car = nilVal
+	nilVal.cdr = nilVal
+}
+
+// Nil returns the nil value.
+func Nil() SCell {
+	return nilVal
+}
+
 // sexp is the base S-Expression type.
 type sexp struct {
 	meta Meta
@@ -134,6 +148,10 @@ func (s sexp) Meta() Meta {
 
 func (s sexp) UnderlyingType() Type {
 	panic("S-Expression is invalid")
+}
+
+func (s sexp) IsNil() bool {
+	return false
 }
 
 func (s sexp) StringVal() (string, bool) {
@@ -208,10 +226,6 @@ func (a atomString) MustStringVal() string {
 }
 
 func (a atomString) Equals(exp SExp) bool {
-	if exp == nil {
-		return false
-	}
-
 	v, ok := exp.StringVal()
 
 	return ok && v == a.val
@@ -245,10 +259,6 @@ func (a atomInt64) MustInt64Val() int64 {
 }
 
 func (a atomInt64) Equals(exp SExp) bool {
-	if exp == nil {
-		return false
-	}
-
 	v, ok := exp.Int64Val()
 
 	return ok && v == a.val
@@ -282,10 +292,6 @@ func (a atomBool) MustBoolVal() bool {
 }
 
 func (a atomBool) Equals(exp SExp) bool {
-	if exp == nil {
-		return false
-	}
-
 	v, ok := exp.BoolVal()
 
 	return ok && v == a.val
@@ -319,10 +325,6 @@ func (a atomSymbol) MustSymbolVal() string {
 }
 
 func (a atomSymbol) Equals(exp SExp) bool {
-	if exp == nil {
-		return false
-	}
-
 	v, ok := exp.SymbolVal()
 
 	return ok && v == a.val
@@ -337,10 +339,21 @@ type scell struct {
 
 // Cons creates a new cell.
 func Cons(car, cdr SExp, meta Meta) SCell {
+	if car == nil {
+		car = Nil()
+	}
+	if cdr == nil {
+		cdr = Nil()
+	}
+
 	return &scell{sexp{meta}, car, cdr}
 }
 
-func (c scell) String() string {
+func (c *scell) String() string {
+	if c == nilVal {
+		return "()"
+	}
+
 	if c.IsList() {
 		var buf bytes.Buffer
 
@@ -348,7 +361,7 @@ func (c scell) String() string {
 		buf.WriteString(fmt.Sprint(c.car))
 		cdr := c.cdr
 
-		for cdr != nil {
+		for cdr != Nil() {
 			buf.WriteRune(' ')
 			cell := cdr.MustCellVal()
 			buf.WriteString(fmt.Sprint(cell.Car()))
@@ -367,6 +380,10 @@ func (c *scell) UnderlyingType() Type {
 	return TypeCell
 }
 
+func (c *scell) IsNil() bool {
+	return c == nilVal
+}
+
 func (c *scell) CellVal() (SCell, bool) {
 	return c.MustCellVal(), true
 }
@@ -376,7 +393,7 @@ func (c *scell) MustCellVal() SCell {
 }
 
 func (c *scell) Equals(exp SExp) bool {
-	if exp == nil {
+	if c.IsNil() != exp.IsNil() {
 		return false
 	}
 
@@ -387,22 +404,7 @@ func (c *scell) Equals(exp SExp) bool {
 
 	vCar, vCdr := v.Car(), v.Cdr()
 
-	switch {
-	case c.car == nil && vCar != nil:
-		return false
-	case c.car != nil && vCar == nil:
-		return false
-	case c.cdr == nil && vCdr != nil:
-		return false
-	case c.cdr != nil && vCdr == nil:
-		return false
-	case c.car != nil && !c.car.Equals(vCar):
-		return false
-	case c.cdr != nil && !c.cdr.Equals(vCdr):
-		return false
-	}
-
-	return true
+	return c.car == vCar && c.cdr == vCdr
 }
 
 func (c *scell) Car() SExp {
@@ -415,7 +417,7 @@ func (c *scell) Cdr() SExp {
 
 func (c *scell) IsList() bool {
 	cdr := c.cdr
-	if cdr == nil {
+	if cdr == Nil() {
 		return true
 	}
 
@@ -436,10 +438,14 @@ func (c *scell) ToSlice() (SExpSlice, bool) {
 }
 
 func (c *scell) MustToSlice() SExpSlice {
+	if c.IsNil() {
+		return nil
+	}
+
 	slice := SExpSlice{c.car}
 	cdr := c.cdr
 
-	for cdr != nil {
+	for !cdr.IsNil() {
 		cell := cdr.MustCellVal()
 		slice = append(slice, cell.Car())
 		cdr = cell.Cdr()

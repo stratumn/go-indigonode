@@ -24,7 +24,7 @@ var libClosureTests = []libTest{{
 	"",
 }, {
 	"let a",
-	"",
+	"()",
 	"",
 }, {
 	"let",

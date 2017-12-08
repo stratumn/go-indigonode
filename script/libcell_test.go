@@ -20,7 +20,7 @@ import (
 
 var libCellTests = []libTest{{
 	"cons () ()",
-	"(<nil>)",
+	"(())",
 	"",
 }, {
 	`cons "a" "b"`,
@@ -39,10 +39,6 @@ var libCellTests = []libTest{{
 	"",
 	"1:1: cons: missing car",
 }, {
-	"cons ()",
-	"",
-	"1:1: cons: missing cdr",
-}, {
 	`cons ("hello") ()`,
 	"",
 	"1:1: cons: 1:7: function name is not a symbol",
@@ -52,7 +48,7 @@ var libCellTests = []libTest{{
 	"1:1: cons: 1:10: function name is not a symbol",
 }, {
 	"car ()",
-	"",
+	"()",
 	"",
 }, {
 	`car (cons "a" "b")`,
@@ -76,7 +72,7 @@ var libCellTests = []libTest{{
 	"1:1: car: 1:6: a: unknown function",
 }, {
 	"cdr ()",
-	"",
+	"()",
 	"",
 }, {
 	`cdr (cons "a" "b")`,

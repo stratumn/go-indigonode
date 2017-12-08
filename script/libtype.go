@@ -29,7 +29,7 @@ var LibType = map[string]InterpreterFuncHandler{
 
 // LibTypeIsNil returns whether an expression is nil.
 func LibTypeIsNil(ctx *InterpreterContext) (SExp, error) {
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 
@@ -38,12 +38,12 @@ func LibTypeIsNil(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	return Bool(v == nil, ctx.Meta), nil
+	return Bool(v.IsNil(), ctx.Meta), nil
 }
 
 // LibTypeIsAtom returns whether an expression is an atom. Nil is an atom.
 func LibTypeIsAtom(ctx *InterpreterContext) (SExp, error) {
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 
@@ -52,26 +52,18 @@ func LibTypeIsAtom(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	if v == nil {
-		return Bool(true, ctx.Meta), nil
-	}
-
-	return Bool(v.UnderlyingType() != TypeCell, ctx.Meta), nil
+	return Bool(v.UnderlyingType() != TypeCell || v.IsNil(), ctx.Meta), nil
 }
 
 // LibTypeIsList returns whether an expression is a list. Nil is not a list.
 func LibTypeIsList(ctx *InterpreterContext) (SExp, error) {
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 
 	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
-	}
-
-	if v == nil {
-		return Bool(false, ctx.Meta), nil
 	}
 
 	if cell, ok := v.CellVal(); ok {
@@ -102,17 +94,13 @@ func LibTypeIsBool(ctx *InterpreterContext) (SExp, error) {
 }
 
 func libTypeIsType(ctx *InterpreterContext, typ Type) (SExp, error) {
-	if ctx.Args == nil || ctx.Args.Cdr() != nil {
+	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}
 
 	v, err := ctx.Eval(ctx, ctx.Args.Car(), false)
 	if err != nil {
 		return nil, err
-	}
-
-	if v == nil {
-		return Bool(false, ctx.Meta), nil
 	}
 
 	return Bool(v.UnderlyingType() == typ, ctx.Meta), nil

@@ -13,10 +13,12 @@
 // limitations under the License.
 
 // Package script defines types to implement a simple script interpreter with
-// Lisp-like syntax.
+// Lisp-like syntax. It has a bit of syntactic sugar to make it easier to read.
 //
 // It producces S-Expressions that can hold either symbols, strings, 64-bit
 // integers or cons cells.
+//
+// It comes with a few builtin functions and it's easy to add new functions.
 //
 // It was designed with shell-like scripting in mind. A script is a list of
 // instructions. Instructions are function calls. For convenience, top-level
@@ -24,21 +26,6 @@
 // one-liners. The is useful, especially in the context of a command line
 // interface, but it introduces more complexity in the grammar because new
 // lines are handled differently depending on context.
-//
-// The EBNF syntax is:
-//
-//	Script          = { Instr }
-//	Instr           = { NewLine } ( Call | InCall )
-//	Call            = { NewLine } "(" InCallInParen { NewLine } ")"
-//	InCallInParen   = { NewLine } Symbol SExpListInParen
-//	InCall          = Symbol SExpList
-//	SExpListInParen = { SExpInParen }
-//	SExpList        = { SExp }
-//	SExpInParen     = { NewLine } SExp
-//	SExp            = QuotedSExp | List | Atom
-//	QuotedSExp      = "'" SExp
-//	List            = { NewLine } "(" SExpListInParen { NewLine } ")"
-//	Atom            = symbol | string | int | "true" | "false"
 //
 // The lifecycle of a script is:
 //
@@ -49,10 +36,85 @@
 // At this point it's not designed for speed, but it does tail call
 // optimizations (trampoline) to avoid blowing the stack with recursive calls.
 //
-// Eventually there will be a bytecode compiler and static type checking, but
-// the current focus is on the design of the language.
+// The current focus is to "harden" the type system so that scripts can be
+// statically type-checked. Once the language is usable, a faster bytecode
+// compiler will be implemented.
 //
-// It comes with a few builtin functions and it's easy to add new functions.
+// Grammar
+//
+// The EBNF syntax is:
+//
+//	Script          = [ BodyHead ] { NewLine } EOF
+//	BodyHead        = [ Instr ] [ ScriptTail ]
+//	BodyTail        = { NewLine { NewLine } Instr }
+//	Instr           = ( Call | InCall )
+//	Call            = "(" InCallInParen { NewLine } ")"
+//	InCallInParen   = { NewLine } Symbol SExpListInParen
+//	InCall          = Symbol SExpList
+//	SExpListInParen = { SExpInParen }
+//	SExpList        = { SExp }
+//	SExpInParen     = { NewLine } SExp
+//	SExp            = QuotedSExp | Body | List | Atom
+//	QuotedSExp      = "'" { NewLine } SExp
+//	Body            = "{" [ BodyHead ] { NewLine } "}"
+//	List            = "(" SExpListInParen { NewLine } ")"
+//	Atom            = symbol | string | int | true | false
+//
+//	TODO: define tokens
+//
+// Syntactic sugar
+//
+// Say you have a list of function calls like this:
+//
+//	((funcA a (cons b c))
+//	 (funcB d e f)
+//	 (funcC h i))
+//
+// You can use braces to open a "body" instead:
+//
+//	{
+//		funcA a (cons b c)
+//		funcB d e f
+//		funcC hi
+//	}
+//
+// Within a body the top-level instructions don't need to be surrounded by
+// parenthesis. It can make code significantly easier to read. For example
+// this code:
+//
+//	; Reverses a list recusively.
+//	let reverse (lambda (l) (
+//		; Define a nested recursive function with an accumulator.
+//		(let reverse-rec (lambda (l tail) (
+//			(if (nil? l)
+//				tail
+//				(reverse-rec (cdr l) (cons (car l) tail))))))
+//		; Start the recursion
+//		(reverse-rec l ())))
+//
+// Can be rewritten as:
+//
+//	; Reverses a list recusively with syntactic sugar.
+//	let reverse (lambda (l) {
+//		; Define a nested recursive function with an accumulator.
+//		let reverse-rec (lamda (l tail) {
+//			if (nil? l) tail else {
+//				reverse-rec (cdr l) (cons (car l) tail)
+//			}
+//		})
+//		; Start the recursion
+//		reverse-rec l ()
+//	})
+//
+// This example also used the optional "else" symbol in the if statement for
+// clarity.
+//
+// The reason you don't need to use parenthesis at the top-level is because it
+// uses the same rules as inside braces.
+//
+// There a a few limitations to using brances -- currently all top-level
+// instructions have to be function calls, otherwise the grammar would be
+// ambiguous.
 package script
 
 import "github.com/pkg/errors"
@@ -87,3 +149,7 @@ const LambdaSymbol = "lambda"
 
 // QuoteSymbol is the symbol used to quote expressions.
 const QuoteSymbol = "quote"
+
+// ElseSymbol is the name of the optional "else" symbol in "if" and "unless"
+// statements.
+const ElseSymbol = "else"

@@ -90,7 +90,40 @@ func Example_recursion() {
 	}
 
 	// Output:
-	// (lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l <nil>)))
+	// (lambda (l) ((let reverse-rec (lambda (l tail) ((if (nil? l) tail (reverse-rec (cdr l) (cons (car l) tail)))))) (reverse-rec l ())))
+	// (E C I L A)
+}
+
+func Example_recursion_braces() {
+	// Script that will be evaluated.
+	src := `
+		; Reverses a list recusively with syntactic sugar.
+		let reverse (λ (l) {
+			; Define a nested recursive function with an accumulator.
+			let reverse-rec (λ (l tail) {
+				if (nil? l) tail else {
+					reverse-rec (cdr l) (cons (car l) tail)
+				}
+			})
+			; Start the recursion
+			reverse-rec l ()
+		})
+
+		; Test it out.
+		reverse '(A L I C E)
+`
+
+	// Initialize an interpreter with the builtin libraries.
+	itr := script.NewInterpreter(script.InterpreterOptBuiltinLibs)
+
+	// Evaluate the script.
+	err := itr.EvalInput(context.Background(), src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output:
+	// (lambda (l) ((let reverse-rec (λ (l tail) ((if (nil? l) tail else ((reverse-rec (cdr l) (cons (car l) tail))))))) (reverse-rec l ())))
 	// (E C I L A)
 }
 

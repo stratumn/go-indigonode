@@ -19,6 +19,7 @@ import "github.com/pkg/errors"
 // LibLambda contains functions to work with lambda functions.
 var LibLambda = map[string]InterpreterFuncHandler{
 	"lambda": LibLambdaLambda,
+	"λ":      LibLambdaLambda,
 }
 
 // LibLambdaLambda creates a lambda function.
@@ -26,12 +27,12 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 	// Make sure that:
 	//
 	//	1. car is nil or a list of symbols (function arguments)
-	if ctx.Args == nil {
+	if ctx.Args.IsNil() {
 		return nil, errors.New("missing function arguments")
 	}
 
 	car := ctx.Args.Car()
-	if car != nil {
+	if !car.IsNil() {
 		carCell, ok := car.CellVal()
 		if !ok || !carCell.IsList() {
 			return nil, Error(
@@ -55,7 +56,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 	//	2. cadr (function body) is there but can be anything including
 	//	   nil
 	cdr := ctx.Args.Cdr()
-	if cdr == nil {
+	if cdr.IsNil() {
 		return nil, errors.New("missing function body")
 	}
 
@@ -64,7 +65,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 		return nil, Error("invalid function body", cdr.Meta(), "")
 	}
 
-	if cdrCell.Cdr() != nil {
+	if !cdrCell.Cdr().IsNil() {
 		return nil, Error(
 			"extra expressions after function body",
 			cdr.Meta(),

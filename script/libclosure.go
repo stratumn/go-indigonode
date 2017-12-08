@@ -26,12 +26,12 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 	// Get:
 	//
 	//	1. car symbol value
-	if ctx.Args == nil {
+	if ctx.Args.IsNil() {
 		return nil, errors.New("missing symbol")
 	}
 
 	car := ctx.Args.Car()
-	if ctx.Args == nil {
+	if car.IsNil() {
 		return nil, errors.New("missing symbol")
 	}
 
@@ -42,9 +42,9 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 
 	//	2. cadr, optional (value)
 	cdr := ctx.Args.Cdr()
-	var cadr SExp
+	cadr := Nil().(SExp)
 
-	if cdr != nil {
+	if !cdr.IsNil() {
 		cdrCell, ok := cdr.CellVal()
 		if !ok {
 			return nil, Error("invalid value", cdr.Meta(), "")

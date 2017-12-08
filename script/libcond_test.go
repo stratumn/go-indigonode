@@ -32,15 +32,23 @@ var libCondTests = []libTest{{
 	"",
 }, {
 	`if false "ok"`,
-	"",
+	"()",
 	"",
 }, {
 	`if false "ko"`,
-	"",
+	"()",
 	"",
 }, {
 	`if false () "ko"`,
 	`"ko"`,
+	"",
+}, {
+	`if true 1 else 2`,
+	`1`,
+	"",
+}, {
+	`if false 1 else 2`,
+	`2`,
 	"",
 }, {
 	"if",
@@ -71,6 +79,14 @@ var libCondTests = []libTest{{
 	"",
 	"1:1: if: 1:4: test: could not resolve symbol",
 }, {
+	`if true 1 else`,
+	"",
+	"1:1: if: missing else expression",
+}, {
+	`if true 1 else 2 else 3`,
+	"",
+	"1:1: if: 1:18: unexpected expression",
+}, {
 	`unless true "ok" "ko"`,
 	`"ko"`,
 	"",
@@ -80,7 +96,7 @@ var libCondTests = []libTest{{
 	"",
 }, {
 	`unless true "ok"`,
-	"",
+	"()",
 	"",
 }, {
 	`unless false "ok"`,
@@ -92,7 +108,7 @@ var libCondTests = []libTest{{
 	"",
 }, {
 	`unless false () "ko"`,
-	"",
+	"()",
 	"",
 }}
 

@@ -161,29 +161,35 @@ var evalTests = []evalTest{{
 	"",
 }}
 
-var testFuncs = map[string]InterpreterFuncHandler{
-	"echo": func(ctx *InterpreterContext) (SExp, error) {
-		args, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
-		if err != nil {
-			return nil, err
-		}
+func testEcho(ctx *InterpreterContext) (SExp, error) {
+	args, err := ctx.EvalListToStrings(ctx, ctx.Args, false)
+	if err != nil {
+		return nil, err
+	}
 
-		str := strings.Join(args, " ")
-		return String(str, ctx.Meta), nil
-	},
+	str := strings.Join(args, " ")
+	return String(str, ctx.Meta), nil
 }
 
 func TestInterpreter(t *testing.T) {
+	testInterpreter(t)
+}
+
+func TestInterpreter_no_tail_opts(t *testing.T) {
+	testInterpreter(t, InterpreterOptTailOptimizations(false))
+}
+
+func testInterpreter(t *testing.T, opts ...InterpreterOpt) {
 	for _, tt := range evalTests {
 		var got string
 
 		closure := NewClosure()
 		closure.Set("name", String("Alice", Meta{}))
 
-		itr := NewInterpreter(
-			InterpreterOptBuiltinLibs,
+		opts = append(
+			opts,
 			InterpreterOptClosure(closure),
-			InterpreterOptFuncHandlers(testFuncs),
+			InterpreterOptBuiltinLibs,
 			InterpreterOptErrorHandler(func(error) {}),
 			InterpreterOptValueHandler(func(exp SExp) {
 				if got != "" {
@@ -192,6 +198,9 @@ func TestInterpreter(t *testing.T) {
 				got += exp.String()
 			}),
 		)
+
+		itr := NewInterpreter(opts...)
+		itr.AddFuncHandler("echo", testEcho)
 
 		err := itr.EvalInput(context.Background(), tt.input)
 		if err != nil {

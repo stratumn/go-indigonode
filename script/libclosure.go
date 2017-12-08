@@ -45,12 +45,7 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 	cadr := Nil().(SExp)
 
 	if !cdr.IsNil() {
-		cdrCell, ok := cdr.CellVal()
-		if !ok {
-			return nil, Error("invalid value", cdr.Meta(), "")
-		}
-
-		cadr = cdrCell.Car()
+		cadr = cdr.Car()
 	}
 
 	//	3. a value isn't already bound to symbol in the current

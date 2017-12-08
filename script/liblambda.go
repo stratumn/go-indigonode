@@ -33,8 +33,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 
 	car := ctx.Args.Car()
 	if !car.IsNil() {
-		carCell, ok := car.CellVal()
-		if !ok || !carCell.IsList() {
+		if !IsList(car) {
 			return nil, Error(
 				"function arguments are not a list",
 				car.Meta(),
@@ -42,7 +41,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 			)
 		}
 
-		for _, exp := range carCell.MustToSlice() {
+		for _, exp := range ToSlice(car) {
 			if exp.UnderlyingType() != TypeSymbol {
 				return nil, Error(
 					"function argument is not a symbol",
@@ -60,12 +59,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("missing function body")
 	}
 
-	cdrCell, ok := cdr.CellVal()
-	if !ok {
-		return nil, Error("invalid function body", cdr.Meta(), "")
-	}
-
-	if !cdrCell.Cdr().IsNil() {
+	if !cdr.Cdr().IsNil() {
 		return nil, Error(
 			"extra expressions after function body",
 			cdr.Meta(),

@@ -77,20 +77,22 @@ type SExp interface {
 
 	UnderlyingType() Type
 	IsNil() bool
+	IsAtom() bool
 
 	StringVal() (string, bool)
 	Int64Val() (int64, bool)
 	BoolVal() (bool, bool)
 	SymbolVal() (string, bool)
-	CellVal() (SCell, bool)
 
 	MustStringVal() string
 	MustInt64Val() int64
 	MustSymbolVal() string
 	MustBoolVal() bool
-	MustCellVal() SCell
 
 	Equals(SExp) bool
+
+	Car() SExp
+	Cdr() SExp
 }
 
 // SExpSlice is a slice of S-Expressions.
@@ -114,16 +116,6 @@ func (s SExpSlice) Strings(quote bool) []string {
 	return strings
 }
 
-// SCell represents a cell S-Expression.
-type SCell interface {
-	SExp
-	Car() SExp
-	Cdr() SExp
-	IsList() bool
-	ToSlice() (SExpSlice, bool)
-	MustToSlice() SExpSlice
-}
-
 // nilVal represents the nil value.
 var nilVal = &scell{sexp{Meta{}}, nil, nil}
 
@@ -133,7 +125,7 @@ func init() {
 }
 
 // Nil returns the nil value.
-func Nil() SCell {
+func Nil() SExp {
 	return nilVal
 }
 
@@ -154,6 +146,10 @@ func (s sexp) IsNil() bool {
 	return false
 }
 
+func (s sexp) IsAtom() bool {
+	return true
+}
+
 func (s sexp) StringVal() (string, bool) {
 	return "", false
 }
@@ -168,10 +164,6 @@ func (s sexp) BoolVal() (bool, bool) {
 
 func (s sexp) SymbolVal() (string, bool) {
 	return "", false
-}
-
-func (s sexp) CellVal() (SCell, bool) {
-	return nil, false
 }
 
 func (s sexp) MustStringVal() string {
@@ -190,12 +182,24 @@ func (s sexp) MustSymbolVal() string {
 	panic("S-Expression is not a symbol")
 }
 
-func (s sexp) MustCellVal() SCell {
-	panic("S-Expression is not a cell")
-}
-
 func (s sexp) Equals(SExp) bool {
 	return false
+}
+
+func (s sexp) Car() SExp {
+	return Nil()
+}
+
+func (s sexp) Cdr() SExp {
+	return Nil()
+}
+
+func (s sexp) ToSlice() (SExpSlice, bool) {
+	return nil, false
+}
+
+func (s sexp) MustToSlice() SExpSlice {
+	panic("S-Expression is not a list")
 }
 
 // atomString is a string atom.
@@ -338,7 +342,7 @@ type scell struct {
 }
 
 // Cons creates a new cell.
-func Cons(car, cdr SExp, meta Meta) SCell {
+func Cons(car, cdr SExp, meta Meta) SExp {
 	if car == nil {
 		car = Nil()
 	}
@@ -354,26 +358,23 @@ func (c *scell) String() string {
 		return "()"
 	}
 
-	if c.IsList() {
-		var buf bytes.Buffer
-
-		buf.WriteRune('(')
-		buf.WriteString(fmt.Sprint(c.car))
-		cdr := c.cdr
-
-		for cdr != Nil() {
-			buf.WriteRune(' ')
-			cell := cdr.MustCellVal()
-			buf.WriteString(fmt.Sprint(cell.Car()))
-			cdr = cell.Cdr()
-		}
-
-		buf.WriteRune(')')
-
-		return buf.String()
+	if !IsList(c) {
+		return fmt.Sprintf("(%v . %v)", c.car, c.cdr)
 	}
 
-	return fmt.Sprintf("(%v . %v)", c.car, c.cdr)
+	var buf bytes.Buffer
+
+	buf.WriteRune('(')
+	buf.WriteString(fmt.Sprint(c.car))
+
+	for tail := c.Cdr(); tail != Nil(); tail = tail.Cdr() {
+		buf.WriteRune(' ')
+		buf.WriteString(fmt.Sprint(tail.Car()))
+	}
+
+	buf.WriteRune(')')
+
+	return buf.String()
 }
 
 func (c *scell) UnderlyingType() Type {
@@ -384,12 +385,8 @@ func (c *scell) IsNil() bool {
 	return c == nilVal
 }
 
-func (c *scell) CellVal() (SCell, bool) {
-	return c.MustCellVal(), true
-}
-
-func (c *scell) MustCellVal() SCell {
-	return c
+func (c *scell) IsAtom() bool {
+	return c == nilVal
 }
 
 func (c *scell) Equals(exp SExp) bool {
@@ -397,14 +394,12 @@ func (c *scell) Equals(exp SExp) bool {
 		return false
 	}
 
-	v, ok := exp.CellVal()
+	v, ok := exp.(*scell)
 	if !ok {
 		return false
 	}
 
-	vCar, vCdr := v.Car(), v.Cdr()
-
-	return c.car == vCar && c.cdr == vCdr
+	return c.car == v.car && c.cdr == v.cdr
 }
 
 func (c *scell) Car() SExp {
@@ -415,40 +410,44 @@ func (c *scell) Cdr() SExp {
 	return c.cdr
 }
 
-func (c *scell) IsList() bool {
-	cdr := c.cdr
-	if cdr == Nil() {
+// IsList returns whether an S-Expression is a list.
+//
+//	- nil is a list
+//	- other atoms are not a list
+//	- the cdr must be a list
+func IsList(exp SExp) bool {
+	if exp.IsNil() {
 		return true
 	}
 
-	stype := cdr.UnderlyingType()
-	if stype != TypeCell {
+	if exp.IsAtom() {
 		return false
 	}
 
-	return cdr.MustCellVal().IsList()
+	return IsList(exp.Cdr())
 }
 
-func (c *scell) ToSlice() (SExpSlice, bool) {
-	if c.IsList() {
-		return c.MustToSlice(), true
-	}
-
-	return nil, false
-}
-
-func (c *scell) MustToSlice() SExpSlice {
-	if c.IsNil() {
+// ToSlice converts an S-Expression to a slice.
+//
+// The returned slice will contain the car values of all the expressions in the
+// list. It returns nil if the expression is nil or an atom.
+func ToSlice(exp SExp) SExpSlice {
+	if exp.IsNil() || exp.IsAtom() {
 		return nil
 	}
 
-	slice := SExpSlice{c.car}
-	cdr := c.cdr
+	slice := SExpSlice{exp.Car()}
 
-	for !cdr.IsNil() {
-		cell := cdr.MustCellVal()
-		slice = append(slice, cell.Car())
-		cdr = cell.Cdr()
+	for tail := exp.Cdr(); ; tail = tail.Cdr() {
+		if tail.IsNil() {
+			break
+		}
+
+		if tail.IsAtom() {
+			return nil
+		}
+
+		slice = append(slice, tail.Car())
 	}
 
 	return slice

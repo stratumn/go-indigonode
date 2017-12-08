@@ -15,6 +15,8 @@
 package script
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -43,12 +45,7 @@ func LibCellCons(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("missing cdr")
 	}
 
-	cdrCell, ok := cdr.CellVal()
-	if !ok {
-		return nil, errors.New("invalid arguments")
-	}
-
-	cadr := cdrCell.Car()
+	cadr := cdr.Car()
 
 	// Evaluate them.
 	carVal, err := ctx.Eval(ctx, car, false)
@@ -80,12 +77,11 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	cell, ok := v.CellVal()
-	if !ok {
-		return nil, Error("not a cell", v.Meta(), v.String())
+	if v.UnderlyingType() != TypeCell {
+		return nil, Error("not a cell", v.Meta(), fmt.Sprint(v))
 	}
 
-	return cell.Car(), nil
+	return v.Car(), nil
 }
 
 // LibCellCdr returns the cdr of a cell.
@@ -100,10 +96,9 @@ func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	cell, ok := v.CellVal()
-	if !ok {
-		return nil, Error("not a cell", v.Meta(), v.String())
+	if v.UnderlyingType() != TypeCell {
+		return nil, Error("not a cell", v.Meta(), fmt.Sprint(v))
 	}
 
-	return cell.Cdr(), nil
+	return v.Cdr(), nil
 }

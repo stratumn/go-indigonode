@@ -50,45 +50,30 @@ func libCondIf(ctx *InterpreterContext, unless bool) (SExp, error) {
 		return nil, errors.New("missing then expression")
 	}
 
-	cdrCell, ok := cdr.CellVal()
-	if !ok {
-		return nil, Error("invalid then expression", cdr.Meta(), "")
-	}
-
-	cadr := cdrCell.Car()
+	cadr := cdr.Car()
 	otherwise := Nil().(SExp)
 
 	//	3. optional else symbol
-	if cddr := cdrCell.Cdr(); !cddr.IsNil() {
-		cddrCell, ok := cddr.CellVal()
-		if !ok {
-			return nil, Error("invalid else expression", cddr.Meta(), "")
-		}
-
-		caddr := cddrCell.Car()
+	if cddr := cdr.Cdr(); !cddr.IsNil() {
+		caddr := cddr.Car()
 
 		if sym, ok := caddr.SymbolVal(); ok && sym == ElseSymbol {
 			// The else token is present, so an else expression is
 			// expected.
-			cdddr := cddrCell.Cdr()
+			cdddr := cddr.Cdr()
 			if cdddr.IsNil() {
 				return nil, errors.New("missing else expression")
 			}
 
-			cdddrCell, ok := cdddr.CellVal()
-			if !ok {
-				return nil, Error("invalid else expression", cddr.Meta(), "")
-			}
-
 			// Make sure there isn't an extra expression.
-			if cddddr := cdddrCell.Cdr(); !cddddr.IsNil() {
+			if cddddr := cdddr.Cdr(); !cddddr.IsNil() {
 				return nil, Error("unexpected expression", cddddr.Meta(), "")
 			}
 
-			otherwise = cdddrCell.Car()
+			otherwise = cdddr.Car()
 		} else {
 			// Make sure there isn't an extra expression.
-			if cdddr := cddrCell.Cdr(); !cdddr.IsNil() {
+			if cdddr := cddr.Cdr(); !cdddr.IsNil() {
 				return nil, Error("unexpected expression", cdddr.Meta(), "")
 			}
 

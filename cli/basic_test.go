@@ -141,7 +141,7 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 		Closure: closure,
 		EvalListToStrings: func(
 			*script.InterpreterContext,
-			script.SCell,
+			script.SExp,
 			bool,
 		) ([]string, error) {
 			return nil, nil

@@ -90,14 +90,7 @@ func LibOpEq(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	cdr := tail.Cdr()
-	if cdr.IsNil() {
-		return Bool(true, ctx.Meta), nil
-	}
-
-	tail = cdr.MustCellVal()
-
-	for {
+	for tail = tail.Cdr(); !tail.IsNil(); tail = tail.Cdr() {
 		right, err := ctx.Eval(ctx, tail.Car(), false)
 		if err != nil {
 			return nil, err
@@ -107,12 +100,6 @@ func LibOpEq(ctx *InterpreterContext) (SExp, error) {
 			return Bool(false, ctx.Meta), nil
 		}
 
-		cdr = tail.Cdr()
-		if cdr.IsNil() {
-			break
-		}
-
-		tail = cdr.MustCellVal()
 		left = right
 	}
 
@@ -170,14 +157,7 @@ func libOpInt(
 		return nil, Error("not an integer", tail.Meta(), v.String())
 	}
 
-	cdr := tail.Cdr()
-	if cdr.IsNil() {
-		return Int64(acc, ctx.Meta), nil
-	}
-
-	tail = cdr.MustCellVal()
-
-	for {
+	for tail = tail.Cdr(); !tail.IsNil(); tail = tail.Cdr() {
 		v, err := ctx.Eval(ctx, tail.Car(), false)
 		if err != nil {
 			return nil, err
@@ -192,13 +172,6 @@ func libOpInt(
 		if err != nil {
 			return nil, WrapError(err, tail.Meta(), v.String())
 		}
-
-		cdr := tail.Cdr()
-		if cdr.IsNil() {
-			break
-		}
-
-		tail = cdr.MustCellVal()
 	}
 
 	return Int64(acc, ctx.Meta), nil
@@ -223,14 +196,7 @@ func libOpIntCmp(
 		return nil, Error("not an integer", tail.Meta(), v.String())
 	}
 
-	cdr := tail.Cdr()
-	if cdr.IsNil() {
-		return Bool(true, ctx.Meta), nil
-	}
-
-	tail = cdr.MustCellVal()
-
-	for {
+	for tail = tail.Cdr(); !tail.IsNil(); tail = tail.Cdr() {
 		v, err := ctx.Eval(ctx, tail.Car(), false)
 		if err != nil {
 			return nil, err
@@ -245,12 +211,6 @@ func libOpIntCmp(
 			return Bool(false, ctx.Meta), nil
 		}
 
-		cdr = tail.Cdr()
-		if cdr.IsNil() {
-			break
-		}
-
-		tail = cdr.MustCellVal()
 		left = right
 	}
 
@@ -284,7 +244,7 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("missing argument")
 	}
 
-	for {
+	for ; !tail.IsNil(); tail = tail.Cdr() {
 		v, err := ctx.Eval(ctx, tail.Car(), false)
 		if err != nil {
 			return nil, err
@@ -298,13 +258,6 @@ func LibOpAnd(ctx *InterpreterContext) (SExp, error) {
 		if !b {
 			return Bool(false, ctx.Meta), nil
 		}
-
-		cdr := tail.Cdr()
-		if cdr.IsNil() {
-			break
-		}
-
-		tail = cdr.MustCellVal()
 	}
 
 	return Bool(true, ctx.Meta), nil
@@ -317,7 +270,7 @@ func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 		return nil, errors.New("missing argument")
 	}
 
-	for {
+	for ; !tail.IsNil(); tail = tail.Cdr() {
 		v, err := ctx.Eval(ctx, tail.Car(), false)
 		if err != nil {
 			return nil, err
@@ -331,13 +284,6 @@ func LibOpOr(ctx *InterpreterContext) (SExp, error) {
 		if b {
 			return Bool(true, ctx.Meta), nil
 		}
-
-		cdr := tail.Cdr()
-		if cdr.IsNil() {
-			break
-		}
-
-		tail = cdr.MustCellVal()
 	}
 
 	return Bool(false, ctx.Meta), nil

@@ -66,11 +66,7 @@ func LibTypeIsList(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	if cell, ok := v.CellVal(); ok {
-		return Bool(cell.IsList(), ctx.Meta), nil
-	}
-
-	return Bool(false, ctx.Meta), nil
+	return Bool(IsList(v), ctx.Meta), nil
 }
 
 // LibTypeIsSym returns whether an expression is of type symbol.

@@ -59,23 +59,23 @@ var sexpTests = [...]sexpTest{{
 }, {
 	sexp:     cellTest1,
 	wantType: TypeCell,
-	wantVal:  cellTest1.(SCell),
+	wantVal:  cellTest1,
 }, {
 	sexp:     cellTest2,
 	wantType: TypeCell,
-	wantVal:  cellTest2.(SCell),
+	wantVal:  cellTest2,
 }, {
 	sexp:     cellTest3,
 	wantType: TypeCell,
-	wantVal:  cellTest3.(SCell),
+	wantVal:  cellTest3,
 }, {
 	sexp:     cellTest4,
 	wantType: TypeCell,
-	wantVal:  cellTest4.(SCell),
+	wantVal:  cellTest4,
 }, {
 	sexp:     cellTest5,
 	wantType: TypeCell,
-	wantVal:  cellTest5.(SCell),
+	wantVal:  cellTest5,
 }}
 
 func getVal(s SExp, typ Type) (interface{}, bool) {
@@ -89,7 +89,7 @@ func getVal(s SExp, typ Type) (interface{}, bool) {
 	case TypeSymbol:
 		return s.SymbolVal()
 	case TypeCell:
-		return s.CellVal()
+		return s, !s.IsAtom()
 	}
 
 	return Nil(), false
@@ -158,11 +158,7 @@ func TestSExp_Meta(t *testing.T) {
 
 func TestCell(t *testing.T) {
 	// Pair.
-	c := Cons(
-		Symbol("sym", Meta{}),
-		String("abc", Meta{}),
-		Meta{},
-	).MustCellVal()
+	c := Cons(Symbol("sym", Meta{}), String("abc", Meta{}), Meta{})
 
 	if got, want := c.Car().MustSymbolVal(), "sym"; got != want {
 		t.Errorf("car = %v want %v", got, want)
@@ -170,11 +166,11 @@ func TestCell(t *testing.T) {
 	if got, want := c.Cdr().MustStringVal(), "abc"; got != want {
 		t.Errorf("car = %q want %q", got, want)
 	}
-	if got, want := c.IsList(), false; got != want {
+	if got, want := IsList(c), false; got != want {
 		t.Errorf("list = %v want %v", got, want)
 	}
-	if _, ok := c.ToSlice(); ok {
-		t.Error("ToSlice() should return false")
+	if slice := ToSlice(c); slice != nil {
+		t.Error("ToSlice() should return <nil>")
 	}
 
 	// List.
@@ -182,32 +178,32 @@ func TestCell(t *testing.T) {
 		Symbol("a", Meta{}),
 		Cons(Symbol("b", Meta{}), nil, Meta{}),
 		Meta{},
-	).MustCellVal()
+	)
 
 	if got, want := c.Car().MustSymbolVal(), "a"; got != want {
 		t.Errorf("car = %v want %v", got, want)
 	}
-	cdr := c.Cdr().MustCellVal()
+	cdr := c.Cdr()
 	if got, want := cdr.Car().MustSymbolVal(), "b"; got != want {
 		t.Errorf("cdar = %v want %v", got, want)
 	}
 	if got := cdr.Cdr().IsNil(); got != true {
 		t.Errorf("cddr = %v want %v", got, true)
 	}
-	if got, want := c.IsList(), true; got != want {
+	if got, want := IsList(c), true; got != want {
 		t.Errorf("list = %v want %v", got, want)
 	}
-	list, ok := c.ToSlice()
-	if !ok {
-		t.Errorf("ToSlice(): ok = %v want %v", ok, true)
+	slice := ToSlice(c)
+	if slice == nil {
+		t.Error("ToSlice() is nil")
 	}
-	if got, want := len(list), 2; got != want {
+	if got, want := len(slice), 2; got != want {
 		t.Errorf("length = %v want %v", got, want)
 	}
-	if got, want := list[0].MustSymbolVal(), "a"; got != want {
-		t.Errorf("list[0] = %v want %v", got, want)
+	if got, want := slice[0].MustSymbolVal(), "a"; got != want {
+		t.Errorf("slice[0] = %v want %v", got, want)
 	}
-	if got, want := list[1].MustSymbolVal(), "b"; got != want {
-		t.Errorf("list[1] = %v want %v", got, want)
+	if got, want := slice[1].MustSymbolVal(), "b"; got != want {
+		t.Errorf("slice[1] = %v want %v", got, want)
 	}
 }

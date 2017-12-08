@@ -89,7 +89,7 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 	)
 
 	// Find command name.
-	name := list.Car().MustCellVal().Car().MustSymbolVal()
+	name := list.Car().Car().MustSymbolVal()
 	itr.AddFuncHandler(name, func(ctx *script.InterpreterContext) (script.SExp, error) {
 		return cmd.Exec(ctx, c)
 	})

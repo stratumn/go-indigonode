@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync/atomic"
 
 	"github.com/pkg/errors"
 )
@@ -126,18 +125,8 @@ type InterpreterContext struct {
 
 // FuncData contains information about a lambda function.
 type FuncData struct {
-	// ID is a unique ID for the function.
-	ID uint64
-
 	// ParentClosure is the closure the function was defined within.
 	ParentClosure *Closure
-}
-
-var funcID = uint64(0)
-
-// FuncID generates a unique function ID.
-func FuncID() uint64 {
-	return atomic.AddUint64(&funcID, 1)
 }
 
 // LazyCall contains information about a call to a lambda function. It is
@@ -526,10 +515,10 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 	// instead of evaluating.
 	if itr.tailOptimize && ctx.IsTail {
 		for _, id := range ctx.funcIDs {
-			if id == data.ID {
+			if id == lambda.ID() {
 				meta := ctx.Meta
 				meta.UserData = LazyCall{
-					FuncID: data.ID,
+					FuncID: id,
 					Args:   args,
 				}
 				return Cons(nil, nil, meta), nil
@@ -549,7 +538,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 	bodyCtx := &InterpreterContext{
 		Ctx:     ctx.Ctx,
 		Closure: bodyClosure,
-		funcIDs: append(ctx.funcIDs, data.ID),
+		funcIDs: append(ctx.funcIDs, lambda.ID()),
 	}
 
 	// Finally, evaluate the function body.
@@ -562,7 +551,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 			}
 
 			lazy, ok := val.Meta().UserData.(LazyCall)
-			if !ok || lazy.FuncID != data.ID {
+			if !ok || lazy.FuncID != lambda.ID() {
 				return val, nil
 			}
 
@@ -576,7 +565,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 			bodyCtx = &InterpreterContext{
 				Ctx:     ctx.Ctx,
 				Closure: bodyClosure,
-				funcIDs: append(ctx.funcIDs, data.ID),
+				funcIDs: append(ctx.funcIDs, lambda.ID()),
 			}
 
 			val, err = itr.evalBody(bodyCtx, caddr, true)

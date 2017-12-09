@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"sync/atomic"
 )
 
 // ResolveHandler resolves symbols.
@@ -26,6 +27,13 @@ type ResolveHandler func(sym SExp) (SExp, error)
 // ResolveName resolves symbols with their names.
 func ResolveName(sym SExp) (SExp, error) {
 	return String(sym.MustSymbolVal(), sym.Meta()), nil
+}
+
+var cellID = uint64(0)
+
+// CellID generates a unique cell ID.
+func CellID() uint64 {
+	return atomic.AddUint64(&cellID, 1)
 }
 
 // Meta contains metadata for an S-Expression.
@@ -43,6 +51,8 @@ type Meta struct {
 //
 //	https://en.wikipedia.org/wiki/S-expression
 type SExp interface {
+	ID() uint64
+
 	String() string
 
 	Meta() Meta
@@ -89,7 +99,7 @@ func (s SExpSlice) Strings(quote bool) []string {
 }
 
 // nilVal represents the nil value.
-var nilVal = &scell{sexp{Meta{}}, nil, nil}
+var nilVal = &scell{sexp{0, Meta{}}, nil, nil}
 
 func init() {
 	nilVal.car = nilVal
@@ -103,7 +113,12 @@ func Nil() SExp {
 
 // sexp is the base S-Expression type.
 type sexp struct {
+	id   uint64
 	meta Meta
+}
+
+func (s sexp) ID() uint64 {
+	return s.id
 }
 
 func (s sexp) Meta() Meta {
@@ -178,7 +193,7 @@ type atomString struct {
 
 // String creates a new string atom.
 func String(val string, meta Meta) SExp {
-	return atomString{sexp{meta}, val}
+	return atomString{sexp{CellID(), meta}, val}
 }
 
 func (a atomString) String() string {
@@ -211,7 +226,7 @@ type atomInt64 struct {
 
 // Int64 creates a new 64-bit integer atom.
 func Int64(val int64, meta Meta) SExp {
-	return atomInt64{sexp{meta}, val}
+	return atomInt64{sexp{CellID(), meta}, val}
 }
 
 func (a atomInt64) String() string {
@@ -244,7 +259,7 @@ type atomBool struct {
 
 // Bool creates a new boolean atom.
 func Bool(val bool, meta Meta) SExp {
-	return atomBool{sexp{meta}, val}
+	return atomBool{sexp{CellID(), meta}, val}
 }
 
 func (a atomBool) String() string {
@@ -277,7 +292,7 @@ type atomSymbol struct {
 
 // Symbol creates a new symbol atom.
 func Symbol(val string, meta Meta) SExp {
-	return atomSymbol{sexp{meta}, val}
+	return atomSymbol{sexp{CellID(), meta}, val}
 }
 
 func (a atomSymbol) String() string {
@@ -318,7 +333,7 @@ func Cons(car, cdr SExp, meta Meta) SExp {
 		cdr = Nil()
 	}
 
-	return &scell{sexp{meta}, car, cdr}
+	return &scell{sexp{CellID(), meta}, car, cdr}
 }
 
 func (c *scell) String() string {

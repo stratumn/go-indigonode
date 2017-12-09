@@ -77,7 +77,6 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 			Line:   ctx.Meta.Line,
 			Offset: ctx.Meta.Offset,
 			UserData: FuncData{
-				ID:            FuncID(),
 				ParentClosure: ctx.Closure,
 			},
 		},

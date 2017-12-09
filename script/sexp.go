@@ -28,34 +28,6 @@ func ResolveName(sym SExp) (SExp, error) {
 	return String(sym.MustSymbolVal(), sym.Meta()), nil
 }
 
-// Type is an SExp type.
-type Type uint8
-
-// SExp types.
-const (
-	TypeInvalid Type = iota
-	TypeString
-	TypeInt64
-	TypeBool
-	TypeSymbol
-	TypeCell
-)
-
-// Maps types to their names.
-var typeMap = map[Type]string{
-	TypeInvalid: "invalid",
-	TypeString:  "string",
-	TypeInt64:   "int64",
-	TypeBool:    "bool",
-	TypeSymbol:  "symbol",
-	TypeCell:    "cell",
-}
-
-// String returns a string representation of the type.
-func (t Type) String() string {
-	return typeMap[t]
-}
-
 // Meta contains metadata for an S-Expression.
 type Meta struct {
 	Line   int
@@ -194,12 +166,8 @@ func (s sexp) Cdr() SExp {
 	return Nil()
 }
 
-func (s sexp) ToSlice() (SExpSlice, bool) {
-	return nil, false
-}
-
-func (s sexp) MustToSlice() SExpSlice {
-	panic("S-Expression is not a list")
+func (s sexp) Add(SExp) SExp {
+	return Nil()
 }
 
 // atomString is a string atom.

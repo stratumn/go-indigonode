@@ -222,7 +222,7 @@ func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 		return err
 	}
 
-	if err := itr.evalInstrs(ctx, instrs); err != nil {
+	if err := itr.EvalInstrs(ctx, instrs); err != nil {
 		itr.errHandler(err)
 		return err
 	}
@@ -230,8 +230,8 @@ func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 	return nil
 }
 
-// evalInstrs evaluates a list of instructions.
-func (itr *Interpreter) evalInstrs(ctx context.Context, instrs SExp) error {
+// EvalInstrs evaluates a list of instructions.
+func (itr *Interpreter) EvalInstrs(ctx context.Context, instrs SExp) error {
 	if instrs == Nil() {
 		return nil
 	}
@@ -254,7 +254,7 @@ func (itr *Interpreter) evalInstrs(ctx context.Context, instrs SExp) error {
 		return nil
 	}
 
-	return itr.evalInstrs(ctx, cdr)
+	return itr.EvalInstrs(ctx, cdr)
 }
 
 // eval evaluates an expression.

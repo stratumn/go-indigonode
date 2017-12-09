@@ -20,12 +20,12 @@ import (
 
 // LibOp contains functions for primitive operations.
 var LibOp = map[string]InterpreterFuncHandler{
+	"=":   LibOpEq,
 	"+":   LibOpAdd,
 	"-":   LibOpSub,
 	"*":   LibOpMul,
 	"/":   LibOpDiv,
 	"mod": LibOpMod,
-	"=":   LibOpEq,
 	"<":   LibOpLt,
 	">":   LibOpGt,
 	"<=":  LibOpLte,
@@ -33,6 +33,34 @@ var LibOp = map[string]InterpreterFuncHandler{
 	"not": LibOpNot,
 	"and": LibOpAnd,
 	"or":  LibOpOr,
+}
+
+// LibOpEq returns true if all arguments are equal.
+func LibOpEq(ctx *InterpreterContext) (SExp, error) {
+	tail := ctx.Args
+	if tail.IsNil() {
+		return nil, errors.New("missing argument")
+	}
+
+	left, err := ctx.Eval(ctx, tail.Car(), false)
+	if err != nil {
+		return nil, err
+	}
+
+	for tail = tail.Cdr(); !tail.IsNil(); tail = tail.Cdr() {
+		right, err := ctx.Eval(ctx, tail.Car(), false)
+		if err != nil {
+			return nil, err
+		}
+
+		if !left.Equals(right) {
+			return Bool(false, ctx.Meta), nil
+		}
+
+		left = right
+	}
+
+	return Bool(true, ctx.Meta), nil
 }
 
 // LibOpAdd adds integers to the first expression.
@@ -76,34 +104,6 @@ func LibOpMod(ctx *InterpreterContext) (SExp, error) {
 
 		return acc % i, nil
 	})
-}
-
-// LibOpEq returns true if all arguments are equal.
-func LibOpEq(ctx *InterpreterContext) (SExp, error) {
-	tail := ctx.Args
-	if tail.IsNil() {
-		return nil, errors.New("missing argument")
-	}
-
-	left, err := ctx.Eval(ctx, tail.Car(), false)
-	if err != nil {
-		return nil, err
-	}
-
-	for tail = tail.Cdr(); !tail.IsNil(); tail = tail.Cdr() {
-		right, err := ctx.Eval(ctx, tail.Car(), false)
-		if err != nil {
-			return nil, err
-		}
-
-		if !left.Equals(right) {
-			return Bool(false, ctx.Meta), nil
-		}
-
-		left = right
-	}
-
-	return Bool(true, ctx.Meta), nil
 }
 
 // LibOpLt returns true if all integers are less than the integer to their

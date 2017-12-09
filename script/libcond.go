@@ -14,7 +14,9 @@
 
 package script
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+)
 
 // LibCond contains functions for conditional statements.
 var LibCond = map[string]InterpreterFuncHandler{

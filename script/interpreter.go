@@ -204,6 +204,7 @@ func (itr *Interpreter) EvalInput(ctx context.Context, in string) error {
 
 	instrs, err := parser.Parse(in)
 	if err != nil {
+		itr.errHandler(err)
 		return err
 	}
 

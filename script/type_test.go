@@ -13,10 +13,3 @@
 // limitations under the License.
 
 package script
-
-type typeTest struct {
-	name string
-	src  string
-	typ  string
-	errs []string
-}

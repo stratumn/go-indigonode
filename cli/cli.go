@@ -372,7 +372,7 @@ func (c *cli) printValue(val script.SExp) {
 	}
 
 	// Handle strings differently so they are not surrounded by quotes.
-	if val.UnderlyingType() == script.TypeString {
+	if val.UnderlyingType() == script.SExpString {
 		str := val.MustStringVal()
 		if str == "" {
 			return

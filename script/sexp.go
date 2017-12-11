@@ -21,12 +21,32 @@ import (
 	"sync/atomic"
 )
 
-// ResolveHandler resolves symbols.
-type ResolveHandler func(sym SExp) (SExp, error)
+// SExpType is an S-Expression type.
+type SExpType uint8
 
-// ResolveName resolves symbols with their names.
-func ResolveName(sym SExp) (SExp, error) {
-	return String(sym.MustSymbolVal(), sym.Meta()), nil
+// S-Expression types.
+const (
+	SExpInvalid SExpType = iota
+	SExpString
+	SExpInt64
+	SExpBool
+	SExpSymbol
+	SExpCell
+)
+
+// Maps types to their names.
+var sexpTypeMap = map[SExpType]string{
+	SExpInvalid: "invalid",
+	SExpString:  "string",
+	SExpInt64:   "int64",
+	SExpBool:    "bool",
+	SExpSymbol:  "symbol",
+	SExpCell:    "cell",
+}
+
+// String returns a string representation of the type.
+func (t SExpType) String() string {
+	return sexpTypeMap[t]
 }
 
 var cellID = uint64(0)
@@ -45,7 +65,7 @@ type Meta struct {
 	UserData interface{}
 }
 
-// SExp is represents an S-Expression.
+// SExp is a dynamic implementation of an S-Expression.
 //
 // See:
 //
@@ -57,7 +77,7 @@ type SExp interface {
 
 	Meta() Meta
 
-	UnderlyingType() Type
+	UnderlyingType() SExpType
 	IsNil() bool
 	IsAtom() bool
 
@@ -125,7 +145,7 @@ func (s sexp) Meta() Meta {
 	return s.meta
 }
 
-func (s sexp) UnderlyingType() Type {
+func (s sexp) UnderlyingType() SExpType {
 	panic("S-Expression is invalid")
 }
 
@@ -200,8 +220,8 @@ func (a atomString) String() string {
 	return strconv.Quote(a.val)
 }
 
-func (a atomString) UnderlyingType() Type {
-	return TypeString
+func (a atomString) UnderlyingType() SExpType {
+	return SExpString
 }
 
 func (a atomString) StringVal() (string, bool) {
@@ -233,8 +253,8 @@ func (a atomInt64) String() string {
 	return fmt.Sprint(a.val)
 }
 
-func (a atomInt64) UnderlyingType() Type {
-	return TypeInt64
+func (a atomInt64) UnderlyingType() SExpType {
+	return SExpInt64
 }
 
 func (a atomInt64) Int64Val() (int64, bool) {
@@ -266,8 +286,8 @@ func (a atomBool) String() string {
 	return fmt.Sprint(a.val)
 }
 
-func (a atomBool) UnderlyingType() Type {
-	return TypeBool
+func (a atomBool) UnderlyingType() SExpType {
+	return SExpBool
 }
 
 func (a atomBool) BoolVal() (bool, bool) {
@@ -299,8 +319,8 @@ func (a atomSymbol) String() string {
 	return (a.val)
 }
 
-func (a atomSymbol) UnderlyingType() Type {
-	return TypeSymbol
+func (a atomSymbol) UnderlyingType() SExpType {
+	return SExpSymbol
 }
 
 func (a atomSymbol) SymbolVal() (string, bool) {
@@ -360,8 +380,8 @@ func (c *scell) String() string {
 	return buf.String()
 }
 
-func (c *scell) UnderlyingType() Type {
-	return TypeCell
+func (c *scell) UnderlyingType() SExpType {
+	return SExpCell
 }
 
 func (c *scell) IsNil() bool {

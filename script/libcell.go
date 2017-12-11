@@ -77,7 +77,7 @@ func LibCellCar(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	if v.UnderlyingType() != TypeCell {
+	if v.UnderlyingType() != SExpCell {
 		return nil, Error("not a cell", v.Meta(), fmt.Sprint(v))
 	}
 
@@ -96,7 +96,7 @@ func LibCellCdr(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	if v.UnderlyingType() != TypeCell {
+	if v.UnderlyingType() != SExpCell {
 		return nil, Error("not a cell", v.Meta(), fmt.Sprint(v))
 	}
 

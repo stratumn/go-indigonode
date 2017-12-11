@@ -52,7 +52,7 @@ func LibTypeIsAtom(ctx *InterpreterContext) (SExp, error) {
 		return nil, err
 	}
 
-	return Bool(v.UnderlyingType() != TypeCell || v.IsNil(), ctx.Meta), nil
+	return Bool(v.UnderlyingType() != SExpCell || v.IsNil(), ctx.Meta), nil
 }
 
 // LibTypeIsList returns whether an expression is a list. Nil is not a list.
@@ -71,25 +71,25 @@ func LibTypeIsList(ctx *InterpreterContext) (SExp, error) {
 
 // LibTypeIsSym returns whether an expression is of type symbol.
 func LibTypeIsSym(ctx *InterpreterContext) (SExp, error) {
-	return libTypeIsType(ctx, TypeSymbol)
+	return libTypeIsType(ctx, SExpSymbol)
 }
 
 // LibTypeIsString returns whether an expression is of type string.
 func LibTypeIsString(ctx *InterpreterContext) (SExp, error) {
-	return libTypeIsType(ctx, TypeString)
+	return libTypeIsType(ctx, SExpString)
 }
 
 // LibTypeIsInt64 returns whether an expression is of type int64.
 func LibTypeIsInt64(ctx *InterpreterContext) (SExp, error) {
-	return libTypeIsType(ctx, TypeInt64)
+	return libTypeIsType(ctx, SExpInt64)
 }
 
 // LibTypeIsBool returns whether an expression is of type bool.
 func LibTypeIsBool(ctx *InterpreterContext) (SExp, error) {
-	return libTypeIsType(ctx, TypeBool)
+	return libTypeIsType(ctx, SExpBool)
 }
 
-func libTypeIsType(ctx *InterpreterContext, typ Type) (SExp, error) {
+func libTypeIsType(ctx *InterpreterContext, typ SExpType) (SExp, error) {
 	if ctx.Args.IsNil() || !ctx.Args.Cdr().IsNil() {
 		return nil, errors.New("expected a single expression")
 	}

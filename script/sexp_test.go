@@ -21,14 +21,14 @@ import (
 )
 
 func TestTypeCell_String(t *testing.T) {
-	if got, want := TypeCell.String(), "cell"; got != want {
+	if got, want := SExpCell.String(), "cell"; got != want {
 		t.Errorf("String() = %s want %s", got, want)
 	}
 }
 
 type sexpTest struct {
 	sexp     SExp
-	wantType Type
+	wantType SExpType
 	wantVal  interface{}
 }
 
@@ -42,53 +42,53 @@ var (
 
 var sexpTests = [...]sexpTest{{
 	sexp:     String("test", Meta{}),
-	wantType: TypeString,
+	wantType: SExpString,
 	wantVal:  "test",
 }, {
 	sexp:     Int64(42, Meta{}),
-	wantType: TypeInt64,
+	wantType: SExpInt64,
 	wantVal:  int64(42),
 }, {
 	sexp:     Bool(true, Meta{}),
-	wantType: TypeBool,
+	wantType: SExpBool,
 	wantVal:  true,
 }, {
 	sexp:     Symbol("test", Meta{}),
-	wantType: TypeSymbol,
+	wantType: SExpSymbol,
 	wantVal:  "test",
 }, {
 	sexp:     cellTest1,
-	wantType: TypeCell,
+	wantType: SExpCell,
 	wantVal:  cellTest1,
 }, {
 	sexp:     cellTest2,
-	wantType: TypeCell,
+	wantType: SExpCell,
 	wantVal:  cellTest2,
 }, {
 	sexp:     cellTest3,
-	wantType: TypeCell,
+	wantType: SExpCell,
 	wantVal:  cellTest3,
 }, {
 	sexp:     cellTest4,
-	wantType: TypeCell,
+	wantType: SExpCell,
 	wantVal:  cellTest4,
 }, {
 	sexp:     cellTest5,
-	wantType: TypeCell,
+	wantType: SExpCell,
 	wantVal:  cellTest5,
 }}
 
-func getVal(s SExp, typ Type) (interface{}, bool) {
+func getVal(s SExp, typ SExpType) (interface{}, bool) {
 	switch typ {
-	case TypeString:
+	case SExpString:
 		return s.StringVal()
-	case TypeInt64:
+	case SExpInt64:
 		return s.Int64Val()
-	case TypeBool:
+	case SExpBool:
 		return s.BoolVal()
-	case TypeSymbol:
+	case SExpSymbol:
 		return s.SymbolVal()
-	case TypeCell:
+	case SExpCell:
 		return s, !s.IsAtom()
 	}
 
@@ -105,8 +105,8 @@ func testSExp(t *testing.T, i int, test sexpTest) {
 		t.Errorf("UnderlyingType() = %s want %s", got, want)
 	}
 
-	for typ, name := range typeMap {
-		if typ == TypeInvalid {
+	for typ, name := range sexpTypeMap {
+		if typ == SExpInvalid {
 			continue
 		}
 

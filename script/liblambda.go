@@ -42,7 +42,7 @@ func LibLambdaLambda(ctx *InterpreterContext) (SExp, error) {
 		}
 
 		for _, exp := range ToSlice(car) {
-			if exp.UnderlyingType() != TypeSymbol {
+			if exp.UnderlyingType() != SExpSymbol {
 				return nil, Error(
 					"function argument is not a symbol",
 					car.Meta(),

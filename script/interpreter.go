@@ -253,14 +253,14 @@ func (itr *Interpreter) eval(
 	isTail bool,
 ) (SExp, error) {
 	switch exp.UnderlyingType() {
-	case TypeCell:
+	case SExpCell:
 		if exp.IsNil() {
 			return Nil(), nil
 		}
 
 		return itr.evalCall(ctx, exp, isTail)
 
-	case TypeSymbol:
+	case SExpSymbol:
 		return ctx.Closure.Resolve(exp)
 
 	default:

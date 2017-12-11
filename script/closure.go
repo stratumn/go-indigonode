@@ -19,6 +19,14 @@ import (
 	"sync"
 )
 
+// ResolveHandler resolves symbols.
+type ResolveHandler func(sym SExp) (SExp, error)
+
+// ResolveName resolves symbols with their names.
+func ResolveName(sym SExp) (SExp, error) {
+	return String(sym.MustSymbolVal(), sym.Meta()), nil
+}
+
 // ClosureOpt is a closure options.
 type ClosureOpt func(*Closure)
 

@@ -122,7 +122,7 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	got := buf.String()
 
 	if val != nil {
-		if val.UnderlyingType() == script.TypeString {
+		if val.UnderlyingType() == script.SExpString {
 			// So we don't get a quoted string.
 			got += val.MustStringVal()
 		} else {

@@ -400,11 +400,11 @@ func testMgr(t *testing.T, ctrl *gomock.Controller, test mgrTest) {
 	for servID, want := range test.status {
 		got, err := mgr.Status(servID)
 		if err != nil {
-			t.Errorf("mgr.Status(%v): error: %s", servID, err)
+			t.Errorf("mgr.Status(%q): error: %s", servID, err)
 		}
 
 		if got != want {
-			t.Errorf("mgr.Status(%v) = %v want %v", servID, got, want)
+			t.Errorf("mgr.Status(%q) = %v want %v", servID, got, want)
 		}
 	}
 }

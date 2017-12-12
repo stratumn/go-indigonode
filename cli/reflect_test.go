@@ -17,6 +17,8 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"reflect"
@@ -53,6 +55,17 @@ type reflectorPrettyTest struct {
 	val   interface{}
 	want  string
 	fails bool
+}
+
+var testTime time.Time
+
+func init() {
+	v, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", "2017-12-13 17:22:06.403954641 +0100 CET")
+	if err != nil {
+		panic(err)
+	}
+
+	testTime = v.UTC()
 }
 
 func TestReflectors(t *testing.T) {
@@ -250,6 +263,54 @@ func TestReflectors(t *testing.T) {
 			{int32(1), "B", false},
 		},
 	}, {
+		"time",
+		NewTimeReflector(),
+		msg.FindFieldByName("time"),
+		msg.FindFieldByName("boolean"),
+		[]reflectorParseTest{
+			{testTime.String(), testTime.UnixNano(), false},
+			{"1", int64(0), true},
+		},
+		[]reflectorParseTest{
+			{"cmd --time \"" + testTime.String() + "\"", testTime.UnixNano(), false},
+			{"cmd", int64(0), false},
+			{"cmd --time zz", int64(0), true},
+		},
+		[]reflectorPrettyTest{
+			{testTime.UnixNano(), testTime.String(), false},
+		},
+	}, {
+		"time repeated",
+		NewTimeReflector(),
+		msg.FindFieldByName("time_repeated"),
+		msg.FindFieldByName("boolean"),
+		[]reflectorParseTest{
+			{fmt.Sprintf("%q,%q", testTime, testTime), []int64{
+				testTime.UnixNano(),
+				testTime.UnixNano(),
+			}, false},
+			{"a,b", []int64{}, true},
+		},
+		[]reflectorParseTest{
+			{
+				fmt.Sprintf(
+					"cmd --time_repeated %q --time_repeated %q",
+					testTime, testTime,
+				),
+				[]int64{testTime.UnixNano(), testTime.UnixNano()},
+				false,
+			},
+			{"cmd", []int64{}, false},
+			{"cmd --time_repeated zz", []int64{}, true},
+		},
+		[]reflectorPrettyTest{
+			{
+				[]int64{testTime.UnixNano(), testTime.UnixNano()},
+				fmt.Sprintf("%s,%s", testTime, testTime),
+				false,
+			},
+		},
+	}, {
 		"duration",
 		NewDurationReflector(),
 		msg.FindFieldByName("duration"),
@@ -272,7 +333,7 @@ func TestReflectors(t *testing.T) {
 		msg.FindFieldByName("duration_repeated"),
 		msg.FindFieldByName("boolean"),
 		[]reflectorParseTest{
-			{"1m, 1s", []int64{int64(time.Minute), int64(time.Second)}, false},
+			{"1m,1s", []int64{int64(time.Minute), int64(time.Second)}, false},
 			{"a,b", []int64{}, true},
 		},
 		[]reflectorParseTest{
@@ -425,10 +486,15 @@ func testReflectorArg(t *testing.T, test reflectorTest) {
 func testReflectorFlag(t *testing.T, test reflectorTest) {
 	if flagReflector, ok := test.r.(FlagReflector); ok {
 		for _, flagTest := range test.flag {
+			r := csv.NewReader(strings.NewReader(flagTest.text))
+			r.Comma = ' '
+			args, err := r.Read()
+			if err != nil {
+				t.Errorf("r.Read(): error: %s", err)
+			}
+
 			f := pflag.NewFlagSet(test.name, pflag.ContinueOnError)
 			flagReflector.Flag(test.supported, f)
-
-			args := strings.Split(flagTest.text, " ")
 			f.Parse(args)
 
 			v, err := flagReflector.ParseFlag(test.supported, f)
@@ -555,6 +621,8 @@ Flags:
       --noext string                       noext
       --str string                         string field
       --str_repeated stringSlice           string repeated field
+      --time string                        time field
+      --time_repeated stringSlice          time repeated field
       --u32 string                         uint32 field
       --u32_repeated stringSlice           uint32 repeated field
       --u64 string                         uint64 field
@@ -587,6 +655,8 @@ BASE58 FIELD
 BASE58 REPEATED FIELD
 MULTIADDR FIELD
 MULTIADDR REPEATED FIELD
+TIME FIELD                1970-01-01 00:00:00 +0000 UTC
+TIME REPEATED FIELD
 DURATION FIELD            0s
 DURATION REPEATED FIELD
 BYTESIZE FIELD            0
@@ -630,6 +700,8 @@ BASE58 FIELD
 BASE58 REPEATED FIELD
 MULTIADDR FIELD
 MULTIADDR REPEATED FIELD
+TIME FIELD                1970-01-01 00:00:00 +0000 UTC
+TIME REPEATED FIELD
 DURATION FIELD            0s
 DURATION REPEATED FIELD
 BYTESIZE FIELD            0

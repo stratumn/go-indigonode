@@ -17,6 +17,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -129,17 +130,17 @@ type ResponseReflector interface {
 	Pretty(*desc.FieldDescriptor, interface{}) (string, error)
 }
 
-// ReflectChecker checks if a field is supported by a reflector.
+// ReflectChecker checks if a field is supported by the reflector.
 type ReflectChecker func(*desc.FieldDescriptor) bool
 
-// ReflectEncoder encodes a value to a string.
+// ReflectEncoder encodes a protobuf field value to a string.
 type ReflectEncoder func(*desc.FieldDescriptor, interface{}) (string, error)
 
-// ReflectDecoder decodes a value from a string.
+// ReflectDecoder decodes a protobuf field value from a string.
 type ReflectDecoder func(*desc.FieldDescriptor, string) (interface{}, error)
 
-// GenericReflector is a generic reflector that covers most use cases.
-type GenericReflector struct {
+// BasicReflector is a reflector that covers most use cases.
+type BasicReflector struct {
 	// Zero is the zero value of the primitive type in a protocol buffer.
 	Zero interface{}
 
@@ -149,16 +150,22 @@ type GenericReflector struct {
 }
 
 // Supports returns whether it can handle this type of field.
-func (r GenericReflector) Supports(d *desc.FieldDescriptor) bool {
+func (r BasicReflector) Supports(d *desc.FieldDescriptor) bool {
 	return r.Checker(d)
 }
 
 // Parse parses the value for the field from a string.
-func (r GenericReflector) Parse(d *desc.FieldDescriptor, s string) (interface{}, error) {
+func (r BasicReflector) Parse(d *desc.FieldDescriptor, s string) (interface{}, error) {
 	s = strings.TrimSpace(s)
 
 	if d.IsRepeated() {
-		vals := strings.Split(s, ",")
+		reader := csv.NewReader(strings.NewReader(s))
+
+		vals, err := reader.Read()
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
 		l := len(vals)
 		t := reflect.SliceOf(reflect.TypeOf(r.Zero))
 		res := reflect.MakeSlice(t, l, l)
@@ -178,7 +185,7 @@ func (r GenericReflector) Parse(d *desc.FieldDescriptor, s string) (interface{},
 }
 
 // Flag adds a flag for the value to a flag set.
-func (r GenericReflector) Flag(d *desc.FieldDescriptor, f *pflag.FlagSet) {
+func (r BasicReflector) Flag(d *desc.FieldDescriptor, f *pflag.FlagSet) {
 	help := ReflectFieldDesc(d)
 
 	if d.IsRepeated() {
@@ -190,7 +197,7 @@ func (r GenericReflector) Flag(d *desc.FieldDescriptor, f *pflag.FlagSet) {
 }
 
 // ParseFlag parses the value of the flag.
-func (r GenericReflector) ParseFlag(d *desc.FieldDescriptor, f *pflag.FlagSet) (interface{}, error) {
+func (r BasicReflector) ParseFlag(d *desc.FieldDescriptor, f *pflag.FlagSet) (interface{}, error) {
 	if d.IsRepeated() {
 		v, err := f.GetStringSlice(d.GetName())
 		if err != nil {
@@ -223,7 +230,7 @@ func (r GenericReflector) ParseFlag(d *desc.FieldDescriptor, f *pflag.FlagSet) (
 }
 
 // Pretty returns a human friendly representation of the value.
-func (r GenericReflector) Pretty(d *desc.FieldDescriptor, v interface{}) (string, error) {
+func (r BasicReflector) Pretty(d *desc.FieldDescriptor, v interface{}) (string, error) {
 	if d.IsRepeated() {
 		v := reflect.ValueOf(v)
 		l := v.Len()
@@ -246,7 +253,7 @@ func (r GenericReflector) Pretty(d *desc.FieldDescriptor, v interface{}) (string
 
 // NewStringReflector creates a new string reflector.
 func NewStringReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: "",
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_STRING
@@ -262,7 +269,7 @@ func NewStringReflector() Reflector {
 
 // NewBoolReflector creates a new bool reflector.
 func NewBoolReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: false,
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_BOOL
@@ -285,7 +292,7 @@ func NewBoolReflector() Reflector {
 
 // NewInt32Reflector creates a new int32 reflector.
 func NewInt32Reflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: int32(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_INT32
@@ -302,7 +309,7 @@ func NewInt32Reflector() Reflector {
 
 // NewUint32Reflector creates a new uint32 reflector.
 func NewUint32Reflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: uint32(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_UINT32
@@ -319,7 +326,7 @@ func NewUint32Reflector() Reflector {
 
 // NewInt64Reflector creates a new int64 reflector.
 func NewInt64Reflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: int64(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_INT64
@@ -336,7 +343,7 @@ func NewInt64Reflector() Reflector {
 
 // NewUint64Reflector creates a new uint64 reflector.
 func NewUint64Reflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: uint64(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_UINT64
@@ -353,7 +360,7 @@ func NewUint64Reflector() Reflector {
 
 // NewBytesReflector creates a new bytes reflector.
 func NewBytesReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: []byte{},
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_BYTES
@@ -374,7 +381,7 @@ func NewBytesReflector() Reflector {
 
 // NewEnumReflector creates a new enum reflector.
 func NewEnumReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: int32(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			return d.GetType() == descriptor.FieldDescriptorProto_TYPE_ENUM
@@ -397,9 +404,40 @@ func NewEnumReflector() Reflector {
 	}
 }
 
+// NewTimeReflector creates a new duration reflector.
+func NewTimeReflector() Reflector {
+	return BasicReflector{
+		Zero: int64(0),
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_INT64 {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldTime)
+
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			return time.Unix(0, v.(int64)).UTC().String(), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			v, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", s)
+			if err != nil {
+				return int64(0), errors.WithStack(err)
+			}
+			return v.UnixNano(), nil
+		},
+	}
+}
+
 // NewDurationReflector creates a new duration reflector.
 func NewDurationReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: int64(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_INT64 {
@@ -420,14 +458,17 @@ func NewDurationReflector() Reflector {
 		},
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
 			v, err := time.ParseDuration(s)
-			return int64(v), errors.WithStack(err)
+			if err != nil {
+				return int64(0), errors.WithStack(err)
+			}
+			return int64(v), nil
 		},
 	}
 }
 
 // NewBase58Reflector creates a new base58 reflector.
 func NewBase58Reflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: []byte{},
 		Checker: func(d *desc.FieldDescriptor) bool {
 			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_BYTES {
@@ -459,7 +500,7 @@ func NewBase58Reflector() Reflector {
 
 // NewBytesizeReflector creates a new bytesize reflector.
 func NewBytesizeReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: uint64(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_UINT64 {
@@ -487,7 +528,7 @@ func NewBytesizeReflector() Reflector {
 
 // NewByterateReflector creates a new byterate reflector.
 func NewByterateReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: uint64(0),
 		Checker: func(d *desc.FieldDescriptor) bool {
 			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_UINT64 {
@@ -516,7 +557,7 @@ func NewByterateReflector() Reflector {
 
 // NewMaddrReflector creates a new multiaddr reflector.
 func NewMaddrReflector() Reflector {
-	return GenericReflector{
+	return BasicReflector{
 		Zero: []byte{},
 		Checker: func(d *desc.FieldDescriptor) bool {
 			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_BYTES {
@@ -553,6 +594,7 @@ func NewMaddrReflector() Reflector {
 
 // DefReflectors are the default reflectors used by NewServerReflector.
 var DefReflectors = []Reflector{
+	NewTimeReflector(),
 	NewDurationReflector(),
 	NewBase58Reflector(),
 	NewBytesizeReflector(),
@@ -580,6 +622,7 @@ var DefReflectors = []Reflector{
 //	- Int32, Uint32, Int64, Uint64
 //	- Bytes
 //	- Enum
+//	- Time extension (int64 nano Unix timestamp)
 //	- Duration extension (int64)
 //	- Base58 extension (bytes)
 //	- Bytesize extension (uint64)

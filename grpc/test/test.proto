@@ -118,29 +118,38 @@ message Message {
     (stratumn.alice.grpc.ext.field_multiaddr) = true
   ];
 
-  int64 duration = 54 [
+  int64 time = 54 [
+    (stratumn.alice.grpc.ext.field_desc) = "time field",
+    (stratumn.alice.grpc.ext.field_time) = true
+  ];
+  repeated int64 time_repeated = 55 [
+    (stratumn.alice.grpc.ext.field_desc) = "time repeated field",
+    (stratumn.alice.grpc.ext.field_time) = true
+  ];
+
+  int64 duration = 56 [
     (stratumn.alice.grpc.ext.field_desc) = "duration field",
     (stratumn.alice.grpc.ext.field_duration) = true
   ];
-  repeated int64 duration_repeated = 55 [
+  repeated int64 duration_repeated = 57 [
     (stratumn.alice.grpc.ext.field_desc) = "duration repeated field",
     (stratumn.alice.grpc.ext.field_duration) = true
   ];
 
-  uint64 bytesize = 56 [
+  uint64 bytesize = 58 [
     (stratumn.alice.grpc.ext.field_desc) = "bytesize field",
     (stratumn.alice.grpc.ext.field_bytesize) = true
   ];
-  repeated uint64 bytesize_repeated = 57 [
+  repeated uint64 bytesize_repeated = 59 [
     (stratumn.alice.grpc.ext.field_desc) = "bytesize repeated field",
     (stratumn.alice.grpc.ext.field_bytesize) = true
   ];
 
-  uint64 byterate = 58 [
+  uint64 byterate = 60 [
     (stratumn.alice.grpc.ext.field_desc) = "byterate field",
     (stratumn.alice.grpc.ext.field_byterate) = true
   ];
-  repeated uint64 byterate_repeated = 59 [
+  repeated uint64 byterate_repeated = 61 [
     (stratumn.alice.grpc.ext.field_desc) = "byterate repeated field",
     (stratumn.alice.grpc.ext.field_byterate) = true
   ];

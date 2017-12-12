@@ -17,6 +17,7 @@ package core
 import (
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/service/bootstrap"
+	"github.com/stratumn/alice/core/service/clock"
 	"github.com/stratumn/alice/core/service/connmgr"
 	"github.com/stratumn/alice/core/service/grpcapi"
 	"github.com/stratumn/alice/core/service/host"
@@ -35,21 +36,22 @@ import (
 
 // services contains all the services.
 var services = []manager.Service{
-	&grpcapi.Service{},
-	&pruner.Service{},
-	&signal.Service{},
-	&yamux.Service{},
-	&mssmux.Service{},
-	&swarm.Service{},
-	&connmgr.Service{},
-	&host.Service{},
-	&natmgr.Service{},
-	&metrics.Service{},
-	&relay.Service{},
-	&identify.Service{},
 	&bootstrap.Service{},
+	&clock.Service{},
+	&connmgr.Service{},
+	&grpcapi.Service{},
+	&host.Service{},
+	&identify.Service{},
 	&kaddht.Service{},
+	&metrics.Service{},
+	&mssmux.Service{},
+	&natmgr.Service{},
 	&ping.Service{},
+	&pruner.Service{},
+	&relay.Service{},
+	&signal.Service{},
+	&swarm.Service{},
+	&yamux.Service{},
 }
 
 // registerServices registers all the core services on the given manager.

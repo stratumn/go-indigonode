@@ -39,7 +39,6 @@ var (
 		"/dnsaddr/impulse.io/ipfs/QmQVdocY8ZbYxrKRSrff2Vxmm27Mhu6DgXyWXQwmuz1b6P",
 		"/dnsaddr/impulse.io/ipfs/QmQJib6mnEMgdCe3bGH1YP7JswHbQQejyNucvW9BjFqmWr",
 		"/dnsaddr/impulse.io/ipfs/Qmc1rLFp5stHrjtq4duFg6KakBcDCpB3bTjjMZVSAdnHLj",
-		"/dnsaddr/impulse.io/ipfs/QmSSn4cWZZS8oie3sC1MVPrcDfQPFa6LsbvUeyRED3UwBW",
 	}
 )
 

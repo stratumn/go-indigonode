@@ -38,7 +38,7 @@ var DefaultConfig = Config{
 		ID:       "p2p",
 		Name:     "P2P Services",
 		Desc:     "Starts P2P services.",
-		Services: []string{"identify", "relay", "kaddht", "ping"},
+		Services: []string{"identify", "relay", "kaddht", "ping", "clock"},
 	}, {
 		ID:       "network",
 		Name:     "Network Services",

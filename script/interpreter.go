@@ -544,6 +544,7 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 
 	// Finally, evaluate the function body.
 	val, err := itr.evalBody(bodyCtx, caddr, true)
+
 	if itr.tailOptimize {
 		// Handle lazy functions from tail call optimizations.
 		for {

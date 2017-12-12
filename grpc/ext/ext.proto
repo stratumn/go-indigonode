@@ -29,7 +29,8 @@ extend google.protobuf.FieldOptions {
   bool field_required = 50101;
   bool field_base58 = 50110;
   bool field_multiaddr = 50111;
-  bool field_duration = 50120;
+  bool field_time = 50120;
+  bool field_duration = 50121;
   bool field_bytesize = 50130;
   bool field_byterate = 50131;
 }

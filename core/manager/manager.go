@@ -299,7 +299,6 @@ func (m *Manager) safeState(servID string) (state *state, err error) {
 //
 //	- safely obtains the dependencies of the service in topological order
 //	- starts the dependencies and the service in order
-//
 func (m *Manager) Start(servID string) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"service": servID,
@@ -332,7 +331,6 @@ func (m *Manager) Start(servID string) error {
 //	- safely obtains its state
 //	- starts it in its state queue
 //	- waits for it to either start or exit (in which case it fails)
-//
 func (m *Manager) startDeps(ctx context.Context, servID string, deps []string) error {
 	for _, depID := range deps {
 		s, err := m.safeState(depID)

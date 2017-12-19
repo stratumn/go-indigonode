@@ -17,6 +17,7 @@ package cli_test
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -37,7 +38,7 @@ func TestRline(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	runCh := make(chan struct{})
 	go func() {
-		p.Run(ctx, buf)
+		p.Run(ctx, ioutil.NopCloser(buf))
 		close(runCh)
 	}()
 

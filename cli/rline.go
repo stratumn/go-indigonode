@@ -47,9 +47,9 @@ func NewRline(cli CLI) *Rline {
 }
 
 // Run launches the prompt until it is killed.
-func (p *Rline) Run(ctx context.Context, r io.Reader) {
+func (p *Rline) Run(ctx context.Context, rc io.ReadCloser) {
 	rl, err := readline.NewEx(&readline.Config{
-		Stdin:             r,
+		Stdin:             rc,
 		Prompt:            "alice> ",
 		HistorySearchFold: true,
 		AutoComplete:      p,

@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/metrics"
 
-	p2pmetrics "gx/ipfs/QmQbh3Rb7KM37As3vkHYnEFnzkVXNCP8EYGtHz6g2fXk14/go-libp2p-metrics"
+	p2pmetrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
 )
 
 func testGRPCServer() grpcServer {

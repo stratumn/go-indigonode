@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	connmgr "gx/ipfs/QmYr5RRXTXwEsG7sq1nP1JioZ8RmiFUktnBdoNBvTovgGj/go-libp2p-connmgr"
+	connmgr "gx/ipfs/QmainUZ19HogMBjMocvHmgWEqofbpzLGNAir4AEY1KcJey/go-libp2p-connmgr"
 )
 
 // Service is the Connection Manager service.

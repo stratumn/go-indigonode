@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 
-	ifconnmgr "gx/ipfs/QmYkCrTwivapqdB3JbwvwvxymseahVkcm46ThRMAA24zCr/go-libp2p-interface-connmgr"
+	ifconnmgr "gx/ipfs/QmSAJm4QdTJ3EGF2cvgNcQyXTEbxqWSW1x4kCVV1aJQUQr/go-libp2p-interface-connmgr"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {

@@ -25,7 +25,7 @@ import (
 	"github.com/stratumn/alice/core/service/metrics"
 	"github.com/stratumn/alice/core/service/swarm/mockswarm"
 
-	swarm "gx/ipfs/QmdQFrFnPrKRQtpeHKjZ3cVNwxmGKKS2TvhJTuN9C9yduh/go-libp2p-swarm"
+	swarm "gx/ipfs/QmUhvp4VoQ9cKDVLqAxciEKdm8ymBx2Syx4C1Tv6SmSTPa/go-libp2p-swarm"
 )
 
 func testService(ctx context.Context, t *testing.T, smuxer Transport) *Service {

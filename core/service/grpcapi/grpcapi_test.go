@@ -29,7 +29,7 @@ import (
 	pb "github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 
-	testutil "gx/ipfs/QmQGX417WoxKxDJeHqouMEmmH4G1RCENNSzkZYHrXy3Xb3/go-libp2p-netutil"
+	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
 
 func testService(ctx context.Context, t *testing.T, mgr Manager) *Service {

@@ -28,7 +28,7 @@ import (
 	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 )
 
 // test wrap session.Session with a context and handles errors.

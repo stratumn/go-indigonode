@@ -113,8 +113,21 @@ func registerPrompt(name string, run func(context.Context, CLI)) {
 	promptsMu.Unlock()
 }
 
-// Resolver resolves the name of the symbol if it doesn't begin with a dollar
-// sign.
+// Resolver resolves a symbol to its name unless it begins with a dollar sign.
+//
+// This is convenient for shell scripting because you can do:
+//
+//	echo hello world
+//
+// Instead of:
+//
+//	echo "hello world"
+//
+// On the other hand you must prefix a variable with dollar sign to refer to
+// it:
+//
+//	let str "hello world"
+//	echo $str
 func Resolver(sym script.SExp) (script.SExp, error) {
 	name := sym.MustSymbolVal()
 	meta := sym.Meta()

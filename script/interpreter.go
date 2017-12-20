@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// InterpreterOpt is a closure options.
+// InterpreterOpt is an interpreter options.
 type InterpreterOpt func(*Interpreter)
 
 // InterpreterOptClosure sets the top closure.

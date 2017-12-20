@@ -48,7 +48,7 @@ type BasicCmd struct {
 	Exec func(*BasicContext) error
 }
 
-// BasicContext is passed to ExecStrings when executing a basic command.
+// BasicContext is passed to Exec when executing a basic command.
 type BasicContext struct {
 	Ctx    context.Context
 	CLI    CLI

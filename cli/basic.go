@@ -228,7 +228,7 @@ func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script
 		// Invoke help command, pass the command name and remaining
 		// args.
 		basicCtx.Args = append([]string{cmd.Name()}, flags.Args()...)
-		err = cmd.Cmd.Exec(basicCtx)
+		err = Help.Cmd.Exec(basicCtx)
 	} else {
 		basicCtx.Args = flags.Args()
 		err = cmd.Cmd.Exec(basicCtx)

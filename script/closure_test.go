@@ -25,20 +25,20 @@ func sym(s string) SExp {
 }
 
 func TestNewClosure_env(t *testing.T) {
-	c := NewClosure(ClosureOptEnv("$", []string{"a=one", "b=two"}))
+	c := NewClosure(ClosureOptEnv([]string{"a=one", "b=two"}))
 
-	got, ok := c.Get("$a")
+	got, ok := c.Get("a")
 	if !ok {
-		t.Errorf(`c.Get("$a"): ok = %v want true`, ok)
+		t.Errorf(`c.Get("a"): ok = %v want true`, ok)
 	} else if got.String() != "\"one\"" {
-		t.Errorf(`c.Get("$a") = %v want ("one")`, got.String())
+		t.Errorf(`c.Get("a") = %v want ("one")`, got.String())
 	}
 
-	got, ok = c.Get("$b")
+	got, ok = c.Get("b")
 	if !ok {
-		t.Errorf(`c.Get("$b"): ok = %v want true`, ok)
+		t.Errorf(`c.Get("b"): ok = %v want true`, ok)
 	} else if got.String() != "\"two\"" {
-		t.Errorf(`c.Get("$b") = %v want ("two")`, got.String())
+		t.Errorf(`c.Get("b") = %v want ("two")`, got.String())
 	}
 }
 
@@ -152,8 +152,8 @@ func TestClosure_Resolve_resolver(t *testing.T) {
 	got, err := c.Resolve(sym("a"))
 	if err != nil {
 		t.Error(`c.Resolve(sym("a")): error: `, err)
-	} else if got.String() != "one" {
-		t.Errorf(`c.Resolve(sym("a")) = %v want one`, got.String())
+	} else if got.String() != `"a"` {
+		t.Errorf(`c.Resolve(sym("a")) = %v want "a"`, got.String())
 	}
 
 	got, err = c.Resolve(sym("b"))

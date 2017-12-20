@@ -80,7 +80,6 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 	closure := script.NewClosure(script.ClosureOptResolver(cli.Resolver))
 
 	itr := script.NewInterpreter(
-		script.InterpreterOptVarPrefix("$"),
 		script.InterpreterOptClosure(closure),
 		script.InterpreterOptErrorHandler(func(error) {}),
 		script.InterpreterOptValueHandler(func(v script.SExp) {

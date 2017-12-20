@@ -128,21 +128,22 @@ func registerPrompt(name string, run func(context.Context, CLI)) {
 //
 //	let str "hello world"
 //	echo $str
-func Resolver(sym script.SExp) (script.SExp, error) {
+func Resolver(c *script.Closure, sym script.SExp) (script.SExp, error) {
 	name := sym.MustSymbolVal()
-	meta := sym.Meta()
 
-	if strings.HasPrefix(name, "$") {
-		return nil, errors.Wrapf(
-			script.ErrSymNotFound,
-			"%d:%d: %s",
-			meta.Line,
-			meta.Offset,
-			name,
-		)
+	if !strings.HasPrefix(name, "$") {
+		return script.ResolveName(c, sym)
 	}
 
-	return script.ResolveName(sym)
+	v, ok := c.Get(sym.MustSymbolVal()[1:])
+	if !ok {
+		// There is no need to wrap the error because the closure will
+		// not return the error and look for the value in the closure
+		// instead.
+		return nil, script.ErrSymNotFound
+	}
+
+	return v, nil
 }
 
 // cli implements the command line interface.
@@ -192,8 +193,8 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 
 	// Create the top closure.
 	closure := script.NewClosure(
-		// Add env variables prefixed with a dollar.
-		script.ClosureOptEnv("$", os.Environ()),
+		// Add env variables to the closure.
+		script.ClosureOptEnv(os.Environ()),
 		// Resolve symbols without a dollar sign to their names.
 		script.ClosureOptResolver(Resolver),
 	)
@@ -202,8 +203,6 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		script.InterpreterOptClosure(closure),
 		// Add all builtin script functions.
 		script.InterpreterOptBuiltinLibs,
-		// Prefix variables with a dollar.
-		script.InterpreterOptVarPrefix("$"),
 		// Print errors.
 		script.InterpreterOptErrorHandler(c.printError),
 		// Print evaluated instructino values.

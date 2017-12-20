@@ -309,7 +309,9 @@ func sym(s string) script.SExp {
 }
 
 func TestResolver(t *testing.T) {
-	got, err := Resolver(sym("a"))
+	c := script.NewClosure()
+
+	got, err := Resolver(c, sym("a"))
 	if err != nil {
 		t.Error(`cliResolver(sym("a")): error: `, err)
 	} else {
@@ -318,7 +320,7 @@ func TestResolver(t *testing.T) {
 		}
 	}
 
-	if _, err := Resolver(sym("$a")); err == nil {
+	if _, err := Resolver(c, sym("$a")); err == nil {
 		t.Error(`cliResolver(sym("$a")): did not get an error`)
 	}
 }

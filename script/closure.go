@@ -17,13 +17,22 @@ package script
 import (
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 // ResolveHandler resolves symbols.
-type ResolveHandler func(sym SExp) (SExp, error)
+//
+// If it returns an error of the type ErrSymNotFound, the symbol will be
+// resolved from its value in the closure. If it returns any other error,
+// the symbol will not be resolved and an error will be produced.
+//
+// It makes it possible to handle special cases such as if you want variables
+// to have a prefix like a dollar sign.
+type ResolveHandler func(closure *Closure, sym SExp) (SExp, error)
 
 // ResolveName resolves symbols with their names.
-func ResolveName(sym SExp) (SExp, error) {
+func ResolveName(_ *Closure, sym SExp) (SExp, error) {
 	return String(sym.MustSymbolVal(), sym.Meta()), nil
 }
 
@@ -42,13 +51,11 @@ func ClosureOptParent(parent *Closure) ClosureOpt {
 }
 
 // ClosureOptEnv sets values from environment variables of the form "key=value".
-//
-// The given string will be prefixed to variable names.
-func ClosureOptEnv(prefix string, env []string) ClosureOpt {
+func ClosureOptEnv(env []string) ClosureOpt {
 	return func(c *Closure) {
 		for _, e := range env {
 			parts := strings.Split(e, "=")
-			c.values[prefix+parts[0]] = String(parts[1], Meta{})
+			c.values[parts[0]] = String(parts[1], Meta{})
 		}
 	}
 }
@@ -135,12 +142,20 @@ func (c *Closure) SetLocal(key string, val SExp) {
 
 // Resolve resolves a symbol.
 func (c *Closure) Resolve(sym SExp) (SExp, error) {
+	if c.resolve != nil {
+		v, err := c.resolve(c, sym)
+		switch {
+		case errors.Cause(err) == ErrSymNotFound:
+			// Keep going, resolve from closure instead.
+		case err != nil:
+			return nil, err
+		default:
+			return v, nil
+		}
+	}
+
 	v, ok := c.Get(sym.MustSymbolVal())
 	if !ok {
-		if c.resolve != nil {
-			return c.resolve(sym)
-		}
-
 		return nil, WrapError(ErrSymNotFound, sym.Meta(), sym.MustSymbolVal())
 	}
 

@@ -51,12 +51,11 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 	//	3. a value isn't already bound to symbol in the current
 	//	   closure
 
-	key := ctx.VarPrefix + carSymbol
-	if _, ok := ctx.Closure.Local(key); ok {
+	if _, ok := ctx.Closure.Local(carSymbol); ok {
 		return nil, Error(
 			"a value is already bound to the symbol",
 			car.Meta(),
-			key,
+			carSymbol,
 		)
 	}
 
@@ -67,7 +66,7 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 	}
 
 	// Bind the value to the symbol and return the value.
-	ctx.Closure.SetLocal(ctx.VarPrefix+carSymbol, v)
+	ctx.Closure.SetLocal(carSymbol, v)
 
 	return v, nil
 }

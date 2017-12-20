@@ -40,13 +40,6 @@ func InterpreterOptTailOptimizations(e bool) InterpreterOpt {
 	}
 }
 
-// InterpreterOptVarPrefix sets a prefix for variables.
-func InterpreterOptVarPrefix(p string) InterpreterOpt {
-	return func(itr *Interpreter) {
-		itr.varPrefix = p
-	}
-}
-
 // InterpreterOptErrorHandler sets the error handler.
 func InterpreterOptErrorHandler(h func(error)) InterpreterOpt {
 	return func(itr *Interpreter) {
@@ -103,8 +96,6 @@ type InterpreterContext struct {
 	Args    SExp
 	Meta    Meta
 
-	VarPrefix string
-
 	IsTail bool
 
 	// These can be used to evaluate arguments. The last argument should
@@ -141,7 +132,6 @@ type Interpreter struct {
 	closure *Closure
 
 	tailOptimize bool
-	varPrefix    string
 
 	funcHandlers map[string]InterpreterFuncHandler
 	errHandler   func(error)
@@ -310,7 +300,6 @@ func (itr *Interpreter) evalCall(
 		Closure:           ctx.Closure,
 		Args:              args,
 		Meta:              call.Meta(),
-		VarPrefix:         itr.varPrefix,
 		IsTail:            isTail,
 		Eval:              itr.eval,
 		EvalList:          itr.evalList,
@@ -320,7 +309,7 @@ func (itr *Interpreter) evalCall(
 		funcIDs:           ctx.funcIDs,
 	}
 
-	lambda, ok := ctx.Closure.Get(itr.varPrefix + name)
+	lambda, ok := ctx.Closure.Get(name)
 	if ok {
 		val, err := itr.execFunc(funcCtx, lambda)
 		if err != nil {
@@ -588,7 +577,7 @@ func (itr *Interpreter) setArgs(
 	}
 
 	for i, symbol := range argSyms {
-		closure.SetLocal(itr.varPrefix+symbol.MustSymbolVal(), args[i])
+		closure.SetLocal(symbol.MustSymbolVal(), args[i])
 	}
 
 	return nil

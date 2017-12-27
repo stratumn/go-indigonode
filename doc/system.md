@@ -3,7 +3,7 @@
 System testing is key to developing reliable peer-to-peer applications.
 
 The package `github.com/stratumn/alice/test/session` facilitates creating test
-networks.  It makes it easy to launch nodes in separate processes and interact
+networks. It makes it easy to launch nodes in separate processes and interact
 with them via provided API clients.
 
 To use the package, you simply need to invoke the `Run` function:
@@ -52,4 +52,3 @@ func TestInform(t *testing.T) {
 ```
 
 The package can also be used for benchmarking.
-

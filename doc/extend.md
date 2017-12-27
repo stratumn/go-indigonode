@@ -192,7 +192,7 @@ var services = []manager.Service{
 
 After registering your service, you can build `alice` using `go build`. To add
 the configuration settings of your service to an existing `alice.core.toml`
-file, run `alice init --recreate` (TODO: this doesn work very well).
+file, run `alice init --recreate` (TODO: this doesn't work very well).
 
 You should now be able to start your service from the CLI using
 `manager-start myservice`.
@@ -312,26 +312,26 @@ type Runner interface {
 
 ## Available Services
 
-| ID | NAME | DESC | EXPOSES |
-| --- | --- | --- | --- |
-| api | API Services | Starts API services. |  |
-| boot | Boot Services | Starts boot services. |  |
-| bootstrap | Bootstrap | Periodically connects to known peers. | struct{}{} |
-| connmgr | Connection Manager | Manages connections to peers. | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr |
-| grpcapi | gRPC API | Starts a gRPC API server. |  |
-| host | Host | Starts a P2P host. | github.com/stratumn/alice/core/\*p2p.Host |
-| identify | Identify | Identifies peers. | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
-| kaddht | Kademlia DHT | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT |
-| manager | Service Manager | Manages services. | github.com/stratumn/alice/core/\*manager.Manager |
-| metrics | Metrics | Collects metrics. | github.com/stratumn/alice/core/service/\*metrics.Metrics |
-| mssmux | Stream Muxer Router | Routes protocols to stream muxers. | github.com/libp2p/go-stream-muxer.Transport |
-| natmgr | NAT Manager | Manages NAT port mappings. | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager |
-| network | Network Services | Starts network services. |  |
-| p2p | P2P Services | Starts P2P services. |  |
-| ping | Ping | Handles ping requests and responses. | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService |
-| pruner | Service Pruner | Prunes unused services. |  |
-| relay | Relay | Enables the P2P circuit relay transport. |  |
-| signal | Signal Handler | Handles exit signals. |  |
-| swarm | Swarm | Connects to peers. | github.com/libp2p/\*go-libp2p-swarm.Swarm |
-| system | System Services | Starts system services. |  |
-| yamux | Yamux | Multiplexes streams using Yamux. | github.com/libp2p/go-stream-muxer.Transport |
+| ID        | NAME                | DESC                                       | EXPOSES                                                        |
+| --------- | ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| api       | API Services        | Starts API services.                       |                                                                |
+| boot      | Boot Services       | Starts boot services.                      |                                                                |
+| bootstrap | Bootstrap           | Periodically connects to known peers.      | struct{}{}                                                     |
+| connmgr   | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
+| grpcapi   | gRPC API            | Starts a gRPC API server.                  |                                                                |
+| host      | Host                | Starts a P2P host.                         | github.com/stratumn/alice/core/\*p2p.Host                      |
+| identify  | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
+| kaddht    | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
+| manager   | Service Manager     | Manages services.                          | github.com/stratumn/alice/core/\*manager.Manager               |
+| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/alice/core/service/\*metrics.Metrics       |
+| mssmux    | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
+| natmgr    | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |
+| network   | Network Services    | Starts network services.                   |                                                                |
+| p2p       | P2P Services        | Starts P2P services.                       |                                                                |
+| ping      | Ping                | Handles ping requests and responses.       | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService   |
+| pruner    | Service Pruner      | Prunes unused services.                    |                                                                |
+| relay     | Relay               | Enables the P2P circuit relay transport.   |                                                                |
+| signal    | Signal Handler      | Handles exit signals.                      |                                                                |
+| swarm     | Swarm               | Connects to peers.                         | github.com/libp2p/\*go-libp2p-swarm.Swarm                      |
+| system    | System Services     | Starts system services.                    |                                                                |
+| yamux     | Yamux               | Multiplexes streams using Yamux.           | github.com/libp2p/go-stream-muxer.Transport                    |

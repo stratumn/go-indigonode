@@ -42,9 +42,9 @@ request. The final commits should all pass tests.
 
 Use commit messages of the form `package: short description`. For instance:
 
-- `cmd: add debug flag`
-- `*: update license`
-- `cli+api: add peer listing`
+* `cmd: add debug flag`
+* `*: update license`
+* `cli+api: add peer listing`
 
 ## Logging
 
@@ -122,7 +122,7 @@ if err, _ := ExternalFunc(); err != nil {
 
 // Or if it REALLY makes sense to wrap the error message:
 if err, _ := ExternalFunc(); err != nil {
-    return errors.Wrap(err, "thid-party")
+    return errors.Wrap(err, "third-party")
 }
 
 // Don't add a stack to an internal error that already has one.
@@ -161,9 +161,8 @@ Comment your code, including unexposed types and functions.
 
 ## Protobuf
 
-Use the [Protobuf style guide](https://developers.google.com/protocol-buffers/docs/style). 
+Use the [Protobuf style guide](https://developers.google.com/protocol-buffers/docs/style).
 
 ## Configuration Files
 
 Use TOML for configuration files. Use underscored lower-case names.
-

@@ -13,9 +13,9 @@ protocol string.
 
 Common interfaces for stream muxers:
 
-- Stream: can be read from and written to
-- Conn: can open and accept multiple streams between two peers
-- Transport: can create Conn from a standard net.Conn
+* Stream: can be read from and written to
+* Conn: can open and accept multiple streams between two peers
+* Transport: can create Conn from a standard net.Conn
 
 ### go-smux-yamux (yamux)
 
@@ -43,4 +43,3 @@ by encapsulating an msmux and a swarm.
 
 A Kademlia distributed hash table and protocol. It is typically used to store
 addresses of node IDs so that nodes can be found.
-

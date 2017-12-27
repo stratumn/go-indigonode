@@ -29,7 +29,7 @@ The current focus is to build a solid architecture to develop P2P services.
 * Proof-Of-Work for public blockchains
 * Proof-Of-Authority for consortiums
 * a simple, script-less, digital asset
-* Indigo integration (compatibility with Tenderint ABCI?)
+* Indigo integration (compatibility with Tendermint ABCI?)
 
 ## Installation
 

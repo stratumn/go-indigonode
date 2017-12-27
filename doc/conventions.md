@@ -38,7 +38,7 @@ It uses IPFS to fetch the packages.
 ## Git
 
 Squash multiple commits into commits that make sense before doing a pull
-request.  The final commits should all pass tests.
+request. The final commits should all pass tests.
 
 Use commit messages of the form `package: short description`. For instance:
 
@@ -79,13 +79,30 @@ import them, especially if you only need a couple of methods from those types.
 You can just define a local type with the needed methods:
 
 ```go
+package a
+
+type S struct {}
+
+func (S) MethodA() {}
+
+func (S) MethodB() {}
+```
+
+```go
+package b
+
 type MyType interface {
-    Method()
+    MethodA()
+}
+
+func MyFunc(t MyType) {
 }
 ```
 
 In addition to simplifying the depedency graph, it also makes it possible to
-use the package with any type that satisfies the interface.
+use the package with any type that satisfies the interface. A general rule of
+thumb is that **interfaces should be defined by the consumer**, even if it
+involves a little repetition.
 
 You can view the internal dependency graph of this package using:
 

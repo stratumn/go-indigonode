@@ -36,7 +36,7 @@ type Service interface {
 
 // Needy depends on other services.
 type Needy interface {
-	// Needs returns a list of service identifiers needed before this
+	// Needs returns a set of service identifiers needed before this
 	// service can start.
 	Needs() map[string]struct{}
 }
@@ -53,7 +53,7 @@ type Pluggable interface {
 
 // Friendly can befriend other services, but doesn't depend on them.
 type Friendly interface {
-	// Likes returns a list of service identifiers this service can
+	// Likes returns a set of service identifiers this service can
 	// befriend.
 	Likes() map[string]struct{}
 

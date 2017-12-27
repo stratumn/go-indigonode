@@ -2,7 +2,7 @@
 
 ## When did Alice start?
 
-October 12th 2017, walking back home from work (@rcaetano and @stratumn).
+October 12th 2017.
 
 ## Why ports 8903-8904?
 

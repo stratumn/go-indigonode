@@ -25,6 +25,7 @@ import (
 func TestInform(t *testing.T) {
 	// Terminate the session if it lasts more than one minute.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
 
 	tester := func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		for i, cx := range conns {

@@ -246,7 +246,7 @@ func (h *Host) Peerstore() pstore.Peerstore {
 	return h.netw.Peerstore()
 }
 
-// Addrs returns the filtered addresses addresses of this host.
+// Addrs returns the filtered addresses of this host.
 func (h *Host) Addrs() []ma.Multiaddr {
 	var addrs []ma.Multiaddr
 

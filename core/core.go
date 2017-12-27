@@ -295,7 +295,7 @@ func (c *Core) findMetrics() metrics.Reporter {
 	return nil
 }
 
-// doWithManager runs a function with with a freshly created service manager.
+// doWithManager runs a function with a freshly created service manager.
 func doWithManager(config *Config, fn func(*manager.Manager)) error {
 	workCtx, cancelWork := context.WithCancel(context.Background())
 	defer cancelWork()

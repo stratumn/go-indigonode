@@ -116,8 +116,8 @@ type ServiceGroupConfig struct {
 
 // Config contains the core settings.
 type Config struct {
-	// GeneratedByVersion is the version of Alice that last save the
-	// configurations file. It is ignored now but could be useful for
+	// GeneratedByVersion is the version of Alice that last saved the
+	// configuration file. It is ignored now but could be useful for
 	// migrations.
 	GeneratedByVersion string `toml:"generated_by_version" comment:"The version of Alice that generated this file."`
 

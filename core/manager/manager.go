@@ -489,7 +489,7 @@ func (m *Manager) run(ctx context.Context, s *state, runningCh, stoppingCh chan 
 	return ctx.Err()
 }
 
-// observe observers the lifecycle of a service and updates the status
+// observe observes the lifecycle of a service and updates the status
 // accordingly.
 func (m *Manager) observe(
 	ctx context.Context,
@@ -1222,7 +1222,7 @@ func (m *Manager) doStopped(s *state) <-chan struct{} {
 }
 
 // Errored returns a channel that will be notified of the error and closed once
-// a service errored.
+// a service errors.
 //
 // If the services is already errored, the channel receives the error and
 // closes immediately.

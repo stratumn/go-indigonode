@@ -17,7 +17,7 @@
 /*
 Package cli defines types for Alice's command line interface.
 
-It comes with only of handful of bultin commands. The bulk of commands are
+It comes with only of handful of builtin commands. The bulk of commands are
 reflected from the API.
 
 The main type is the CLI struct, which wraps everything needed to run the

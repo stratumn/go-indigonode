@@ -48,6 +48,11 @@ func TestBang(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		`! grep "-v outside" "hello\noutside\nworld!"`,
+		"hello\nworld!\n",
+		nil,
+		nil,
+	}, {
 		"! (a)",
 		"",
 		ErrAny,

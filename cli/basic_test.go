@@ -58,6 +58,18 @@ func TestBasicCmdWrapper_strings(t *testing.T) {
 	}
 }
 
+func TestBasicCmdWrapper_strings_noFlags(t *testing.T) {
+	cmd := BasicCmdWrapper{BasicCmd{
+		Name:    "cmd",
+		Short:   "A test command",
+		NoFlags: true,
+	}}
+
+	if got, want := cmd.Long(), "A test command\n\nUsage:\n  cmd"; got != want {
+		t.Errorf("cmd.Long() = \n%v want\n%v", got, want)
+	}
+}
+
 func TestBasicCmdWrapper_Suggest(t *testing.T) {
 	cmd := BasicCmdWrapper{BasicCmd{
 		Name:  "cmd",

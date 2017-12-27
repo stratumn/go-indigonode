@@ -43,6 +43,9 @@ type BasicCmd struct {
 	// Flags can be defined to return a set of flags for the command.
 	Flags func() *pflag.FlagSet
 
+	// NoFlags disables flag parsing as well as the help flag.
+	NoFlags bool
+
 	// Exec is a function that executes the command against string
 	// arguments and outputs to a writer.
 	Exec func(*BasicContext) error
@@ -95,8 +98,11 @@ func (cmd BasicCmdWrapper) LongUse() string {
 
 	long := "Usage:\n"
 	long += "  " + cmd.Use()
-	long += "\n\nFlags:\n"
-	long += strings.TrimSuffix(flags.FlagUsages(), "\n")
+
+	if !cmd.Cmd.NoFlags {
+		long += "\n\nFlags:\n"
+		long += strings.TrimSuffix(flags.FlagUsages(), "\n")
+	}
 
 	return long
 }
@@ -125,7 +131,7 @@ func (cmd BasicCmdWrapper) Suggest(c Content) []Suggest {
 	prefix := word[:len(word)-len(trimmed)]
 
 	// Look for flags if the command name is an exact match.
-	if name == cmd.Name() {
+	if !cmd.Cmd.NoFlags && name == cmd.Name() {
 		// If the the current word is empty or starts with a dash,
 		// make suggestions for flags.
 		if word == "" || word[0] == '-' {
@@ -201,18 +207,26 @@ func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script
 		return nil, err
 	}
 
-	flags := cmd.createFlags()
+	var (
+		flags *pflag.FlagSet
+		help  bool
+	)
 
-	// Discard flags output, we do our own error handling.
-	flags.SetOutput(ioutil.Discard)
+	if !cmd.Cmd.NoFlags {
+		flags = cmd.createFlags()
 
-	if err := flags.Parse(argv); err != nil {
-		return nil, NewUseError(err.Error())
-	}
+		// Discard flags output, we do our own error handling.
+		flags.SetOutput(ioutil.Discard)
 
-	help, err := flags.GetBool("help")
-	if err != nil {
-		return nil, errors.WithStack(err)
+		if err := flags.Parse(argv); err != nil {
+			return nil, NewUseError(err.Error())
+		}
+
+		help, err = flags.GetBool("help")
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
 	}
 
 	buf := bytes.NewBuffer(nil)
@@ -230,7 +244,12 @@ func (cmd BasicCmdWrapper) Exec(ctx *script.InterpreterContext, cli CLI) (script
 		basicCtx.Args = append([]string{cmd.Name()}, flags.Args()...)
 		err = Help.Cmd.Exec(basicCtx)
 	} else {
-		basicCtx.Args = flags.Args()
+		if flags == nil {
+			basicCtx.Args = argv
+		} else {
+			basicCtx.Args = flags.Args()
+		}
+
 		err = cmd.Cmd.Exec(basicCtx)
 	}
 
@@ -253,7 +272,9 @@ func (cmd BasicCmdWrapper) createFlags() (flags *pflag.FlagSet) {
 	}
 
 	// Add help flag.
-	flags.BoolP("help", "h", false, "Invoke help on command")
+	if !cmd.Cmd.NoFlags {
+		flags.BoolP("help", "h", false, "Invoke help on command")
+	}
 
 	return
 }

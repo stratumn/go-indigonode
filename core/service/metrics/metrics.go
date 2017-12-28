@@ -21,6 +21,7 @@ package metrics
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -157,8 +158,13 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	promDone := make(chan error, 1)
 	if s.config.PrometheusEndpoint != "" {
+		lis, err := netutil.Listen(s.config.PrometheusEndpoint)
+		if err != nil {
+			return err
+		}
+
 		go func() {
-			promDone <- s.startProm(promCtx)
+			promDone <- s.startProm(promCtx, lis)
 		}()
 	}
 
@@ -196,12 +202,7 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 }
 
 // startProm starts exposing Prometheus metrics on an HTTP endpoint.
-func (s *Service) startProm(ctx context.Context) error {
-	lis, err := netutil.Listen(s.config.PrometheusEndpoint)
-	if err != nil {
-		return err
-	}
-
+func (s *Service) startProm(ctx context.Context, lis net.Listener) error {
 	srv := http.Server{Handler: promHandler{ctx}}
 
 	done := make(chan error, 1)

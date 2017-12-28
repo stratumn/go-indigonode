@@ -231,7 +231,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	swmCtx, swmCancel := context.WithCancel(ctx)
 	defer swmCancel()
 
-	// TODO: protector and bandwidth reporter.
+	// TODO: protector?
 	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, nil, s.smuxer, s.metrics)
 	if err != nil {
 		return errors.WithStack(err)

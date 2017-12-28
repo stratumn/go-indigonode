@@ -36,6 +36,8 @@ import (
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 )
 
 var (
@@ -197,6 +199,10 @@ func (c *Clock) StreamHandler(ctx context.Context, stream inet.Stream) {
 		"stream": stream,
 	})
 
+	// Protobuf is certainly overkill here, but we use it anyway since this
+	// service acts as an example.
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+
 	c.wg.Add(1)
 	defer c.wg.Done()
 
@@ -215,15 +221,9 @@ func (c *Clock) StreamHandler(ctx context.Context, stream inet.Stream) {
 
 			t := time.Now().UTC()
 
-			b, err := t.MarshalBinary()
+			err = enc.Encode(&pb.Time{Timestamp: t.UnixNano()})
 			if err != nil {
-				ch <- err
-				return
-			}
-
-			_, err = stream.Write(b)
-			if err != nil {
-				ch <- err
+				ch <- errors.WithStack(err)
 				return
 			}
 
@@ -273,25 +273,19 @@ func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error)
 			return
 		}
 
-		// Marshalled time is 15 byte long.
-		// https://golang.org/src/time/time.go?s=34661:34710#L1164
-		buf := make([]byte, 15)
-		_, err = io.ReadFull(stream, buf)
+		dec := protobuf.Multicodec(nil).Decoder(stream)
+
+		t := pb.Time{}
+
+		err = dec.Decode(&t)
 		if err != nil {
 			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
+		time := time.Unix(0, t.Timestamp)
 
-		t := &time.Time{}
-
-		if err := t.UnmarshalBinary(buf); err != nil {
-			event.SetError(err)
-			errCh <- errors.WithStack(err)
-			return
-		}
-
-		timeCh <- t
+		timeCh <- &time
 	}()
 
 	select {

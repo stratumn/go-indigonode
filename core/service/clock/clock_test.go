@@ -22,7 +22,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/clock/mockclock"
+
+	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
+	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -188,5 +192,36 @@ func TestService_Plug(t *testing.T) {
 		case err != tt.err:
 			t.Errorf("%s: err = %v want %v", tt.name, err, tt.err)
 		}
+	}
+}
+
+func TestClock_RemoteTime(t *testing.T) {
+	ctx := context.Background()
+	h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	defer h1.Close()
+	defer h2.Close()
+
+	// connect h1 to h2
+	h2pi := h2.Peerstore().PeerInfo(h2.ID())
+	if err := h1.Connect(ctx, h2pi); err != nil {
+		t.Fatal(err)
+	}
+
+	clockH2 := NewClock(h2, 10*time.Second)
+	h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
+		clockH2.StreamHandler(ctx, stream)
+	})
+
+	clockH1 := &Clock{host: h1}
+	remoteTime, err := clockH1.RemoteTime(ctx, h2.ID())
+	if err != nil {
+		t.Fatalf("clock.RemoteTime: error: %s", err)
+	}
+	if remoteTime == nil {
+		t.Fatalf("clock.RemoteTime: expected time not to be nil")
+	}
+	if time.Now().UTC().Sub(*remoteTime) > time.Second {
+		t.Errorf("clock.RemoteTime: unexpected time: %v", remoteTime)
 	}
 }

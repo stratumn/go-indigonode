@@ -90,7 +90,7 @@ cli-version --git-commit-length 7
 echo
 
 ; Only visible in debug mode.
-echo --log debug Debuf output is enabled.
+echo --log debug Debug output is enabled.
 
 ; Connect to the API.
 api-connect

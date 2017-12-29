@@ -70,7 +70,7 @@ func testServer(ctx context.Context, t *testing.T, address string) error {
 }
 
 func TestCli_New_invalidConfig(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	delete(config, "cli")
 
 	_, err := New(config)
@@ -90,7 +90,7 @@ func TestCli_Connect(t *testing.T) {
 		serverCh <- testServer(ctx, t, addr)
 	}()
 
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -128,7 +128,7 @@ func TestCli_Start(t *testing.T) {
 		serverCh <- testServer(ctx, t, addr)
 	}()
 
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	conf := config["cli"].(Config)
 	conf.APIAddress = addr
 	config["cli"] = conf
@@ -171,7 +171,7 @@ func TestCli_Start(t *testing.T) {
 }
 
 func TestCli_Exec(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -195,7 +195,7 @@ func TestCli_Exec(t *testing.T) {
 }
 
 func TestCli_Exec_error(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -212,7 +212,7 @@ func TestCli_Exec_error(t *testing.T) {
 }
 
 func TestCli_Run(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -233,7 +233,7 @@ func TestCli_Run(t *testing.T) {
 }
 
 func TestCli_Run_error(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -254,7 +254,7 @@ func TestCli_Run_error(t *testing.T) {
 }
 
 func TestCli_Suggest(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)
@@ -279,7 +279,7 @@ func TestCli_Suggest(t *testing.T) {
 }
 
 func TestCli_DidJustExecute(t *testing.T) {
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	c, err := New(config)
 	if err != nil {
 		t.Errorf("New(config): error: %s", err)

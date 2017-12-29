@@ -30,6 +30,9 @@ var (
 	cliCfgFilename  = "alice.cli.toml"
 )
 
+// services are the services that will be used by core.
+var services = core.BuiltinServices()
+
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
 	Use:   "alice",
@@ -58,8 +61,8 @@ func initConfig() {
 }
 
 // requireCoreConfigSet loads the core's configuration file and exits on failure.
-func requireCoreConfigSet() core.ConfigSet {
-	set := core.NewConfigSet()
+func requireCoreConfigSet() core.ConfigurableSet {
+	set := core.NewConfigurableSet(services)
 
 	if err := core.LoadConfig(set, coreCfgFilename); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename, err)
@@ -75,8 +78,8 @@ func requireCoreConfigSet() core.ConfigSet {
 }
 
 // requireCLIConfig loads the CLI's configuration file and exits on failure.
-func requireCLIConfigSet() cli.ConfigSet {
-	set := cli.NewConfigSet()
+func requireCLIConfigSet() cli.ConfigurableSet {
+	set := cli.NewConfigurableSet()
 
 	if err := cli.LoadConfig(set, cliCfgFilename); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not the load command line interface configuration file %q: %s.\n", cliCfgFilename, err)

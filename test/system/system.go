@@ -18,7 +18,13 @@
 // separate processes.
 package system
 
-import "time"
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/stratumn/alice/test/session"
+)
 
 const (
 	// NumNodes is the number of nodes launched before each test.
@@ -30,3 +36,14 @@ const (
 	// SessionDir is the directory where session data will be saved.
 	SessionDir = "../tmp/system"
 )
+
+// Test wrap session.Session with a context and handles errors.
+func Test(t *testing.T, fn session.Tester) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
+	defer cancel()
+
+	err := session.Run(ctx, SessionDir, NumNodes, session.SystemCfg(), fn)
+	if err != nil {
+		t.Errorf("Session(): error: %+v", err)
+	}
+}

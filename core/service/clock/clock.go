@@ -65,8 +65,7 @@ type Service struct {
 	clock   *Clock
 }
 
-// Config returns the current service configuration or creates one with
-// good default values.
+// Config contains configuration options for the Clock service.
 type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
@@ -91,7 +90,8 @@ func (s *Service) Desc() string {
 	return "Returns the time of a node."
 }
 
-// Config contains configuration options for the Clock service.
+// Config returns the current service configuration or creates one with
+// good default values.
 func (s *Service) Config() interface{} {
 	if s.config != nil {
 		return *s.config

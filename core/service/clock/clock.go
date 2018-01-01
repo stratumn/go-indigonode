@@ -253,8 +253,8 @@ func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error)
 	})
 	defer event.Done()
 
-	timeCh := make(chan *time.Time)
-	errCh := make(chan error)
+	timeCh := make(chan *time.Time, 1)
+	errCh := make(chan error, 1)
 
 	go func() {
 		stream, err := c.host.NewStream(ctx, pid, ProtocolID)

@@ -123,7 +123,7 @@ func registerPrompt(name string, run func(context.Context, CLI)) {
 //
 //	echo "hello world"
 //
-// On the other hand you must prefix a variable with dollar sign to refer to
+// On the other hand you must prefix a symbol with a dollar sign to refer to
 // it:
 //
 //	let str "hello world"
@@ -205,7 +205,7 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 		script.InterpreterOptBuiltinLibs,
 		// Print errors.
 		script.InterpreterOptErrorHandler(c.printError),
-		// Print evaluated instructino values.
+		// Print evaluated instruction values.
 		script.InterpreterOptValueHandler(c.printValue),
 	)
 
@@ -331,9 +331,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 	}
 
 	c.allCmds = append(c.staticCmds, c.apiCmds...)
-	sort.Slice(c.allCmds, func(i, j int) bool {
-		return c.allCmds[i].Name() < c.allCmds[j].Name()
-	})
+	sortCmds(c.allCmds)
 
 	c.addCmdsToInterpreter(c.apiCmds)
 

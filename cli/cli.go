@@ -466,7 +466,7 @@ func (c *cli) addCmdsToInterpreter(cmds []Cmd) {
 	}
 }
 
-// removeCmdsFromInterpreter removes a command from the interpreter.
+// removeCmdsFromInterpreter removes commands from the interpreter.
 func (c *cli) removeCmdsFromInterpreter(cmds []Cmd) {
 	for _, cmd := range cmds {
 		c.itr.DeleteFuncHandler(cmd.Name())

@@ -63,7 +63,6 @@ SIGNATURES=$(foreach exec, $(EXECS), $(exec).sig)
 NIX_ZIP_FILES=$(foreach os-arch, $(NIX_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD).zip)
 WIN_ZIP_FILES=$(foreach os-arch, $(WIN_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD).zip)
 ZIP_FILES=$(NIX_ZIP_FILES) $(WIN_ZIP_FILES)
-LICENSED_FILES=$(shell find . -name '*.go' | grep -v vendor)
 
 TEST_LIST=$(foreach package, $(TEST_PACKAGES), test_$(package))
 LINT_LIST=$(foreach package, $(LINT_PACKAGES), lint_$(package))
@@ -72,7 +71,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -256,8 +255,8 @@ docker_push:
 	$(DOCKER_PUSH) $(DOCKER_USER)/$(CMD):latest
 
 # == license_headers ==========================================================
-license_headers: $(LICENSED_FILES) LICENSE_HEADER
-	perl -i -0pe 's/\/\/ Copyright .* Stratumn.*\n(\/\/.*\n)*/`cat LICENSE_HEADER`/ge' $@
+license_headers:
+	./update-license-headers.sh
 
 # == clean ====================================================================
 clean: $(CLEAN_LIST)

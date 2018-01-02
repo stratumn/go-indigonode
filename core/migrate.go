@@ -22,4 +22,11 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set(ConfigVersionKey, 1)
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("core.boot_screen_host", "host"); err != nil {
+			return err
+		}
+
+		return tree.Set("core.boot_screen_metrics", "metrics")
+	},
 }

@@ -54,7 +54,9 @@ var DefaultConfig = Config{
 		Desc:     "Starts API services.",
 		Services: []string{"grpcapi"},
 	}},
-	EnableBootScreen: true,
+	EnableBootScreen:  true,
+	BootScreenHost:    "host",
+	BootScreenMetrics: "metrics",
 }
 
 // ConfigurableSet represents a set of configurables.
@@ -123,6 +125,14 @@ type Config struct {
 	// EnableBootScreen is whether to show the boot screen when starting
 	// the node.
 	EnableBootScreen bool `toml:"enable_boot_screen" comment:"Whether to show the boot screen when starting the node."`
+
+	// BootScreenHost is the name of the host service used by the
+	// boot screen to display metrics and host addresses.
+	BootScreenHost string `toml:"boot_screen_host" comment:"Name of the host service used by the boot screen to display metrics and host addresses."`
+
+	// BootScreenMetrics is the name of the metrics service used by the
+	// boot screen to display metrics.
+	BootScreenMetrics string `toml:"boot_screen_metrics" comment:"Name of the metrics service used by the boot screen to display metrics."`
 }
 
 // ConfigHandler is a configurable for the core settings.

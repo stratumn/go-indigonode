@@ -50,9 +50,9 @@ func (h *testVersionHandler) SetConfig(config interface{}) error {
 	return nil
 }
 
-func createOld(t *testing.T, filename string, version int) {
+func createOld(t *testing.T, filename string, version interface{}) {
 	old := map[string]interface{}{
-		"version": map[string]int{"version": version},
+		"version": map[string]interface{}{"version": version},
 		"zip":     map[string]string{"name": "zip extractor"},
 	}
 
@@ -108,7 +108,7 @@ func TestMigrate(t *testing.T) {
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
 	if err != nil {
-		t.Fatalf(`LoadWithMigrations(set, filename, "version", migrations): error: %s`, err)
+		t.Fatalf(`LoadWithMigrations(set, filename, "version.version", migrations): error: %s`, err)
 	}
 
 	if got, want := version.config.Version, 3; got != want {
@@ -143,6 +143,23 @@ func TestMigrate_migrationError(t *testing.T) {
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
 	if err == nil {
-		t.Error(`LoadWithMigrations(set, filename, "version", migrations): expected error`)
+		t.Error(`LoadWithMigrations(set, filename, "version.version", migrations): expected error`)
+	}
+}
+
+func TestMigrate_invalidVersion(t *testing.T) {
+	dir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
+	}
+
+	filename := filepath.Join(dir, "migrate.toml")
+	createOld(t, filename, "not an int")
+
+	set := Set{"version": &testVersionHandler{}}
+
+	err = Migrate(set, filename, "version.version", nil, 0600)
+	if err == nil {
+		t.Error(`LoadWithMigrations(set, filename, "version.version", migrations): expected error`)
 	}
 }

@@ -26,6 +26,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// ErrInvalidVersion is returned when the config version is invalid.
+	ErrInvalidVersion = errors.New("config version is invalid")
+)
+
 // Tree is used by migrations to modify the configuration tree.
 type Tree struct {
 	tree *toml.Tree
@@ -97,9 +102,11 @@ func Migrate(
 
 	t := &Tree{tree}
 
-	version, ok := t.GetDefault(versionKey, 0).(int64)
+	version, ok := t.GetDefault(versionKey, int64(0)).(int64)
 	if !ok {
-		version = 0
+		err := errors.WithStack(ErrInvalidVersion)
+		event.SetError(err)
+		return err
 	}
 
 	migrations = migrations[version:]

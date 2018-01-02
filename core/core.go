@@ -270,7 +270,7 @@ func (c *Core) stats(ctx context.Context) {
 
 // findHost finds the host service.
 func (c *Core) findHost() *p2p.Host {
-	exposed, err := c.mgr.Expose("host")
+	exposed, err := c.mgr.Expose(c.config.BootScreenHost)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error:%s.\n", err)
 	}
@@ -284,7 +284,7 @@ func (c *Core) findHost() *p2p.Host {
 
 // findMetrics finds the metrics service.
 func (c *Core) findMetrics() metrics.Reporter {
-	exposed, err := c.mgr.Expose("metrics")
+	exposed, err := c.mgr.Expose(c.config.BootScreenMetrics)
 	if err != nil {
 		return nil
 	}

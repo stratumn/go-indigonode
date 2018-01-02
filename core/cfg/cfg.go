@@ -43,7 +43,7 @@ var log = logging.Logger("cfg")
 
 // Configurable represents something that can be configured.
 type Configurable interface {
-	// ID returns the unique identifier of the service.
+	// ID returns the unique identifier of the configurable.
 	ID() string
 
 	// Config should return the current configuration or a default
@@ -72,33 +72,13 @@ func Load(set Set, filename string) error {
 
 	tree, err := toml.LoadFile(filename)
 	if err != nil {
-		err := errors.WithStack(err)
 		event.SetError(err)
-		return err
+		return errors.WithStack(err)
 	}
 
-	s := structuralize(ctx, set.Configs())
-
-	if err := tree.Unmarshal(s); err != nil {
-		err := errors.WithStack(err)
+	if err := setValuesFromTree(ctx, set, tree); err != nil {
 		event.SetError(err)
 		return err
-	}
-
-	// Use reflect to get the values from the struct.
-	v := reflect.Indirect(reflect.ValueOf(s))
-
-	for id, configurable := range set {
-		f := v.FieldByName(ucFirst(id)).Interface()
-
-		if f == nil {
-			continue
-		}
-
-		if err := configurable.SetConfig(f); err != nil {
-			event.SetError(err)
-			return err
-		}
 	}
 
 	return nil
@@ -148,9 +128,8 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 	if overwrite {
 		if _, err := os.Stat(filename); !os.IsNotExist(err) {
 			if err := backup(ctx, filename); err != nil {
-				err := errors.WithStack(err)
 				event.SetError(err)
-				return err
+				return errors.WithStack(err)
 			}
 		}
 	}
@@ -163,9 +142,8 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 
 	f, err := os.OpenFile(filename, mode, perms)
 	if err != nil {
-		err := errors.WithStack(err)
 		event.SetError(err)
-		return err
+		return errors.WithStack(err)
 	}
 
 	defer func() {
@@ -189,12 +167,37 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 	s := reflect.Indirect(reflect.ValueOf(structuralize(ctx, cs))).Interface()
 
 	if err := enc.Encode(s); err != nil {
-		err := errors.WithStack(err)
 		event.SetError(err)
-		return err
+		return errors.WithStack(err)
 	}
 
 	return errors.WithStack(f.Sync())
+}
+
+// setValuesFromTree sets the values of a set from a TOML tree.
+func setValuesFromTree(ctx context.Context, set Set, tree *toml.Tree) error {
+	s := structuralize(ctx, set.Configs())
+
+	if err := tree.Unmarshal(s); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Use reflect to get the values from the struct.
+	v := reflect.Indirect(reflect.ValueOf(s))
+
+	for id, configurable := range set {
+		f := v.FieldByName(ucFirst(id)).Interface()
+
+		if f == nil {
+			continue
+		}
+
+		if err := configurable.SetConfig(f); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Complicated, but go-toml wants a struct.
@@ -265,9 +268,8 @@ func backup(ctx context.Context, filename string) error {
 	backup := filepath.Join(dir, file)
 
 	if err := os.Rename(filename, backup); err != nil {
-		err := errors.WithStack(err)
 		event.SetError(err)
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil

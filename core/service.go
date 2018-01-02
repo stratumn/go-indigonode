@@ -34,32 +34,35 @@ import (
 	"github.com/stratumn/alice/core/service/yamux"
 )
 
-// services contains all the services.
-var services = []manager.Service{
-	&bootstrap.Service{},
-	&clock.Service{},
-	&connmgr.Service{},
-	&grpcapi.Service{},
-	&host.Service{},
-	&identify.Service{},
-	&kaddht.Service{},
-	&metrics.Service{},
-	&mssmux.Service{},
-	&natmgr.Service{},
-	&ping.Service{},
-	&pruner.Service{},
-	&relay.Service{},
-	&signal.Service{},
-	&swarm.Service{},
-	&yamux.Service{},
+// BuiltinServices returns all the builtin services.
+func BuiltinServices() []manager.Service {
+	return []manager.Service{
+		&bootstrap.Service{},
+		&clock.Service{},
+		&connmgr.Service{},
+		&grpcapi.Service{},
+		&host.Service{},
+		&identify.Service{},
+		&kaddht.Service{},
+		&metrics.Service{},
+		&mssmux.Service{},
+		&natmgr.Service{},
+		&ping.Service{},
+		&pruner.Service{},
+		&relay.Service{},
+		&signal.Service{},
+		&swarm.Service{},
+		&yamux.Service{},
+	}
 }
 
-// registerServices registers all the core services on the given manager.
+// registerServices registers all the given services as well as groups defined
+// in the configuration on the given manager.
 //
 // It assumes that the manager's Work function has been called.
 //
 // It is safe to call multiple times.
-func registerServices(mgr *manager.Manager, config *Config) {
+func registerServices(mgr *manager.Manager, services []manager.Service, config *Config) {
 	// Register the manager service.
 	mgr.RegisterService()
 

@@ -37,11 +37,11 @@ var depsCmd = &cobra.Command{
 		config := requireCoreConfigSet().Configs()
 
 		if depsGraph {
-			fail(core.Fgraph(os.Stdout, config, depsService))
+			fail(core.Fgraph(os.Stdout, services, config, depsService))
 			return
 		}
 
-		deps, err := core.Deps(config, depsService)
+		deps, err := core.Deps(services, config, depsService)
 		fail(err)
 
 		fmt.Println(strings.Join(deps, "\n"))

@@ -17,13 +17,17 @@ package core
 import (
 	"github.com/stratumn/alice/core/cfg"
 	logging "github.com/stratumn/alice/core/log"
-	"github.com/stratumn/alice/release"
+	"github.com/stratumn/alice/core/manager"
 )
+
+// ConfigVersionKey is the key of the configuration version number in the TOML
+// file.
+const ConfigVersionKey = "core.configuration_version"
 
 // DefaultConfig is the default core configuration.
 var DefaultConfig = Config{
-	GeneratedByVersion: release.Version,
-	BootService:        "boot",
+	ConfigVersion: len(migrations),
+	BootService:   "boot",
 	ServiceGroups: []ServiceGroupConfig{{
 		ID:       "boot",
 		Name:     "Boot Services",
@@ -53,15 +57,16 @@ var DefaultConfig = Config{
 	EnableBootScreen: true,
 }
 
-// ConfigSet represents a set of configurables.
+// ConfigurableSet represents a set of configurables.
 //
 // This avoids packages depending on the core package to have to depend on the
 // cfg package.
-type ConfigSet = cfg.Set
+type ConfigurableSet = cfg.Set
 
-// NewConfigSet creates a new set of configurables.
-func NewConfigSet() ConfigSet {
-	set := cfg.Set{
+// NewConfigurableSet creates a new set of configurables bound to the given
+// services.
+func NewConfigurableSet(services []manager.Service) ConfigurableSet {
+	set := ConfigurableSet{
 		"core": &ConfigHandler{},
 		"log":  &logging.ConfigHandler{},
 	}
@@ -76,27 +81,16 @@ func NewConfigSet() ConfigSet {
 	return set
 }
 
-// InitConfig creates or recreates the configuration file.
+// InitConfig creates a configuration file.
 //
-// It fails if the file already exists, unless recreate is true, in which
-// case it will load the configuration file then save it. This is useful to
-// add new or missing settings to a configuration file.
-func InitConfig(set ConfigSet, filename string, recreate bool) error {
-	if recreate {
-		if err := LoadConfig(set, filename); err != nil {
-			return err
-		}
-	}
-
-	return cfg.Save(set, filename, 0600, recreate)
+// It fails if the file already exists.
+func InitConfig(set ConfigurableSet, filename string) error {
+	return cfg.Save(set, filename, 0600, false)
 }
 
-// LoadConfig loads the configuration file.
-//
-// This avoids packages depending on the core package to have to depend on the
-// cfg package.
-func LoadConfig(set ConfigSet, filename string) error {
-	return cfg.Load(set, filename)
+// LoadConfig loads the configuration file and applies migrations.
+func LoadConfig(set ConfigurableSet, filename string) error {
+	return cfg.Migrate(set, filename, ConfigVersionKey, migrations, 0600)
 }
 
 // ServiceGroupConfig contains settings for a service group.
@@ -116,10 +110,8 @@ type ServiceGroupConfig struct {
 
 // Config contains the core settings.
 type Config struct {
-	// GeneratedByVersion is the version of Alice that last saved the
-	// configuration file. It is ignored now but could be useful for
-	// migrations.
-	GeneratedByVersion string `toml:"generated_by_version" comment:"The version of Alice that generated this file."`
+	// ConfigVersion is the version of the configuration file.
+	ConfigVersion int `toml:"configuration_version" comment:"The version of the configuration file."`
 
 	// BootService is the service to launch when starting the node.
 	BootService string `toml:"boot_service" comment:"Service to launch when starting the node."`
@@ -157,7 +149,5 @@ func (c *ConfigHandler) Config() interface{} {
 func (c *ConfigHandler) SetConfig(config interface{}) error {
 	conf := config.(Config)
 	c.config = &conf
-	c.config.GeneratedByVersion = release.Version
-
 	return nil
 }

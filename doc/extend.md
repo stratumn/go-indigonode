@@ -170,29 +170,45 @@ import (
 	"github.com/stratumn/alice/core/service/yamux"
 )
 
-// services contains all the services.
-var services = []manager.Service{
-	&grpcapi.Service{},
-	&pruner.Service{},
-	&signal.Service{},
-	&yamux.Service{},
-	&mssmux.Service{},
-	&swarm.Service{},
-	&connmgr.Service{},
-	&host.Service{},
-	&natmgr.Service{},
-	&metrics.Service{},
-	&relay.Service{},
-	&identify.Service{},
-	&bootstrap.Service{},
-	&kaddht.Service{},
-	&ping.Service{},
+// BuiltinServices returns all the builtin services.
+func BuiltinServices() []manager.Service {
+	return []manager.Service{
+		&bootstrap.Service{},
+		&clock.Service{},
+		&connmgr.Service{},
+		&grpcapi.Service{},
+		&host.Service{},
+		&identify.Service{},
+		&kaddht.Service{},
+		&metrics.Service{},
+		&mssmux.Service{},
+		&natmgr.Service{},
+		&ping.Service{},
+		&pruner.Service{},
+		&relay.Service{},
+		&signal.Service{},
+		&swarm.Service{},
+		&yamux.Service{},
+	}
 }
 ```
 
-After registering your service, you can build `alice` using `go build`. To add
-the configuration settings of your service to an existing `alice.core.toml`
-file, run `alice init --recreate` (TODO: this doesn't work very well).
+If your service has configuration options, you should add a migration to add
+them to the config file. The migrations for the core Alice modules are in 
+`core/migrate.go`. You can append one for your service:
+
+```go
+var migrations = []cfg.MigrateHandler{
+
+	// Previous migrations...
+
+	func(tree *cfg.Tree) error {
+		return tree.Set("myservice.option", "value")
+	},
+}
+```
+
+After registering your service, you can build `alice` using `go build`.
 
 You should now be able to start your service from the CLI using
 `manager-start myservice`.

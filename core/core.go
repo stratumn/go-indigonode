@@ -63,18 +63,19 @@ const art = "\033[0;34m      .o.       oooo   o8o\n" +
 // Core manages a node. It wraps a service manager, and can display a
 // boot screen showing services being started and node metrics.
 type Core struct {
-	mgr    *manager.Manager
-	config Config
+	mgr      *manager.Manager
+	services []manager.Service
+	config   Config
 }
 
 // New creates a new core.
-func New(configSet cfg.ConfigSet) (*Core, error) {
+func New(services []manager.Service, configSet cfg.ConfigSet) (*Core, error) {
 	config, ok := configSet["core"].(Config)
 	if !ok {
 		return nil, errors.WithStack(ErrInvalidConfig)
 	}
 
-	return &Core{manager.New(), config}, nil
+	return &Core{manager.New(), services, config}, nil
 }
 
 // Boot starts the node and runs until an exit signal or a fatal error occurs.
@@ -94,7 +95,7 @@ func (c *Core) Boot(ctx context.Context) error {
 		workCh <- c.mgr.Work(workCtx)
 	}()
 
-	registerServices(c.mgr, &c.config)
+	registerServices(c.mgr, c.services, &c.config)
 
 	bootScreenCtx, cancelBootScreen := context.WithCancel(context.Background())
 	defer cancelBootScreen()
@@ -296,7 +297,11 @@ func (c *Core) findMetrics() metrics.Reporter {
 }
 
 // doWithManager runs a function with a freshly created service manager.
-func doWithManager(config *Config, fn func(*manager.Manager)) error {
+func doWithManager(
+	services []manager.Service,
+	config *Config,
+	fn func(*manager.Manager),
+) error {
 	workCtx, cancelWork := context.WithCancel(context.Background())
 	defer cancelWork()
 
@@ -308,7 +313,7 @@ func doWithManager(config *Config, fn func(*manager.Manager)) error {
 		ch <- mgr.Work(workCtx)
 	}()
 
-	registerServices(mgr, config)
+	registerServices(mgr, services, config)
 
 	fn(mgr)
 
@@ -328,7 +333,11 @@ func doWithManager(config *Config, fn func(*manager.Manager)) error {
 // The returned slice ends with the service itself.
 //
 // If no service ID is given, the boot service will be used.
-func Deps(configSet cfg.ConfigSet, servID string) (deps []string, err error) {
+func Deps(
+	services []manager.Service,
+	configSet cfg.ConfigSet,
+	servID string,
+) (deps []string, err error) {
 	config, ok := configSet["core"].(Config)
 	if !ok {
 		return nil, errors.WithStack(ErrInvalidConfig)
@@ -338,7 +347,7 @@ func Deps(configSet cfg.ConfigSet, servID string) (deps []string, err error) {
 		servID = config.BootService
 	}
 
-	mgrError := doWithManager(&config, func(mgr *manager.Manager) {
+	mgrError := doWithManager(services, &config, func(mgr *manager.Manager) {
 		deps, err = doDeps(mgr, servID)
 	})
 
@@ -357,7 +366,12 @@ func doDeps(mgr *manager.Manager, servID string) ([]string, error) {
 // configuration to a writer.
 //
 // If no service ID is given, the boot service will be used.
-func Fgraph(w io.Writer, configSet cfg.ConfigSet, servID string) error {
+func Fgraph(
+	w io.Writer,
+	services []manager.Service,
+	configSet cfg.ConfigSet,
+	servID string,
+) error {
 	config, ok := configSet["core"].(Config)
 	if !ok {
 		return errors.WithStack(ErrInvalidConfig)
@@ -369,7 +383,7 @@ func Fgraph(w io.Writer, configSet cfg.ConfigSet, servID string) error {
 
 	var err error
 
-	mgrError := doWithManager(&config, func(mgr *manager.Manager) {
+	mgrError := doWithManager(services, &config, func(mgr *manager.Manager) {
 		err = doFgraph(w, mgr, servID)
 	})
 

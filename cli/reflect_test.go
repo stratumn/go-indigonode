@@ -737,7 +737,7 @@ func TestServerReflector_Reflect(t *testing.T) {
 		serverCh <- testReflectServer(ctx, t, addr)
 	}()
 
-	config := NewConfigSet().Configs()
+	config := NewConfigurableSet().Configs()
 	conf := config["cli"].(Config)
 	conf.APIAddress = addr
 	c, err := New(config)

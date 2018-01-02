@@ -16,62 +16,52 @@ package cli
 
 import (
 	"github.com/stratumn/alice/core/cfg"
-	"github.com/stratumn/alice/release"
 )
+
+// ConfigVersionKey is the key of the configuration version number in the TOML
+// file.
+const ConfigVersionKey = "cli.configuration_version"
 
 // DefaultConfig is the default CLI configuration.
 var DefaultConfig = Config{
-	GeneratedByVersion: release.Version,
-	PromptBackend:      "vt100",
-	EnableColorOutput:  true,
-	APIAddress:         "/ip4/127.0.0.1/tcp/8904",
-	DialTimeout:        "30s",
-	RequestTimeout:     "30s",
-	EnableDebugOutput:  false,
+	ConfigVersion:     len(migrations),
+	PromptBackend:     "vt100",
+	EnableColorOutput: true,
+	APIAddress:        "/ip4/127.0.0.1/tcp/8904",
+	DialTimeout:       "30s",
+	RequestTimeout:    "30s",
+	EnableDebugOutput: false,
 }
 
-// ConfigSet represents a set of configurables.
+// ConfigurableSet represents a set of configurables.
 //
 // This avoids packages depending on the core package to have to depend on the
 // cfg package.
-type ConfigSet = cfg.Set
+type ConfigurableSet = cfg.Set
 
-// NewConfigSet creates a new set of configurables.
-func NewConfigSet() ConfigSet {
-	return cfg.Set{
+// NewConfigurableSet creates a new set of configurables.
+func NewConfigurableSet() ConfigurableSet {
+	return ConfigurableSet{
 		"cli": &ConfigHandler{},
 	}
 }
 
-// InitConfig creates or recreates the configuration file.
+// InitConfig creates a configuration file.
 //
-// It fails if the file already exists, unless recreate is true, in which
-// case it will load the configuration file then save it. This is useful to
-// add new or missing settings to a configuration file.
-func InitConfig(set ConfigSet, filename string, recreate bool) error {
-	if recreate {
-		if err := LoadConfig(set, filename); err != nil {
-			return err
-		}
-	}
-
-	return cfg.Save(set, filename, 0600, recreate)
+// It fails if the file already exists.
+func InitConfig(set ConfigurableSet, filename string) error {
+	return cfg.Save(set, filename, 0600, false)
 }
 
-// LoadConfig loads the configuration file.
-//
-// This avoids packages depending on the core package to have to depend on the
-// cfg package.
-func LoadConfig(set ConfigSet, filename string) error {
-	return cfg.Load(set, filename)
+// LoadConfig loads the configuration file and applies migrations.
+func LoadConfig(set ConfigurableSet, filename string) error {
+	return cfg.Migrate(set, filename, ConfigVersionKey, migrations, 0600)
 }
 
 // Config contains configuration options for the CLI.
 type Config struct {
-	// GeneratedByVersion is the version of Alice that last save the
-	// configurations file. It is ignored now but could be useful for
-	// migrations.
-	GeneratedByVersion string `toml:"generated_by_version" comment:"The version of Alice that generated this file."`
+	// ConfigVersion is the version of the configuration file.
+	ConfigVersion int `toml:"configuration_version" comment:"The version of the configuration file."`
 
 	// PromptBackend is the name of the prompt to use.
 	PromptBackend string `toml:"prompt_backend" comment:"Which prompt backend to use (vt100, readline). VT100 is not available on Windows."`

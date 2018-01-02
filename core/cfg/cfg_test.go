@@ -20,31 +20,31 @@ import (
 	"testing"
 )
 
-type Config struct {
-	Name    string
-	Version string
+type testConfig struct {
+	Name    string `toml:"name"`
+	Version string `toml:"version"`
 }
 
-type Handler struct {
-	config  *Config
+type testHandler struct {
+	config  *testConfig
 	name    string
 	version string
 }
 
-func (h *Handler) ID() string {
+func (h *testHandler) ID() string {
 	return h.name
 }
 
-func (h *Handler) Config() interface{} {
+func (h *testHandler) Config() interface{} {
 	if h.config != nil {
 		return *h.config
 	}
 
-	return Config{h.name, "v0.1.0"}
+	return testConfig{h.name, "v0.1.0"}
 }
 
-func (h *Handler) SetConfig(config interface{}) error {
-	c := config.(Config)
+func (h *testHandler) SetConfig(config interface{}) error {
+	c := config.(testConfig)
 	h.config = &c
 	h.name = c.Name
 	h.version = c.Version
@@ -54,31 +54,31 @@ func (h *Handler) SetConfig(config interface{}) error {
 func TestCfg(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %+v`, err)
+		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
 	}
 
-	filename := filepath.Join(dir, "alice.core.toml")
+	filename := filepath.Join(dir, "cfg.toml")
 
-	zipSave := Handler{name: "zip extractor"}
-	tarSave := Handler{name: "tar extractor"}
+	zipSave := testHandler{name: "zip extractor"}
+	tarSave := testHandler{name: "tar extractor"}
 	setSave := Set{
 		"zip": &zipSave,
 		"tar": &tarSave,
 	}
 
 	if err := Save(setSave, filename, 0644, false); err != nil {
-		t.Fatalf("Save(filename): error: %+v", err)
+		t.Fatalf("Save(filename): error: %s", err)
 	}
 
-	zipLoad := Handler{name: "default"}
-	tarLoad := Handler{name: "default"}
+	zipLoad := testHandler{name: "default"}
+	tarLoad := testHandler{name: "default"}
 	setLoad := Set{
 		"zip": &zipLoad,
 		"tar": &tarLoad,
 	}
 
 	if err := Load(setLoad, filename); err != nil {
-		t.Fatalf("Load(filename): error: %+v", err)
+		t.Fatalf("Load(filename): error: %s", err)
 	}
 
 	if got, want := zipLoad.name, zipSave.name; got != want {

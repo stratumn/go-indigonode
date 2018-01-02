@@ -135,7 +135,7 @@ your package somewhere. For instance the core services are registered in
 `core/service.go`:
 
 ```go
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -252,7 +252,7 @@ is only able to reflect very basic gRPC methods.
 The service manager understands the following interfaces:
 
 ```go
-// Copyright © 2017  Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

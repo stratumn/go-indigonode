@@ -56,8 +56,8 @@ func BuiltinServices() []manager.Service {
 	}
 }
 
-// registerServices registers all the builtin and group services on the given
-// manager.
+// registerServices registers all the given services as well as groups defined
+// in the configuration on the given manager.
 //
 // It assumes that the manager's Work function has been called.
 //

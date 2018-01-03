@@ -157,11 +157,19 @@ assert.Equal(500, status, "response http status code")
 ```
 
 Note that assertions failures are not fatal, so if you need to stop test
-execution you need to do it yourself:
+execution you need to use `require`:
 
 ```go
-if !assert.Equal(t, ...) {
-    return
+import (
+    "testing"
+    "github.com/stretchr/testify/require"
+)
+
+func TestSomething(t *testing.T) {
+    res, err := DoSomething()
+    require.NoError(t, err)
+
+    // Assert things on res
 }
 ```
 

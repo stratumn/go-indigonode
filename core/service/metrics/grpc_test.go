@@ -22,6 +22,8 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/metrics"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	p2pmetrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
 )
@@ -47,13 +49,9 @@ func TestGRPCServer_Bandwidth(t *testing.T) {
 
 	req := &pb.BandwidthReq{}
 	res, err := srv.Bandwidth(ctx, req)
-	if err != nil {
-		t.Fatalf("srv.Bandwidth(ctx, req): error: %s", err)
-	}
 
-	if got, want := res.TotalIn, uint64(1000); got != want {
-		t.Errorf("res.TotalIn = %d want %d", got, want)
-	}
+	require.NoError(t, err)
+	require.Equal(t, uint64(1000), res.TotalIn)
 }
 
 func TestGRPCServer_Bandwidth_unavailable(t *testing.T) {
@@ -65,7 +63,5 @@ func TestGRPCServer_Bandwidth_unavailable(t *testing.T) {
 	req := &pb.BandwidthReq{}
 	_, err := srv.Bandwidth(ctx, req)
 
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Bandwidth(ctx, req): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }

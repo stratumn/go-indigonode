@@ -120,7 +120,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 		got := fmt.Sprintf("%s", completions)
 		want := fmt.Sprintf("%s", tt.expect)
 
-		assert.Equal(t, want, got, "%s: invalid completions", tt.name)
+		assert.Equalf(t, want, got, "%s: invalid completions", tt.name)
 	}
 }
 

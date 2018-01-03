@@ -44,14 +44,14 @@ func TestConsole_print(t *testing.T) {
 		cons.color = false
 
 		tt.fn("test")
-		assert.Equal(t, "test", buf.String(), "debug: test.fn(\"test\")")
+		assert.Equalf(t, "test", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		if tt.debug {
 			cons.SetDebug(false)
 
 			tt.fn("test")
-			assert.Equal(t, "", buf.String(), "nodebug: test.fn(\"test\")")
+			assert.Equalf(t, "", buf.String(), "%s: nodebug: test.fn(\"test\")", tt.name)
 			buf.Reset()
 		}
 
@@ -64,7 +64,7 @@ func TestConsole_print(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		assert.Equal(t, want, buf.String(), "color: test.fn(\"test\")")
+		assert.Equalf(t, want, buf.String(), "%s: color: test.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 
@@ -93,14 +93,14 @@ func TestConsole_println(t *testing.T) {
 		cons.color = false
 
 		tt.fn("test")
-		assert.Equal(t, "test\n", buf.String(), "debug: test.fn(\"test\")")
+		assert.Equalf(t, "test\n", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		if tt.debug {
 			cons.SetDebug(false)
 
 			tt.fn("test\n")
-			assert.Equal(t, "", buf.String(), "nodebug: test.fn(\"test\")")
+			assert.Equalf(t, "", buf.String(), "%s: nodebug: test.fn(\"test\")", tt.name)
 			buf.Reset()
 		}
 
@@ -112,7 +112,7 @@ func TestConsole_println(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		assert.Equal(t, want, buf.String(), "color: test.fn(\"test\")")
+		assert.Equalf(t, want, buf.String(), "%s: color: test.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 }
@@ -140,7 +140,7 @@ func TestConsole_printf(t *testing.T) {
 		cons.color = false
 
 		tt.fn("%s", "test")
-		assert.Equal(t, "test", buf.String(), "debug: test.fn(\"test\")")
+		assert.Equalf(t, "test", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		cons.color = true
@@ -150,7 +150,7 @@ func TestConsole_printf(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		assert.Equal(t, want, buf.String(), "debug: color.fn(\"test\")")
+		assert.Equalf(t, want, buf.String(), "%s: debug: color.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 }

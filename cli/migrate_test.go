@@ -52,7 +52,7 @@ func TestMigrations(t *testing.T) {
 		enc := toml.NewEncoder(gotBuf)
 		enc.QuoteMapKeys(true)
 		err := enc.Encode(gotVal)
-		if !assert.NoError(t, err, "%s: enc.Encode(gotVal)", k) {
+		if !assert.NoErrorf(t, err, "%s: enc.Encode(gotVal)", k) {
 			continue
 		}
 
@@ -61,11 +61,11 @@ func TestMigrations(t *testing.T) {
 		enc = toml.NewEncoder(wantBuf)
 		enc.QuoteMapKeys(true)
 		err = enc.Encode(wantVal)
-		if !assert.NoError(t, err, "%s: enc.Encode(wantVal)", k) {
+		if !assert.NoErrorf(t, err, "%s: enc.Encode(wantVal)", k) {
 			continue
 		}
 
-		assert.Equal(t, wantBuf.String(), gotBuf.String(), "%s", k)
+		assert.Equalf(t, wantBuf.String(), gotBuf.String(), "%s", k)
 	}
 }
 

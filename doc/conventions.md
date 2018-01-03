@@ -32,8 +32,8 @@ The [dep](https://github.com/golang/dep) dependency manager is preferred and
 should be used when possible.
 
 Libp2p and Multiaddr packages are exceptions and are usually distributed using
-the [gx](https://github.com/whyrusleeping/gx) package manager.
-It uses IPFS to fetch the packages.
+the [gx](https://github.com/whyrusleeping/gx) package manager, which uses IPFS
+to fetch the packages.
 
 ## Git
 
@@ -58,7 +58,7 @@ Warning, and Error methods). Add metadata to events.
 
 Use the [Go Code Review guidelines](https://github.com/golang/go/wiki/CodeReviewComments).
 
-Watch [Go Provers](https://go-proverbs.github.io).
+Watch [Go Proverbs](https://go-proverbs.github.io).
 
 Also read [Idiomatic Go](https://dmitri.shuralyov.com/idiomatic-go).
 
@@ -137,13 +137,40 @@ strings when debugging.
 Error messages should neither begin with an upper-case letter nor end with
 punctuation.
 
-Use the standard Go test packages. Test errors should only begin with an
-upper-case letter if they begin with an identifier, and should not end with
-punctuation. Use helpful messages such as:
+Use the standard Go test packages with assertions from
+[testify](https://github.com/stretchr/testify).
+Error messages should only begin with an upper-case letter if they begin with
+an identifier, and should not end with punctuation.
+Use the error message to specify the entity tested:
 
 ```go
-t.Errorf("peerID = %q want %q", got, want)
-t.Fatalf("MyFunc(): error: %s", err)
+assert.Equal(t, 500, status, "response http status code")
+assert.True(t, ok, "type assertion should succeed")
+```
+
+When you use multiple asserts in the same test, it's worth creating an instance
+to avoid having to pass `t` repeatedly:
+
+```go
+assert := assert.New(t)
+assert.Equal(500, status, "response http status code")
+```
+
+Note that assertions failures are not fatal, so if you need to stop test
+execution you need to use `require`:
+
+```go
+import (
+    "testing"
+    "github.com/stretchr/testify/require"
+)
+
+func TestSomething(t *testing.T) {
+    res, err := DoSomething()
+    require.NoError(t, err)
+
+    // Assert things on res
+}
 ```
 
 Use table-driven tests when possible.
@@ -157,7 +184,9 @@ Create packages for domains, not types.
 Use singular package names, for instance `util` instead of `utils`, unless the
 noun is typically plural (ex: `metrics`).
 
-Comment your code, including unexposed types and functions.
+Comment your code, including unexposed types and functions. Don't describe
+implementation details in your comments, as they are likely to change and
+become out of sync with the code itself.
 
 ## Protobuf
 

@@ -21,6 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
 )
@@ -29,9 +31,7 @@ func testService(ctx context.Context, t *testing.T) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 
-	if err := serv.SetConfig(config); err != nil {
-		t.Fatalf("serv.SetConfig(config): error: %s", err)
-	}
+	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	return serv
 }
@@ -47,10 +47,7 @@ func TestService_Expose(t *testing.T) {
 	serv := testService(ctx, t)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
-	_, ok := exposed.(smux.Transport)
-	if got, want := ok, true; got != want {
-		t.Errorf("ok = %v want %v", got, want)
-	}
+	assert.Implements(t, (*smux.Transport)(nil), exposed, "exposed type")
 }
 
 func TestService_SetConfig(t *testing.T) {
@@ -75,15 +72,17 @@ func TestService_SetConfig(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		serv := Service{}
-		config := serv.Config().(Config)
-		tt.set(&config)
+		t.Run(tt.name, func(t *testing.T) {
+			serv := Service{}
+			config := serv.Config().(Config)
+			tt.set(&config)
 
-		err := errors.Cause(serv.SetConfig(config))
-		switch {
-		case err != nil && tt.err == errAny:
-		case err != tt.err:
-			t.Errorf("%s: err = %v want %v", tt.name, err, tt.err)
-		}
+			err := errors.Cause(serv.SetConfig(config))
+			switch {
+			case err != nil && tt.err == errAny:
+			case err != tt.err:
+				assert.Equal(t, tt.err, err)
+			}
+		})
 	}
 }

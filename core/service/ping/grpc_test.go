@@ -23,10 +23,14 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/ping"
 	mockpb "github.com/stratumn/alice/grpc/ping/mockping"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 )
+
+const testPID = "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"
 
 func testGRPCServer(ctx context.Context, t *testing.T, times int) grpcServer {
 	return grpcServer{
@@ -67,10 +71,8 @@ func TestGRPCServer_Ping(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	pid, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9")
-	if err != nil {
-		t.Fatalf(`peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"): error: %s`, err)
-	}
+	pid, err := peer.IDB58Decode(testPID)
+	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
 	req := &pb.PingReq{
 		PeerId: []byte(pid),
@@ -81,10 +83,7 @@ func TestGRPCServer_Ping(t *testing.T) {
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
 	ss.EXPECT().Send(&pb.Response{Latency: 100000000}).Times(2)
 
-	err = srv.Ping(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Ping(req, ss): error: %s", err)
-	}
+	require.NoError(t, srv.Ping(req, ss))
 }
 
 func TestGRPCServer_Ping_unavailable(t *testing.T) {
@@ -96,10 +95,8 @@ func TestGRPCServer_Ping_unavailable(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	pid, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9")
-	if err != nil {
-		t.Fatalf(`peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"): error: %s`, err)
-	}
+	pid, err := peer.IDB58Decode(testPID)
+	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
 	req := &pb.PingReq{
 		PeerId: []byte(pid),
@@ -108,9 +105,5 @@ func TestGRPCServer_Ping_unavailable(t *testing.T) {
 	ss := mockpb.NewMockPing_PingServer(ctrl)
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
 
-	err = srv.Ping(req, ss)
-
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Ping(req, ss): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Ping(req, ss)))
 }

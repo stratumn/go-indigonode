@@ -32,8 +32,8 @@ The [dep](https://github.com/golang/dep) dependency manager is preferred and
 should be used when possible.
 
 Libp2p and Multiaddr packages are exceptions and are usually distributed using
-the [gx](https://github.com/whyrusleeping/gx) package manager.
-They use IPFS to fetch the packages.
+the [gx](https://github.com/whyrusleeping/gx) package manager, which uses IPFS
+to fetch the packages.
 
 ## Git
 

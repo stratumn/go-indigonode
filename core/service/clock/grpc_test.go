@@ -21,6 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/clock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
@@ -79,13 +81,9 @@ func TestGRPCServer_Local(t *testing.T) {
 
 	req := &pb.LocalReq{}
 	res, err := srv.Local(ctx, req)
-	if err != nil {
-		t.Fatalf("srv.Local(ctx, req): error: %s", err)
-	}
 
-	if got, want := res.Timestamp, testTime.UnixNano(); got != want {
-		t.Errorf("res.Timestamp = %v want %v", got, want)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, testTime.UnixNano(), res.Timestamp)
 }
 
 func TestGRPCServer_Local_unavailable(t *testing.T) {
@@ -97,9 +95,7 @@ func TestGRPCServer_Local_unavailable(t *testing.T) {
 	req := &pb.LocalReq{}
 	_, err := srv.Local(ctx, req)
 
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Local(ctx, req): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }
 
 func TestGRPCServer_Remote(t *testing.T) {
@@ -110,13 +106,9 @@ func TestGRPCServer_Remote(t *testing.T) {
 
 	req := &pb.RemoteReq{PeerId: []byte(testPID)}
 	res, err := srv.Remote(ctx, req)
-	if err != nil {
-		t.Fatalf("srv.Remote(ctx, req): error: %s", err)
-	}
 
-	if got, want := res.Timestamp, testTime.UnixNano(); got != want {
-		t.Errorf("res.Timestamp = %v want %v", got, want)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, testTime.UnixNano(), res.Timestamp)
 }
 
 func TestGRPCServer_Remote_unavailable(t *testing.T) {
@@ -128,7 +120,5 @@ func TestGRPCServer_Remote_unavailable(t *testing.T) {
 	req := &pb.RemoteReq{PeerId: []byte(testPID)}
 	_, err := srv.Remote(ctx, req)
 
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Remote(ctx, req): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }

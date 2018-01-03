@@ -25,6 +25,8 @@ import (
 	"github.com/stratumn/alice/core/p2p"
 	pb "github.com/stratumn/alice/grpc/swarm"
 	mockpb "github.com/stratumn/alice/grpc/swarm/mockswarm"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	swarm "gx/ipfs/QmUhvp4VoQ9cKDVLqAxciEKdm8ymBx2Syx4C1Tv6SmSTPa/go-libp2p-swarm"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
@@ -50,21 +52,12 @@ func TestGRPCServer_LocalPeer(t *testing.T) {
 
 	req := &pb.LocalPeerReq{}
 	res, err := srv.LocalPeer(ctx, req)
-	if err != nil {
-		t.Fatalf("srv.LocalPeer(ctx, req): error: %s", err)
-	}
+	require.NoError(t, err, "srv.LocalPeer(ctx, req)")
 
 	id, err := peer.IDFromBytes(res.Id)
-	if err != nil {
-		t.Fatalf("peer.IDFromBytes(res.ID): error: %s", err)
-	}
+	require.NoError(t, err, "peer.IDFromBytes(res.Id)")
 
-	got := id.Pretty()
-	want := srv.GetSwarm().LocalPeer().Pretty()
-
-	if got != want {
-		t.Errorf("id = %v want %v", got, want)
-	}
+	assert.Equal(t, srv.GetSwarm().LocalPeer(), id)
 }
 
 func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
@@ -76,9 +69,7 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 	req := &pb.LocalPeerReq{}
 	_, err := srv.LocalPeer(ctx, req)
 
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.LocalPeer(ctx, req): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }
 
 func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
@@ -86,10 +77,7 @@ func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
 	network := (*swarm.Network)(srv.GetSwarm())
 	pi := network.Peerstore().PeerInfo(network.LocalPeer())
 
-	err := h.Connect(ctx, pi)
-	if err != nil {
-		t.Fatalf("h.DialPeer(ctx, pid): error: %s", err)
-	}
+	require.NoError(t, h.Connect(ctx, pi), "h.Connect(ctx, pi)")
 
 	return h
 }
@@ -109,10 +97,7 @@ func TestGRPCServer_Peers(t *testing.T) {
 
 	ss.EXPECT().Send(&pb.Peer{Id: []byte(h.ID())})
 
-	err := srv.Peers(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Peers(req, ss): error: %s", err)
-	}
+	assert.NoError(t, srv.Peers(req, ss))
 }
 
 func TestGRPCServer_Peers_unavailable(t *testing.T) {
@@ -123,11 +108,7 @@ func TestGRPCServer_Peers_unavailable(t *testing.T) {
 
 	req, ss := &pb.PeersReq{}, mockpb.NewMockSwarm_PeersServer(ctrl)
 
-	err := srv.Peers(req, ss)
-
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Peers(req, ss): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Peers(req, ss)))
 }
 
 type connMatcher struct {
@@ -178,10 +159,7 @@ func TestGRPCServer_Connections(t *testing.T) {
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
 	ss.EXPECT().Send(connMatcher{h.ID(), srv.GetSwarm().ListenAddresses()[0]})
 
-	err := srv.Connections(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Connections(req, ss): error: %s", err)
-	}
+	assert.NoError(t, srv.Connections(req, ss))
 }
 
 func TestGRPCServer_Connections_peer(t *testing.T) {
@@ -202,10 +180,7 @@ func TestGRPCServer_Connections_peer(t *testing.T) {
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
 	ss.EXPECT().Send(connMatcher{h1.ID(), srv.GetSwarm().ListenAddresses()[0]})
 
-	err := srv.Connections(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Connections(req, ss): error: %s", err)
-	}
+	assert.NoError(t, srv.Connections(req, ss))
 }
 
 func TestGRPCServer_Connections_unavailable(t *testing.T) {
@@ -216,9 +191,5 @@ func TestGRPCServer_Connections_unavailable(t *testing.T) {
 
 	req, ss := &pb.ConnectionsReq{}, mockpb.NewMockSwarm_ConnectionsServer(ctrl)
 
-	err := srv.Connections(req, ss)
-
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Connections(req, ss): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Connections(req, ss)))
 }

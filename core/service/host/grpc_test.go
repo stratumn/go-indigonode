@@ -25,6 +25,8 @@ import (
 	"github.com/stratumn/alice/core/p2p"
 	pb "github.com/stratumn/alice/grpc/host"
 	mockpb "github.com/stratumn/alice/grpc/host/mockhost"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
@@ -49,21 +51,15 @@ func TestGRPCServer_ID(t *testing.T) {
 
 	req := &pb.IdReq{}
 	res, err := srv.ID(ctx, req)
-	if err != nil {
-		t.Fatalf("srv.ID(ctx, req): error: %s", err)
-	}
+	require.NoError(t, err)
 
 	id, err := peer.IDFromBytes(res.Id)
-	if err != nil {
-		t.Fatalf("peer.IDFromBytes(res.ID): error: %s", err)
-	}
+	require.NoError(t, err, "peer.IDFromBytes(res.ID)")
 
 	got := id.Pretty()
 	want := srv.GetHost().ID().Pretty()
 
-	if got != want {
-		t.Errorf("id = %v want %v", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestGRPCServer_ID_unavailable(t *testing.T) {
@@ -75,9 +71,7 @@ func TestGRPCServer_ID_unavailable(t *testing.T) {
 	req := &pb.IdReq{}
 	_, err := srv.ID(ctx, req)
 
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.ID(ctx, req): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }
 
 func TestGRPCServer_Addresses(t *testing.T) {
@@ -95,10 +89,7 @@ func TestGRPCServer_Addresses(t *testing.T) {
 		ss.EXPECT().Send(&pb.Address{Address: addr.Bytes()})
 	}
 
-	err := srv.Addresses(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Addresses(req, ss): error: %s", err)
-	}
+	assert.NoError(t, srv.Addresses(req, ss))
 }
 
 func TestGRPCServer_Addresses_unavailable(t *testing.T) {
@@ -109,11 +100,7 @@ func TestGRPCServer_Addresses_unavailable(t *testing.T) {
 
 	req, ss := &pb.AddressesReq{}, mockpb.NewMockHost_AddressesServer(ctrl)
 
-	err := srv.Addresses(req, ss)
-
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Addresses(req, ss): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Addresses(req, ss)))
 }
 
 type connMatcher struct {
@@ -157,9 +144,7 @@ func TestGRPCServer_Connect(t *testing.T) {
 
 	addr := h2.Addrs()[0].String() + "/ipfs/" + h2.ID().Pretty()
 	maddr, err := ma.NewMultiaddr(addr)
-	if err != nil {
-		t.Fatalf("ma.NewMultiadd(%q): error: %s", addr, err)
-	}
+	require.NoError(t, err, "ma.NewMultiaddr(addr)")
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -170,10 +155,7 @@ func TestGRPCServer_Connect(t *testing.T) {
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
 	ss.EXPECT().Send(connMatcher{h2.ID(), h2.Addrs()[0]})
 
-	err = srv.Connect(req, ss)
-	if err != nil {
-		t.Fatalf("srv.Connect(req, ss): error: %s", err)
-	}
+	assert.NoError(t, srv.Connect(req, ss))
 }
 
 func TestGRPCServer_Connect_unavailable(t *testing.T) {
@@ -184,11 +166,7 @@ func TestGRPCServer_Connect_unavailable(t *testing.T) {
 
 	req, ss := &pb.ConnectReq{}, mockpb.NewMockHost_ConnectServer(ctrl)
 
-	err := srv.Connect(req, ss)
-
-	if got, want := errors.Cause(err), ErrUnavailable; got != want {
-		t.Errorf("srv.Connect(req, ss): error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Connect(req, ss)))
 }
 
 func TestGRPCServer_Connect_invalidAddress(t *testing.T) {
@@ -202,7 +180,5 @@ func TestGRPCServer_Connect_invalidAddress(t *testing.T) {
 
 	req, ss := &pb.ConnectReq{}, mockpb.NewMockHost_ConnectServer(ctrl)
 
-	if err := srv.Connect(req, ss); err == nil {
-		t.Error("srv.Connect(req, ss): error = <nil> want <error>")
-	}
+	assert.Error(t, srv.Connect(req, ss))
 }

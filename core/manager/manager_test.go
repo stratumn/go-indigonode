@@ -24,6 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/mockmanager"
+	"github.com/stretchr/testify/assert"
 )
 
 func mockService(ctrl *gomock.Controller, id string) Service {
@@ -155,7 +156,7 @@ func createTestMgr(ctx context.Context, t testing.TB, ctrl *gomock.Controller) *
 	go func() {
 		err := mgr.Work(ctx)
 		if err != nil && errors.Cause(err) != context.Canceled {
-			t.Errorf(`manager: Work(ctx): error: %s`, err)
+			assert.Failf(t, "unexpected error", "manager: Work(ctx): error: %s", err)
 		}
 	}()
 
@@ -393,19 +394,12 @@ func testMgr(t *testing.T, ctrl *gomock.Controller, test mgrTest) {
 	defer mgr.StopAll()
 
 	got, want := errors.Cause(test.do(mgr)), errors.Cause(test.err)
-	if got != want {
-		t.Errorf("do(): err = %v want %v", got, want)
-	}
+	assert.Equal(t, want, got, "do()")
 
 	for servID, want := range test.status {
 		got, err := mgr.Status(servID)
-		if err != nil {
-			t.Errorf("mgr.Status(%q): error: %s", servID, err)
-		}
-
-		if got != want {
-			t.Errorf("mgr.Status(%q) = %v want %v", servID, got, want)
-		}
+		assert.NoError(t, err, "mgr.Status(servID)")
+		assert.Equal(t, want, got, "mgr.Status(servID)")
 	}
 }
 
@@ -446,9 +440,8 @@ func TestPluggable(t *testing.T) {
 
 	pluggable.EXPECT().Plug(map[string]interface{}{"api": "api"}).Times(1)
 
-	if err := mgr.Start("pluggable"); err != nil {
-		t.Errorf(`mgr.Start("pluggable"): error: %s`, err)
-	}
+	err := mgr.Start("pluggable")
+	assert.NoError(t, err, `mgr.Start("pluggable")`)
 }
 
 func TestPluggable_nil(t *testing.T) {
@@ -477,9 +470,8 @@ func TestPluggable_nil(t *testing.T) {
 
 	pluggable.EXPECT().Plug(map[string]interface{}{"fs": nil}).Times(1)
 
-	if err := mgr.Start("pluggable"); err != nil {
-		t.Errorf(`mgr.Start("pluggable"): error: %s`, err)
-	}
+	err := mgr.Start("pluggable")
+	assert.NoError(t, err, `mgr.Start("pluggable")`)
 }
 
 func TestFriendly_likes(t *testing.T) {
@@ -506,15 +498,13 @@ func TestFriendly_likes(t *testing.T) {
 
 	friendly.EXPECT().Befriend("crypto", nil).Times(1)
 
-	if err := mgr.Start("crypto"); err != nil {
-		t.Errorf(`mgr.Start("crypto"): error: %s`, err)
-	}
+	err := mgr.Start("crypto")
+	assert.NoError(t, err, `mgr.Start("crypto")`)
 
 	friendly.EXPECT().Befriend("api", "api").Times(1)
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err = mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
 	friendly.EXPECT().Befriend("api", nil).Times(1)
 	friendly.EXPECT().Befriend("crypto", nil).Times(1)
@@ -527,7 +517,7 @@ func TestFriendly_likes(t *testing.T) {
 
 	select {
 	case <-time.After(time.Second):
-		t.Errorf("stoppedCh didn't close")
+		assert.Fail(t, "stoppedCh didn't close")
 	case <-stoppedCh:
 	}
 }
@@ -559,7 +549,7 @@ func TestFriendly_nil(t *testing.T) {
 
 	select {
 	case <-time.After(time.Second):
-		t.Errorf("stoppedCh didn't close")
+		assert.Fail(t, "stoppedCh didn't close")
 	case <-stoppedCh:
 	}
 }
@@ -589,9 +579,8 @@ func TestFriendly_liked(t *testing.T) {
 
 	friendly.EXPECT().Befriend("http", "http").Times(1)
 
-	if err := mgr.Start("http"); err != nil {
-		t.Errorf(`mgr.Start("http"): error: %s`, err)
-	}
+	err := mgr.Start("http")
+	assert.NoError(t, err, `mgr.Start("http")`)
 
 	friendly.EXPECT().Befriend("http", nil).Times(1)
 
@@ -603,7 +592,7 @@ func TestFriendly_liked(t *testing.T) {
 
 	select {
 	case <-time.After(time.Second):
-		t.Errorf("stoppedCh didn't close")
+		assert.Fail(t, "stoppedCh didn't close")
 	case <-stoppedCh:
 	}
 }
@@ -621,9 +610,7 @@ func TestManager_List(t *testing.T) {
 	got := fmt.Sprint(mgr.List())
 	want := "[api apps crash-plug crash-start crash-start-err crash-start-status crash-stop crypto fs manager net]"
 
-	if got != want {
-		t.Errorf("mgr.List() = %v want %v", got, want)
-	}
+	assert.Equal(t, want, got, "mgr.List()")
 }
 
 func TestManager_Find(t *testing.T) {
@@ -637,18 +624,11 @@ func TestManager_Find(t *testing.T) {
 	defer mgr.StopAll()
 
 	serv, err := mgr.Find("api")
-	if err != nil {
-		t.Errorf(`mgr.Find("api"): error: %s`, err)
-	}
-
-	if got, want := serv.ID(), "api"; got != want {
-		t.Errorf("serv.ID() = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Find("api")`)
+	assert.Equal(t, "api", serv.ID(), "serv.ID()")
 
 	_, err = mgr.Find("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Find("http")`)
 }
 
 func TestManager_Proto(t *testing.T) {
@@ -662,18 +642,11 @@ func TestManager_Proto(t *testing.T) {
 	defer mgr.StopAll()
 
 	proto, err := mgr.Proto("api")
-	if err != nil {
-		t.Errorf(`mgr.Proto("api"): error: %s`, err)
-	}
-
-	if got, want := proto.Id, "api"; got != want {
-		t.Errorf("proto.Id = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Proto("api")`)
+	assert.Equal(t, "api", proto.Id, "proto.Id")
 
 	_, err = mgr.Proto("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Proto("http")`)
 }
 
 func TestManager_Status(t *testing.T) {
@@ -687,18 +660,11 @@ func TestManager_Status(t *testing.T) {
 	defer mgr.StopAll()
 
 	status, err := mgr.Status("api")
-	if err != nil {
-		t.Errorf(`mgr.Status("api"): error: %s`, err)
-	}
-
-	if got, want := status, Stopped; got != want {
-		t.Errorf("status = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Status("api")`)
+	assert.Equal(t, Stopped, status, "status")
 
 	_, err = mgr.Status("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Status("http")`)
 }
 
 func TestManager_Stoppable(t *testing.T) {
@@ -711,41 +677,23 @@ func TestManager_Stoppable(t *testing.T) {
 	mgr := createTestMgr(ctx, t, ctrl)
 	defer mgr.StopAll()
 
-	if err := mgr.Start("apps"); err != nil {
-		t.Errorf(`mgr.Start("apps"): error: %s`, err)
-	}
+	err := mgr.Start("apps")
+	assert.NoError(t, err, `mgr.Start("apps")`)
 
 	stoppable, err := mgr.Stoppable("apps")
-	if err != nil {
-		t.Errorf(`mgr.Stoppable("apps"): error: %s`, err)
-	}
-
-	if got, want := stoppable, true; got != want {
-		t.Errorf("stoppable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Stoppable("apps")`)
+	assert.True(t, stoppable, "stoppable")
 
 	stoppable, err = mgr.Stoppable("crypto")
-	if err != nil {
-		t.Errorf(`mgr.Stoppable("crypto"): error: %s`, err)
-	}
-
-	if got, want := stoppable, false; got != want {
-		t.Errorf("stoppable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Stoppable("crypto")`)
+	assert.False(t, stoppable, "stoppable")
 
 	stoppable, err = mgr.Stoppable("api")
-	if err != nil {
-		t.Errorf(`mgr.Stoppable("api"): error: %s`, err)
-	}
-
-	if got, want := stoppable, true; got != want {
-		t.Errorf("stoppable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Stoppable("api")`)
+	assert.True(t, stoppable, "stoppable")
 
 	_, err = mgr.Stoppable("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Stoppable("http")`)
 }
 
 func TestManager_Prunable(t *testing.T) {
@@ -758,41 +706,23 @@ func TestManager_Prunable(t *testing.T) {
 	mgr := createTestMgr(ctx, t, ctrl)
 	defer mgr.StopAll()
 
-	if err := mgr.Start("apps"); err != nil {
-		t.Errorf(`mgr.Start("apps"): error: %s`, err)
-	}
+	err := mgr.Start("apps")
+	assert.NoError(t, err, `mgr.Start("apps")`)
 
 	prunable, err := mgr.Prunable("apps")
-	if err != nil {
-		t.Errorf(`mgr.Prunable("apps"): error: %s`, err)
-	}
-
-	if got, want := prunable, false; got != want {
-		t.Errorf("prunable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Prunable("apps")`)
+	assert.False(t, prunable, "prunable")
 
 	prunable, err = mgr.Prunable("crypto")
-	if err != nil {
-		t.Errorf(`mgr.Prunable("crypto"): error: %s`, err)
-	}
-
-	if got, want := prunable, true; got != want {
-		t.Errorf("prunable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Prunable("crypto")`)
+	assert.True(t, prunable, "prunable")
 
 	prunable, err = mgr.Prunable("api")
-	if err != nil {
-		t.Errorf(`mgr.Prunable("api"): error: %s`, err)
-	}
-
-	if got, want := prunable, false; got != want {
-		t.Errorf("prunable = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Prunable("api")`)
+	assert.False(t, prunable, "prunable")
 
 	_, err = mgr.Prunable("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Prunable("http")`)
 }
 
 func TestManager_Expose(t *testing.T) {
@@ -805,38 +735,25 @@ func TestManager_Expose(t *testing.T) {
 	mgr := createTestMgr(ctx, t, ctrl)
 	defer mgr.StopAll()
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err := mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
 	exposed, err := mgr.Expose("apps")
-	if err != nil {
-		t.Errorf(`mgr.Expose("apps"): error: %s`, err)
-	}
-
-	if got, want := exposed, interface{}(nil); got != want {
-		t.Errorf("exposed = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Expose("apps")`)
+	assert.Nil(t, exposed, "exposed")
 
 	exposed, err = mgr.Expose("api")
-	if err != nil {
-		t.Errorf(`mgr.Expose("api"): error: %s`, err)
-	}
-
-	if got, want := exposed, "api"; got != want {
-		t.Errorf("exposed = %v want %v", got, want)
-	}
+	assert.NoError(t, err, `mgr.Expose("api")`)
+	assert.Equal(t, "api", exposed, "exposed")
 
 	_, err = mgr.Expose("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Expose("http")`)
 }
 
 func assertChan(t *testing.T, ch <-chan struct{}) {
 	select {
 	case <-time.After(time.Second):
-		t.Errorf("channel didn't receive")
+		assert.Fail(t, "channel didn't receive")
 	case <-ch:
 	}
 }
@@ -852,20 +769,15 @@ func TestManager_Starting(t *testing.T) {
 	defer mgr.StopAll()
 
 	ch, err := mgr.Starting("api")
-	if err != nil {
-		t.Errorf(`mgr.Starting("api"): error: %s`, err)
-	}
+	assert.NoError(t, err, `mgr.Starting("api")`)
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err = mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
 	assertChan(t, ch)
 
 	_, err = mgr.Starting("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Starting("http")`)
 }
 
 func TestManager_Running(t *testing.T) {
@@ -879,20 +791,15 @@ func TestManager_Running(t *testing.T) {
 	defer mgr.StopAll()
 
 	ch, err := mgr.Running("api")
-	if err != nil {
-		t.Errorf(`mgr.Running("api"): error: %s`, err)
-	}
+	assert.NoError(t, err, `mgr.Running("api")`)
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err = mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
 	assertChan(t, ch)
 
 	_, err = mgr.Running("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Running("http")`)
 }
 
 func TestManager_Stopping(t *testing.T) {
@@ -906,24 +813,18 @@ func TestManager_Stopping(t *testing.T) {
 	defer mgr.StopAll()
 
 	ch, err := mgr.Stopping("api")
-	if err != nil {
-		t.Errorf(`mgr.Stopping("api"): error: %s`, err)
-	}
+	assert.NoError(t, err, `mgr.Stopping("api")`)
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err = mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
-	if err := mgr.Stop("api"); err != nil {
-		t.Errorf(`mgr.Stop("api"): error: %s`, err)
-	}
+	err = mgr.Stop("api")
+	assert.NoError(t, err, `mgr.Stop("api")`)
 
 	assertChan(t, ch)
 
 	_, err = mgr.Stopping("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Stopping("http")`)
 }
 
 func TestManager_Stopped(t *testing.T) {
@@ -937,34 +838,26 @@ func TestManager_Stopped(t *testing.T) {
 	defer mgr.StopAll()
 
 	ch, err := mgr.Stopped("api")
-	if err != nil {
-		t.Errorf(`mgr.Stopped("api"): error: %s`, err)
-	}
+	assert.NoError(t, err, `mgr.Stopped("api")`)
 
-	if err := mgr.Start("api"); err != nil {
-		t.Errorf(`mgr.Start("api"): error: %s`, err)
-	}
+	err = mgr.Start("api")
+	assert.NoError(t, err, `mgr.Start("api")`)
 
-	if err := mgr.Stop("api"); err != nil {
-		t.Errorf(`mgr.Stop("api"): error: %s`, err)
-	}
+	err = mgr.Stop("api")
+	assert.NoError(t, err, `mgr.Stop("api")`)
 
 	assertChan(t, ch)
 
 	_, err = mgr.Stopped("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Stopped("http")`)
 }
 
 func assertChanErr(t *testing.T, ch <-chan error) {
 	select {
 	case <-time.After(time.Second):
-		t.Errorf("channel didn't receive")
+		assert.Fail(t, "channel didn't receive")
 	case err := <-ch:
-		if err == nil {
-			t.Errorf("channel received nil")
-		}
+		assert.Error(t, err, "channel received nil")
 	}
 }
 
@@ -979,24 +872,17 @@ func TestManager_Errored(t *testing.T) {
 	defer mgr.StopAll()
 
 	ch, err := mgr.Errored("crash-stop")
-	if err != nil {
-		t.Errorf(`mgr.Errored("crash-stop"): error: %s`, err)
-	}
+	assert.NoError(t, err, `mgr.Errored("crash-stop")`)
 
-	if err := mgr.Start("crash-stop"); err != nil {
-		t.Errorf(`mgr.Start("crash-stop"): error: %s`, err)
-	}
+	err = mgr.Start("crash-stop")
+	assert.NoError(t, err, `mgr.Start("crash-stop")`)
 
-	if got, want := errors.Cause(mgr.Stop("crash-stop")), errMockCrash; got != want {
-		t.Errorf(`mgr.Stop("crash-stop"): error = %v want %v`, got, want)
-	}
+	assert.Equal(t, errMockCrash, errors.Cause(mgr.Stop("crash-stop")), `mgr.Stop("crash-stop")`)
 
 	assertChanErr(t, ch)
 
 	_, err = mgr.Errored("http")
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf(`err = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), `mgr.Errored("http")`)
 }
 
 type testService struct {
@@ -1191,21 +1077,13 @@ func testMgrDeps(t *testing.T, test mgrDepsTest) {
 
 	got, err := mgr.Deps(test.sid)
 	if err != nil {
-		if got, want := errors.Cause(err), test.err; got != want {
-			t.Errorf(
-				"mgr.Deps(%v): error = %v want %v",
-				test.sid, got, want,
-			)
-		}
-
+		assert.Equalf(t, test.err, errors.Cause(err), "mgr.Deps(%v)", test.sid)
 		return
 	}
 
 	gots, wants := fmt.Sprintf("%v", got), fmt.Sprintf("%v", test.want)
 
-	if gots != wants {
-		t.Errorf("mgr.Deps(%v) = %v want %v", test.sid, gots, wants)
-	}
+	assert.Equalf(t, wants, gots, "mgr.Deps(%v)", test.sid)
 }
 
 func TestManager_Deps(t *testing.T) {
@@ -1227,9 +1105,8 @@ func TestManager_FGraph(t *testing.T) {
 	defer mgr.StopAll()
 
 	w := bytes.NewBuffer(nil)
-	if err := mgr.Fgraph(w, "apps", ""); err != nil {
-		t.Errorf(`mgr.Fgraph(w, "apps", ""): error: %s`, err)
-	}
+	err := mgr.Fgraph(w, "apps", "")
+	assert.NoError(t, err, "mgr.Fgraph()")
 
 	got := w.String()
 	want := `apps┬crypto─fs
@@ -1239,10 +1116,5 @@ func TestManager_FGraph(t *testing.T) {
     └net
 `
 
-	if got != want {
-
-		t.Errorf(`mgr.Fgraph(w, "apps", "") =
-%s want
-%s`, got, want)
-	}
+	assert.Equal(t, want, got, "mgr.Fgraph")
 }

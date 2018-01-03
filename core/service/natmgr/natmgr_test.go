@@ -23,6 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/natmgr/mocknatmgr"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 	bhost "gx/ipfs/Qma23bpHwQrQyvKeBemaeJh7sAoRHggPkgnge1B9489ff5/go-libp2p/p2p/host/basic"
@@ -32,17 +34,13 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 
-	if err := serv.SetConfig(config); err != nil {
-		t.Fatalf("serv.SetConfig(config): error: %s", err)
-	}
+	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
 		"host": host,
 	}
 
-	if err := serv.Plug(deps); err != nil {
-		t.Fatalf("serv.Plug(deps): error: %s", err)
-	}
+	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
 
 	return serv
 }
@@ -72,10 +70,7 @@ func TestService_Expose(t *testing.T) {
 	serv := testService(ctx, t, host)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
-	_, ok := exposed.(bhost.NATManager)
-	if got, want := ok, true; got != want {
-		t.Errorf("ok = %v want %v", got, want)
-	}
+	assert.Implements(t, (*bhost.NATManager)(nil), exposed, "exposed type")
 }
 
 func TestService_Run(t *testing.T) {
@@ -103,22 +98,24 @@ func TestService_Needs(t *testing.T) {
 		[]string{"myhost"},
 	}}
 
+	toSet := func(keys []string) map[string]struct{} {
+		set := map[string]struct{}{}
+		for _, v := range keys {
+			set[v] = struct{}{}
+		}
+
+		return set
+	}
+
 	for _, tt := range tests {
-		serv := Service{}
-		config := serv.Config().(Config)
-		tt.set(&config)
+		t.Run(tt.name, func(t *testing.T) {
+			serv := Service{}
+			config := serv.Config().(Config)
+			tt.set(&config)
 
-		if err := serv.SetConfig(config); err != nil {
-			t.Errorf("%s: serv.SetConfig(config): error: %s", tt.name, err)
-			continue
-		}
-
-		needs := serv.Needs()
-		for _, n := range tt.needs {
-			if _, ok := needs[n]; !ok {
-				t.Errorf("%s: needs[%q] = nil want struct{}{}", tt.name, n)
-			}
-		}
+			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
+			assert.Equal(t, toSet(tt.needs), serv.Needs())
+		})
 	}
 }
 
@@ -152,20 +149,19 @@ func TestService_Plug(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		serv := Service{}
-		config := serv.Config().(Config)
-		tt.set(&config)
+		t.Run(tt.name, func(t *testing.T) {
+			serv := Service{}
+			config := serv.Config().(Config)
+			tt.set(&config)
 
-		if err := serv.SetConfig(config); err != nil {
-			t.Errorf("%s: serv.SetConfig(config): error: %s", tt.name, err)
-			continue
-		}
+			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
-		err := errors.Cause(serv.Plug(tt.deps))
-		switch {
-		case err != nil && tt.err == errAny:
-		case err != tt.err:
-			t.Errorf("%s: err = %v want %v", tt.name, err, tt.err)
-		}
+			err := errors.Cause(serv.Plug(tt.deps))
+			switch {
+			case err != nil && tt.err == errAny:
+			case err != tt.err:
+				assert.Equal(t, tt.err, err)
+			}
+		})
 	}
 }

@@ -17,6 +17,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+
+	"github.com/pkg/errors"
+	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/alice/core"
 )
 
 // fail prints an error and exits if the error is not nil.
@@ -25,4 +29,38 @@ func fail(err error) {
 		fmt.Fprintf(os.Stderr, "Error: %s.\n", err)
 		os.Exit(1)
 	}
+}
+
+// requireCoreConfigSet loads the core's configuration file and exits on failure.
+func requireCoreConfigSet() core.ConfigurableSet {
+	set := core.NewConfigurableSet(services)
+
+	if err := core.LoadConfig(set, coreCfgFilename); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename, err)
+
+		if os.IsNotExist(errors.Cause(err)) {
+			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
+		}
+
+		os.Exit(1)
+	}
+
+	return set
+}
+
+// requireCLIConfig loads the CLI's configuration file and exits on failure.
+func requireCLIConfigSet() cli.ConfigurableSet {
+	set := cli.NewConfigurableSet()
+
+	if err := cli.LoadConfig(set, cliCfgFilename); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not load the command line interface configuration file %q: %s.\n", cliCfgFilename, err)
+
+		if os.IsNotExist(errors.Cause(err)) {
+			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
+		}
+
+		os.Exit(1)
+	}
+
+	return set
 }

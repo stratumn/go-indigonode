@@ -1116,5 +1116,5 @@ func TestManager_FGraph(t *testing.T) {
     └net
 `
 
-	assert.Equal(t, want, got, "mgr.Fgraph")
+	assert.Equal(t, want, got, "mgr.Fgraph()")
 }

@@ -128,7 +128,7 @@ func TestMigrate_migrationError(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
-	assert.Error(t, err, "Migrate")
+	assert.Error(t, err, "Migrate()")
 }
 
 func TestMigrate_invalidVersion(t *testing.T) {
@@ -141,5 +141,5 @@ func TestMigrate_invalidVersion(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", nil, 0600)
-	assert.Error(t, err, "Migrate")
+	assert.Error(t, err, "Migrate()")
 }

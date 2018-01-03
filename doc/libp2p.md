@@ -37,7 +37,7 @@ stream with a peer.
 
 Defines the Host interface. Implementations expose functions such as
 SetStreamHandler, which adds a handler for a protocol. This is typically done
-by encapsulating an msmux and a swarm.
+by encapsulating a msmux and a swarm.
 
 ### go-libp2p-kad-dht
 

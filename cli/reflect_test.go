@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +30,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/grpc/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -70,9 +71,7 @@ func init() {
 
 func TestReflectors(t *testing.T) {
 	msg, err := desc.LoadMessageDescriptorForMessage(&test.Message{})
-	if err != nil {
-		t.Fatal("failed to load message: ", err)
-	}
+	require.NoError(t, err, "failed to load message")
 
 	tests := []reflectorTest{{
 		"string",
@@ -450,13 +449,8 @@ func TestReflectors(t *testing.T) {
 }
 
 func testReflector(t *testing.T, test reflectorTest) {
-	if got, want := test.r.Supports(test.supported), true; got != want {
-		t.Errorf("test.r.Supports(test.supported) = %v want %v", got, want)
-	}
-
-	if got, want := test.r.Supports(test.unsupported), false; got != want {
-		t.Errorf("test.r.Supports(unsupported) = %v want %v", got, want)
-	}
+	assert.True(t, test.r.Supports(test.supported), "test.r.Supports(test.supported)")
+	assert.False(t, test.r.Supports(test.unsupported), "test.r.Supports(test.unsupported)")
 
 	testReflectorArg(t, test)
 	testReflectorFlag(t, test)
@@ -468,17 +462,10 @@ func testReflectorArg(t *testing.T, test reflectorTest) {
 		for _, argTest := range test.arg {
 			v, err := argReflector.Parse(test.supported, argTest.text)
 			if err != nil && !argTest.fails {
-				t.Errorf(
-					"argReflector.Parse(test.supported, %q): error: %s",
-					argTest.text, err,
-				)
+				assert.Failf(t, "unexpected error", "argReflector.Parse(test.supported, %q)", argTest.text)
 			}
-			if got, want := v, argTest.want; !reflect.DeepEqual(got, want) {
-				t.Errorf(
-					"argReflector.Parse(test.supported, %q): v = %v want %v",
-					argTest.text, got, want,
-				)
-			}
+
+			assert.EqualValuesf(t, argTest.want, v, "argReflector.Parse(test.supported, %q)", argTest.text)
 		}
 	}
 }
@@ -489,9 +476,7 @@ func testReflectorFlag(t *testing.T, test reflectorTest) {
 			r := csv.NewReader(strings.NewReader(flagTest.text))
 			r.Comma = ' '
 			args, err := r.Read()
-			if err != nil {
-				t.Errorf("r.Read(): error: %s", err)
-			}
+			assert.NoError(t, err, "r.Read()")
 
 			f := pflag.NewFlagSet(test.name, pflag.ContinueOnError)
 			flagReflector.Flag(test.supported, f)
@@ -499,17 +484,10 @@ func testReflectorFlag(t *testing.T, test reflectorTest) {
 
 			v, err := flagReflector.ParseFlag(test.supported, f)
 			if err != nil && !flagTest.fails {
-				t.Errorf(
-					"flagReflector.ParseFlags(%q, f): error: %s",
-					args, err,
-				)
+				assert.Failf(t, "unexpected error", "flagReflector.ParseFlags(%q, f)", args)
 			}
-			if got, want := v, flagTest.want; !reflect.DeepEqual(got, want) {
-				t.Errorf(
-					"flagReflector.ParseFlags(%q, f): v = %v want %v",
-					args, got, want,
-				)
-			}
+
+			assert.EqualValuesf(t, flagTest.want, v, "flagReflector.ParseFlags(%q, f)", args)
 		}
 	}
 }
@@ -519,17 +497,10 @@ func testReflectorPretty(t *testing.T, test reflectorTest) {
 		for _, prettyTest := range test.pretty {
 			s, err := resReflector.Pretty(test.supported, prettyTest.val)
 			if err != nil && !prettyTest.fails {
-				t.Errorf(
-					"resReflector.Pretty(test.supported, %v): error: %s",
-					prettyTest.val, err,
-				)
+				assert.Failf(t, "unexpected error", "resReflector.Pretty(test.supported, %v)", prettyTest.val)
 			}
-			if got, want := s, prettyTest.want; got != want {
-				t.Errorf(
-					"resReflector.Pretty(test.supported, %v): v = %v want %v",
-					prettyTest.val, got, want,
-				)
-			}
+
+			assert.EqualValuesf(t, prettyTest.want, s, "resReflector.Pretty(test.supported, %v)", prettyTest.val)
 		}
 	}
 }
@@ -741,9 +712,7 @@ func TestServerReflector_Reflect(t *testing.T) {
 	conf := config["cli"].(Config)
 	conf.APIAddress = addr
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(t, err, "New(config)")
 
 	// Set truncate width.
 	c.(*cli).reflector = NewServerReflector(c.Console(), 78)
@@ -751,9 +720,7 @@ func TestServerReflector_Reflect(t *testing.T) {
 	c.Console().Writer = ioutil.Discard
 
 	err = c.Connect(ctx, addr)
-	if err != nil {
-		t.Errorf("c.Connect(ctx, addr): error: %s", err)
-	}
+	assert.NoError(t, err, "c.Connect(ctx, addr)")
 
 	for _, tt := range serverReflectorTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -763,9 +730,8 @@ func TestServerReflector_Reflect(t *testing.T) {
 
 	cancel()
 
-	if err := <-serverCh; err != nil {
-		t.Errorf("testServer(ctx, t, addr): error: %s", err)
-	}
+	err = <-serverCh
+	assert.NoError(t, err, "testServer(ctx, t, addr)")
 }
 
 var (
@@ -783,18 +749,14 @@ func testServerReflectorReflect(ctx context.Context, t *testing.T, c CLI, test r
 	case test.err == errAny && err != nil:
 		// Pass.
 	case test.err == errUse:
-		if _, ok := err.(*UseError); !ok {
-			t.Errorf("%s: error = %v want %v", test.cmd, err, test.err)
-		}
+		_, ok := err.(*UseError)
+		assert.True(t, ok, "err.(*UseError)")
 	case err != test.err:
-		t.Errorf("%s: error = %v want %v", test.cmd, err, test.err)
+		assert.Failf(t, "unexpected error", "%s", test.cmd)
 	}
 
 	got, want := trimLines(buf.String()), trimLines(test.want)
-
-	if got != want {
-		t.Errorf("%s =>\n\n%s\n\nwant\n\n%s", test.cmd, got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func trimLines(s string) string {

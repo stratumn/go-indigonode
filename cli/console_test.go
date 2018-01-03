@@ -17,6 +17,8 @@ package cli
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConsole_print(t *testing.T) {
@@ -42,18 +44,14 @@ func TestConsole_print(t *testing.T) {
 		cons.color = false
 
 		tt.fn("test")
-		if got, want := buf.String(), "test"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, "test", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		if tt.debug {
 			cons.SetDebug(false)
 
 			tt.fn("test")
-			if got, want := buf.String(), ""; got != want {
-				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, tt.name, got, want)
-			}
+			assert.Equalf(t, "", buf.String(), "%s: nodebug: test.fn(\"test\")", tt.name)
 			buf.Reset()
 		}
 
@@ -66,9 +64,7 @@ func TestConsole_print(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, want, buf.String(), "%s: color: test.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 
@@ -97,18 +93,14 @@ func TestConsole_println(t *testing.T) {
 		cons.color = false
 
 		tt.fn("test")
-		if got, want := buf.String(), "test\n"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, "test\n", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		if tt.debug {
 			cons.SetDebug(false)
 
 			tt.fn("test\n")
-			if got, want := buf.String(), ""; got != want {
-				t.Errorf(`%s: nodebug: test.fn("test") => %v want %v`, tt.name, got, want)
-			}
+			assert.Equalf(t, "", buf.String(), "%s: nodebug: test.fn(\"test\")", tt.name)
 			buf.Reset()
 		}
 
@@ -120,9 +112,7 @@ func TestConsole_println(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, want, buf.String(), "%s: color: test.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 }
@@ -150,9 +140,7 @@ func TestConsole_printf(t *testing.T) {
 		cons.color = false
 
 		tt.fn("%s", "test")
-		if got, want := buf.String(), "test"; got != want {
-			t.Errorf(`%s: debug: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, "test", buf.String(), "%s: debug: test.fn(\"test\")", tt.name)
 		buf.Reset()
 
 		cons.color = true
@@ -162,9 +150,7 @@ func TestConsole_printf(t *testing.T) {
 		if tt.color != "" {
 			want = tt.color + want + ansiReset
 		}
-		if got := buf.String(); got != want {
-			t.Errorf(`%s: color: test.fn("test") => %v want %v`, tt.name, got, want)
-		}
+		assert.Equalf(t, want, buf.String(), "%s: debug: color.fn(\"test\")", tt.name)
 		buf.Reset()
 	}
 }

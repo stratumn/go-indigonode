@@ -23,6 +23,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/stratumn/alice/script"
+	"github.com/stretchr/testify/assert"
 )
 
 type basicContentMock string
@@ -45,17 +46,13 @@ func TestBasicCmdWrapper_strings(t *testing.T) {
 		Short: "A test command",
 	}}
 
-	if got, want := cmd.Name(), "cmd"; got != want {
-		t.Errorf("cmd.Name() = %v want %v", got, want)
-	}
-
-	if got, want := cmd.Short(), "A test command"; got != want {
-		t.Errorf("cmd.Short() = %v want %v", got, want)
-	}
-
-	if got, want := cmd.Long(), "A test command\n\nUsage:\n  cmd\n\nFlags:\n  -h, --help   Invoke help on command"; got != want {
-		t.Errorf("cmd.Long() = \n%v want\n%v", got, want)
-	}
+	assert := assert.New(t)
+	assert.Equal("cmd", cmd.Name(), "invalid command name")
+	assert.Equal("A test command", cmd.Short(), "invalid command short description")
+	assert.Equal(
+		"A test command\n\nUsage:\n  cmd\n\nFlags:\n  -h, --help   Invoke help on command",
+		cmd.Long(),
+		"invalid command long description")
 }
 
 func TestBasicCmdWrapper_strings_noFlags(t *testing.T) {
@@ -65,9 +62,7 @@ func TestBasicCmdWrapper_strings_noFlags(t *testing.T) {
 		NoFlags: true,
 	}}
 
-	if got, want := cmd.Long(), "A test command\n\nUsage:\n  cmd"; got != want {
-		t.Errorf("cmd.Long() = \n%v want\n%v", got, want)
-	}
+	assert.Equal(t, "A test command\n\nUsage:\n  cmd", cmd.Long(), "invalid command long description")
 }
 
 func TestBasicCmdWrapper_Suggest(t *testing.T) {
@@ -125,9 +120,7 @@ func TestBasicCmdWrapper_Suggest(t *testing.T) {
 		got := fmt.Sprintf("%s", completions)
 		want := fmt.Sprintf("%s", tt.expect)
 
-		if got != want {
-			t.Errorf("%s: completions = %v want %v", tt.name, got, want)
-		}
+		assert.Equalf(t, want, got, "%s: invalid completions", tt.name)
 	}
 }
 
@@ -160,13 +153,11 @@ func TestBasicCmdWrapper_Exec(t *testing.T) {
 		},
 	}, nil)
 
-	if err != nil {
-		t.Errorf(`cmd.Exec(): error: %s`, err)
-	}
+	assert.NoError(t, err)
 
 	select {
 	case <-execCh:
 	case <-ctx.Done():
-		t.Errorf("command was not executed")
+		assert.Fail(t, "command was not executed")
 	}
 }

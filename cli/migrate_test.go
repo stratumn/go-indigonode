@@ -21,27 +21,25 @@ import (
 	"testing"
 
 	"github.com/pelletier/go-toml"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMigrations(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
-	}
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
 
 	filename := filepath.Join(dir, "cfg.toml")
 
 	// Save original configuration.
-	if err := ioutil.WriteFile(filename, []byte(confZero), 0600); err != nil {
-		t.Fatalf("ioutil.WriteFile(filename, []byte(confZero), 0600): error: %s", err)
-	}
+	err = ioutil.WriteFile(filename, []byte(confZero), 0600)
+	require.NoError(t, err, "ioutil.WriteFile(filename, []byte(confZero), 0600)")
 
 	set := NewConfigurableSet()
 
 	// Migrate and load.
-	if err := LoadConfig(set, filename); err != nil {
-		t.Fatalf("LoadConfig(set, filename): error: %s", err)
-	}
+	err = LoadConfig(set, filename)
+	require.NoError(t, err, "LoadConfig(set, filename)")
 
 	migratedConf := set.Configs()
 
@@ -53,8 +51,8 @@ func TestMigrations(t *testing.T) {
 		gotBuf := bytes.NewBuffer(nil)
 		enc := toml.NewEncoder(gotBuf)
 		enc.QuoteMapKeys(true)
-		if err := enc.Encode(gotVal); err != nil {
-			t.Errorf("%s: enc.Encode(gotVal): error: %s", k, err)
+		err := enc.Encode(gotVal)
+		if !assert.NoErrorf(t, err, "%s: enc.Encode(gotVal)", k) {
 			continue
 		}
 
@@ -62,14 +60,12 @@ func TestMigrations(t *testing.T) {
 		wantBuf := bytes.NewBuffer(nil)
 		enc = toml.NewEncoder(wantBuf)
 		enc.QuoteMapKeys(true)
-		if err := enc.Encode(wantVal); err != nil {
-			t.Errorf("%s: enc.Encode(wantVal): error: %s", k, err)
+		err = enc.Encode(wantVal)
+		if !assert.NoErrorf(t, err, "%s: enc.Encode(wantVal)", k) {
 			continue
 		}
 
-		if got, want := gotBuf.String(), wantBuf.String(); got != want {
-			t.Errorf("%s: got:\n%s\nwant\n%s\n", k, got, want)
-		}
+		assert.Equalf(t, wantBuf.String(), gotBuf.String(), "%s", k)
 	}
 }
 

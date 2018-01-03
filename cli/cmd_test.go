@@ -26,6 +26,8 @@ import (
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
 	"github.com/stratumn/alice/script"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -67,9 +69,7 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 
 	parser := script.NewParser(script.NewScanner())
 	list, err := parser.Parse(e.Command)
-	if err != nil {
-		t.Fatalf("%s: parser error: %s", e.Command, err)
-	}
+	require.NoError(t, err, "parser error")
 
 	if list == nil {
 		return nil, nil
@@ -111,11 +111,10 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 	case e.Err == ErrAny && err != nil:
 		// Pass.
 	case e.Err == ErrUse:
-		if _, ok := err.(*cli.UseError); !ok {
-			t.Errorf("%s: error = %v want %v", e.Command, err, e.Err)
-		}
+		_, ok := err.(*cli.UseError)
+		assert.True(t, ok, "err.(*cli.UseError)")
 	case err != e.Err:
-		t.Errorf("%s: error = %v want %v", e.Command, err, e.Err)
+		assert.Fail(t, "err != e.Err")
 	}
 
 	got := buf.String()
@@ -129,7 +128,5 @@ func (e ExecTest) Test(t *testing.T, cmd cli.Cmd) {
 		}
 	}
 
-	if got != e.Want {
-		t.Errorf("%s =>\n%s\nwant\n\n%s", e.Command, got, e.Want)
-	}
+	assert.Equal(t, e.Want, got)
 }

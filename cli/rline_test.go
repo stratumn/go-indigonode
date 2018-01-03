@@ -24,6 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRline(t *testing.T) {
@@ -53,6 +54,6 @@ func TestRline(t *testing.T) {
 	select {
 	case <-runCh:
 	case <-time.After(time.Second):
-		t.Errorf("prompt did not stop")
+		assert.Fail(t, "prompt did not stop")
 	}
 }

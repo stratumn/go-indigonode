@@ -27,6 +27,8 @@ import (
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/release"
 	"github.com/stratumn/alice/script"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -75,9 +77,7 @@ func TestCli_New_invalidConfig(t *testing.T) {
 
 	_, err := New(config)
 
-	if got, want := errors.Cause(err), ErrInvalidConfig; got != want {
-		t.Errorf("New(config): error = %s want %s", got, want)
-	}
+	assert.Equal(t, ErrInvalidConfig, errors.Cause(err), "invalid error")
 }
 
 func TestCli_Connect(t *testing.T) {
@@ -90,32 +90,26 @@ func TestCli_Connect(t *testing.T) {
 		serverCh <- testServer(ctx, t, addr)
 	}()
 
+	assert := assert.New(t)
+
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+
+	assert.NoError(err, "New(config)")
 
 	c.Console().Writer = ioutil.Discard
 
 	err = c.Connect(ctx, addr)
-	if err != nil {
-		t.Errorf("c.Connect(ctx, addr): error: %s", err)
-	}
+	assert.NoError(err, "c.Connect(ctx, addr)")
 
-	if got, want := c.Address(), addr; got != want {
-		t.Errorf("c.Address() = %s want %s", got, want)
-	}
+	assert.Equal(addr, c.Address(), "c.Address()")
 
 	err = c.Disconnect()
-	if err != nil {
-		t.Errorf("c.Disconnect(): error: %s", err)
-	}
+	assert.NoError(err, "c.Disconnect()")
 
 	cancel()
-	if err := <-serverCh; err != nil {
-		t.Errorf("testServer(ctx, t, addr): error: %s", err)
-	}
+	err = <-serverCh
+	assert.NoError(err, "testServer(ctx, t, addr)")
 }
 
 func TestCli_Start(t *testing.T) {
@@ -128,15 +122,15 @@ func TestCli_Start(t *testing.T) {
 		serverCh <- testServer(ctx, t, addr)
 	}()
 
+	assert := assert.New(t)
+
 	config := NewConfigurableSet().Configs()
 	conf := config["cli"].(Config)
 	conf.APIAddress = addr
 	config["cli"] = conf
 
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(err, "New(config) should not fail")
 
 	c.Console().Writer = ioutil.Discard
 
@@ -154,7 +148,7 @@ func TestCli_Start(t *testing.T) {
 	select {
 	case <-promptCh:
 	case <-time.After(10 * time.Second):
-		t.Error("c.Start(ctx) did not start the prompt")
+		assert.Fail("c.Start(ctx) did not start the prompt")
 	}
 
 	cancel()
@@ -162,61 +156,50 @@ func TestCli_Start(t *testing.T) {
 	select {
 	case <-runCh:
 	case <-time.After(10 * time.Second):
-		t.Error("c.Run(ctx) did not return")
+		assert.Fail("c.Run(ctx) did not return")
 	}
 
-	if err := <-serverCh; err != nil {
-		t.Errorf("testServer(ctx, t, addr): error: %s", err)
-	}
+	err = <-serverCh
+	assert.NoError(err, "testServer(ctx, t, addr)")
 }
 
 func TestCli_Exec(t *testing.T) {
+	assert := assert.New(t)
+
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(err, "New(config)")
 
 	buf := bytes.NewBuffer(nil)
 	c.Console().Writer = buf
 
 	ctx := context.Background()
 	err = c.Exec(ctx, "cli-version")
-	if err != nil {
-		t.Errorf(`c.Exec("cli-version"): error: %s`, err)
-	}
+	assert.NoError(err, "c.Exec(ctx, \"cli-version\")")
 
 	got := buf.String()
 	want := release.Version + "@" + release.GitCommit + "\n"
 
-	if got != want {
-		t.Errorf("c.Exec(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)
-	}
+	assert.Equal(want, got, "c.Exec(ctx, \"cli-version\")")
 }
 
 func TestCli_Exec_error(t *testing.T) {
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(t, err, "New(config)")
 
 	c.Console().Writer = ioutil.Discard
 
 	ctx := context.Background()
 	err = errors.Cause(c.Exec(ctx, "version"))
 
-	if err != script.ErrUnknownFunc {
-		t.Errorf("c.Exec(ctx, \"version\"): error = %v want %v", err, script.ErrUnknownFunc)
-	}
+	assert.Equal(t, script.ErrUnknownFunc, err, "c.Exec(ctx, \"version\")")
 }
 
 func TestCli_Run(t *testing.T) {
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(t, err, "New(config)")
 
 	buf := bytes.NewBuffer(nil)
 	c.Console().Writer = buf
@@ -227,17 +210,13 @@ func TestCli_Run(t *testing.T) {
 	got := buf.String()
 	want := release.Version + "@" + release.GitCommit + "\n"
 
-	if got != want {
-		t.Errorf("c.Run(ctx, \"cli-version\") =>\n%s\nwant\n\n%s", got, want)
-	}
+	assert.Equal(t, want, got, "c.Run(ctx, \"cli-version\")")
 }
 
 func TestCli_Run_error(t *testing.T) {
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(t, err, "New(config)")
 
 	buf := bytes.NewBuffer(nil)
 	c.Console().Writer = buf
@@ -248,60 +227,41 @@ func TestCli_Run_error(t *testing.T) {
 	got := buf.String()
 	want := ansiRed + "Error: 1:1: version: unknown function.\n" + ansiReset
 
-	if got != want {
-		t.Errorf("c.Run(ctx, \"version\") =>\n%s\nwant\n\n%s", got, want)
-	}
+	assert.Equal(t, want, got, "c.Run(ctx, \"version\")")
 }
 
 func TestCli_Suggest(t *testing.T) {
+	assert := assert.New(t)
+
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(err, "New(config)")
 
 	sugs := c.Suggest(basicContentMock("api"))
-	if got, want := len(sugs), 3; got != want {
-		t.Fatalf("len(sugs) = %d want %d", got, want)
-	}
+	require.Equal(t, 3, len(sugs), "len(sugs)")
 
-	if got, want := sugs[0].Text, "api-address"; got != want {
-		t.Errorf("sugs[0].Text = %v want %v", got, want)
-	}
-
-	if got, want := sugs[1].Text, "api-connect"; got != want {
-		t.Errorf("sugs[1].Text = %v want %v", got, want)
-	}
-
-	if got, want := sugs[2].Text, "api-disconnect"; got != want {
-		t.Errorf("sugs[2].Text = %v want %v", got, want)
-	}
+	assert.Equal("api-address", sugs[0].Text, "sugs[0].Text")
+	assert.Equal("api-connect", sugs[1].Text, "sugs[1].Text")
+	assert.Equal("api-disconnect", sugs[2].Text, "sugs[2].Text")
 }
 
 func TestCli_DidJustExecute(t *testing.T) {
+	assert := assert.New(t)
+
 	config := NewConfigurableSet().Configs()
 	c, err := New(config)
-	if err != nil {
-		t.Errorf("New(config): error: %s", err)
-	}
+	assert.NoError(err, "New(config)")
 
 	c.Console().Writer = ioutil.Discard
 
 	ctx := context.Background()
 
-	if got, want := c.DidJustExecute(), false; got != want {
-		t.Errorf("c.DidJustExecute() = %v want %v", got, want)
-	}
+	assert.False(c.DidJustExecute(), "c.DidJustExecute()")
 
 	c.Run(ctx, "cli-version")
 
-	if got, want := c.DidJustExecute(), true; got != want {
-		t.Errorf("c.DidJustExecute() = %v want %v", got, want)
-	}
-
-	if got, want := c.DidJustExecute(), false; got != want {
-		t.Errorf("c.DidJustExecute() = %v want %v", got, want)
-	}
+	assert.True(c.DidJustExecute(), "c.DidJustExecute()")
+	assert.False(c.DidJustExecute(), "c.DidJustExecute()")
 }
 
 func sym(s string) script.SExp {
@@ -312,15 +272,9 @@ func TestResolver(t *testing.T) {
 	c := script.NewClosure()
 
 	got, err := Resolver(c, sym("a"))
-	if err != nil {
-		t.Error(`cliResolver(sym("a")): error: `, err)
-	} else {
-		if got, want := got.String(), `"a"`; got != want {
-			t.Errorf(`cliResolver(sym("a")): v = %s want %s `, got, want)
-		}
-	}
+	assert.NoError(t, err, "cliResolver(sym(\"a\"))")
+	assert.Equal(t, "\"a\"", got.String(), "cliResolver(sym(\"a\"))")
 
-	if _, err := Resolver(c, sym("$a")); err == nil {
-		t.Error(`cliResolver(sym("$a")): did not get an error`)
-	}
+	_, err = Resolver(c, sym("$a"))
+	assert.Error(t, err, "cliResolver(sym(\"$a\"))")
 }

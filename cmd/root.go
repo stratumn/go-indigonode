@@ -18,10 +18,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
 )
 
@@ -58,38 +56,4 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
-}
-
-// requireCoreConfigSet loads the core's configuration file and exits on failure.
-func requireCoreConfigSet() core.ConfigurableSet {
-	set := core.NewConfigurableSet(services)
-
-	if err := core.LoadConfig(set, coreCfgFilename); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename, err)
-
-		if os.IsNotExist(errors.Cause(err)) {
-			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
-		}
-
-		os.Exit(1)
-	}
-
-	return set
-}
-
-// requireCLIConfig loads the CLI's configuration file and exits on failure.
-func requireCLIConfigSet() cli.ConfigurableSet {
-	set := cli.NewConfigurableSet()
-
-	if err := cli.LoadConfig(set, cliCfgFilename); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not the load command line interface configuration file %q: %s.\n", cliCfgFilename, err)
-
-		if os.IsNotExist(errors.Cause(err)) {
-			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
-		}
-
-		os.Exit(1)
-	}
-
-	return set
 }

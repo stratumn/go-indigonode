@@ -6,7 +6,7 @@ is a little more work but it's still very reasonable, and the CLI uses
 reflection to automatically add new commands, so you don't have to worry about
 that part.
 
-Adding new services to Alice is easy. A sevice needs to implement at least the
+Adding new services to Alice is easy. A service needs to implement at least the
 three methods of the `Service` interface (`ID`, `Name`, and `Desc`). You can
 start from this template, which implements all the most commonly used
 interfaces:

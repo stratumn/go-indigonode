@@ -18,6 +18,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testConfig struct {
@@ -53,9 +56,7 @@ func (h *testHandler) SetConfig(config interface{}) error {
 
 func TestCfg(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
-	}
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
 
 	filename := filepath.Join(dir, "cfg.toml")
 
@@ -66,9 +67,8 @@ func TestCfg(t *testing.T) {
 		"tar": &tarSave,
 	}
 
-	if err := Save(setSave, filename, 0644, false); err != nil {
-		t.Fatalf("Save(filename): error: %s", err)
-	}
+	err = Save(setSave, filename, 0644, false)
+	require.NoError(t, err, "Save(filename)")
 
 	zipLoad := testHandler{name: "default"}
 	tarLoad := testHandler{name: "default"}
@@ -77,15 +77,9 @@ func TestCfg(t *testing.T) {
 		"tar": &tarLoad,
 	}
 
-	if err := Load(setLoad, filename); err != nil {
-		t.Fatalf("Load(filename): error: %s", err)
-	}
+	err = Load(setLoad, filename)
+	require.NoError(t, err, "Load(filename)")
 
-	if got, want := zipLoad.name, zipSave.name; got != want {
-		t.Errorf("Load(filename): zipLoad.name = %q want %q", got, want)
-	}
-
-	if got, want := tarLoad.name, tarSave.name; got != want {
-		t.Errorf("Load(filename): tarLoad.name = %q want %q", got, want)
-	}
+	assert.Equal(t, zipSave.name, zipLoad.name, "zipLoad")
+	assert.Equal(t, tarSave.name, tarLoad.name, "tarLoad")
 }

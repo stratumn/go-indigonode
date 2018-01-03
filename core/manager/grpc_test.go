@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/manager/mockmanager"
 	pb "github.com/stratumn/alice/grpc/manager"
 	mockpb "github.com/stratumn/alice/grpc/manager/mockmanager"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGRPCServer_List(t *testing.T) {
@@ -45,9 +46,8 @@ func TestGRPCServer_List(t *testing.T) {
 	ss.EXPECT().Send(serv1).Times(1)
 	ss.EXPECT().Send(serv2).Times(1)
 
-	if err := s.List(req, ss); err != nil {
-		t.Errorf("s.List(req, ss): error: %s", err)
-	}
+	err := s.List(req, ss)
+	assert.NoError(t, err, "s.List(req, ss)")
 }
 
 func TestGRPCServer_Start(t *testing.T) {
@@ -70,31 +70,20 @@ func TestGRPCServer_Start(t *testing.T) {
 
 	req := &pb.StartReq{Id: "serv1"}
 	res, err := s.Start(ctx, req)
-	if err != nil {
-		t.Errorf("s.Start(ctx, req): error: %s", err)
-	}
+	assert.NoError(t, err, "s.Start(ctx, req)")
 
-	if got, want := res.Id, serv.Id; got != want {
-		t.Errorf("res.Id = %q want %q", got, want)
-	}
-
-	if got, want := res.Status, serv.Status; got != want {
-		t.Errorf("res.Status = %q want %q", got, want)
-	}
+	assert.Equal(t, serv.Id, res.Id, "res.Id")
+	assert.Equal(t, serv.Status, res.Status, "res.Status")
 
 	req = &pb.StartReq{}
 	_, err = s.Start(ctx, req)
-	if got, want := errors.Cause(err), ErrMissingServiceID; got != want {
-		t.Errorf("s.Start(ctx, req): error = %q want %q", got, want)
-	}
+	assert.Equal(t, ErrMissingServiceID, errors.Cause(err), "s.Start(ctx, req)")
 
 	mgr.EXPECT().Start("serv2").Return(ErrNotFound).Times(1)
 
 	req = &pb.StartReq{Id: "serv2"}
 	_, err = s.Start(ctx, req)
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf("s.Start(ctx, req): error = %q want %q", got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), "s.Start(ctx, req)")
 }
 
 func TestGRPCServer_Stop(t *testing.T) {
@@ -118,31 +107,20 @@ func TestGRPCServer_Stop(t *testing.T) {
 
 	req := &pb.StopReq{Id: "serv1"}
 	res, err := s.Stop(ctx, req)
-	if err != nil {
-		t.Errorf("s.Stop(ctx, req): error: %s", err)
-	}
+	assert.NoError(t, err, "s.Stop(ctx, req)")
 
-	if got, want := res.Id, serv.Id; got != want {
-		t.Errorf("res.Id = %q want %q", got, want)
-	}
-
-	if got, want := res.Status, serv.Status; got != want {
-		t.Errorf("res.Status = %q want %q", got, want)
-	}
+	assert.Equal(t, serv.Id, res.Id, "res.Id")
+	assert.Equal(t, serv.Status, res.Status, "res.Status")
 
 	req = &pb.StopReq{}
 	_, err = s.Stop(ctx, req)
-	if got, want := errors.Cause(err), ErrMissingServiceID; got != want {
-		t.Errorf("s.Stop(ctx, req): error = %q want %q", got, want)
-	}
+	assert.Equal(t, ErrMissingServiceID, errors.Cause(err), "s.Stop(ctx, req)")
 
 	mgr.EXPECT().Stop("serv2").Return(ErrNotFound).Times(1)
 
 	req = &pb.StopReq{Id: "serv2"}
 	_, err = s.Stop(ctx, req)
-	if got, want := errors.Cause(err), ErrNotFound; got != want {
-		t.Errorf("s.Stop(ctx, req): error = %q want %q", got, want)
-	}
+	assert.Equal(t, ErrNotFound, errors.Cause(err), "s.Stop(ctx, req)")
 }
 
 func TestGRPCServer_Stop_Prune(t *testing.T) {
@@ -166,17 +144,10 @@ func TestGRPCServer_Stop_Prune(t *testing.T) {
 
 	req := &pb.StopReq{Id: "serv1", Prune: true}
 	res, err := s.Stop(ctx, req)
-	if err != nil {
-		t.Errorf("s.Stop(ctx, req): error: %s", err)
-	}
+	assert.NoError(t, err, "s.Stop(ctx, req)")
 
-	if got, want := res.Id, serv.Id; got != want {
-		t.Errorf("res.Id = %q want %q", got, want)
-	}
-
-	if got, want := res.Status, serv.Status; got != want {
-		t.Errorf("res.Status = %q want %q", got, want)
-	}
+	assert.Equal(t, serv.Id, res.Id, "res.Id")
+	assert.Equal(t, serv.Status, res.Status, "res.Status")
 }
 
 func TestGRPCServer_Prune(t *testing.T) {
@@ -203,7 +174,6 @@ func TestGRPCServer_Prune(t *testing.T) {
 	ss.EXPECT().Send(serv1).Times(1)
 	ss.EXPECT().Send(serv2).Times(1)
 
-	if err := s.Prune(req, ss); err != nil {
-		t.Errorf("s.Prune(req, ss): error: %s", err)
-	}
+	err := s.Prune(req, ss)
+	assert.NoError(t, err, "s.Prune(req, ss)")
 }

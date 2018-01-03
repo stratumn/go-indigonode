@@ -22,6 +22,8 @@ import (
 
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testVersionConfig struct {
@@ -57,35 +59,31 @@ func createOld(t *testing.T, filename string, version interface{}) {
 	}
 
 	oldTree, err := toml.TreeFromMap(old)
-	if err != nil {
-		t.Fatalf("toml.TreeFromMap(old): error: %s", err)
-	}
+	require.NoError(t, err, "toml.TreeFromMap(old)")
 
 	mode := os.O_WRONLY | os.O_CREATE
 	f, err := os.OpenFile(filename, mode, 0600)
-	if err != nil {
-		t.Fatalf("os.OpenFile(filename, mode, 0600): error: %s", err)
-	}
+	require.NoError(t, err, "os.OpenFile(filename, mode, 0600)")
 
 	defer f.Close()
 
-	if _, err := oldTree.WriteTo(f); err != nil {
-		t.Fatalf("old.Tree.WriteTo(f): error: %s", err)
-	}
+	_, err = oldTree.WriteTo(f)
+	require.NoError(t, err, "old.Tree.WriteTo(f)")
 }
 
 func TestMigrate(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
 	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
-	}
+	require.NoError(err, `ioutil.TempDir("", "")`)
 
 	filename := filepath.Join(dir, "migrate.toml")
 	createOld(t, filename, 1)
 
 	migrations := []MigrateHandler{
 		func(tree *Tree) error {
-			t.Error("migration 0 should not be called")
+			assert.Fail("migration 0 should not be called")
 			return nil
 		},
 		func(tree *Tree) error {
@@ -107,28 +105,16 @@ func TestMigrate(t *testing.T) {
 	}
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
-	if err != nil {
-		t.Fatalf(`LoadWithMigrations(set, filename, "version.version", migrations): error: %s`, err)
-	}
+	require.NoError(err, "Migrate()")
 
-	if got, want := version.config.Version, 3; got != want {
-		t.Errorf("Load(filename): version.Value = %d want %d", got, want)
-	}
-
-	if got, want := zip.version, "2.0.0"; got != want {
-		t.Errorf("Load(filename): zip.version = %q want %q", got, want)
-	}
-
-	if got, want := tar.name, "tar"; got != want {
-		t.Errorf("Load(filename): tar.name = %q want %q", got, want)
-	}
+	assert.Equal(3, version.config.Version, "version.config.Version")
+	assert.Equal("2.0.0", zip.version, "zip.version")
+	assert.Equal("tar", tar.name, "tar.name")
 }
 
 func TestMigrate_migrationError(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
-	}
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
 
 	filename := filepath.Join(dir, "migrate.toml")
 	createOld(t, filename, 0)
@@ -142,16 +128,12 @@ func TestMigrate_migrationError(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
-	if err == nil {
-		t.Error(`LoadWithMigrations(set, filename, "version.version", migrations): expected error`)
-	}
+	assert.Error(t, err, "Migrate()")
 }
 
 func TestMigrate_invalidVersion(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf(`ioutil.TempDir("", ""): error: %s`, err)
-	}
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
 
 	filename := filepath.Join(dir, "migrate.toml")
 	createOld(t, filename, "not an int")
@@ -159,7 +141,5 @@ func TestMigrate_invalidVersion(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", nil, 0600)
-	if err == nil {
-		t.Error(`LoadWithMigrations(set, filename, "version.version", migrations): expected error`)
-	}
+	assert.Error(t, err, "Migrate()")
 }

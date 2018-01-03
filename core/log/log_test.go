@@ -20,6 +20,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type writerTest struct {
@@ -182,9 +184,7 @@ func testWriter(t *testing.T, test writerTest) {
 
 	text := strings.Join(strings.Split(test.text, "\n"), " ") + "\n"
 	_, err := w.Write([]byte(text))
-	if err != nil {
-		t.Error("w.Write([]byte(text)): error: ", err)
-	}
+	assert.NoError(t, err, "w.Write([]byte(text))")
 
 	w.Close()
 	for _, d := range doners {
@@ -195,9 +195,7 @@ func testWriter(t *testing.T, test writerTest) {
 	got := trimLines(buf.String())
 	want := trimLines(test.want)
 
-	if got != want {
-		t.Errorf("w.Write([]byte(test.text)) => \n\n%s\n\nwant\n\n%s ", got, want)
-	}
+	assert.Equal(t, want, got, "w.Write([]byte(test.text))")
 }
 
 func trimLines(s string) string {

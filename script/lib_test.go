@@ -17,6 +17,8 @@ package script
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type libTest struct {
@@ -47,19 +49,15 @@ func testLib(t *testing.T, lib map[string]InterpreterFuncHandler, tests []libTes
 		err := itr.EvalInput(context.Background(), tt.input)
 		if err != nil {
 			if tt.err != "" {
-				if err.Error() != tt.err {
-					t.Errorf("%q: error = %q want %q", tt.input, err, tt.err)
-				}
+				assert.Equal(t, tt.err, err.Error())
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				assert.NoError(t, err)
 			}
 			continue
 		} else if tt.err != "" {
-			t.Errorf("%q: error = <nil> want %q", tt.input, tt.err)
+			assert.Fail(t, tt.err)
 		}
 
-		if got != tt.want {
-			t.Errorf("%q: output = %q want %q", tt.input, got, tt.want)
-		}
+		assert.Equal(t, tt.want, got)
 	}
 }

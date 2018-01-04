@@ -18,6 +18,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type evalTest struct {
@@ -205,17 +207,13 @@ func testInterpreter(t *testing.T, opts ...InterpreterOpt) {
 		err := itr.EvalInput(context.Background(), tt.input)
 		if err != nil {
 			if tt.err != "" {
-				if err.Error() != tt.err {
-					t.Errorf("input\n%s:\nerror = %q want %q", tt.input, err, tt.err)
-				}
+				assert.Equal(t, tt.err, err.Error())
 			} else {
-				t.Errorf("input\n%s:\nerror: %s", tt.input, err)
+				assert.NoError(t, err)
 			}
 			continue
 		}
 
-		if got != tt.want {
-			t.Errorf("input\n%s\noutput\n%s\nwant\n%s", tt.input, got, tt.want)
-		}
+		assert.Equal(t, tt.want, got)
 	}
 }

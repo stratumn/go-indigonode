@@ -136,7 +136,7 @@ $(TEST_LIST): test_%:
 	@$(GO_TEST) $*
 
 system:
-	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system/...
+	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system
 
 # == coverage =================================================================
 coverage: $(COVERAGE_FILE)

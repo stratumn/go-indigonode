@@ -42,7 +42,7 @@ func TestClock(t *testing.T) {
 				}
 
 				ts := time.Unix(0, res.Timestamp)
-				assert.True(t, time.Now().UTC().Sub(ts) <= time.Second, "client.Remote(ctx, &req): unexpected time")
+				assert.WithinDuration(t, time.Now().UTC(), ts, time.Second, "client.Remote(ctx, &req): unexpected time")
 
 				break
 			}

@@ -22,6 +22,7 @@ import (
 
 	"github.com/stratumn/alice/grpc/host"
 	"github.com/stratumn/alice/test/session"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
@@ -36,7 +37,7 @@ func TestRouter_Connect(t *testing.T) {
 			address := "/ipfs/" + node.PeerID().Pretty()
 			addr, err := ma.NewMultiaddr(address)
 			if err != nil {
-				t.Errorf("ma.NewMultiaddr(%q): error: %+v", address, err)
+				assert.NoError(t, err, "ma.NewMultiaddr(address)")
 				continue
 			}
 
@@ -64,7 +65,7 @@ func TestRouter_Connect(t *testing.T) {
 				}
 
 				if err != nil {
-					t.Errorf("ma.NewMultiaddr(%q): error: %+v", msgs[0].RemoteAddress, err)
+					assert.NoError(t, err, "ma.NewMultiaddr(address)")
 					continue
 				}
 

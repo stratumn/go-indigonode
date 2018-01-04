@@ -18,12 +18,12 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTypeCell_String(t *testing.T) {
-	if got, want := SExpCell.String(), "cell"; got != want {
-		t.Errorf("String() = %s want %s", got, want)
-	}
+	assert.Equal(t, "cell", SExpCell.String())
 }
 
 type sexpTest struct {
@@ -101,43 +101,28 @@ func testSExp(t *testing.T, i int, test sexpTest) {
 
 	s := test.sexp
 
-	if got, want := s.UnderlyingType(), test.wantType; got != want {
-		t.Errorf("UnderlyingType() = %s want %s", got, want)
-	}
+	assert.Equal(t, test.wantType, s.UnderlyingType())
 
 	for typ, name := range sexpTypeMap {
-		if typ == SExpInvalid {
-			continue
-		}
-
-		tname := strings.Title(name)
-		gotVal, ok = getVal(s, typ)
-		if test.wantType == typ {
-			if wantVal := test.wantVal; gotVal != wantVal {
-				t.Errorf(
-					"%sVal(): val = %v want %v",
-					tname,
-					gotVal,
-					wantVal,
-				)
+		t.Run(strings.Title(name), func(t *testing.T) {
+			if typ == SExpInvalid {
+				return
 			}
-			if !ok {
-				t.Errorf("%sVal(): ok = %v want %v", tname, ok, true)
-			}
-		} else if ok {
-			t.Errorf("%sVal(): ok = %v want %v", tname, ok, false)
-		}
 
-		if got, want := s.Equals(Nil()), s.IsNil(); got != want {
-			fmt.Println(s)
-			t.Errorf("s.Equals(()) = %v want %v", got, want)
-		}
-
-		for j, tt := range sexpTests {
-			if got, want := s.Equals(tt.sexp), i == j; got != want {
-				t.Errorf("s.Equals(%v) = %v want %v", tt.sexp, got, want)
+			gotVal, ok = getVal(s, typ)
+			if test.wantType == typ {
+				assert.True(t, ok)
+				assert.Equal(t, test.wantVal, gotVal)
+			} else {
+				assert.False(t, ok)
 			}
-		}
+
+			assert.Equal(t, s.IsNil(), s.Equals(Nil()))
+
+			for j, tt := range sexpTests {
+				assert.Equalf(t, i == j, s.Equals(tt.sexp), "%v", tt.sexp)
+			}
+		})
 	}
 }
 
@@ -150,28 +135,17 @@ func TestSExp(t *testing.T) {
 
 func TestSExp_Meta(t *testing.T) {
 	s := String("", Meta{Line: 10})
-
-	if got, want := s.Meta().Line, 10; got != want {
-		t.Errorf("meta = %v want %v", got, want)
-	}
+	assert.Equal(t, 10, s.Meta().Line, "s.Meta().Line")
 }
 
 func TestCell(t *testing.T) {
 	// Pair.
 	c := Cons(Symbol("sym", Meta{}), String("abc", Meta{}), Meta{})
 
-	if got, want := c.Car().MustSymbolVal(), "sym"; got != want {
-		t.Errorf("car = %v want %v", got, want)
-	}
-	if got, want := c.Cdr().MustStringVal(), "abc"; got != want {
-		t.Errorf("car = %q want %q", got, want)
-	}
-	if got, want := IsList(c), false; got != want {
-		t.Errorf("list = %v want %v", got, want)
-	}
-	if slice := ToSlice(c); slice != nil {
-		t.Error("ToSlice() should return <nil>")
-	}
+	assert.Equal(t, "sym", c.Car().MustSymbolVal(), "c.Car().MustSymbolVal()")
+	assert.Equal(t, "abc", c.Cdr().MustStringVal(), "c.Cdr().MustStringVal()")
+	assert.False(t, IsList(c), "IsList(c)")
+	assert.Nil(t, ToSlice(c), "ToSlice(c)")
 
 	// List.
 	c = Cons(
@@ -180,30 +154,15 @@ func TestCell(t *testing.T) {
 		Meta{},
 	)
 
-	if got, want := c.Car().MustSymbolVal(), "a"; got != want {
-		t.Errorf("car = %v want %v", got, want)
-	}
+	assert.Equal(t, "a", c.Car().MustSymbolVal(), "c.Car().MustSymbolVal()")
 	cdr := c.Cdr()
-	if got, want := cdr.Car().MustSymbolVal(), "b"; got != want {
-		t.Errorf("cdar = %v want %v", got, want)
-	}
-	if got := cdr.Cdr().IsNil(); !got {
-		t.Errorf("cddr = %v want %v", got, true)
-	}
-	if got, want := IsList(c), true; got != want {
-		t.Errorf("list = %v want %v", got, want)
-	}
+	assert.Equal(t, "b", cdr.Car().MustSymbolVal(), "cdr.Car().MustSymbolVal()")
+	assert.True(t, cdr.Cdr().IsNil(), "cdr.Cdr().IsNil()")
+	assert.True(t, IsList(c), "IsList(c)")
+
 	slice := ToSlice(c)
-	if slice == nil {
-		t.Error("ToSlice() is nil")
-	}
-	if got, want := len(slice), 2; got != want {
-		t.Errorf("length = %v want %v", got, want)
-	}
-	if got, want := slice[0].MustSymbolVal(), "a"; got != want {
-		t.Errorf("slice[0] = %v want %v", got, want)
-	}
-	if got, want := slice[1].MustSymbolVal(), "b"; got != want {
-		t.Errorf("slice[1] = %v want %v", got, want)
-	}
+	assert.NotNil(t, slice, "ToSlice(c)")
+	assert.Len(t, slice, 2, "ToSlice(c)")
+	assert.Equal(t, "a", slice[0].MustSymbolVal(), "slice[0].MustSymbolVal()")
+	assert.Equal(t, "b", slice[1].MustSymbolVal(), "slice[1].MustSymbolVal()")
 }

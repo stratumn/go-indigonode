@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func sym(s string) SExp {
@@ -28,18 +29,12 @@ func TestNewClosure_env(t *testing.T) {
 	c := NewClosure(ClosureOptEnv([]string{"a=one", "b=two"}))
 
 	got, ok := c.Get("a")
-	if !ok {
-		t.Errorf(`c.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "\"one\"" {
-		t.Errorf(`c.Get("a") = %v want ("one")`, got.String())
-	}
+	assert.True(t, ok, `c.Get("a")`)
+	assert.Equal(t, "\"one\"", got.String(), `c.Get("a")`)
 
 	got, ok = c.Get("b")
-	if !ok {
-		t.Errorf(`c.Get("b"): ok = %v want true`, ok)
-	} else if got.String() != "\"two\"" {
-		t.Errorf(`c.Get("b") = %v want ("two")`, got.String())
-	}
+	assert.True(t, ok, `c.Get("b")`)
+	assert.Equal(t, "\"two\"", got.String(), `c.Get("b")`)
 }
 
 func TestClosure_Set(t *testing.T) {
@@ -47,11 +42,8 @@ func TestClosure_Set(t *testing.T) {
 
 	c.Set("a", sym("one"))
 	got, ok := c.Get("a")
-	if !ok {
-		t.Errorf(`c.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "one" {
-		t.Errorf(`c.Get("a") = %v want one`, got.String())
-	}
+	assert.True(t, ok, `c.Get("a")`)
+	assert.Equal(t, "one", got.String(), `c.Get("a")`)
 }
 
 func TestClosure_Set_overwriteParent(t *testing.T) {
@@ -62,18 +54,12 @@ func TestClosure_Set_overwriteParent(t *testing.T) {
 	c2.Set("a", sym("two"))
 
 	got, ok := c1.Get("a")
-	if !ok {
-		t.Errorf(`c1.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "two" {
-		t.Errorf(`c1.Get("a") = %v want two`, got.String())
-	}
+	assert.True(t, ok, `c1.Get("a")`)
+	assert.Equal(t, "two", got.String(), `c1.Get("a")`)
 
 	got, ok = c2.Get("a")
-	if !ok {
-		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "two" {
-		t.Errorf(`c2.Get("a") = %v want two`, got.String())
-	}
+	assert.True(t, ok, `c2.Get("a")`)
+	assert.Equal(t, "two", got.String(), `c2.Get("a")`)
 }
 
 func TestClosure_Set_new(t *testing.T) {
@@ -83,16 +69,11 @@ func TestClosure_Set_new(t *testing.T) {
 	c2.Set("a", sym("one"))
 
 	_, ok := c1.Get("a")
-	if ok {
-		t.Errorf(`c1.Get("a"): ok = %v want false`, ok)
-	}
+	assert.False(t, ok, `c1.Get("a")`)
 
 	got, ok := c2.Get("a")
-	if !ok {
-		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "one" {
-		t.Errorf(`c2.Get("a") = %v want one`, got.String())
-	}
+	assert.True(t, ok, `c2.Get("a")`)
+	assert.Equal(t, "one", got.String(), `c2.Get("a")`)
 }
 
 func TestClosure_SetLocal(t *testing.T) {
@@ -103,18 +84,12 @@ func TestClosure_SetLocal(t *testing.T) {
 	c2.SetLocal("a", sym("two"))
 
 	got, ok := c1.Get("a")
-	if !ok {
-		t.Errorf(`c1.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "one" {
-		t.Errorf(`c1.Get("a") = %v want one`, got.String())
-	}
+	assert.True(t, ok, `c1.Get("a")`)
+	assert.Equal(t, "one", got.String(), `c1.Get("a")`)
 
 	got, ok = c2.Get("a")
-	if !ok {
-		t.Errorf(`c2.Get("a"): ok = %v want true`, ok)
-	} else if got.String() != "two" {
-		t.Errorf(`c2.Get("a") = %v want two`, got.String())
-	}
+	assert.True(t, ok, `c2.Get("a")`)
+	assert.Equal(t, "two", got.String(), `c2.Get("a")`)
 }
 
 func TestClosure_Local(t *testing.T) {
@@ -123,9 +98,8 @@ func TestClosure_Local(t *testing.T) {
 
 	c2 := NewClosure(ClosureOptParent(c1))
 
-	if _, ok := c2.Local("a"); ok {
-		t.Errorf(`c2.Local("a"): ok = %v want false`, ok)
-	}
+	_, ok := c2.Local("a")
+	assert.False(t, ok, `c2.Local("a")`)
 }
 
 func TestClosure_Resolve(t *testing.T) {
@@ -133,16 +107,11 @@ func TestClosure_Resolve(t *testing.T) {
 
 	c.Set("a", sym("one"))
 	got, err := c.Resolve(sym("a"))
-	if err != nil {
-		t.Error(`c.Resolve(sym("a")): error: `, err)
-	} else if got.String() != "one" {
-		t.Errorf(`c.Resolve(sym("a")) = %v want one`, got.String())
-	}
+	assert.NoError(t, err, `c.Resolve(sym("a"))`)
+	assert.Equal(t, "one", got.String(), `c.Resolve(sym("a"))`)
 
 	_, err = c.Resolve(sym("b"))
-	if got, want := errors.Cause(err), ErrSymNotFound; got != want {
-		t.Errorf(`c.Resolve(sym("b")): error = %v want %v`, got, want)
-	}
+	assert.Equal(t, ErrSymNotFound, errors.Cause(err))
 }
 
 func TestClosure_Resolve_resolver(t *testing.T) {
@@ -150,16 +119,10 @@ func TestClosure_Resolve_resolver(t *testing.T) {
 
 	c.Set("a", sym("one"))
 	got, err := c.Resolve(sym("a"))
-	if err != nil {
-		t.Error(`c.Resolve(sym("a")): error: `, err)
-	} else if got.String() != `"a"` {
-		t.Errorf(`c.Resolve(sym("a")) = %v want "a"`, got.String())
-	}
+	assert.NoError(t, err, `c.Resolve(sym("a"))`)
+	assert.Equal(t, "\"a\"", got.String(), `c.Resolve(sym("a"))`)
 
 	got, err = c.Resolve(sym("b"))
-	if err != nil {
-		t.Error(`c.Resolve(sym("b")): error: `, err)
-	} else if got.String() != `"b"` {
-		t.Errorf(`c.Resolve(sym("b")) = %v want "b"`, got.String())
-	}
+	assert.NoError(t, err, `c.Resolve(sym("b"))`)
+	assert.Equal(t, "\"b\"", got.String(), `c.Resolve(sym("b"))`)
 }

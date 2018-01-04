@@ -17,6 +17,8 @@ package script
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type parserTest struct {
@@ -218,18 +220,14 @@ func TestParser_Parse(t *testing.T) {
 		exp, err := p.Parse(tt.input)
 		if err != nil {
 			if tt.err != "" {
-				if err.Error() != tt.err {
-					t.Errorf("%q: error = %v want %v", tt.input, err, tt.err)
-				}
+				assert.Equal(t, tt.err, err.Error())
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				assert.NoError(t, err)
 			}
 			continue
 		}
 
-		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
-			t.Errorf("%q: sexp = %v want %v", tt.input, got, want)
-		}
+		assert.Equal(t, tt.sexp, fmt.Sprint(exp))
 	}
 }
 
@@ -241,17 +239,13 @@ func TestParser_List(t *testing.T) {
 		exp, err := p.List(tt.input)
 		if err != nil {
 			if tt.err != "" {
-				if err.Error() != tt.err {
-					t.Errorf("%q: error = %v want %v", tt.input, err, tt.err)
-				}
+				assert.Equal(t, tt.err, err.Error())
 			} else {
-				t.Errorf("%q: error: %s", tt.input, err)
+				assert.NoError(t, err)
 			}
 			continue
 		}
 
-		if got, want := fmt.Sprint(exp), tt.sexp; got != want {
-			t.Errorf("%q: sexp = %v want %v", tt.input, got, want)
-		}
+		assert.Equal(t, tt.sexp, fmt.Sprint(exp))
 	}
 }

@@ -21,6 +21,8 @@ import (
 	"github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 	"github.com/stratumn/alice/test/session"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
 
@@ -30,14 +32,9 @@ func TestGrcpAPI_Inform(t *testing.T) {
 			client := grpcapi.NewAPIClient(conns[i])
 
 			res, err := client.Inform(ctx, &grpcapi.InformReq{})
-			if err != nil {
-				t.Errorf("node %d: Inform(): error: %+v", i, err)
-				return
-			}
+			require.NoError(t, err)
 
-			if got, want := res.Protocol, release.Protocol; got != want {
-				t.Errorf("node %d: r.Protocol = %q want %q", i, got, want)
-			}
+			assert.Equal(t, release.Protocol, res.Protocol)
 		}, NumNodes)
 	})
 }

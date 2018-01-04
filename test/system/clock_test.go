@@ -21,6 +21,7 @@ import (
 
 	"github.com/stratumn/alice/grpc/clock"
 	"github.com/stratumn/alice/test/session"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
 
@@ -41,9 +42,7 @@ func TestClock(t *testing.T) {
 				}
 
 				ts := time.Unix(0, res.Timestamp)
-				if time.Now().UTC().Sub(ts) > time.Second {
-					t.Errorf("client.Remote(ctx, &req): unexpected time: %v", ts)
-				}
+				assert.WithinDuration(t, time.Now().UTC(), ts, time.Second, "client.Remote(ctx, &req): unexpected time")
 
 				break
 			}

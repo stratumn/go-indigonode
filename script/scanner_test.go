@@ -15,10 +15,10 @@
 package script
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 type scanTest struct {
@@ -274,33 +274,30 @@ var scanTests = []scanTest{{
 
 func TestScanner_Emit(t *testing.T) {
 	for _, tt := range scanTests {
-		var tokens []Token
-		var errors []string
+		t.Run(tt.input, func(t *testing.T) {
+			var tokens []Token
+			var errors []string
 
-		errHandler := func(err error) {
-			errors = append(errors, err.Error())
-		}
-
-		s := NewScanner(ScannerOptErrorHandler(errHandler))
-		s.SetInput(tt.input)
-
-		for {
-			tok := s.Emit()
-
-			tokens = append(tokens, tok)
-
-			if tok.Type == TokEOF || tok.Type == TokInvalid {
-				break
+			errHandler := func(err error) {
+				errors = append(errors, err.Error())
 			}
-		}
 
-		if !reflect.DeepEqual(tokens, tt.tokens) {
-			t.Errorf("%q: tokens = %v want %v", tt.input, tokens, tt.tokens)
-		}
+			s := NewScanner(ScannerOptErrorHandler(errHandler))
+			s.SetInput(tt.input)
 
-		if !reflect.DeepEqual(errors, tt.errors) {
-			t.Errorf("%q: errors = %q want %q", tt.input, errors, tt.errors)
-		}
+			for {
+				tok := s.Emit()
+
+				tokens = append(tokens, tok)
+
+				if tok.Type == TokEOF || tok.Type == TokInvalid {
+					break
+				}
+			}
+
+			assert.EqualValues(t, tt.tokens, tokens)
+			assert.EqualValues(t, tt.errors, errors)
+		})
 	}
 }
 
@@ -314,7 +311,5 @@ func TestScanner_invalidUTF8(t *testing.T) {
 	s.SetInput(string([]byte{0xff, 0xfe, 0xfd}))
 	s.Emit()
 
-	if want := ErrInvalidUTF8; got != want {
-		t.Errorf("error = %v want %v", got, want)
-	}
+	assert.Equal(t, ErrInvalidUTF8, got)
 }

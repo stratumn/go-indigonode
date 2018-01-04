@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/stratumn/alice/test/session"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -43,7 +44,5 @@ func Test(t *testing.T, fn session.Tester) {
 	defer cancel()
 
 	err := session.Run(ctx, SessionDir, NumNodes, session.SystemCfg(), fn)
-	if err != nil {
-		t.Errorf("Session(): error: %+v", err)
-	}
+	assert.NoError(t, err, "Session()")
 }

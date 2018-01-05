@@ -36,7 +36,7 @@ var upCmd = &cobra.Command{
 		done := make(chan struct{}, 1)
 
 		start := func() {
-			c, err := core.New(services, config)
+			c, err := core.New(config, core.OptServices(services))
 			fail(err)
 
 			err = c.Boot(ctx)

@@ -38,7 +38,7 @@ import (
 	metrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
 )
 
-// Set identify version.
+// Set the identify protocol client version.
 func init() {
 	identify.ClientVersion = "alice/" + release.Version + "/" + release.GitCommit
 }
@@ -153,14 +153,14 @@ func (c *Core) bootScreen(ctx context.Context) error {
 
 	c.hostInfo()
 	fmt.Println("\nPress Ctrl^C to shutdown.")
-	c.stats(ctx)
+	c.nodeMetrics(ctx)
 
 	return nil
 }
 
 // bootStatus shows the services being started.
 func (c *Core) bootStatus(ctx context.Context) error {
-	deps, err := doDeps(c.mgr, c.config.BootService)
+	deps, err := c.mgr.Deps(c.config.BootService)
 	if err != nil {
 		return err
 	}
@@ -171,8 +171,7 @@ func (c *Core) bootStatus(ctx context.Context) error {
 
 		running, err := c.mgr.Running(sid)
 		if err != nil {
-			// Impossible.
-			panic(err)
+			return err
 		}
 
 		select {
@@ -219,16 +218,16 @@ func (c *Core) hostInfo() {
 }
 
 const (
-	// statsInterval is the interval between stats ticks.
-	statsInterval = 500 * time.Millisecond
+	// metricsInterval is the interval between metrics ticks.
+	metricsInterval = 500 * time.Millisecond
 
-	// statsFmt is the format string for stats.
-	statsFmt = "\033[2K\rPeers: %d | Conns: %d | Total: ↓%s ↑%s | Rate: ↓%s/s ↑%s/s"
+	// metricsFmt is the format string for metrics.
+	metricsFmt = "\033[2K\rPeers: %d | Conns: %d | Total: ↓%s ↑%s | Rate: ↓%s/s ↑%s/s"
 )
 
-// stats shows host statistics every second.
-func (c *Core) stats(ctx context.Context) {
-	ticker := time.NewTicker(statsInterval)
+// nodeMetrics periodically displays some node metrics.
+func (c *Core) nodeMetrics(ctx context.Context) {
+	ticker := time.NewTicker(metricsInterval)
 
 	fmt.Println("\nStats:")
 
@@ -252,14 +251,14 @@ func (c *Core) stats(ctx context.Context) {
 			peers := len(hst.Network().Peers())
 			conns := len(hst.Network().Conns())
 
-			stats := bwc.GetBandwidthTotals()
-			totalIn := bytefmt.ByteSize(uint64(stats.TotalIn))
-			totalOut := bytefmt.ByteSize(uint64(stats.TotalOut))
-			rateIn := bytefmt.ByteSize(uint64(stats.RateIn))
-			rateOut := bytefmt.ByteSize(uint64(stats.RateOut))
+			bw := bwc.GetBandwidthTotals()
+			totalIn := bytefmt.ByteSize(uint64(bw.TotalIn))
+			totalOut := bytefmt.ByteSize(uint64(bw.TotalOut))
+			rateIn := bytefmt.ByteSize(uint64(bw.RateIn))
+			rateOut := bytefmt.ByteSize(uint64(bw.RateOut))
 
 			fmt.Printf(
-				statsFmt,
+				metricsFmt,
 				peers, conns,
 				totalIn, totalOut,
 				rateIn, rateOut,
@@ -328,7 +327,7 @@ func doWithManager(
 }
 
 // Deps returns the dependencies of a service in the order they would be
-// started given the current configuration.
+// started with the given configuration.
 //
 // The returned slice ends with the service itself.
 //
@@ -348,7 +347,7 @@ func Deps(
 	}
 
 	mgrError := doWithManager(services, &config, func(mgr *manager.Manager) {
-		deps, err = doDeps(mgr, servID)
+		deps, err = mgr.Deps(servID)
 	})
 
 	if mgrError != nil {
@@ -356,10 +355,6 @@ func Deps(
 	}
 
 	return
-}
-
-func doDeps(mgr *manager.Manager, servID string) ([]string, error) {
-	return mgr.Deps(servID)
 }
 
 // Fgraph prints the dependency graph of a service given the current
@@ -388,7 +383,7 @@ func Fgraph(
 	})
 
 	if mgrError != nil {
-		err = mgrError
+		return mgrError
 	}
 
 	return err

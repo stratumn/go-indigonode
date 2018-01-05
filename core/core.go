@@ -60,7 +60,7 @@ const art = "\033[0;34m      .o.       oooo   o8o\n" +
 	" .8'     `888.   888   888  888   .o8 888    .o\n" +
 	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'\033[0m"
 
-// Opt is a core options.
+// Opt is a core option.
 type Opt func(*Core)
 
 // OptManager sets the service manager.
@@ -75,7 +75,7 @@ func OptManager(mgr *manager.Manager) Opt {
 // OptServices adds services.
 //
 // If this option is not given, the builtin services are used.
-func OptServices(services []manager.Service) Opt {
+func OptServices(services ...manager.Service) Opt {
 	return func(c *Core) {
 		c.services = append(c.services, services...)
 	}

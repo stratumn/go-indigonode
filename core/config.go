@@ -67,7 +67,13 @@ type ConfigurableSet = cfg.Set
 
 // NewConfigurableSet creates a new set of configurables bound to the given
 // services.
+//
+// If no services are given, the builtin services are used.
 func NewConfigurableSet(services []manager.Service) ConfigurableSet {
+	if services == nil {
+		services = BuiltinServices()
+	}
+
 	set := ConfigurableSet{
 		"core": &ConfigHandler{},
 		"log":  &logging.ConfigHandler{},

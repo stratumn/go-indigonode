@@ -60,22 +60,85 @@ const art = "\033[0;34m      .o.       oooo   o8o\n" +
 	" .8'     `888.   888   888  888   .o8 888    .o\n" +
 	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'\033[0m"
 
+// Opt is a core options.
+type Opt func(*Core)
+
+// OptManager sets the service manager.
+//
+// If this option is not given, a new manager is created.
+func OptManager(mgr *manager.Manager) Opt {
+	return func(c *Core) {
+		c.mgr = mgr
+	}
+}
+
+// OptServices adds services.
+//
+// If this option is not given, the builtin services are used.
+func OptServices(services []manager.Service) Opt {
+	return func(c *Core) {
+		c.services = append(c.services, services...)
+	}
+}
+
+// OptStdout sets the writer for the bootscreen normal output.
+//
+// If this option is not given, os.Stdout is used.
+func OptStdout(w io.Writer) Opt {
+	return func(c *Core) {
+		c.stdout = w
+	}
+}
+
+// OptStderr sets the writer for the bootscreen error output.
+//
+// If this option is not given, os.Stderr is used.
+func OptStderr(w io.Writer) Opt {
+	return func(c *Core) {
+		c.stderr = w
+	}
+}
+
 // Core manages a node. It wraps a service manager, and can display a
 // boot screen showing services being started and node metrics.
 type Core struct {
 	mgr      *manager.Manager
 	services []manager.Service
 	config   Config
+	stdout   io.Writer
+	stderr   io.Writer
 }
 
 // New creates a new core.
-func New(services []manager.Service, configSet cfg.ConfigSet) (*Core, error) {
+func New(configSet cfg.ConfigSet, opts ...Opt) (*Core, error) {
 	config, ok := configSet["core"].(Config)
 	if !ok {
 		return nil, errors.WithStack(ErrInvalidConfig)
 	}
 
-	return &Core{manager.New(), services, config}, nil
+	c := &Core{config: config}
+
+	for _, o := range opts {
+		o(c)
+	}
+
+	if c.mgr == nil {
+		c.mgr = manager.New()
+	}
+
+	if c.services == nil {
+		c.services = BuiltinServices()
+	}
+
+	if c.stdout == nil {
+		c.stdout = os.Stdout
+	}
+
+	if c.stderr == nil {
+		c.stderr = os.Stderr
+	}
+
+	return c, nil
 }
 
 // Boot starts the node and runs until an exit signal or a fatal error occurs.
@@ -118,7 +181,7 @@ func (c *Core) Boot(ctx context.Context) error {
 			cancelBootScreen()
 			<-bootScreenCh
 		}
-		fmt.Println("\n\nStopping...")
+		fmt.Fprintln(c.stdout, "\n\nStopping...")
 		c.mgr.StopAll()
 		cancelWork()
 		return <-workCh
@@ -141,18 +204,18 @@ func (c *Core) Boot(ctx context.Context) error {
 // bootScreen displays the boot screen, which shows information about the
 // services being started and metrics.
 func (c *Core) bootScreen(ctx context.Context) error {
-	fmt.Println()
-	fmt.Println(art)
-	fmt.Println()
-	fmt.Println(release.Version + "@" + release.GitCommit[:7])
-	fmt.Println()
+	fmt.Fprintln(c.stdout)
+	fmt.Fprintln(c.stdout, art)
+	fmt.Fprintln(c.stdout)
+	fmt.Fprintln(c.stdout, release.Version+"@"+release.GitCommit[:7])
+	fmt.Fprintln(c.stdout)
 
 	if err := c.bootStatus(ctx); err != nil {
 		return err
 	}
 
 	c.hostInfo()
-	fmt.Println("\nPress Ctrl^C to shutdown.")
+	fmt.Fprintln(c.stdout, "\nPress Ctrl^C to shutdown.")
 	c.nodeMetrics(ctx)
 
 	return nil
@@ -167,7 +230,7 @@ func (c *Core) bootStatus(ctx context.Context) error {
 
 	for i, sid := range deps {
 		line := fmt.Sprintf("Starting %s (%d/%d)...", sid, i+1, len(deps))
-		fmt.Print(line)
+		fmt.Fprint(c.stdout, line)
 
 		running, err := c.mgr.Running(sid)
 		if err != nil {
@@ -182,8 +245,8 @@ func (c *Core) bootStatus(ctx context.Context) error {
 
 		status := strings.Repeat(" ", 75-len([]rune(line)))
 		status += "\033[0;32mok\033[0m"
-		fmt.Print(status)
-		fmt.Println()
+		fmt.Fprint(c.stdout, status)
+		fmt.Fprintln(c.stdout)
 	}
 
 	return nil
@@ -196,24 +259,24 @@ func (c *Core) hostInfo() {
 		return
 	}
 
-	fmt.Printf("\nStarted node %s.\n\n", hst.ID().Pretty())
+	fmt.Fprintf(c.stdout, "\nStarted node %s.\n\n", hst.ID().Pretty())
 
 	addrs, err := hst.Network().InterfaceListenAddresses()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to get listen addresses: %s.\n", err)
+		fmt.Fprintf(c.stderr, "Failed to get listen addresses: %s.\n", err)
 		return
 	}
 
 	for _, addr := range addrs {
-		fmt.Printf("Listening at %s.\n", addr)
+		fmt.Fprintf(c.stdout, "Listening at %s.\n", addr)
 	}
 
 	if len(addrs) > 0 {
-		fmt.Println()
+		fmt.Fprintln(c.stdout)
 	}
 
 	for _, addr := range hst.Addrs() {
-		fmt.Printf("Announcing %s.\n", addr)
+		fmt.Fprintf(c.stdout, "Announcing %s.\n", addr)
 	}
 }
 
@@ -229,7 +292,7 @@ const (
 func (c *Core) nodeMetrics(ctx context.Context) {
 	ticker := time.NewTicker(metricsInterval)
 
-	fmt.Println("\nStats:")
+	fmt.Fprintln(c.stdout, "\nStats:")
 
 	for {
 		select {
@@ -244,7 +307,7 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 			bwc := c.findMetrics()
 
 			if hst == nil || bwc == nil {
-				fmt.Print("\033[2K\rMetrics are not available.")
+				fmt.Fprint(c.stdout, "\033[2K\rMetrics are not available.")
 				continue
 			}
 
@@ -257,8 +320,8 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 			rateIn := bytefmt.ByteSize(uint64(bw.RateIn))
 			rateOut := bytefmt.ByteSize(uint64(bw.RateOut))
 
-			fmt.Printf(
-				metricsFmt,
+			fmt.Fprintf(
+				c.stdout, metricsFmt,
 				peers, conns,
 				totalIn, totalOut,
 				rateIn, rateOut,
@@ -271,7 +334,7 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 func (c *Core) findHost() *p2p.Host {
 	exposed, err := c.mgr.Expose(c.config.BootScreenHost)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "Error:%s.\n", err)
+		fmt.Fprintf(c.stderr, "Error: %s.\n", err)
 	}
 
 	if hst, ok := exposed.(*p2p.Host); ok {

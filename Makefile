@@ -5,7 +5,7 @@ VERSION=$(shell ./version.sh)
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_PATH=$(shell git rev-parse --show-toplevel)
 GITHUB_REPO=$(shell basename $(GIT_PATH))
-GITHUB_USER=$(shell basename $(shell dirname $(GIT_PATH)))
+GITHUB_USER=$(shell dirname `git remote get-url --all origin` | sed 's/.*[:/]//')
 GIT_TAG=$(VERSION)
 CMD=$(GITHUB_REPO)
 DIST_DIR=dist
@@ -35,7 +35,7 @@ GO_LIST=$(GO_CMD) list
 GO_BUILD=$(GO_CMD) build -gcflags=-trimpath=$(GOPATH) -asmflags=-trimpath=$(GOPATH) -ldflags '-X github.com/$(GITHUB_USER)/$(GITHUB_REPO)/release.Version=$(VERSION) -X github.com/$(GITHUB_USER)/$(GITHUB_REPO)/release.GitCommit=$(GIT_COMMIT)'
 GO_TEST=$(GO_CMD) test
 GO_BENCHMARK=$(GO_TEST) -bench .
-GO_LINT=$(GO_LINT_CMD) --deadline=2m --disable="vetshadow" --disable="maligned" --disable="ineffassign" --disable="gocyclo" --disable="gas"
+GO_LINT=$(GO_LINT_CMD) -d --vendor --enable-gc --skip=test --deadline=2m --disable="vetshadow" --disable="maligned" --disable="ineffassign" --disable="gocyclo" --disable="gas"
 GO_CYCLO=$(GO_CYCLO_CMD)
 KEYBASE_SIGN=$(KEYBASE_CMD) pgp sign
 GITHUB_RELEASE_RELEASE=$(GITHUB_RELEASE_COMMAND) release $(GITHUB_RELEASE_RELEASE_FLAGS)
@@ -136,7 +136,7 @@ $(TEST_LIST): test_%:
 	@$(GO_TEST) $*
 
 system:
-	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system/...
+	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system
 
 # == coverage =================================================================
 coverage: $(COVERAGE_FILE)
@@ -165,11 +165,9 @@ coverhtml:
 benchmark:
 	@$(GO_BENCHMARK) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/benchmark/...
 
-# == list =====================================================================
-lint: $(LINT_LIST)
-
-$(LINT_LIST): lint_%:
-	GOROOT=$(shell go env GOROOT) $(GO_LINT) $(GOPATH)/src/$*
+# == lint =====================================================================
+lint:
+	@$(GO_LINT) ./...
 
 # == cyclomatic complexity ====================================================
 cyclo: $(CYCLO_SOURCES)

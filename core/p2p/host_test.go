@@ -39,6 +39,8 @@ func TestHostSimple(t *testing.T) {
 	ctx := context.Background()
 	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1.SetIDService(identify.NewIDService(h1))
+	h2.SetIDService(identify.NewIDService(h2))
 	defer h1.Close()
 	defer h2.Close()
 
@@ -77,6 +79,8 @@ func TestHostSimple(t *testing.T) {
 func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
 	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1.SetIDService(identify.NewIDService(h1))
+	h2.SetIDService(identify.NewIDService(h2))
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	err := h1.Connect(ctx, h2pi)
@@ -168,7 +172,6 @@ func TestHostProtoPreknowledge(t *testing.T) {
 
 	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-
 	h1.SetIDService(identify.NewIDService(h1))
 	h2.SetIDService(identify.NewIDService(h2))
 
@@ -313,6 +316,8 @@ func TestAddrResolution(t *testing.T) {
 	resolver := &madns.Resolver{Backend: backend}
 
 	h := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx), OptResolver(resolver))
+	h.SetIDService(identify.NewIDService(h))
+
 	defer h.Close()
 
 	pi, err := pstore.InfoFromP2pAddr(p2paddr1)

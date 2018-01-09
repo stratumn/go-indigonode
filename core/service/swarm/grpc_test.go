@@ -45,7 +45,7 @@ func testGRPCServerUnavailable() grpcServer {
 }
 
 func TestGRPCServer_LocalPeer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)
@@ -61,7 +61,7 @@ func TestGRPCServer_LocalPeer(t *testing.T) {
 }
 
 func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	srv := testGRPCServerUnavailable()
@@ -83,7 +83,7 @@ func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
 }
 
 func TestGRPCServer_Peers(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)

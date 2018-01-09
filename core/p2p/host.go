@@ -505,10 +505,12 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 	})
 	defer event.Done()
 
-	err := h.Connect(ctx, pstore.PeerInfo{ID: pid})
-	if err != nil {
-		event.SetError(err)
-		return nil, err
+	if h.router != nil {
+		err := h.Connect(ctx, pstore.PeerInfo{ID: pid})
+		if err != nil {
+			event.SetError(err)
+			return nil, err
+		}
 	}
 
 	// Try to find a supported protocol.

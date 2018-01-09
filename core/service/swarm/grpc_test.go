@@ -73,19 +73,6 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }
 
-/*
-func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
-	h := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	network := (*swarm.Network)(srv.GetSwarm())
-	pi := network.Peerstore().PeerInfo(network.LocalPeer())
-	h.Peerstore().AddAddr(pi.ID, pi.Addrs[0], pstore.PermanentAddrTTL)
-
-	require.NoError(t, h.Connect(ctx, pi), "h.Connect(ctx, pi)")
-
-	return h
-}
-*/
-
 // testConnect ensures two swarms networks are connected.
 func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Network) {
 	pi1 := n1.Peerstore().PeerInfo(n1.LocalPeer())

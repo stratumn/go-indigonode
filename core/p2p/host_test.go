@@ -193,13 +193,13 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	// wait for identify handshake to finish completely
 	select {
 	case <-h1.ids.IdentifyWait(h1.Network().ConnsToPeer(h2.ID())[0]):
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second):
 		require.Fail(t, "timed out waiting for identify")
 	}
 
 	select {
 	case <-h2.ids.IdentifyWait(h2.Network().ConnsToPeer(h1.ID())[0]):
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second):
 		require.Fail(t, "timed out waiting for identify")
 	}
 

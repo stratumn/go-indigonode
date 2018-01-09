@@ -81,7 +81,7 @@ func OptServices(services ...manager.Service) Opt {
 	}
 }
 
-// OptStdout sets the writer for the bootscreen normal output.
+// OptStdout sets the writer for the boot screen normal output.
 //
 // If this option is not given, os.Stdout is used.
 func OptStdout(w io.Writer) Opt {
@@ -90,7 +90,7 @@ func OptStdout(w io.Writer) Opt {
 	}
 }
 
-// OptStderr sets the writer for the bootscreen error output.
+// OptStderr sets the writer for the boot screen error output.
 //
 // If this option is not given, os.Stderr is used.
 func OptStderr(w io.Writer) Opt {
@@ -99,14 +99,36 @@ func OptStderr(w io.Writer) Opt {
 	}
 }
 
+// OptUpHandler sets a function that will be called once the node has
+// started.
+//
+// This is useful for tests.
+func OptUpHandler(h func()) Opt {
+	return func(c *Core) {
+		c.upHandlers = append(c.upHandlers, h)
+	}
+}
+
+// OptMetricsHandler sets a function that will be called everytime metrics
+// tick.
+//
+// This is useful for tests.
+func OptMetricsHandler(h func()) Opt {
+	return func(c *Core) {
+		c.metricsHandlers = append(c.metricsHandlers, h)
+	}
+}
+
 // Core manages a node. It wraps a service manager, and can display a
 // boot screen showing services being started and node metrics.
 type Core struct {
-	mgr      *manager.Manager
-	services []manager.Service
-	config   Config
-	stdout   io.Writer
-	stderr   io.Writer
+	mgr             *manager.Manager
+	services        []manager.Service
+	config          Config
+	stdout          io.Writer
+	stderr          io.Writer
+	upHandlers      []func()
+	metricsHandlers []func()
 }
 
 // New creates a new core.
@@ -216,6 +238,11 @@ func (c *Core) bootScreen(ctx context.Context) error {
 
 	c.hostInfo()
 	fmt.Fprintln(c.stdout, "\nPress Ctrl^C to shutdown.")
+
+	for _, f := range c.upHandlers {
+		f()
+	}
+
 	c.nodeMetrics(ctx)
 
 	return nil
@@ -308,6 +335,11 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 
 			if hst == nil || bwc == nil {
 				fmt.Fprint(c.stdout, "\033[2K\rMetrics are not available.")
+
+				for _, f := range c.metricsHandlers {
+					f()
+				}
+
 				continue
 			}
 
@@ -326,6 +358,10 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 				totalIn, totalOut,
 				rateIn, rateOut,
 			)
+
+			for _, f := range c.metricsHandlers {
+				f()
+			}
 		}
 	}
 }

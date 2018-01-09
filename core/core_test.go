@@ -186,7 +186,10 @@ func testCore(t *testing.T, tt coreTest) {
 	case <-time.After(5 * time.Second):
 		require.Fail(t, "node did not start in time")
 	case err := <-errCh:
-		require.Fail(t, err.Error())
+		// Boot() doesn't return before up handlers are called unless
+		// an error occured. In fact it never returns unless there is
+		// an error or the context was canceled.
+		require.Fail(t, err.Error(), "node failed to start services")
 	case <-readyCh:
 	}
 

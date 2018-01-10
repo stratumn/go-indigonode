@@ -12,58 +12,43 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clock
+package chat
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/clock"
+	pb "github.com/stratumn/alice/grpc/chat"
 
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 )
 
-// grpcServer is a gRPC server for the clock service.
+// grpcServer is a gRPC server for the chat service.
 type grpcServer struct {
-	LocalTime  func(context.Context) (*time.Time, error)
-	RemoteTime func(context.Context, peer.ID) (*time.Time, error)
-	Connect    func(context.Context, pstore.PeerInfo) error
+	Connect func(context.Context, pstore.PeerInfo) error
+	Send    func(context.Context, peer.ID, string) error
 }
 
-// Local gets the local time of the node.
-func (s grpcServer) Local(ctx context.Context, req *pb.LocalReq) (*pb.Time, error) {
-	t, err := s.LocalTime(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.Time{
-		Timestamp: t.UnixNano(),
-	}, nil
-}
-
-// Remote gets the time of the specified peer.
-func (s grpcServer) Remote(ctx context.Context, req *pb.RemoteReq) (*pb.Time, error) {
+// Message sends a message to the specified peer.
+func (s grpcServer) Message(ctx context.Context, req *pb.MessageReq) (response *pb.Ack, err error) {
+	response = &pb.Ack{}
 	pid, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		err = errors.WithStack(err)
+		return
 	}
 
 	pi := pstore.PeerInfo{ID: pid}
 
 	// Make sure there is a connection to the peer.
-	if err := s.Connect(ctx, pi); err != nil {
-		return nil, err
+	if err = s.Connect(ctx, pi); err != nil {
+		return
 	}
 
-	t, err := s.RemoteTime(ctx, pid)
-	if err != nil {
-		return nil, err
+	if err = s.Send(ctx, pid, req.Content); err != nil {
+		return
 	}
 
-	return &pb.Time{
-		Timestamp: t.UnixNano(),
-	}, nil
+	return
 }

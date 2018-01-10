@@ -29,4 +29,7 @@ var migrations = []cfg.MigrateHandler{
 
 		return tree.Set("core.boot_screen_metrics", "metrics")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("chat.host", "host")
+	},
 }

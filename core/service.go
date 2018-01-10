@@ -17,6 +17,7 @@ package core
 import (
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/service/bootstrap"
+	"github.com/stratumn/alice/core/service/chat"
 	"github.com/stratumn/alice/core/service/clock"
 	"github.com/stratumn/alice/core/service/connmgr"
 	"github.com/stratumn/alice/core/service/grpcapi"
@@ -38,6 +39,7 @@ import (
 func BuiltinServices() []manager.Service {
 	return []manager.Service{
 		&bootstrap.Service{},
+		&chat.Service{},
 		&clock.Service{},
 		&connmgr.Service{},
 		&grpcapi.Service{},

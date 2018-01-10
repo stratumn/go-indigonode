@@ -25,7 +25,7 @@ import (
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 )
 
-// grpcServer is a gRPC server for the ping service.
+// grpcServer is a gRPC server for the clock service.
 type grpcServer struct {
 	LocalTime  func(context.Context) (*time.Time, error)
 	RemoteTime func(context.Context, peer.ID) (*time.Time, error)

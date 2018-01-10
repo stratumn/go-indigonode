@@ -24,9 +24,9 @@ import (
 
 	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 var (
@@ -38,9 +38,6 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
-
 // Host represents an Alice host.
 type Host = ihost.Host
 
@@ -51,6 +48,7 @@ var log = logging.Logger("chat")
 type Service struct {
 	config *Config
 	host   Host
+	chat   *Chat
 }
 
 // Config contains configuration options for the Chat service.
@@ -114,29 +112,28 @@ func (s *Service) Plug(services map[string]interface{}) error {
 }
 
 // Expose exposes the chat service to other services.
+// It is currently not exposed.
 func (s *Service) Expose() interface{} {
-	// TODO
 	return nil
 }
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
+	s.chat = NewChat(s.host)
 
-	// Initialize the service before calling running().
+	// Wrap the stream handler with the context.
+	s.host.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
+		s.chat.StreamHandler(ctx, stream)
+	})
 
 	running()
-
-	// Start any long running process with a goroutine here.
-
-	// Handle exit conditions.
-	select {
-	case <-ctx.Done():
-		// ...
-	}
-
+	<-ctx.Done()
 	stopping()
 
-	// Stop the service after calling stopping().
+	// Stop accepting streams.
+	s.host.RemoveStreamHandler(ProtocolID)
+
+	s.chat = nil
 
 	return errors.WithStack(ctx.Err())
 }
@@ -151,9 +148,8 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 
 			return s.host.Connect(ctx, pi)
 		},
-		func(ctx context.Context, pid peer.ID) error {
-			// TODO
-			return nil
+		func(ctx context.Context, pid peer.ID, message string) error {
+			return s.chat.Send(ctx, pid, message)
 		},
 	})
 }

@@ -16,7 +16,6 @@ package chat
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/chat"
@@ -27,13 +26,13 @@ import (
 
 // grpcServer is a gRPC server for the chat service.
 type grpcServer struct {
-	Connect   func(context.Context, pstore.PeerInfo) error
-	SendWhizz func(context.Context, peer.ID) error
+	Connect func(context.Context, pstore.PeerInfo) error
+	Send    func(context.Context, peer.ID, string) error
 }
 
-// Whizz sends a whizz to the specified peer.
-func (s grpcServer) Whizz(ctx context.Context, req *pb.WhizzReq) (response *pb.WhizzSent, err error) {
-	response = &pb.WhizzSent{}
+// Message sends a message to the specified peer.
+func (s grpcServer) Message(ctx context.Context, req *pb.MessageReq) (response *pb.Ack, err error) {
+	response = &pb.Ack{}
 	pid, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
 		err = errors.WithStack(err)
@@ -47,10 +46,9 @@ func (s grpcServer) Whizz(ctx context.Context, req *pb.WhizzReq) (response *pb.W
 		return
 	}
 
-	if err = s.SendWhizz(ctx, pid); err != nil {
+	if err = s.Send(ctx, pid, req.Content); err != nil {
 		return
 	}
 
-	response.Response = fmt.Sprintf("%s whizzed!!!", pid.Pretty())
 	return
 }

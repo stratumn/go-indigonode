@@ -22,22 +22,24 @@ option go_package = "github.com/stratumn/alice/grpc/chat;chat";
 
 // The chat service definition.
 service Chat {
-  // Sends a whizz to a peer.
-  rpc Whizz (WhizzReq) returns (WhizzSent) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Send a whizz to a peer";
+  // Sends a message to a peer.
+  rpc Message (MessageReq) returns (Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Send a message to a peer";
   }
 }
 
-// The whizz request message.
-message WhizzReq {
+// The message request.
+message MessageReq {
   bytes peer_id = 1 [
     (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
     (stratumn.alice.grpc.ext.field_required) = true,
     (stratumn.alice.grpc.ext.field_base58) = true
   ];
+  string content = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Message"
+  ];
 }
 
-// The whizz confirmation.
-message WhizzSent {
-  string response = 1;
+// An empty ack.
+message Ack {
 }

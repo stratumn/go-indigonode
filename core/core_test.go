@@ -224,3 +224,50 @@ func createTestConfig(
 
 	return config
 }
+
+func TestDeps(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	services, close := withValidServices(ctx, t)
+	defer close()
+
+	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+	deps, err := Deps(services, config, "boot")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"host", "metrics", "boot"}, deps)
+}
+
+func TestDeps_noServiceID(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	services, close := withValidServices(ctx, t)
+	defer close()
+
+	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+	deps, err := Deps(services, config, "")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"host", "metrics", "boot"}, deps)
+}
+
+func TestFGraph(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	services, close := withValidServices(ctx, t)
+	defer close()
+
+	w := bytes.NewBuffer(nil)
+
+	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+
+	require.NoError(t, Fgraph(w, services, config, "boot"))
+
+	assert.Equal(t, `boot┬host
+    │
+    └metrics
+`, w.String())
+}

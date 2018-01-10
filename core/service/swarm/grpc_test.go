@@ -22,7 +22,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/p2p"
 	pb "github.com/stratumn/alice/grpc/swarm"
 	mockpb "github.com/stratumn/alice/grpc/swarm/mockswarm"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +30,7 @@ import (
 	swarm "gx/ipfs/QmUhvp4VoQ9cKDVLqAxciEKdm8ymBx2Syx4C1Tv6SmSTPa/go-libp2p-swarm"
 	ma "gx/ipfs/QmW8s4zTsUoX1Q6CeYxVKPyqSKbF7H1YDUyTostBtZ8DaG/go-multiaddr"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
 	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
 
@@ -49,6 +49,7 @@ func TestGRPCServer_LocalPeer(t *testing.T) {
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)
+	defer srv.GetSwarm().Close()
 
 	req := &pb.LocalPeerReq{}
 	res, err := srv.LocalPeer(ctx, req)
@@ -72,14 +73,16 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 	assert.Equal(t, ErrUnavailable, errors.Cause(err))
 }
 
-func testConnect(ctx context.Context, t *testing.T, srv grpcServer) *p2p.Host {
-	h := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	network := (*swarm.Network)(srv.GetSwarm())
-	pi := network.Peerstore().PeerInfo(network.LocalPeer())
+// testConnect ensures two swarms networks are connected.
+func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Network) {
+	pi1 := n1.Peerstore().PeerInfo(n1.LocalPeer())
+	pi2 := n2.Peerstore().PeerInfo(n2.LocalPeer())
 
-	require.NoError(t, h.Connect(ctx, pi), "h.Connect(ctx, pi)")
+	n1.Peerstore().AddAddr(pi2.ID, pi2.Addrs[0], pstore.PermanentAddrTTL)
+	n2.Peerstore().AddAddr(pi1.ID, pi1.Addrs[0], pstore.PermanentAddrTTL)
 
-	return h
+	_, err := n1.DialPeer(ctx, pi2.ID)
+	require.NoError(t, err, "n1.Dial(ctx, pi2.ID)")
 }
 
 func TestGRPCServer_Peers(t *testing.T) {
@@ -88,14 +91,20 @@ func TestGRPCServer_Peers(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
+	n1 := (*swarm.Network)(srv.GetSwarm())
+	defer n1.Close()
+
+	n2 := testutil.GenSwarmNetwork(t, ctx)
+	defer n2.Close()
+
+	testConnect(ctx, t, n1, n2)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	h := testConnect(ctx, t, srv)
-
 	req, ss := &pb.PeersReq{}, mockpb.NewMockSwarm_PeersServer(ctrl)
 
-	ss.EXPECT().Send(&pb.Peer{Id: []byte(h.ID())})
+	ss.EXPECT().Send(&pb.Peer{Id: []byte(n2.LocalPeer())})
 
 	assert.NoError(t, srv.Peers(req, ss))
 }
@@ -126,7 +135,7 @@ func (c connMatcher) Matches(x interface{}) bool {
 		return false
 	}
 
-	if !bytes.Equal(c.Addr.Bytes(), msg.LocalAddress) {
+	if !bytes.Equal(c.Addr.Bytes(), msg.RemoteAddress) {
 		return false
 	}
 
@@ -143,12 +152,18 @@ func (c connMatcher) String() string {
 }
 
 func TestGRPCServer_Connections(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)
 
-	h := testConnect(ctx, t, srv)
+	n1 := (*swarm.Network)(srv.GetSwarm())
+	defer n1.Close()
+
+	n2 := testutil.GenSwarmNetwork(t, ctx)
+	defer n2.Close()
+
+	testConnect(ctx, t, n1, n2)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -157,28 +172,37 @@ func TestGRPCServer_Connections(t *testing.T) {
 	ss := mockpb.NewMockSwarm_ConnectionsServer(ctrl)
 
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
-	ss.EXPECT().Send(connMatcher{h.ID(), srv.GetSwarm().ListenAddresses()[0]})
+	ss.EXPECT().Send(connMatcher{n2.LocalPeer(), n2.ListenAddresses()[0]})
 
 	assert.NoError(t, srv.Connections(req, ss))
 }
 
 func TestGRPCServer_Connections_peer(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	srv := testGRPCServer(ctx, t)
 
-	h1 := testConnect(ctx, t, srv)
-	testConnect(ctx, t, srv)
+	n1 := (*swarm.Network)(srv.GetSwarm())
+	defer n1.Close()
+
+	n2 := testutil.GenSwarmNetwork(t, ctx)
+	defer n2.Close()
+
+	n3 := testutil.GenSwarmNetwork(t, ctx)
+	defer n3.Close()
+
+	testConnect(ctx, t, n1, n2)
+	testConnect(ctx, t, n1, n3)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	req := &pb.ConnectionsReq{PeerId: []byte(h1.ID())}
+	req := &pb.ConnectionsReq{PeerId: []byte(n2.LocalPeer())}
 	ss := mockpb.NewMockSwarm_ConnectionsServer(ctrl)
 
 	ss.EXPECT().Context().Return(ctx).AnyTimes()
-	ss.EXPECT().Send(connMatcher{h1.ID(), srv.GetSwarm().ListenAddresses()[0]})
+	ss.EXPECT().Send(connMatcher{n2.LocalPeer(), n2.ListenAddresses()[0]})
 
 	assert.NoError(t, srv.Connections(req, ss))
 }

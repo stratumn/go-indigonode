@@ -82,7 +82,7 @@ func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Network) {
 	n2.Peerstore().AddAddr(pi1.ID, pi1.Addrs[0], pstore.PermanentAddrTTL)
 
 	_, err := n1.DialPeer(ctx, pi2.ID)
-	require.NoError(t, err, "s1.Dial(ctx, pi2.ID)")
+	require.NoError(t, err, "n1.Dial(ctx, pi2.ID)")
 }
 
 func TestGRPCServer_Peers(t *testing.T) {

@@ -19,9 +19,14 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/grpc/chat"
+	"google.golang.org/grpc"
 
 	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 var (
@@ -32,6 +37,9 @@ var (
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
 )
+
+// ProtocolID is the protocol ID of the service.
+var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
 
 // Host represents an Alice host.
 type Host = ihost.Host
@@ -131,4 +139,21 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Stop the service after calling stopping().
 
 	return errors.WithStack(ctx.Err())
+}
+
+// AddToGRPCServer adds the service to a gRPC server.
+func (s *Service) AddToGRPCServer(gs *grpc.Server) {
+	pb.RegisterChatServer(gs, grpcServer{
+		func(ctx context.Context, pi pstore.PeerInfo) error {
+			if s.host == nil {
+				return ErrUnavailable
+			}
+
+			return s.host.Connect(ctx, pi)
+		},
+		func(ctx context.Context, pid peer.ID) error {
+			// TODO
+			return nil
+		},
+	})
 }

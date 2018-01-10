@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package chat is a simple service that allows two peers to exchange messages
+// Package chat is a simple service that allows two peers to exchange messages.
 package chat
 
 import (

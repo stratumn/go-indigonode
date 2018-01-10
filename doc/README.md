@@ -7,6 +7,7 @@
 
 ## Developpers
 
+* [Contributing](contribute.md)
 * [Conventions](conventions.md)
 * [Extend Alice](extend.md)
 * [System Testing](system.md)

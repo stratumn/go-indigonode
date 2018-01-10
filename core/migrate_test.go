@@ -114,6 +114,12 @@ const confZero = `
   # Services that should be started in addition to the host before bootstrapping.
   needs = ["network","p2p"]
 
+# Settings for the chat module.
+[chat]
+  
+    # The name of the host service.
+    host = "host"
+
 # Settings for the clock module.
 [clock]
 

@@ -26,14 +26,16 @@ import (
 
 // grpcServer is a gRPC server for the chat service.
 type grpcServer struct {
-	Connect func(context.Context, pstore.PeerInfo) error
-	Send    func(context.Context, peer.ID, string) error
+	Connect        func(context.Context, pstore.PeerInfo) error
+	Send           func(context.Context, peer.ID, string) error
+	AddListener    func() <-chan *pb.ChatMessage
+	RemoveListener func(<-chan *pb.ChatMessage)
 }
 
 // Message sends a message to the specified peer.
-func (s grpcServer) Message(ctx context.Context, req *pb.MessageReq) (response *pb.Ack, err error) {
+func (s grpcServer) Message(ctx context.Context, req *pb.ChatMessage) (response *pb.Ack, err error) {
 	response = &pb.Ack{}
-	pid, err := peer.IDFromBytes(req.PeerId)
+	pid, err := peer.IDFromBytes(req.ToPeer)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -46,9 +48,41 @@ func (s grpcServer) Message(ctx context.Context, req *pb.MessageReq) (response *
 		return
 	}
 
-	if err = s.Send(ctx, pid, req.Content); err != nil {
+	if err = s.Send(ctx, pid, req.Message); err != nil {
 		return
 	}
 
 	return
+}
+
+func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Chat_ListenServer) error {
+	log.Event(ss.Context(), "AddListener")
+
+	receiveChan := s.AddListener()
+	defer func() {
+		// Note: it's the chat server's responsibility to close the listener channels
+		s.RemoveListener(receiveChan)
+		log.Event(ss.Context(), "RemoveListener")
+	}()
+
+messagePump:
+	// Forward incoming messages to listeners
+	for {
+		select {
+		case message, ok := <-receiveChan:
+			if !ok {
+				break messagePump
+			}
+
+			err := ss.Send(message)
+			if err != nil {
+				log.Errorf("Could not forward message to listeners: %v", message)
+				return errors.WithStack(err)
+			}
+		case <-ss.Context().Done():
+			break messagePump
+		}
+	}
+
+	return nil
 }

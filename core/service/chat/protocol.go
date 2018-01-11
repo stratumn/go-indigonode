@@ -32,7 +32,8 @@ var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
 
 // Chat implements the chat protocol.
 type Chat struct {
-	host Host
+	host      Host
+	listeners []chan *pb.ChatMessage
 }
 
 // NewChat creates a new chat server.
@@ -54,23 +55,29 @@ func (c *Chat) StreamHandler(ctx context.Context, stream inet.Stream) {
 
 // receive reads a message from an incoming stream.
 func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
+	from := stream.Conn().RemotePeer().Pretty()
 	event := log.EventBegin(ctx, "Receive", logging.Metadata{
-		"peerID": stream.Conn().RemotePeer().Pretty(),
+		"peerID": from,
 	})
 	defer event.Done()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
-	var message pb.MessageReq
+	var message pb.ChatMessage
 	err := dec.Decode(&message)
 	if err != nil {
 		event.SetError(err)
+		return
 	}
 
 	event.Append(logging.Metadata{
-		"message": message.Content,
+		"message": message.Message,
 	})
 
-	// TODO: figure out how to display messages properly
+	message.FromPeer = []byte(from)
+
+	for _, listener := range c.listeners {
+		listener <- &message
+	}
 }
 
 // Send sends a message to a peer.
@@ -92,7 +99,7 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 		}
 
 		enc := protobuf.Multicodec(nil).Encoder(stream)
-		err = enc.Encode(&pb.MessageReq{Content: message})
+		err = enc.Encode(&pb.ChatMessage{Message: message})
 		if err != nil {
 			event.SetError(err)
 			errCh <- errors.WithStack(err)
@@ -110,4 +117,13 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	case err := <-errCh:
 		return err
 	}
+}
+
+// Close closes the chat server.
+func (c *Chat) Close() {
+	for _, listener := range c.listeners {
+		close(listener)
+	}
+
+	c.listeners = nil
 }

@@ -15,6 +15,10 @@
 package core
 
 import (
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 )
 
@@ -31,5 +35,18 @@ var migrations = []cfg.MigrateHandler{
 	},
 	func(tree *cfg.Tree) error {
 		return tree.Set("chat.host", "host")
+	},
+	func(tree *cfg.Tree) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		filename, err := filepath.Abs(filepath.Join(cwd, "data", "contacts.toml"))
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		return tree.Set("contacts.filename", filename)
 	},
 }

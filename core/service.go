@@ -20,6 +20,7 @@ import (
 	"github.com/stratumn/alice/core/service/chat"
 	"github.com/stratumn/alice/core/service/clock"
 	"github.com/stratumn/alice/core/service/connmgr"
+	"github.com/stratumn/alice/core/service/contacts"
 	"github.com/stratumn/alice/core/service/grpcapi"
 	"github.com/stratumn/alice/core/service/host"
 	"github.com/stratumn/alice/core/service/identify"
@@ -42,6 +43,7 @@ func BuiltinServices() []manager.Service {
 		&chat.Service{},
 		&clock.Service{},
 		&connmgr.Service{},
+		&contacts.Service{},
 		&grpcapi.Service{},
 		&host.Service{},
 		&identify.Service{},

@@ -133,6 +133,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Stop accepting streams.
 	s.host.RemoveStreamHandler(ProtocolID)
 
+	s.chat.Close()
 	s.chat = nil
 
 	return errors.WithStack(ctx.Err())
@@ -141,15 +142,29 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterChatServer(gs, grpcServer{
-		func(ctx context.Context, pi pstore.PeerInfo) error {
+		Connect: func(ctx context.Context, pi pstore.PeerInfo) error {
 			if s.host == nil {
 				return ErrUnavailable
 			}
 
 			return s.host.Connect(ctx, pi)
 		},
-		func(ctx context.Context, pid peer.ID, message string) error {
+		Send: func(ctx context.Context, pid peer.ID, message string) error {
 			return s.chat.Send(ctx, pid, message)
+		},
+		AddListener: func() <-chan *pb.ChatMessage {
+			receiveChan := make(chan *pb.ChatMessage)
+			s.chat.listeners = append(s.chat.listeners, receiveChan)
+			return receiveChan
+		},
+		RemoveListener: func(listener <-chan *pb.ChatMessage) {
+			for i, l := range s.chat.listeners {
+				if l == listener {
+					s.chat.listeners[i] = s.chat.listeners[len(s.chat.listeners)-1]
+					s.chat.listeners = s.chat.listeners[:len(s.chat.listeners)-1]
+					break
+				}
+			}
 		},
 	})
 }

@@ -60,7 +60,7 @@ func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Chat_ListenServer) error {
 
 	receiveChan := s.AddListener()
 	defer func() {
-		// Note: it's the chat server's responsibility to close the listener channels
+		// Note: it's the chat server's responsibility to close the listener channels.
 		s.RemoveListener(receiveChan)
 		log.Event(ss.Context(), "RemoveListener")
 	}()

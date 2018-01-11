@@ -51,6 +51,12 @@ func (c *Chat) StreamHandler(ctx context.Context, stream inet.Stream) {
 	})
 
 	c.receive(ctx, stream)
+	if err := stream.Close(); err != nil {
+		log.Event(ctx, "streamCloseError", logging.Metadata{
+			"error":  err.Error(),
+			"stream": stream,
+		})
+	}
 }
 
 // receive reads a message from an incoming stream.

@@ -16,6 +16,7 @@ package kaddht
 
 import (
 	"context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -32,8 +33,12 @@ import (
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
+	dir, err := ioutil.TempDir("", "")
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
+
 	serv := &Service{}
 	config := serv.Config().(Config)
+	config.LevelDBPath = dir
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 

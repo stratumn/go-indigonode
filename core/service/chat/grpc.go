@@ -66,7 +66,7 @@ func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Chat_ListenServer) error {
 	}()
 
 messagePump:
-	// Forward incoming messages to listeners
+	// Forward incoming messages to listeners.
 	for {
 		select {
 		case message, ok := <-receiveChan:

@@ -3,6 +3,7 @@
 dist
 coverage.txt
 coverhtml.txt
+debug
 vendor
 tmp
 data

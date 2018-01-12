@@ -32,7 +32,7 @@ var DefaultConfig = Config{
 		ID:       "boot",
 		Name:     "Boot Services",
 		Desc:     "Starts boot services.",
-		Services: []string{"system", "bootstrap", "api"},
+		Services: []string{"system", "bootstrap", "api", "util"},
 	}, {
 		ID:       "system",
 		Name:     "System Services",
@@ -53,6 +53,11 @@ var DefaultConfig = Config{
 		Name:     "API Services",
 		Desc:     "Starts API services.",
 		Services: []string{"grpcapi"},
+	}, {
+		ID:       "util",
+		Name:     "Utility Services",
+		Desc:     "Starts utility services.",
+		Services: []string{"contacts"},
 	}},
 	EnableBootScreen:  true,
 	BootScreenHost:    "host",

@@ -18,12 +18,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"os"
 	"reflect"
 
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var (
@@ -36,11 +37,34 @@ type Tree struct {
 	tree *toml.Tree
 }
 
+// TreeFromMap creates a tree from a map.
+func TreeFromMap(m map[string]interface{}) (*Tree, error) {
+	t, err := toml.TreeFromMap(m)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return &Tree{t}, nil
+}
+
 // Get returns the value of a key.
 //
 // The key can be a path such as "core.boot_service".
 func (t *Tree) Get(key string) interface{} {
-	return t.tree.Get(key)
+	val := t.tree.Get(key)
+
+	switch v := val.(type) {
+	case (*toml.Tree):
+		return &Tree{v}
+	case ([]*toml.Tree):
+		trees := make([]*Tree, len(v))
+		for i, child := range v {
+			trees[i] = &Tree{child}
+		}
+		return trees
+	default:
+		return val
+	}
 }
 
 // GetDefault returns the value of a key or a default value.
@@ -54,6 +78,19 @@ func (t *Tree) GetDefault(key string, def interface{}) interface{} {
 //
 // The key can be a path such as "core.boot_service".
 func (t *Tree) Set(key string, val interface{}) (err error) {
+	switch v := val.(type) {
+	case *Tree:
+		t.tree.Set(key, "", false, v.tree)
+		return
+	case []*Tree:
+		trees := make([]*toml.Tree, len(v))
+		for i, child := range v {
+			trees[i] = child.tree
+		}
+		t.tree.Set(key, "", false, trees)
+		return
+	}
+
 	// Struct must be converted to a tree before calling tree.Set().
 	if reflect.ValueOf(val).Kind() == reflect.Struct {
 		val, err = treeFromStruct(val)
@@ -118,7 +155,10 @@ func Migrate(
 		}
 
 		version++
-		tree.Set(versionKey, "", false, version)
+
+		if err := t.Set(versionKey, version); err != nil {
+			return err
+		}
 	}
 
 	if err := setValuesFromTree(ctx, set, tree); err != nil {

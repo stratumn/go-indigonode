@@ -20,6 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/chat"
+	pbevent "github.com/stratumn/alice/grpc/event"
+
 	"google.golang.org/grpc"
 
 	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
@@ -152,12 +154,12 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 		Send: func(ctx context.Context, pid peer.ID, message string) error {
 			return s.chat.Send(ctx, pid, message)
 		},
-		AddListener: func() <-chan *pb.ChatMessage {
-			receiveChan := make(chan *pb.ChatMessage)
+		AddListener: func() <-chan *pbevent.Event {
+			receiveChan := make(chan *pbevent.Event)
 			s.chat.listeners = append(s.chat.listeners, receiveChan)
 			return receiveChan
 		},
-		RemoveListener: func(listener <-chan *pb.ChatMessage) {
+		RemoveListener: func(listener <-chan *pbevent.Event) {
 			for i, l := range s.chat.listeners {
 				if l == listener {
 					s.chat.listeners[i] = s.chat.listeners[len(s.chat.listeners)-1]

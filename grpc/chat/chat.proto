@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/grpc/event/event.proto";
 
 package stratumn.alice.grpc.chat;
 
@@ -28,27 +29,20 @@ service Chat {
   }
 
   // Listen listens for incoming chat messages from peers.
-  rpc Listen (ListenReq) returns (stream ChatMessage) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Continuously receive messages from peers";
+  rpc Listen (stratumn.alice.grpc.event.ListenReq) returns (stream stratumn.alice.grpc.event.Event) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Listen for chat messages from peers";
+    option (stratumn.alice.grpc.ext.method_event_emitter) = true;
   }
-}
-
-// A request to listen for chat messages.
-message ListenReq {
 }
 
 // A chat message.
 message ChatMessage {
-  bytes to_peer = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer ID (to)",
+  bytes peer_id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
     (stratumn.alice.grpc.ext.field_required) = true,
     (stratumn.alice.grpc.ext.field_base58) = true
   ];
-  bytes from_peer = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer ID (from)",
-    (stratumn.alice.grpc.ext.field_base58) = true
-  ];
-  string message = 3 [
+  string message = 2 [
     (stratumn.alice.grpc.ext.field_desc) = "Message content"
   ];
 }

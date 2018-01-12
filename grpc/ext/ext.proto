@@ -22,6 +22,10 @@ option go_package = "github.com/stratumn/alice/grpc/ext;ext";
 
 extend google.protobuf.MethodOptions {
   string method_desc = 50000;
+  // A method is an event emitter if its only purpose is to send events to 
+  // connected clients over a long-lived stream.
+  // Event emitters should only accept requests to listen for events.
+  bool method_event_emitter = 50001;
 }
 
 extend google.protobuf.FieldOptions {

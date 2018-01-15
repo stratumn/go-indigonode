@@ -28,7 +28,7 @@ func TestEmitter(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("Can add and remove listeners", func(t *testing.T) {
-		emitter := NewEmitter()
+		emitter := NewEmitter(DefaultTimeout)
 		assert.Equal(0, emitter.GetListenersCount(), "There should be no listener initially")
 
 		l1 := emitter.AddListener(ctx)
@@ -43,7 +43,7 @@ func TestEmitter(t *testing.T) {
 	})
 
 	t.Run("Close closes all channels", func(t *testing.T) {
-		emitter := NewEmitter()
+		emitter := NewEmitter(DefaultTimeout)
 
 		emitter.AddListener(ctx)
 		emitter.AddListener(ctx)
@@ -53,7 +53,7 @@ func TestEmitter(t *testing.T) {
 	})
 
 	t.Run("Emit to multiple listeners", func(t *testing.T) {
-		emitter := NewEmitter()
+		emitter := NewEmitter(DefaultTimeout)
 		defer emitter.Close()
 
 		l1 := emitter.AddListener(ctx)
@@ -76,8 +76,7 @@ func TestEmitter(t *testing.T) {
 	})
 
 	t.Run("Drop messages if listeners are too slow", func(t *testing.T) {
-		// TODO: set an expiration of 5 milliseconds
-		emitter := NewEmitter()
+		emitter := NewEmitter(5 * time.Millisecond)
 		defer emitter.Close()
 
 		l := emitter.AddListener(ctx)
@@ -107,5 +106,34 @@ func TestEmitter(t *testing.T) {
 		case <-time.After(5 * time.Millisecond):
 			break
 		}
+	})
+
+	t.Run("Doesn't remove listeners while events are pending", func(t *testing.T) {
+		emitter := NewEmitter(10 * time.Millisecond)
+		defer emitter.Close()
+
+		l := emitter.AddListener(ctx)
+		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO}
+		emitter.Emit(e1)
+
+		removeChan := make(chan struct{})
+
+		select {
+		case removeChan <- func() struct{} {
+			emitter.RemoveListener(ctx, l)
+			return struct{}{}
+		}():
+			assert.Fail("RemoveListener should fail while an event is pending")
+		case <-time.After(5 * time.Millisecond):
+			break
+		}
+
+		select {
+		case <-time.After(5 * time.Millisecond):
+			break
+		}
+
+		// Event should have been dropped and listener removed.
+		assert.Equal(0, emitter.GetListenersCount(), "Listener should have been removed")
 	})
 }

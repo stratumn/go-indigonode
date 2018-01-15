@@ -58,7 +58,7 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 		ctrl.Finish()
 	}()
 
-	emitter := NewEmitter()
+	emitter := NewEmitter(DefaultTimeout)
 	srv := testGRPCServer(ctx, t, emitter)
 	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
 

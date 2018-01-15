@@ -82,7 +82,7 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 
 	chatEvent := &pbevent.Event{
 		Message: message.Message,
-		Color:   "green",
+		Level:   pbevent.Event_INFO,
 	}
 
 	for _, listener := range c.listeners {

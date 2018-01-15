@@ -44,7 +44,13 @@ message Event {
         (stratumn.alice.grpc.ext.field_desc) = "Event message to be displayed or logged",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
-    string color = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Color that should be used to display the message"
+    enum Level {
+        INFO = 0;
+        DEBUG = 1;
+        WARNING = 2;
+        ERROR = 3;
+    }
+    Level level = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Event level that should control the display of the message"
     ];
 }

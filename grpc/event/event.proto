@@ -16,17 +16,16 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-import "google/protobuf/descriptor.proto";
-
 package stratumn.alice.grpc.event;
 
 option go_package = "github.com/stratumn/alice/grpc/event;event";
 
-// The MyEventService service definition.
-// If your service wants to emit event, if should define a Listen rpc 
-// as shown below.
-service MyEventService {
-    // Listen starts listening to events from MyEventService.
+// The Emitter service definition.
+// If your service wants to emit events, it should depend on the Emitter
+// service. Your service should leverage Emitter's Listen stream to push
+// events to connected clients.
+service Emitter {
+    // Listen starts listening to events.
     rpc Listen (ListenReq) returns (stream Event) {
       option (stratumn.alice.grpc.ext.method_desc) = "Listen for events";
       option (stratumn.alice.grpc.ext.method_event_emitter) = true;
@@ -37,6 +36,13 @@ service MyEventService {
 message ListenReq {
 }
 
+enum Level {
+    INFO = 0;
+    DEBUG = 1;
+    WARNING = 2;
+    ERROR = 3;
+}
+
 // The Event message containing what should be displayed, with optional
 // display customization (if supported by the listener).
 message Event {
@@ -44,12 +50,6 @@ message Event {
         (stratumn.alice.grpc.ext.field_desc) = "Event message to be displayed or logged",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
-    enum Level {
-        INFO = 0;
-        DEBUG = 1;
-        WARNING = 2;
-        ERROR = 3;
-    }
     Level level = 2 [
         (stratumn.alice.grpc.ext.field_desc) = "Event level that should control the display of the message"
     ];

@@ -19,8 +19,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/service/event"
 	pb "github.com/stratumn/alice/grpc/chat"
-	pbevent "github.com/stratumn/alice/grpc/event"
 
 	"google.golang.org/grpc"
 
@@ -35,6 +35,9 @@ var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
 
+	// ErrNoEvent is returned when the connected service is not an event emitter.
+	ErrNoEvent = errors.New("connected service is not an event emitter")
+
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
@@ -48,15 +51,19 @@ var log = logging.Logger("chat")
 
 // Service is the Chat service.
 type Service struct {
-	config *Config
-	host   Host
-	chat   *Chat
+	config       *Config
+	host         Host
+	eventEmitter event.Emitter
+	chat         *Chat
 }
 
 // Config contains configuration options for the Chat service.
 type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
+
+	// Event is the name of the event service.
+	Event string `toml:"event" comment:"The name of the event service."`
 }
 
 // ID returns the unique identifier of the service.
@@ -83,7 +90,8 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host: "host",
+		Host:  "host",
+		Event: "event",
 	}
 }
 
@@ -98,6 +106,7 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
+	needs[s.config.Event] = struct{}{}
 
 	return needs
 }
@@ -108,6 +117,10 @@ func (s *Service) Plug(services map[string]interface{}) error {
 
 	if s.host, ok = services[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
+	}
+
+	if s.eventEmitter, ok = services[s.config.Event].(event.Emitter); !ok {
+		return errors.Wrap(ErrNoEvent, s.config.Event)
 	}
 
 	return nil
@@ -121,7 +134,7 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.chat = NewChat(s.host)
+	s.chat = NewChat(s.host, s.eventEmitter)
 
 	// Wrap the stream handler with the context.
 	s.host.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
@@ -134,8 +147,6 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	// Stop accepting streams.
 	s.host.RemoveStreamHandler(ProtocolID)
-
-	s.chat.Close()
 	s.chat = nil
 
 	return errors.WithStack(ctx.Err())
@@ -153,20 +164,6 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 		},
 		Send: func(ctx context.Context, pid peer.ID, message string) error {
 			return s.chat.Send(ctx, pid, message)
-		},
-		AddListener: func() <-chan *pbevent.Event {
-			receiveChan := make(chan *pbevent.Event)
-			s.chat.listeners = append(s.chat.listeners, receiveChan)
-			return receiveChan
-		},
-		RemoveListener: func(listener <-chan *pbevent.Event) {
-			for i, l := range s.chat.listeners {
-				if l == listener {
-					s.chat.listeners[i] = s.chat.listeners[len(s.chat.listeners)-1]
-					s.chat.listeners = s.chat.listeners[:len(s.chat.listeners)-1]
-					break
-				}
-			}
 		},
 	})
 }

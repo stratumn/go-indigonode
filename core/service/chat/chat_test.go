@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/stratumn/alice/core/p2p"
-	pb "github.com/stratumn/alice/grpc/chat"
+	pbevent "github.com/stratumn/alice/grpc/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,8 +41,8 @@ func TestChat(t *testing.T) {
 
 		chat1 := NewChat(h1)
 		chat2 := NewChat(h2)
-		receiveChan := make(chan *pb.ChatMessage, 1)
-		chat2.listeners = []chan *pb.ChatMessage{receiveChan}
+		receiveChan := make(chan *pbevent.Event, 1)
+		chat2.listeners = []chan *pbevent.Event{receiveChan}
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)
@@ -65,9 +65,9 @@ func TestChat(t *testing.T) {
 		defer h1.Close()
 
 		chat1 := NewChat(h1)
-		listeners := []chan *pb.ChatMessage{
-			make(chan *pb.ChatMessage, 1),
-			make(chan *pb.ChatMessage, 1),
+		listeners := []chan *pbevent.Event{
+			make(chan *pbevent.Event, 1),
+			make(chan *pbevent.Event, 1),
 		}
 		chat1.listeners = listeners
 

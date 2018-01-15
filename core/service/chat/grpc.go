@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/chat"
+	pbevent "github.com/stratumn/alice/grpc/event"
 
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
@@ -28,14 +29,14 @@ import (
 type grpcServer struct {
 	Connect        func(context.Context, pstore.PeerInfo) error
 	Send           func(context.Context, peer.ID, string) error
-	AddListener    func() <-chan *pb.ChatMessage
-	RemoveListener func(<-chan *pb.ChatMessage)
+	AddListener    func() <-chan *pbevent.Event
+	RemoveListener func(<-chan *pbevent.Event)
 }
 
 // Message sends a message to the specified peer.
 func (s grpcServer) Message(ctx context.Context, req *pb.ChatMessage) (response *pb.Ack, err error) {
 	response = &pb.Ack{}
-	pid, err := peer.IDFromBytes(req.ToPeer)
+	pid, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
 		err = errors.WithStack(err)
 		return
@@ -55,7 +56,7 @@ func (s grpcServer) Message(ctx context.Context, req *pb.ChatMessage) (response 
 	return
 }
 
-func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Chat_ListenServer) error {
+func (s grpcServer) Listen(_ *pbevent.ListenReq, ss pb.Chat_ListenServer) error {
 	log.Event(ss.Context(), "AddListener")
 
 	receiveChan := s.AddListener()

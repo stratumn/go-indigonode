@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/chat"
+	pbevent "github.com/stratumn/alice/grpc/event"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -33,7 +34,7 @@ var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
 // Chat implements the chat protocol.
 type Chat struct {
 	host      Host
-	listeners []chan *pb.ChatMessage
+	listeners []chan *pbevent.Event
 }
 
 // NewChat creates a new chat server.
@@ -79,10 +80,13 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 		"message": message.Message,
 	})
 
-	message.FromPeer = []byte(from)
+	chatEvent := &pbevent.Event{
+		Message: message.Message,
+		Level:   pbevent.Event_INFO,
+	}
 
 	for _, listener := range c.listeners {
-		listener <- &message
+		listener <- chatEvent
 	}
 }
 

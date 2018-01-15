@@ -732,6 +732,15 @@ func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDe
 
 	var cmds []Cmd
 	for _, methodDesc := range methodDescs {
+		opts := methodDesc.GetMethodOptions()
+		if opts != nil {
+			eventEmitterEx, err := proto.GetExtension(opts, ext.E_MethodEventEmitter)
+			if err == nil && *eventEmitterEx.(*bool) {
+				r.cons.Debugf("Found event emitter: %s.%s\n", d.GetName(), methodDesc.GetName())
+				continue
+			}
+		}
+
 		c, err := r.reflectMethod(conn, methodDesc)
 		if err != nil {
 			r.cons.Warningf("Could not reflect %q: %s.\n", methodDesc.GetFullyQualifiedName(), err)

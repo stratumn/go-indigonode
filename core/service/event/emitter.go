@@ -34,16 +34,23 @@ type Emitter interface {
 	Close()
 }
 
+// DefaultTimeout is the recommended timeout before dropping messages.
+var DefaultTimeout = 100 * time.Millisecond
+
 // ServerEmitter is a simple Emitter.
 type ServerEmitter struct {
+	timeout time.Duration
+
 	mu        sync.RWMutex
 	pending   sync.WaitGroup
 	listeners []chan *pb.Event
 }
 
 // NewEmitter creates a new event emitter.
-func NewEmitter() Emitter {
-	return &ServerEmitter{}
+func NewEmitter(timeout time.Duration) Emitter {
+	return &ServerEmitter{
+		timeout: timeout,
+	}
 }
 
 // AddListener adds an event listener.
@@ -97,10 +104,9 @@ func (e *ServerEmitter) Emit(ev *pb.Event) {
 		e.pending.Add(1)
 
 		go func(l chan *pb.Event) {
-			// TODO: put timeout in config
 			select {
 			case l <- ev:
-			case <-time.After(5 * time.Millisecond):
+			case <-time.After(e.timeout):
 				break
 			}
 

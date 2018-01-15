@@ -39,11 +39,11 @@ func TestChat(t *testing.T) {
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
 
-	chat1 := NewChat(h1, event.NewEmitter())
+	chat1 := NewChat(h1, event.NewEmitter(event.DefaultTimeout))
 	chat2 := NewChat(h2, nil)
 
 	t.Run("Send and receive message", func(t *testing.T) {
-		chat2.eventEmitter = event.NewEmitter()
+		chat2.eventEmitter = event.NewEmitter(event.DefaultTimeout)
 		receiveChan := chat2.eventEmitter.AddListener(ctx)
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
@@ -64,7 +64,7 @@ func TestChat(t *testing.T) {
 
 	t.Run("Send message without listeners on the receiving end doesn't block", func(t *testing.T) {
 		// We don't register a listener on chat2's end.
-		chat2.eventEmitter = event.NewEmitter()
+		chat2.eventEmitter = event.NewEmitter(event.DefaultTimeout)
 
 		receiveChan := make(chan struct{})
 

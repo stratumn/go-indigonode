@@ -16,6 +16,7 @@ package event
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/event"
@@ -30,7 +31,15 @@ var log = logging.Logger("event")
 
 // Service is the Event service.
 type Service struct {
+	config  *Config
+	timeout time.Duration
 	emitter Emitter
+}
+
+// Config contains configuration options for the Event service.
+type Config struct {
+	// WriteTimeout sets how long to wait before dropping a message when listeners are too slow.
+	WriteTimeout string `toml:"write_timeout" comment:"How long to wait before dropping a message when listeners are too slow."`
 }
 
 // ID returns the unique identifier of the service.
@@ -51,11 +60,27 @@ func (s *Service) Desc() string {
 // Config returns the current service configuration or creates one with
 // good default values.
 func (s *Service) Config() interface{} {
-	return nil
+	if s.config != nil {
+		return *s.config
+	}
+
+	return Config{
+		WriteTimeout: "1ms",
+	}
 }
 
 // SetConfig configures the service handler.
 func (s *Service) SetConfig(config interface{}) error {
+	conf := config.(Config)
+
+	timeout, err := time.ParseDuration(conf.WriteTimeout)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	s.timeout = timeout
+	s.config = &conf
+
 	return nil
 }
 
@@ -77,7 +102,7 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.emitter = NewEmitter()
+	s.emitter = NewEmitter(s.timeout)
 
 	running()
 	<-ctx.Done()

@@ -74,6 +74,10 @@ var migrations = []cfg.MigrateHandler{
 			return err
 		}
 
+		if err = tree.Set("event.write_timeout", "100ms"); err != nil {
+			return err
+		}
+
 		return addServiceToGroup(tree, "event", "util")
 	},
 }

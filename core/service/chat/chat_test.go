@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/alice/core/service/event"
 	pbevent "github.com/stratumn/alice/grpc/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,20 +30,21 @@ import (
 )
 
 func TestChat(t *testing.T) {
+	ctx := context.Background()
+	h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	defer h1.Close()
+	defer h2.Close()
+
+	h2pi := h2.Peerstore().PeerInfo(h2.ID())
+	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
+
+	chat1 := NewChat(h1, event.NewEmitter())
+	chat2 := NewChat(h2, nil)
+
 	t.Run("Send and receive message", func(t *testing.T) {
-		ctx := context.Background()
-		h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-		h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-		defer h1.Close()
-		defer h2.Close()
-
-		h2pi := h2.Peerstore().PeerInfo(h2.ID())
-		require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
-
-		chat1 := NewChat(h1)
-		chat2 := NewChat(h2)
-		receiveChan := make(chan *pbevent.Event, 1)
-		chat2.listeners = []chan *pbevent.Event{receiveChan}
+		chat2.eventEmitter = event.NewEmitter()
+		receiveChan := chat2.eventEmitter.AddListener(ctx)
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)
@@ -54,28 +56,31 @@ func TestChat(t *testing.T) {
 		select {
 		case <-time.After(1 * time.Second):
 			assert.Fail(t, "Message not received")
-		case <-receiveChan:
-			break
+		case ev := <-receiveChan:
+			assert.Equal(t, "hello world!", ev.Message, "event.Message")
+			assert.Equal(t, pbevent.Level_INFO, ev.Level, "event.Level")
 		}
 	})
 
-	t.Run("Closes all listener channels when stopping", func(t *testing.T) {
-		ctx := context.Background()
-		h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-		defer h1.Close()
+	t.Run("Send message without listeners on the receiving end doesn't block", func(t *testing.T) {
+		// We don't register a listener on chat2's end.
+		chat2.eventEmitter = event.NewEmitter()
 
-		chat1 := NewChat(h1)
-		listeners := []chan *pbevent.Event{
-			make(chan *pbevent.Event, 1),
-			make(chan *pbevent.Event, 1),
+		receiveChan := make(chan struct{})
+
+		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
+			chat2.StreamHandler(ctx, stream)
+			receiveChan <- struct{}{} // message handled without blocking
+		})
+
+		err := chat1.Send(ctx, h2.ID(), "hello no-one!")
+		require.NoError(t, err, "chat.Send()")
+
+		select {
+		case <-time.After(1 * time.Second):
+			assert.Fail(t, "Message not received")
+		case <-receiveChan:
+			break
 		}
-		chat1.listeners = listeners
-
-		chat1.Close()
-
-		_, ok := <-listeners[0]
-		assert.False(t, ok, "Listener1 channel should be closed")
-		_, ok = <-listeners[1]
-		assert.False(t, ok, "Listener2 channel should be closed")
 	})
 }

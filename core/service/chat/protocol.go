@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/service/event"
 	pb "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
 
@@ -33,13 +34,16 @@ var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
 
 // Chat implements the chat protocol.
 type Chat struct {
-	host      Host
-	listeners []chan *pbevent.Event
+	host         Host
+	eventEmitter event.Emitter
 }
 
 // NewChat creates a new chat server.
-func NewChat(host Host) *Chat {
-	return &Chat{host: host}
+func NewChat(host Host, eventEmitter event.Emitter) *Chat {
+	return &Chat{
+		host:         host,
+		eventEmitter: eventEmitter,
+	}
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -82,12 +86,10 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 
 	chatEvent := &pbevent.Event{
 		Message: message.Message,
-		Level:   pbevent.Event_INFO,
+		Level:   pbevent.Level_INFO,
 	}
 
-	for _, listener := range c.listeners {
-		listener <- chatEvent
-	}
+	c.eventEmitter.Emit(chatEvent)
 }
 
 // Send sends a message to a peer.
@@ -127,13 +129,4 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	case err := <-errCh:
 		return err
 	}
-}
-
-// Close closes the chat server.
-func (c *Chat) Close() {
-	for _, listener := range c.listeners {
-		close(listener)
-	}
-
-	c.listeners = nil
 }

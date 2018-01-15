@@ -68,6 +68,14 @@ var migrations = []cfg.MigrateHandler{
 
 		return addServiceToGroup(tree, "util", "boot")
 	},
+	func(tree *cfg.Tree) error {
+		err := tree.Set("chat.event", "event")
+		if err != nil {
+			return err
+		}
+
+		return addServiceToGroup(tree, "event", "util")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

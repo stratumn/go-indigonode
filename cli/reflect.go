@@ -735,7 +735,7 @@ func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDe
 		opts := methodDesc.GetMethodOptions()
 		if opts != nil {
 			eventEmitterEx, err := proto.GetExtension(opts, ext.E_MethodEventEmitter)
-			if err == nil && *eventEmitterEx.(*bool) == true {
+			if err == nil && *eventEmitterEx.(*bool) {
 				r.cons.Debugf("Found event emitter: %s.%s\n", d.GetName(), methodDesc.GetName())
 				continue
 			}

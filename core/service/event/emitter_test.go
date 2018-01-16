@@ -27,17 +27,17 @@ func TestEmitter(t *testing.T) {
 
 	t.Run("Can add and remove listeners", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
-		assert.Equal(0, emitter.GetListenersCount(), "There should be no listener initially")
+		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 
 		l1 := emitter.AddListener()
 		l2 := emitter.AddListener()
-		assert.Equal(2, emitter.GetListenersCount(), "Listeners count")
+		assert.Equal(2, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 
 		emitter.RemoveListener(l2)
-		assert.Equal(1, emitter.GetListenersCount(), "Listeners count")
+		assert.Equal(1, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 
 		emitter.RemoveListener(l1)
-		assert.Equal(0, emitter.GetListenersCount(), "Listeners count")
+		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 	})
 
 	t.Run("Close closes all channels", func(t *testing.T) {
@@ -47,7 +47,7 @@ func TestEmitter(t *testing.T) {
 		emitter.AddListener()
 		emitter.Close()
 
-		assert.Equal(0, emitter.GetListenersCount(), "All listeners should be disconnected")
+		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 	})
 
 	t.Run("Emit to multiple listeners", func(t *testing.T) {
@@ -63,9 +63,9 @@ func TestEmitter(t *testing.T) {
 		assertReceived := func(l <-chan *pb.Event) {
 			select {
 			case ee := <-l:
-				assert.Equal(e, ee, "Invalid event received")
+				assert.Equal(e, ee, "emitter.Emit()")
 			case <-time.After(10 * time.Millisecond):
-				assert.Fail("Event not received in time window")
+				assert.Fail("emitter.Emit() did not send event")
 			}
 		}
 
@@ -88,7 +88,7 @@ func TestEmitter(t *testing.T) {
 		select {
 		case <-l:
 		case <-time.After(10 * time.Millisecond):
-			assert.Fail("Event not received in time window")
+			assert.Fail("emitter.Emit() did not send event")
 		}
 
 		// Sleep until second event is dropped.
@@ -97,7 +97,7 @@ func TestEmitter(t *testing.T) {
 		// The second event should have been dropped.
 		select {
 		case ee := <-l:
-			assert.Nil(ee, "Unexpected event received")
+			assert.Nil(ee, "emitter.Emit()")
 		case <-time.After(5 * time.Millisecond):
 			break
 		}
@@ -118,7 +118,7 @@ func TestEmitter(t *testing.T) {
 			emitter.RemoveListener(l)
 			return struct{}{}
 		}():
-			assert.Fail("RemoveListener should fail while an event is pending")
+			assert.Fail("emitter.RemoveListener()")
 		case <-time.After(5 * time.Millisecond):
 			break
 		}
@@ -126,6 +126,6 @@ func TestEmitter(t *testing.T) {
 		<-time.After(5 * time.Millisecond)
 
 		// Event should have been dropped and listener removed.
-		assert.Equal(0, emitter.GetListenersCount(), "Listener should have been removed")
+		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
 	})
 }

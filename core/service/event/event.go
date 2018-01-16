@@ -84,16 +84,6 @@ func (s *Service) SetConfig(config interface{}) error {
 	return nil
 }
 
-// Needs returns the set of services this service depends on.
-func (s *Service) Needs() map[string]struct{} {
-	return nil
-}
-
-// Plug sets the connected services.
-func (s *Service) Plug(services map[string]interface{}) error {
-	return nil
-}
-
 // Expose exposes the event service to other services.
 // It allows services to emit events in a standard way.
 func (s *Service) Expose() interface{} {

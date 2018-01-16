@@ -55,7 +55,7 @@ func TestChat(t *testing.T) {
 
 		select {
 		case <-time.After(1 * time.Second):
-			assert.Fail(t, "Message not received")
+			assert.Fail(t, "chat.Send() did not send message")
 		case ev := <-receiveChan:
 			assert.Equal(t, "hello world!", ev.Message, "event.Message")
 			assert.Equal(t, pbevent.Level_INFO, ev.Level, "event.Level")
@@ -78,7 +78,7 @@ func TestChat(t *testing.T) {
 
 		select {
 		case <-time.After(1 * time.Second):
-			assert.Fail(t, "Message not received")
+			assert.Fail(t, "chat.Send() did not send message")
 		case <-receiveChan:
 			break
 		}

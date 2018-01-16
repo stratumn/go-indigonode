@@ -174,6 +174,47 @@ func TestSomething(t *testing.T) {
 ```
 
 Use table-driven tests when possible.
+Use short test names that underline what is tested.
+
+```go
+type myTableTest struct {
+    name            string
+    // other variables specific to the test case
+}
+
+func TestCore(t *testing.T) {
+    testcases := []myTableTest{{
+        "with something turned on"
+    }, {
+        "with something turned off"
+    }}
+
+    for _, tt := range testcases {
+        t.Run(tt.name, func(t *testing.T) {
+            // Shared testing logic
+        })
+    }
+}
+```
+
+When relevant, use test fixtures.
+Test fixtures should provide a good description for each test case.
+
+```go
+func TestMyComponent(t *testing.T) {
+    assert := assert.New(t)
+    // Shared initialization of my component
+    // ...
+
+    t.Run("Does X when Y", func(t *testing.T) {
+        // ...
+    })
+
+    t.Run("Returns XX when YY", func(t *testing.T) {
+        // ...
+    })
+}
+```
 
 Use [mock](https://github.com/golang/mock) to mock interfaces for unit tests.
 

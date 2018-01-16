@@ -42,8 +42,9 @@ type ServerEmitter struct {
 	timeout time.Duration
 
 	mu        sync.RWMutex
-	pending   sync.WaitGroup
 	listeners []chan *pb.Event
+
+	pending sync.WaitGroup
 }
 
 // NewEmitter creates a new event emitter.

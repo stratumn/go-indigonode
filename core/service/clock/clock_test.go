@@ -44,8 +44,8 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 }
 
 func expectHost(ctx context.Context, t *testing.T, host *mockclock.MockHost) {
-	host.EXPECT().SetStreamHandler(ProtocolID, gomock.Any())
-	host.EXPECT().RemoveStreamHandler(ProtocolID)
+	host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any())
+	host.EXPECT().RemoveStreamHandler(gomock.Any())
 }
 
 func TestService_strings(t *testing.T) {

@@ -94,10 +94,7 @@ func TestEmitter(t *testing.T) {
 		}
 
 		// Sleep until second event is dropped.
-		select {
-		case <-time.After(10 * time.Millisecond):
-			break
-		}
+		<-time.After(10 * time.Millisecond)
 
 		// The second event should have been dropped.
 		select {
@@ -128,10 +125,7 @@ func TestEmitter(t *testing.T) {
 			break
 		}
 
-		select {
-		case <-time.After(5 * time.Millisecond):
-			break
-		}
+		<-time.After(5 * time.Millisecond)
 
 		// Event should have been dropped and listener removed.
 		assert.Equal(0, emitter.GetListenersCount(), "Listener should have been removed")

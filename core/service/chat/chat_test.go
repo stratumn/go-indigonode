@@ -57,7 +57,7 @@ func TestChat(t *testing.T) {
 		case <-time.After(1 * time.Second):
 			assert.Fail(t, "chat.Send() did not send message")
 		case ev := <-receiveChan:
-			assert.Equal(t, "hello world!", ev.Message, "event.Message")
+			assert.Contains(t, ev.Message, "hello world!", "event.Message")
 			assert.Equal(t, pbevent.Level_INFO, ev.Level, "event.Level")
 		}
 	})

@@ -35,8 +35,8 @@ var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
 
-	// ErrNoEvent is returned when the connected service is not an event emitter.
-	ErrNoEvent = errors.New("connected service is not an event emitter")
+	// ErrNotEvent is returned when the connected service is not an event emitter.
+	ErrNotEvent = errors.New("connected service is not an event emitter")
 
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
@@ -120,7 +120,7 @@ func (s *Service) Plug(services map[string]interface{}) error {
 	}
 
 	if s.eventEmitter, ok = services[s.config.Event].(event.Emitter); !ok {
-		return errors.Wrap(ErrNoEvent, s.config.Event)
+		return errors.Wrap(ErrNotEvent, s.config.Event)
 	}
 
 	return nil

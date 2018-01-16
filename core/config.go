@@ -57,7 +57,7 @@ var DefaultConfig = Config{
 		ID:       "util",
 		Name:     "Utility Services",
 		Desc:     "Starts utility services.",
-		Services: []string{"contacts"},
+		Services: []string{"contacts", "event"},
 	}},
 	EnableBootScreen:  true,
 	BootScreenHost:    "host",

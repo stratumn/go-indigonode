@@ -27,6 +27,8 @@ import (
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 
+	pb "github.com/stratumn/alice/pb/clock"
+
 	"github.com/pkg/errors"
 )
 
@@ -92,7 +94,7 @@ func (c *Clock) StreamHandler(ctx context.Context, stream inet.Stream) {
 
 			t := time.Now().UTC()
 
-			err = enc.Encode(&Time{Timestamp: t.UnixNano()})
+			err = enc.Encode(&pb.Time{Timestamp: t.UnixNano()})
 			if err != nil {
 				ch <- errors.WithStack(err)
 				return
@@ -146,7 +148,7 @@ func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error)
 
 		dec := protobuf.Multicodec(nil).Decoder(stream)
 
-		t := Time{}
+		t := pb.Time{}
 
 		err = dec.Decode(&t)
 		if err != nil {

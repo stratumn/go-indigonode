@@ -55,6 +55,9 @@ CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' |
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
+PROTOS=$(shell find pb -name '*.proto')
+PROTOS_GO=$(PROTOS:.proto=.pb.go)
+
 NIX_EXECS=$(foreach os-arch, $(NIX_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD))
 WIN_EXECS=$(foreach os-arch, $(WIN_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD).exe)
 EXECS=$(NIX_EXECS) $(WIN_EXECS)
@@ -110,12 +113,15 @@ generate:
 
 # == protobuf =================================================================
 
-protobuf: $(GRPC_GO)
+protobuf: $(GRPC_GO) $(PROTOS_GO)
 
 grpc/%.pb.go: grpc/%.proto
 	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --go_out=plugins=grpc:$(GOPATH)/src
 	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
 	rm $@.bak
+
+pb/%.pb.go: pb/%.proto
+	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --go_out=$(GOPATH)/src
 
 # == doc ======================================================================
 

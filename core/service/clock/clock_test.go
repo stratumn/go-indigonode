@@ -22,13 +22,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/p2p"
+	protocol "github.com/stratumn/alice/core/protocol/clock"
 	"github.com/stratumn/alice/core/service/clock/mockclock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
-	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -47,8 +44,8 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 }
 
 func expectHost(ctx context.Context, t *testing.T, host *mockclock.MockHost) {
-	host.EXPECT().SetStreamHandler(ProtocolID, gomock.Any())
-	host.EXPECT().RemoveStreamHandler(ProtocolID)
+	host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any())
+	host.EXPECT().RemoveStreamHandler(gomock.Any())
 }
 
 func TestService_strings(t *testing.T) {
@@ -68,7 +65,7 @@ func TestService_Expose(t *testing.T) {
 	serv := testService(ctx, t, host)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
-	assert.IsType(t, &Clock{}, exposed, "exposed type")
+	assert.IsType(t, &protocol.Clock{}, exposed, "exposed type")
 }
 
 func TestService_Run(t *testing.T) {
@@ -191,28 +188,4 @@ func TestService_Plug(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestClock_RemoteTime(t *testing.T) {
-	ctx := context.Background()
-	h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	defer h1.Close()
-	defer h2.Close()
-
-	// connect h1 to h2
-	h2pi := h2.Peerstore().PeerInfo(h2.ID())
-	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
-
-	clockH2 := NewClock(h2, 10*time.Second)
-	h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
-		clockH2.StreamHandler(ctx, stream)
-	})
-
-	clockH1 := &Clock{host: h1}
-	remoteTime, err := clockH1.RemoteTime(ctx, h2.ID())
-
-	require.NoError(t, err, "RemoteTime()")
-	require.NotNil(t, remoteTime)
-	require.WithinDuration(t, time.Now().UTC(), *remoteTime, time.Second)
 }

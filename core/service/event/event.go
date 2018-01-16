@@ -65,7 +65,7 @@ func (s *Service) Config() interface{} {
 	}
 
 	return Config{
-		WriteTimeout: "1ms",
+		WriteTimeout: DefaultTimeout.String(),
 	}
 }
 

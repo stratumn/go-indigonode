@@ -32,8 +32,8 @@ func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Emitter_ListenServer) error {
 		return errors.New("cannot listen to events: event service is not running")
 	}
 
-	receiveChan := emitter.AddListener(ss.Context())
-	defer emitter.RemoveListener(ss.Context(), receiveChan)
+	receiveChan := emitter.AddListener()
+	defer emitter.RemoveListener(receiveChan)
 
 eventPump:
 	for {

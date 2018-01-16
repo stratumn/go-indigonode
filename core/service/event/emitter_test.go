@@ -15,7 +15,6 @@
 package event
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -24,29 +23,28 @@ import (
 )
 
 func TestEmitter(t *testing.T) {
-	ctx := context.Background()
 	assert := assert.New(t)
 
 	t.Run("Can add and remove listeners", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
 		assert.Equal(0, emitter.GetListenersCount(), "There should be no listener initially")
 
-		l1 := emitter.AddListener(ctx)
-		l2 := emitter.AddListener(ctx)
+		l1 := emitter.AddListener()
+		l2 := emitter.AddListener()
 		assert.Equal(2, emitter.GetListenersCount(), "Listeners count")
 
-		emitter.RemoveListener(ctx, l2)
+		emitter.RemoveListener(l2)
 		assert.Equal(1, emitter.GetListenersCount(), "Listeners count")
 
-		emitter.RemoveListener(ctx, l1)
+		emitter.RemoveListener(l1)
 		assert.Equal(0, emitter.GetListenersCount(), "Listeners count")
 	})
 
 	t.Run("Close closes all channels", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
 
-		emitter.AddListener(ctx)
-		emitter.AddListener(ctx)
+		emitter.AddListener()
+		emitter.AddListener()
 		emitter.Close()
 
 		assert.Equal(0, emitter.GetListenersCount(), "All listeners should be disconnected")
@@ -56,8 +54,8 @@ func TestEmitter(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
 		defer emitter.Close()
 
-		l1 := emitter.AddListener(ctx)
-		l2 := emitter.AddListener(ctx)
+		l1 := emitter.AddListener()
+		l2 := emitter.AddListener()
 
 		e := &pb.Event{Message: "Hey", Level: pb.Level_INFO}
 		emitter.Emit(e)
@@ -79,7 +77,7 @@ func TestEmitter(t *testing.T) {
 		emitter := NewEmitter(5 * time.Millisecond)
 		defer emitter.Close()
 
-		l := emitter.AddListener(ctx)
+		l := emitter.AddListener()
 
 		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO}
 		e2 := &pb.Event{Message: "2", Level: pb.Level_INFO}
@@ -109,7 +107,7 @@ func TestEmitter(t *testing.T) {
 		emitter := NewEmitter(10 * time.Millisecond)
 		defer emitter.Close()
 
-		l := emitter.AddListener(ctx)
+		l := emitter.AddListener()
 		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO}
 		emitter.Emit(e1)
 
@@ -117,7 +115,7 @@ func TestEmitter(t *testing.T) {
 
 		select {
 		case removeChan <- func() struct{} {
-			emitter.RemoveListener(ctx, l)
+			emitter.RemoveListener(l)
 			return struct{}{}
 		}():
 			assert.Fail("RemoveListener should fail while an event is pending")

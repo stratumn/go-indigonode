@@ -44,8 +44,8 @@ func TestGRPCServer_Listen_Add_Remove_Listeners(t *testing.T) {
 	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
 
 	ss.EXPECT().Context().AnyTimes().Return(ctx)
-	addListener := mockEmitter.EXPECT().AddListener(ctx).Times(1)
-	mockEmitter.EXPECT().RemoveListener(ctx, gomock.Any()).After(addListener).Times(1)
+	addListener := mockEmitter.EXPECT().AddListener().Times(1)
+	mockEmitter.EXPECT().RemoveListener(gomock.Any()).After(addListener).Times(1)
 
 	assert.NoError(t, srv.Listen(&pb.ListenReq{}, ss), "srv.Listen()")
 }

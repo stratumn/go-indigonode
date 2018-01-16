@@ -27,8 +27,8 @@ import (
 // Emitter emits events.
 // Listeners can be added and removed.
 type Emitter interface {
-	AddListener(context.Context) <-chan *pb.Event
-	RemoveListener(context.Context, <-chan *pb.Event)
+	AddListener() <-chan *pb.Event
+	RemoveListener(<-chan *pb.Event)
 	GetListenersCount() int
 	Emit(*pb.Event)
 	Close()
@@ -55,8 +55,8 @@ func NewEmitter(timeout time.Duration) Emitter {
 
 // AddListener adds an event listener.
 // It returns the channel on which events will be pushed.
-func (e *ServerEmitter) AddListener(ctx context.Context) <-chan *pb.Event {
-	log.Event(ctx, "AddListener")
+func (e *ServerEmitter) AddListener() <-chan *pb.Event {
+	log.Event(context.Background(), "AddListener")
 
 	receiveChan := make(chan *pb.Event)
 
@@ -68,8 +68,8 @@ func (e *ServerEmitter) AddListener(ctx context.Context) <-chan *pb.Event {
 }
 
 // RemoveListener removes an event listener.
-func (e *ServerEmitter) RemoveListener(ctx context.Context, listener <-chan *pb.Event) {
-	log.Event(ctx, "RemoveListener")
+func (e *ServerEmitter) RemoveListener(listener <-chan *pb.Event) {
+	log.Event(context.Background(), "RemoveListener")
 
 	e.mu.Lock()
 	defer e.mu.Unlock()

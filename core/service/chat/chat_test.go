@@ -44,7 +44,7 @@ func TestChat(t *testing.T) {
 
 	t.Run("Send and receive message", func(t *testing.T) {
 		chat2.eventEmitter = event.NewEmitter(event.DefaultTimeout)
-		receiveChan := chat2.eventEmitter.AddListener(ctx)
+		receiveChan := chat2.eventEmitter.AddListener()
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)

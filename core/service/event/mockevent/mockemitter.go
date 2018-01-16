@@ -4,7 +4,6 @@
 package mockevent
 
 import (
-	context "context"
 	gomock "github.com/golang/mock/gomock"
 	event "github.com/stratumn/alice/grpc/event"
 	reflect "reflect"
@@ -34,15 +33,15 @@ func (_m *MockEmitter) EXPECT() *MockEmitterMockRecorder {
 }
 
 // AddListener mocks base method
-func (_m *MockEmitter) AddListener(_param0 context.Context) <-chan *event.Event {
-	ret := _m.ctrl.Call(_m, "AddListener", _param0)
+func (_m *MockEmitter) AddListener() <-chan *event.Event {
+	ret := _m.ctrl.Call(_m, "AddListener")
 	ret0, _ := ret[0].(<-chan *event.Event)
 	return ret0
 }
 
 // AddListener indicates an expected call of AddListener
-func (_mr *MockEmitterMockRecorder) AddListener(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddListener", reflect.TypeOf((*MockEmitter)(nil).AddListener), arg0)
+func (_mr *MockEmitterMockRecorder) AddListener() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddListener", reflect.TypeOf((*MockEmitter)(nil).AddListener))
 }
 
 // Close mocks base method
@@ -78,11 +77,11 @@ func (_mr *MockEmitterMockRecorder) GetListenersCount() *gomock.Call {
 }
 
 // RemoveListener mocks base method
-func (_m *MockEmitter) RemoveListener(_param0 context.Context, _param1 <-chan *event.Event) {
-	_m.ctrl.Call(_m, "RemoveListener", _param0, _param1)
+func (_m *MockEmitter) RemoveListener(_param0 <-chan *event.Event) {
+	_m.ctrl.Call(_m, "RemoveListener", _param0)
 }
 
 // RemoveListener indicates an expected call of RemoveListener
-func (_mr *MockEmitterMockRecorder) RemoveListener(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemoveListener", reflect.TypeOf((*MockEmitter)(nil).RemoveListener), arg0, arg1)
+func (_mr *MockEmitterMockRecorder) RemoveListener(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemoveListener", reflect.TypeOf((*MockEmitter)(nil).RemoveListener), arg0)
 }

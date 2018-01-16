@@ -27,12 +27,6 @@ service Chat {
   rpc Message (ChatMessage) returns (Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Send a message to a peer";
   }
-
-  // Listen listens for incoming chat messages from peers.
-  rpc Listen (stratumn.alice.grpc.event.ListenReq) returns (stream stratumn.alice.grpc.event.Event) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Listen for chat messages from peers";
-    option (stratumn.alice.grpc.ext.method_event_emitter) = true;
-  }
 }
 
 // A chat message.

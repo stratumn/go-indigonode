@@ -19,7 +19,6 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/chat"
-	pbevent "github.com/stratumn/alice/grpc/event"
 
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
@@ -27,10 +26,8 @@ import (
 
 // grpcServer is a gRPC server for the chat service.
 type grpcServer struct {
-	Connect        func(context.Context, pstore.PeerInfo) error
-	Send           func(context.Context, peer.ID, string) error
-	AddListener    func() <-chan *pbevent.Event
-	RemoveListener func(<-chan *pbevent.Event)
+	Connect func(context.Context, pstore.PeerInfo) error
+	Send    func(context.Context, peer.ID, string) error
 }
 
 // Message sends a message to the specified peer.
@@ -54,36 +51,4 @@ func (s grpcServer) Message(ctx context.Context, req *pb.ChatMessage) (response 
 	}
 
 	return
-}
-
-func (s grpcServer) Listen(_ *pbevent.ListenReq, ss pb.Chat_ListenServer) error {
-	log.Event(ss.Context(), "AddListener")
-
-	receiveChan := s.AddListener()
-	defer func() {
-		// Note: it's the chat server's responsibility to close the listener channels.
-		s.RemoveListener(receiveChan)
-		log.Event(ss.Context(), "RemoveListener")
-	}()
-
-messagePump:
-	// Forward incoming messages to listeners.
-	for {
-		select {
-		case message, ok := <-receiveChan:
-			if !ok {
-				break messagePump
-			}
-
-			err := ss.Send(message)
-			if err != nil {
-				log.Errorf("Could not forward message to listeners: %v", message)
-				return errors.WithStack(err)
-			}
-		case <-ss.Context().Done():
-			break messagePump
-		}
-	}
-
-	return nil
 }

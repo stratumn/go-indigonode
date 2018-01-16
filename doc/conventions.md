@@ -182,7 +182,7 @@ type myTableTest struct {
     // other variables specific to the test case
 }
 
-func TestCore(t *testing.T) {
+func TestSomething(t *testing.T) {
     testcases := []myTableTest{{
         "with something turned on"
     }, {

@@ -22,21 +22,18 @@ package clock
 
 import (
 	"context"
-	"io"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	protocol "github.com/stratumn/alice/core/protocol/clock"
 	pb "github.com/stratumn/alice/grpc/clock"
 	"google.golang.org/grpc"
 
 	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 var (
@@ -47,9 +44,6 @@ var (
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
 )
-
-// ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/alice/clock/v1.0.0")
 
 // Host represents an Alice host.
 type Host = ihost.Host
@@ -62,7 +56,7 @@ type Service struct {
 	config  *Config
 	host    Host
 	timeout time.Duration
-	clock   *Clock
+	clock   *protocol.Clock
 }
 
 // Config contains configuration options for the Clock service.
@@ -147,21 +141,21 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.clock = NewClock(s.host, s.timeout)
+	s.clock = protocol.NewClock(s.host, s.timeout)
 
 	// Wrap the stream handler with the context.
 	handler := func(stream inet.Stream) {
 		s.clock.StreamHandler(ctx, stream)
 	}
 
-	s.host.SetStreamHandler(ProtocolID, handler)
+	s.host.SetStreamHandler(s.clock.ProtocolID(), handler)
 
 	running()
 	<-ctx.Done()
 	stopping()
 
 	// Stop accepting streams.
-	s.host.RemoveStreamHandler(ProtocolID)
+	s.host.RemoveStreamHandler(s.clock.ProtocolID())
 
 	// Wait for all the streams to close.
 	s.clock.Wait()
@@ -169,161 +163,6 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.clock = nil
 
 	return errors.WithStack(ctx.Err())
-}
-
-// Clock implements the clock protocol.
-type Clock struct {
-	host    Host
-	timeout time.Duration
-	wg      sync.WaitGroup
-}
-
-// NewClock creates a new clock.
-func NewClock(host Host, timeout time.Duration) *Clock {
-	return &Clock{host: host, timeout: timeout}
-}
-
-// Wait waits for all the streams to be closed.
-func (c *Clock) Wait() {
-	c.wg.Wait()
-}
-
-// StreamHandler handles incoming messages from a peer.
-func (c *Clock) StreamHandler(ctx context.Context, stream inet.Stream) {
-	log.Event(ctx, "beginStream", logging.Metadata{
-		"stream": stream,
-	})
-	defer log.Event(ctx, "endStream", logging.Metadata{
-		"stream": stream,
-	})
-
-	// Protobuf is certainly overkill here, but we use it anyway since this
-	// service acts as an example.
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-
-	c.wg.Add(1)
-	defer c.wg.Done()
-
-	buf := make([]byte, 1)
-
-	for {
-		ch := make(chan error, 1)
-
-		go func() {
-			// Everytime we receive any byte, we write the local time.
-			_, err := io.ReadFull(stream, buf)
-			if err != nil {
-				ch <- err
-				return
-			}
-
-			t := time.Now().UTC()
-
-			err = enc.Encode(&pb.Time{Timestamp: t.UnixNano()})
-			if err != nil {
-				ch <- errors.WithStack(err)
-				return
-			}
-
-			ch <- nil
-		}()
-
-		select {
-		case <-ctx.Done():
-			c.closeStream(ctx, stream)
-			return
-
-		case <-time.After(c.timeout):
-			c.closeStream(ctx, stream)
-			return
-
-		case err := <-ch:
-			if err != nil {
-				c.handleStreamError(ctx, stream, err)
-				return
-			}
-		}
-	}
-}
-
-// RemoteTime asks a peer for its time.
-func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error) {
-	event := log.EventBegin(ctx, "RemoteTime", logging.Metadata{
-		"peerID": pid.Pretty(),
-	})
-	defer event.Done()
-
-	timeCh := make(chan *time.Time, 1)
-	errCh := make(chan error, 1)
-
-	go func() {
-		stream, err := c.host.NewStream(ctx, pid, ProtocolID)
-		if err != nil {
-			event.SetError(err)
-			errCh <- errors.WithStack(err)
-			return
-		}
-
-		_, err = stream.Write([]byte{'\n'})
-		if err != nil {
-			event.SetError(err)
-			errCh <- errors.WithStack(err)
-			return
-		}
-
-		dec := protobuf.Multicodec(nil).Decoder(stream)
-
-		t := pb.Time{}
-
-		err = dec.Decode(&t)
-		if err != nil {
-			event.SetError(err)
-			errCh <- errors.WithStack(err)
-			return
-		}
-		time := time.Unix(0, t.Timestamp)
-
-		timeCh <- &time
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, errors.WithStack(ctx.Err())
-	case t := <-timeCh:
-		return t, nil
-	case err := <-errCh:
-		return nil, err
-	}
-}
-
-// closeStream closes a stream.
-func (c *Clock) closeStream(ctx context.Context, stream inet.Stream) {
-	if err := stream.Close(); err != nil {
-		log.Event(ctx, "streamCloseError", logging.Metadata{
-			"error":  err.Error(),
-			"stream": stream,
-		})
-	}
-}
-
-// handleStreamError handles errors from streams.
-func (c *Clock) handleStreamError(ctx context.Context, stream inet.Stream, err error) {
-	log.Event(ctx, "streamError", logging.Metadata{
-		"error":  err.Error(),
-		"stream": stream,
-	})
-
-	if err == io.EOF {
-		c.closeStream(ctx, stream)
-		return
-	}
-
-	if err := stream.Reset(); err != nil {
-		log.Event(ctx, "streamResetError", logging.Metadata{
-			"error":  err.Error(),
-			"stream": stream,
-		})
-	}
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

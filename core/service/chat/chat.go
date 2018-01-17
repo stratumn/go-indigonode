@@ -19,13 +19,13 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/chat"
 	"github.com/stratumn/alice/core/service/event"
 	pb "github.com/stratumn/alice/grpc/chat"
 
 	"google.golang.org/grpc"
 
 	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
@@ -46,15 +46,12 @@ var (
 // Host represents an Alice host.
 type Host = ihost.Host
 
-// log is the logger for the service.
-var log = logging.Logger("chat")
-
 // Service is the Chat service.
 type Service struct {
 	config       *Config
 	host         Host
 	eventEmitter event.Emitter
-	chat         *Chat
+	chat         *chat.Chat
 }
 
 // Config contains configuration options for the Chat service.
@@ -134,10 +131,10 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.chat = NewChat(s.host, s.eventEmitter)
+	s.chat = chat.NewChat(s.host, s.eventEmitter)
 
 	// Wrap the stream handler with the context.
-	s.host.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
+	s.host.SetStreamHandler(chat.ProtocolID, func(stream inet.Stream) {
 		s.chat.StreamHandler(ctx, stream)
 	})
 
@@ -146,7 +143,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	stopping()
 
 	// Stop accepting streams.
-	s.host.RemoveStreamHandler(ProtocolID)
+	s.host.RemoveStreamHandler(chat.ProtocolID)
 	s.chat = nil
 
 	return errors.WithStack(ctx.Err())

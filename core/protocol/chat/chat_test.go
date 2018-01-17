@@ -40,11 +40,11 @@ func TestChat(t *testing.T) {
 	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
 
 	chat1 := NewChat(h1, event.NewEmitter(event.DefaultTimeout))
-	chat2 := NewChat(h2, nil)
 
 	t.Run("Send and receive message", func(t *testing.T) {
-		chat2.eventEmitter = event.NewEmitter(event.DefaultTimeout)
-		receiveChan := chat2.eventEmitter.AddListener()
+		eventEmitter := event.NewEmitter(event.DefaultTimeout)
+		receiveChan := eventEmitter.AddListener()
+		chat2 := NewChat(h2, eventEmitter)
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)
@@ -64,7 +64,7 @@ func TestChat(t *testing.T) {
 
 	t.Run("Send message without listeners on the receiving end doesn't block", func(t *testing.T) {
 		// We don't register a listener on chat2's end.
-		chat2.eventEmitter = event.NewEmitter(event.DefaultTimeout)
+		chat2 := NewChat(h2, event.NewEmitter(event.DefaultTimeout))
 
 		receiveChan := make(chan struct{})
 

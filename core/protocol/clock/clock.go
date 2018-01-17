@@ -81,42 +81,40 @@ func (c *Clock) StreamHandler(ctx context.Context, stream inet.Stream) {
 
 	buf := make([]byte, 1)
 
-	for {
-		ch := make(chan error, 1)
+	ch := make(chan error, 1)
 
-		go func() {
-			// Everytime we receive any byte, we write the local time.
-			_, err := io.ReadFull(stream, buf)
-			if err != nil {
-				ch <- err
-				return
-			}
-
-			t := time.Now().UTC()
-
-			err = enc.Encode(&pb.Time{Timestamp: t.UnixNano()})
-			if err != nil {
-				ch <- errors.WithStack(err)
-				return
-			}
-
-			ch <- nil
-		}()
-
-		select {
-		case <-ctx.Done():
-			c.closeStream(ctx, stream)
+	go func() {
+		// Everytime we receive any byte, we write the local time.
+		_, err := io.ReadFull(stream, buf)
+		if err != nil {
+			ch <- err
 			return
+		}
 
-		case <-time.After(c.timeout):
-			c.closeStream(ctx, stream)
+		t := time.Now().UTC()
+
+		err = enc.Encode(&pb.Time{Timestamp: t.UnixNano()})
+		if err != nil {
+			ch <- errors.WithStack(err)
 			return
+		}
 
-		case err := <-ch:
-			if err != nil {
-				c.handleStreamError(ctx, stream, err)
-				return
-			}
+		ch <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		c.closeStream(ctx, stream)
+		return
+
+	case <-time.After(c.timeout):
+		c.closeStream(ctx, stream)
+		return
+
+	case err := <-ch:
+		if err != nil {
+			c.handleStreamError(ctx, stream, err)
+			return
 		}
 	}
 }

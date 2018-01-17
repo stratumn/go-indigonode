@@ -13,3 +13,95 @@
 // limitations under the License.
 
 package chat
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	pb "github.com/stratumn/alice/grpc/chat"
+	"github.com/stretchr/testify/assert"
+
+	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	pstore "gx/ipfs/QmYijbtjCxFEjSXaudaQAUz3LN5VKLssm8WCUsRoqzXmQR/go-libp2p-peerstore"
+)
+
+var testPID peer.ID
+
+func init() {
+	pid, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9")
+	if err != nil {
+		panic(err)
+	}
+	testPID = pid
+}
+
+func testGRPCServer(
+	t *testing.T,
+	connect func(ctx context.Context, pi pstore.PeerInfo) error,
+	send func(ctx context.Context, pid peer.ID, message string) error) grpcServer {
+	return grpcServer{connect, send}
+}
+
+type grpcTestCase struct {
+	name     string
+	connect  func(context.Context, pstore.PeerInfo) error
+	send     func(context.Context, peer.ID, string) error
+	validate func(error)
+}
+
+func TestGRPCServer(t *testing.T) {
+	testCases := []grpcTestCase{{
+		"connect-error",
+		func(_ context.Context, _ pstore.PeerInfo) error {
+			return errors.New("Connect()")
+		},
+		func(_ context.Context, _ peer.ID, _ string) error {
+			assert.Fail(t, "Send()")
+			return nil
+		},
+		func(err error) {
+			assert.Error(t, err)
+			assert.Equal(t, "Connect()", err.Error())
+		},
+	}, {
+		"send-error",
+		func(_ context.Context, _ pstore.PeerInfo) error {
+			return nil
+		},
+		func(_ context.Context, _ peer.ID, _ string) error {
+			return errors.New("Send()")
+		},
+		func(err error) {
+			assert.Error(t, err)
+			assert.Equal(t, "Send()", err.Error())
+		},
+	}, {
+		"send-success",
+		func(_ context.Context, pi pstore.PeerInfo) error {
+			assert.Equal(t, testPID, pi.ID, "PID")
+			return nil
+		},
+		func(_ context.Context, pid peer.ID, message string) error {
+			assert.Equal(t, testPID, pid, "PID")
+			assert.Equal(t, "hello", message, "message")
+			return nil
+		},
+		func(err error) {
+			assert.NoError(t, err)
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			server := &grpcServer{tt.connect, tt.send}
+			_, err := server.Message(
+				context.Background(),
+				&pb.ChatMessage{
+					PeerId:  []byte(testPID),
+					Message: "hello",
+				})
+			tt.validate(err)
+		})
+	}
+}

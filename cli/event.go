@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -168,12 +169,14 @@ func (el *ConsoleRPCEventListener) Start(ctx context.Context) error {
 
 		for {
 			res, err := ss.RecvMsg()
-			if err == io.EOF {
+			if err == io.EOF || err == context.Canceled {
 				el.cons.Debugln("Event listener closed.")
 				return
 			}
 			if err != nil {
-				el.cons.Debugln(errors.WithStack(err))
+				if !strings.Contains(err.Error(), "Canceled") {
+					el.cons.Debugln(errors.WithStack(err))
+				}
 				return
 			}
 
@@ -214,22 +217,6 @@ func (el *ConsoleRPCEventListener) print(ev *pbevent.Event) {
 	if err := el.sig.Signal(syscall.SIGWINCH); err != nil {
 		el.cons.Debugln("Couldn't send signal to the OS to re-render. Ignoring.")
 	}
-}
-
-// Stop stops the listener.
-// It closes the connection to the event emitter.
-func (el *ConsoleRPCEventListener) Stop() error {
-	el.mu.Lock()
-	defer el.mu.Unlock()
-
-	if el.connected && el.close != nil {
-		el.close()
-	}
-
-	el.connected = false
-	el.close = nil
-
-	return nil
 }
 
 // Connected returns true if the listener is connected to the event

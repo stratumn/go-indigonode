@@ -67,11 +67,8 @@ type EventListener interface {
 
 	// Start connects to the corresponding event emitter and continuously
 	// listens for events and displays them.
+	// It disconnects from the event emitter when the context is cancelled.
 	Start(context.Context) error
-
-	// Stop stops the listener.
-	// It closes the connection to the event emitter.
-	Stop() error
 
 	// Connected returns true if the listener is connected to the event
 	// emitter and ready to receive events.

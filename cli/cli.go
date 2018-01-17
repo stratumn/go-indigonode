@@ -44,6 +44,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -160,7 +161,8 @@ type cli struct {
 	apiCmds    []Cmd
 	allCmds    []Cmd
 
-	eventListeners []EventListener
+	eventListeners     []EventListener
+	stopEventListeners context.CancelFunc
 
 	addr string
 	conn *grpc.ClientConn
@@ -334,9 +336,10 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 
 	// The input ctx will be cancelled once the connection is established.
 	// We need a longer context for the event listeners.
-	backgroundCtx := context.Background()
+	eventCtx, cancel := context.WithCancel(context.Background())
+	c.stopEventListeners = cancel
 	for _, el := range c.eventListeners {
-		if err := el.Start(backgroundCtx); err != nil {
+		if err := el.Start(eventCtx); err != nil {
 			c.cons.Debugf("Could not start event listener %s: %s.\n", el.Service(), err.Error())
 		}
 	}
@@ -359,10 +362,30 @@ func (c *cli) Disconnect() error {
 
 	c.removeCmdsFromInterpreter(c.apiCmds)
 
-	for _, el := range c.eventListeners {
-		if err := el.Stop(); err != nil {
-			c.cons.Debugf("Could not stop event listener %s: %s.\n", el.Service(), err.Error())
+	if c.stopEventListeners != nil {
+		c.stopEventListeners()
+		runtime.Gosched()
+
+		// Wait for connections to be closed.
+		wg := sync.WaitGroup{}
+		for _, el := range c.eventListeners {
+			wg.Add(1)
+			go func(el EventListener) {
+				defer wg.Done()
+
+				for {
+					if !el.Connected() {
+						c.cons.Debugf("Connection to %s closed.\n", el.Service())
+						return
+					}
+
+					<-time.After(100 * time.Millisecond)
+					c.cons.Debugf("Waiting for connection to %s to be closed...\n", el.Service())
+				}
+			}(el)
 		}
+
+		wg.Wait()
 	}
 
 	conn := c.conn

@@ -116,8 +116,9 @@ func TestConsoleRPCEventListener_Start(t *testing.T) {
 	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &IdleServerStream{})
 	defer mockCtrl.Finish()
 
-	err := el.Start(context.Background())
-	defer el.Stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	err := el.Start(ctx)
+	defer cancel()
 
 	assert.NoError(err, "el.Start()")
 	assert.True(el.Connected(), "el.Connected()")
@@ -142,8 +143,9 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 		el, mockCtrl := testConsoleRPCEventListener(t, buf, mockServerStream)
 		defer mockCtrl.Finish()
 
-		err := el.Start(context.Background())
-		defer el.Stop()
+		ctx, cancel := context.WithCancel(context.Background())
+		err := el.Start(ctx)
+		defer cancel()
 
 		assert.NoError(err, "el.Start()")
 		assert.True(el.Connected(), "el.Connected()")
@@ -167,8 +169,9 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 		el, mockCtrl := testConsoleRPCEventListener(t, buf, mockServerStream)
 		defer mockCtrl.Finish()
 
-		err := el.Start(context.Background())
-		defer el.Stop()
+		ctx, cancel := context.WithCancel(context.Background())
+		err := el.Start(ctx)
+		defer cancel()
 
 		assert.NoError(err, "el.Start()")
 		assert.True(el.Connected(), "el.Connected()")
@@ -184,27 +187,14 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 func TestConsoleRPCEventListener_Stop(t *testing.T) {
 	assert := assert.New(t)
 
-	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &IdleServerStream{})
+	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &ClosedServerStream{})
 	defer mockCtrl.Finish()
 
-	t.Run("Doesn't do anything if no connection", func(t *testing.T) {
-		assert.False(el.Connected(), "el.Connected()")
-		assert.NoError(el.Stop())
-	})
+	ctx, cancel := context.WithCancel(context.Background())
+	assert.NoError(el.Start(ctx), "el.Start()")
 
-	t.Run("Closes the current connection", func(t *testing.T) {
-		assert.NoError(el.Start(context.Background()), "el.Start()")
-		assert.True(el.Connected(), "el.Connected()")
+	waitUntilDisconnected(t, el)
+	cancel()
 
-		assert.NoError(el.Stop(), "el.Stop()")
-		assert.False(el.Connected(), "el.Connected()")
-	})
-
-	t.Run("Doesn't do anything if connection was previously closed by the server", func(t *testing.T) {
-		el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &ClosedServerStream{})
-		defer mockCtrl.Finish()
-
-		assert.NoError(el.Start(context.Background()), "el.Start()")
-		waitUntilDisconnected(t, el)
-	})
+	assert.False(el.Connected(), "el.Connected()")
 }

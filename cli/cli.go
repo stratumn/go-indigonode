@@ -160,6 +160,8 @@ type cli struct {
 	apiCmds    []Cmd
 	allCmds    []Cmd
 
+	eventListeners []EventListener
+
 	addr string
 	conn *grpc.ClientConn
 
@@ -322,12 +324,21 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 	}
 
 	// Reflect API commands.
-	c.apiCmds, err = c.reflector.Reflect(ctx, conn)
+	c.apiCmds, c.eventListeners, err = c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			c.cons.Debugf("Could not close connection: %s.", err)
+			c.cons.Debugf("Could not close connection: %s.\n", err)
 		}
 		return err
+	}
+
+	// The input ctx will be cancelled once the connection is established.
+	// We need a longer context for the event listeners.
+	backgroundCtx := context.Background()
+	for _, el := range c.eventListeners {
+		if err := el.Start(backgroundCtx); err != nil {
+			c.cons.Debugf("Could not start event listener %s: %s.\n", el.Service(), err.Error())
+		}
 	}
 
 	c.allCmds = append(c.staticCmds, c.apiCmds...)
@@ -348,10 +359,17 @@ func (c *cli) Disconnect() error {
 
 	c.removeCmdsFromInterpreter(c.apiCmds)
 
+	for _, el := range c.eventListeners {
+		if err := el.Stop(); err != nil {
+			c.cons.Debugf("Could not stop event listener %s: %s.\n", el.Service(), err.Error())
+		}
+	}
+
 	conn := c.conn
 	c.conn = nil
 	c.allCmds = c.staticCmds
 	c.apiCmds = nil
+	c.eventListeners = nil
 
 	return errors.WithStack(conn.Close())
 }

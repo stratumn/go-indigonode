@@ -36,13 +36,6 @@ func init() {
 	testPID = pid
 }
 
-func testGRPCServer(
-	t *testing.T,
-	connect func(ctx context.Context, pi pstore.PeerInfo) error,
-	send func(ctx context.Context, pid peer.ID, message string) error) grpcServer {
-	return grpcServer{connect, send}
-}
-
 type grpcTestCase struct {
 	name     string
 	connect  func(context.Context, pstore.PeerInfo) error

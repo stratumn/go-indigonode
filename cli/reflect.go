@@ -678,7 +678,7 @@ func NewServerReflector(cons *Console, termWidth int, reflectors ...Reflector) S
 }
 
 // Reflect reflects the command of a server and returns commands for them.
-func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]Cmd, error) {
+func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]Cmd, []EventListener, error) {
 	r.cons.Debugln("Reflecting API commands...")
 
 	stub := grpc_reflection_v1alpha.NewServerReflectionClient(conn)
@@ -687,17 +687,20 @@ func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]
 
 	servNames, err := c.ListServices()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, nil, errors.WithStack(err)
 	}
 
 	var cmds []Cmd
+	var eventListeners []EventListener
 	for _, d := range r.getServiceDescs(c, servNames) {
-		cmds = append(cmds, r.reflectService(conn, d)...)
+		cmd, el := r.reflectService(conn, d)
+		cmds = append(cmds, cmd...)
+		eventListeners = append(eventListeners, el...)
 	}
 
 	r.cons.Debugln("Reflected API commands.")
 
-	return cmds, err
+	return cmds, eventListeners, err
 }
 
 // getServicesDescs gets the service descriptors for the given service names.
@@ -727,16 +730,23 @@ func (r ServerReflector) getServiceDescs(c *grpcreflect.Client, servNames []stri
 }
 
 // reflectService reflect commands for the given service descriptor.
-func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDescriptor) []Cmd {
+func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDescriptor) ([]Cmd, []EventListener) {
 	methodDescs := d.GetMethods()
 
 	var cmds []Cmd
+	var eventListeners []EventListener
 	for _, methodDesc := range methodDescs {
 		opts := methodDesc.GetMethodOptions()
 		if opts != nil {
 			eventEmitterEx, err := proto.GetExtension(opts, ext.E_MethodEventEmitter)
 			if err == nil && *eventEmitterEx.(*bool) {
-				r.cons.Debugf("Found event emitter: %s.%s\n", d.GetName(), methodDesc.GetName())
+				el := NewConsoleRPCEventListener(
+					r.cons,
+					conn,
+					d.GetName(),
+					methodDesc,
+				)
+				eventListeners = append(eventListeners, el)
 				continue
 			}
 		}
@@ -752,7 +762,7 @@ func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDe
 		}
 	}
 
-	return cmds
+	return cmds, eventListeners
 }
 
 // reflectMethods reflect the command for the given methods descriptor.
@@ -1056,7 +1066,7 @@ func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
 }
 
 // printDynamicStreaming prints the messages of a server stream as they arrive.
-func (r ServerReflector) printStreaming(w io.Writer, ss *grpcdynamic.ServerStream) error {
+func (r ServerReflector) printStreaming(w io.Writer, ss ServerStream) error {
 	for {
 		res, err := ss.RecvMsg()
 		if err == io.EOF {
@@ -1075,7 +1085,7 @@ func (r ServerReflector) printStreaming(w io.Writer, ss *grpcdynamic.ServerStrea
 }
 
 // printDynamicStream prints the messages of a server stream.
-func (r ServerReflector) printStream(w io.Writer, ss *grpcdynamic.ServerStream, truncate, borders bool) error {
+func (r ServerReflector) printStream(w io.Writer, ss ServerStream, truncate, borders bool) error {
 	var b bytes.Buffer
 
 	tw := new(tabwriter.Writer)

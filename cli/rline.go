@@ -103,7 +103,7 @@ func (p *Rline) GetWordBeforeCursor() string {
 	return string(p.line[p.start:p.pos])
 }
 
-// begin finds the start offset of the rurrent word.
+// begin finds the start offset of the current word.
 func (p *Rline) begin() {
 	p.start = p.pos
 

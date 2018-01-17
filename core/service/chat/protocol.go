@@ -16,6 +16,7 @@ package chat
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/service/event"
@@ -85,7 +86,7 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	})
 
 	chatEvent := &pbevent.Event{
-		Message: message.Message,
+		Message: fmt.Sprintf("[%s] %s", from, message.Message),
 		Level:   pbevent.Level_INFO,
 	}
 

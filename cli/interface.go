@@ -60,6 +60,21 @@ type Cmd interface {
 	Exec(*script.InterpreterContext, CLI) (script.SExp, error)
 }
 
+// EventListener is an interface that must be implemented by event listeners.
+type EventListener interface {
+	// Service returns the name of the service that hosts the event emitter.
+	Service() string
+
+	// Start connects to the corresponding event emitter and continuously
+	// listens for events and displays them.
+	// It disconnects from the event emitter when the context is cancelled.
+	Start(context.Context) error
+
+	// Connected returns true if the listener is connected to the event
+	// emitter and ready to receive events.
+	Connected() bool
+}
+
 // Suggest implements a suggestion.
 type Suggest struct {
 	// Text is the text that will replace the current word.

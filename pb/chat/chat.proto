@@ -12,4 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+syntax = "proto3";
+
+package stratumn.alice.pb.chat;
+
+option go_package = "github.com/stratumn/alice/pb/chat;chat";
+
+// The chat message containing a simple message.
+message Message {
+  string message = 1;
+}

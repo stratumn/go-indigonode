@@ -20,9 +20,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/service/event"
-	pb "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
+	pb "github.com/stratumn/alice/pb/chat"
 
+	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
@@ -30,8 +31,14 @@ import (
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
+// Host represents an Alice host.
+type Host = ihost.Host
+
 // ProtocolID is the protocol ID of the service.
 var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
+
+// log is the logger for the service.
+var log = logging.Logger("chat")
 
 // Chat implements the chat protocol.
 type Chat struct {
@@ -74,7 +81,7 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	defer event.Done()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
-	var message pb.ChatMessage
+	var message pb.Message
 	err := dec.Decode(&message)
 	if err != nil {
 		event.SetError(err)
@@ -112,7 +119,7 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 		}
 
 		enc := protobuf.Multicodec(nil).Encoder(stream)
-		err = enc.Encode(&pb.ChatMessage{Message: message})
+		err = enc.Encode(&pb.Message{Message: message})
 		if err != nil {
 			event.SetError(err)
 			errCh <- errors.WithStack(err)

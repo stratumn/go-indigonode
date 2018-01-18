@@ -898,6 +898,7 @@ func (r ServerReflector) flags(
 	flags := pflag.NewFlagSet(name, pflag.ContinueOnError)
 
 	flags.Bool("no-timeout", false, "Disable request timeout")
+	flags.String("field", "", "Only display specified field")
 
 	if isServerStream {
 		flags.Bool("no-truncate", false, "Disable truncating rows")
@@ -968,6 +969,11 @@ func (r ServerReflector) reflectExec(
 		defer cancel()
 	}
 
+	field, err := ctx.Flags.GetString("field")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
 	if method.IsServerStreaming() {
 		ss, err := stub.InvokeRpcServerStream(reqCtx, method, req)
 		if err != nil {
@@ -980,7 +986,7 @@ func (r ServerReflector) reflectExec(
 		}
 
 		if streaming {
-			return r.printStreaming(ctx.Writer, ss)
+			return r.printStreaming(ctx.Writer, ss, field)
 		}
 
 		noTrunc, err := ctx.Flags.GetBool("no-truncate")
@@ -993,12 +999,20 @@ func (r ServerReflector) reflectExec(
 			return errors.WithStack(err)
 		}
 
+		if field != "" {
+			return r.printStreamField(ctx.Writer, ss, field)
+		}
+
 		return r.printStream(ctx.Writer, ss, !noTrunc, !noBord)
 	}
 
 	res, err := stub.InvokeRpc(reqCtx, method, req)
 	if err != nil {
 		return errors.WithStack(err)
+	}
+
+	if field != "" {
+		return r.printField(ctx.Writer, res.(*dynamic.Message), field)
 	}
 
 	return r.printMsg(ctx.Writer, res.(*dynamic.Message))
@@ -1044,6 +1058,28 @@ func (r ServerReflector) setFlags(req *dynamic.Message, descs []*desc.FieldDescr
 	return nil
 }
 
+// printField prints a field of a message received from the server.
+func (r ServerReflector) printField(w io.Writer, msg *dynamic.Message, field string) error {
+	descs := msg.GetKnownFields()
+
+	for _, d := range descs {
+		if d.GetName() != field {
+			continue
+		}
+
+		value, err := r.pretty(d, msg.GetField(d))
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(w, "%v\n", value)
+
+		return nil
+	}
+
+	return errors.Wrap(ErrFieldNotFound, field)
+}
+
 // printMsg prints a message received from the server.
 func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
 	descs := msg.GetKnownFields()
@@ -1066,7 +1102,7 @@ func (r ServerReflector) printMsg(w io.Writer, msg *dynamic.Message) error {
 }
 
 // printDynamicStreaming prints the messages of a server stream as they arrive.
-func (r ServerReflector) printStreaming(w io.Writer, ss ServerStream) error {
+func (r ServerReflector) printStreaming(w io.Writer, ss ServerStream, field string) error {
 	for {
 		res, err := ss.RecvMsg()
 		if err == io.EOF {
@@ -1076,7 +1112,33 @@ func (r ServerReflector) printStreaming(w io.Writer, ss ServerStream) error {
 			return errors.WithStack(err)
 		}
 
+		if field != "" {
+			err = r.printField(w, res.(*dynamic.Message), field)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := r.printMsg(w, res.(*dynamic.Message)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// printDynamicStream prints a field of the messages of a server stream.
+func (r ServerReflector) printStreamField(w io.Writer, ss ServerStream, field string) error {
+	for {
+		res, err := ss.RecvMsg()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := r.printField(w, res.(*dynamic.Message), field); err != nil {
 			return err
 		}
 	}

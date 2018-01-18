@@ -581,6 +581,7 @@ Flags:
       --duration_repeated stringSlice      duration repeated field
       --enumeration string                 enum field
       --enumeration_repeated stringSlice   enum repeated field
+      --field string                       Only display specified field
   -h, --help                               Invoke help on command
       --i32 string                         int32 field
       --i32_repeated stringSlice           int32 repeated field

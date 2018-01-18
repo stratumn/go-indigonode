@@ -41,6 +41,10 @@ var (
 	// ErrReflectParse is returned when a value could not be parsed by a
 	// reflector.
 	ErrReflectParse = errors.New("could not parse the value")
+
+	// ErrFieldNotFound is returned when the field of a message was not
+	// found.
+	ErrFieldNotFound = errors.New("the field was not found")
 )
 
 // UseError represents a usage error.

@@ -140,6 +140,41 @@ func (el *ConsoleRPCEventListener) Service() string {
 // Start only allows a single connection to the RPC server.
 // It will close the previous connection before starting a new one.
 func (el *ConsoleRPCEventListener) Start(ctx context.Context) error {
+	ss, err := el.connect(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		el.mu.Lock()
+		el.connected = false
+		el.close = nil
+		el.mu.Unlock()
+	}()
+
+	for {
+		res, err := ss.RecvMsg()
+		if err == io.EOF || err == context.Canceled || err != nil && strings.Contains(err.Error(), "Canceled") {
+			el.cons.Debugln("Event listener closed.")
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		ev, ok := res.(*pbevent.Event)
+		if !ok {
+			el.cons.Debugf("Could not parse event: %v.\n", res)
+			continue
+		}
+
+		el.print(ev)
+	}
+}
+
+// connect connects to the corresponding event emitter, closing a previous
+// connection if there is already one.
+func (el *ConsoleRPCEventListener) connect(ctx context.Context) (ServerStream, error) {
 	el.mu.Lock()
 	defer el.mu.Unlock()
 
@@ -154,43 +189,12 @@ func (el *ConsoleRPCEventListener) Start(ctx context.Context) error {
 	el.cons.Debugf("Connecting to event emitter: %s.%s.\n", el.service, el.stub.Name())
 	ss, err := el.stub.Invoke(listenCtx)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	el.connected = true
 
-	go func() {
-		defer func() {
-			el.mu.Lock()
-			el.connected = false
-			el.close = nil
-			el.mu.Unlock()
-		}()
-
-		for {
-			res, err := ss.RecvMsg()
-			if err == io.EOF || err == context.Canceled {
-				el.cons.Debugln("Event listener closed.")
-				return
-			}
-			if err != nil {
-				if !strings.Contains(err.Error(), "Canceled") {
-					el.cons.Debugln(errors.WithStack(err))
-				}
-				return
-			}
-
-			ev, ok := res.(*pbevent.Event)
-			if !ok {
-				el.cons.Debugf("Could not parse event: %v.\n", res)
-				continue
-			}
-
-			el.print(ev)
-		}
-	}()
-
-	return nil
+	return ss, nil
 }
 
 // print prints the event to the console.

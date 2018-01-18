@@ -20,6 +20,7 @@ import (
 	"io"
 	"io/ioutil"
 	"runtime"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -43,19 +44,39 @@ func (_ IdleServerStream) RecvMsg() (proto.Message, error) {
 
 // ClosedServerStream is a cli.ServerStream that closes the connection
 // on the first attempt to receive.
-type ClosedServerStream struct{}
+type ClosedServerStream struct {
+	mu     sync.RWMutex
+	called bool
+}
 
-func (_ ClosedServerStream) RecvMsg() (proto.Message, error) {
+func (s *ClosedServerStream) RecvMsg() (proto.Message, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.called = true
 	return nil, io.EOF
+}
+
+func (s *ClosedServerStream) WaitUntilCalled(t *testing.T) {
+	waitUntil(t, func() bool {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		return s.called
+	})
 }
 
 // BoundedServerStream returns a configured number of messages and then
 // closes the connection.
 type BoundedServerStream struct {
+	mu       sync.RWMutex
 	messages []proto.Message
 }
 
 func (s *BoundedServerStream) RecvMsg() (proto.Message, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if len(s.messages) == 0 {
 		return nil, io.EOF
 	}
@@ -64,6 +85,15 @@ func (s *BoundedServerStream) RecvMsg() (proto.Message, error) {
 	s.messages = s.messages[1:]
 
 	return msg, nil
+}
+
+func (s *BoundedServerStream) WaitUntilClosed(t *testing.T) {
+	waitUntil(t, func() bool {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		return len(s.messages) == 0
+	})
 }
 
 func testConsoleRPCEventListener(t *testing.T, w io.Writer, mockServerStream cli.ServerStream) (cli.EventListener, *gomock.Controller) {
@@ -83,12 +113,12 @@ func testConsoleRPCEventListener(t *testing.T, w io.Writer, mockServerStream cli
 	return el, mockCtrl
 }
 
-func waitUntilDisconnected(t *testing.T, el cli.EventListener) {
-	disconnectChan := make(chan struct{})
+func waitUntil(t *testing.T, cond func() bool) {
+	condChan := make(chan struct{})
 	go func() {
 		for {
-			if !el.Connected() {
-				disconnectChan <- struct{}{}
+			if cond() {
+				condChan <- struct{}{}
 				return
 			} else {
 				runtime.Gosched()
@@ -97,11 +127,25 @@ func waitUntilDisconnected(t *testing.T, el cli.EventListener) {
 	}()
 
 	select {
-	case <-disconnectChan:
-		assert.False(t, el.Connected(), "el.Connected()")
+	case <-condChan:
 	case <-time.After(100 * time.Millisecond):
-		assert.Fail(t, "el.Connected() didn't disconnect in time")
+		assert.Fail(t, "waitUntil")
 	}
+}
+
+func waitUntilConnected(t *testing.T, el cli.EventListener) {
+	waitUntil(t, func() bool { return el.Connected() })
+}
+
+func waitUntilDisconnected(t *testing.T, el cli.EventListener) {
+	waitUntil(t, func() bool { return !el.Connected() })
+}
+
+func start(t *testing.T, el cli.EventListener, ctx context.Context) {
+	go func() {
+		err := el.Start(ctx)
+		assert.NoError(t, err, "el.Start()")
+	}()
 }
 
 func TestConsoleRPCEventListener_GetService(t *testing.T) {
@@ -111,21 +155,21 @@ func TestConsoleRPCEventListener_GetService(t *testing.T) {
 }
 
 func TestConsoleRPCEventListener_Start(t *testing.T) {
-	assert := assert.New(t)
-
 	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &IdleServerStream{})
 	defer mockCtrl.Finish()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	err := el.Start(ctx)
+	start(t, el, ctx)
 	defer cancel()
 
-	assert.NoError(err, "el.Start()")
-	assert.True(el.Connected(), "el.Connected()")
+	waitUntilConnected(t, el)
 
-	err = el.Start(context.Background())
-	assert.NoError(err, "el.Start()")
-	assert.True(el.Connected(), "el.Connected()")
+	start(t, el, ctx)
+
+	// Wait a bit to give time to disconnect previous connection.
+	<-time.After(10 * time.Millisecond)
+
+	waitUntilConnected(t, el)
 }
 
 func TestConsoleRPCEventListener_Print(t *testing.T) {
@@ -144,12 +188,10 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 		defer mockCtrl.Finish()
 
 		ctx, cancel := context.WithCancel(context.Background())
-		err := el.Start(ctx)
+		start(t, el, ctx)
 		defer cancel()
 
-		assert.NoError(err, "el.Start()")
-		assert.True(el.Connected(), "el.Connected()")
-
+		mockServerStream.WaitUntilClosed(t)
 		waitUntilDisconnected(t, el)
 
 		assert.Contains(buf.String(), "hello")
@@ -170,12 +212,10 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 		defer mockCtrl.Finish()
 
 		ctx, cancel := context.WithCancel(context.Background())
-		err := el.Start(ctx)
+		start(t, el, ctx)
 		defer cancel()
 
-		assert.NoError(err, "el.Start()")
-		assert.True(el.Connected(), "el.Connected()")
-
+		mockServerStream.WaitUntilClosed(t)
 		waitUntilDisconnected(t, el)
 
 		assert.Contains(buf.String(), "hello")
@@ -187,12 +227,14 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 func TestConsoleRPCEventListener_Stop(t *testing.T) {
 	assert := assert.New(t)
 
-	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &ClosedServerStream{})
+	mockServerStream := &ClosedServerStream{}
+	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, mockServerStream)
 	defer mockCtrl.Finish()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	assert.NoError(el.Start(ctx), "el.Start()")
+	start(t, el, ctx)
 
+	mockServerStream.WaitUntilCalled(t)
 	waitUntilDisconnected(t, el)
 	cancel()
 

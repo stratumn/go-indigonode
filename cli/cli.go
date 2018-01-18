@@ -44,7 +44,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -162,6 +161,7 @@ type cli struct {
 	allCmds    []Cmd
 
 	eventListeners     []EventListener
+	eventListenersWg   sync.WaitGroup
 	stopEventListeners context.CancelFunc
 
 	addr string
@@ -339,9 +339,15 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 	eventCtx, cancel := context.WithCancel(context.Background())
 	c.stopEventListeners = cancel
 	for _, el := range c.eventListeners {
-		if err := el.Start(eventCtx); err != nil {
-			c.cons.Debugf("Could not start event listener %s: %s.\n", el.Service(), err.Error())
-		}
+		c.eventListenersWg.Add(1)
+		go func(el EventListener) {
+			defer c.eventListenersWg.Done()
+
+			err := el.Start(eventCtx)
+			if err != nil {
+				c.cons.Debugf("[%s] Event listener error: %s.\n", el.Service(), err.Error())
+			}
+		}(el)
 	}
 
 	c.allCmds = append(c.staticCmds, c.apiCmds...)
@@ -364,28 +370,7 @@ func (c *cli) Disconnect() error {
 
 	if c.stopEventListeners != nil {
 		c.stopEventListeners()
-		runtime.Gosched()
-
-		// Wait for connections to be closed.
-		wg := sync.WaitGroup{}
-		for _, el := range c.eventListeners {
-			wg.Add(1)
-			go func(el EventListener) {
-				defer wg.Done()
-
-				for {
-					if !el.Connected() {
-						c.cons.Debugf("Connection to %s closed.\n", el.Service())
-						return
-					}
-
-					<-time.After(100 * time.Millisecond)
-					c.cons.Debugf("Waiting for connection to %s to be closed...\n", el.Service())
-				}
-			}(el)
-		}
-
-		wg.Wait()
+		c.eventListenersWg.Wait()
 	}
 
 	conn := c.conn

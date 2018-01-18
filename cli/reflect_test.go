@@ -638,6 +638,11 @@ BYTERATE REPEATED FIELD
 `,
 	nil,
 }, {
+	"unary --field",
+	"test-unaryreq hello --field req",
+	"hello",
+	nil,
+}, {
 	"stream",
 	"test-serverstream hello",
 	`
@@ -683,6 +688,16 @@ BYTERATE REPEATED FIELD
 `,
 	nil,
 }, {
+	"stream --field",
+	"test-serverstream hello --field req",
+	"hello",
+	nil,
+}, {
+	"stream --stream --field",
+	"test-serverstream hello --stream --field req",
+	"hello",
+	nil,
+}, {
 	"missing arg",
 	"test-unaryreq",
 	ansiRed + "Error: 1:1: test-unaryreq: invalid usage: missing argument(s).\n" + ansiReset + reflectTestUsage,
@@ -697,6 +712,11 @@ BYTERATE REPEATED FIELD
 	"test-unaryreq --boolean 1",
 	ansiRed + "Error: 1:1: test-unaryreq: invalid usage: missing argument(s).\n" + ansiReset + reflectTestUsage,
 	errUse,
+}, {
+	"invalid field",
+	"test-unaryreq hello --field test",
+	ansiRed + "Error: 1:1: test-unaryreq: test: the field was not found.\n" + ansiReset,
+	ErrFieldNotFound,
 }}
 
 func TestServerReflector_Reflect(t *testing.T) {

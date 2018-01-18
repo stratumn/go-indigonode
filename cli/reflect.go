@@ -1117,6 +1117,8 @@ func (r ServerReflector) printStreaming(w io.Writer, ss ServerStream, field stri
 			if err != nil {
 				return err
 			}
+
+			continue
 		}
 
 		if err := r.printMsg(w, res.(*dynamic.Message)); err != nil {

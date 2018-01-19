@@ -81,6 +81,7 @@ func (e ExecTest) Exec(t *testing.T, w io.Writer, cmd cli.Cmd) (script.SExp, err
 
 	itr := script.NewInterpreter(
 		script.InterpreterOptClosure(closure),
+		script.InterpreterOptBuiltinLibs,
 		script.InterpreterOptErrorHandler(func(error) {}),
 		script.InterpreterOptValueHandler(func(v script.SExp) {
 			val = v

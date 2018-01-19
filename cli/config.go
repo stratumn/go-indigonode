@@ -86,6 +86,10 @@ type Config struct {
 
 	// EnableDebugOutput if whether to display debug output.
 	EnableDebugOutput bool `toml:"enable_debug_output" comment:"Whether to display debug output."`
+
+	// InitScripts are the filenames of scripts that should be executed
+	// after the CLI has started.
+	InitScripts []string `toml:"init_scripts" comment:"Filenames of scripts that should be executed after the CLI has started."`
 }
 
 // ConfigHandler implements cfg.Configurable for easy configuration

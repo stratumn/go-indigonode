@@ -70,6 +70,7 @@ var StaticCmds = []Cmd{
 	Echo,
 	Exit,
 	Help,
+	Silent,
 	Version,
 }
 

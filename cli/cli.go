@@ -41,6 +41,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -233,6 +234,12 @@ func (c *cli) Start(ctx context.Context) {
 	}()
 
 	c.Run(ctx, initScript)
+
+	// Execute custom init scripts.
+	for _, filename := range c.conf.InitScripts {
+		c.runFile(ctx, filename)
+	}
+
 	c.prompt(ctx, c)
 }
 
@@ -458,6 +465,17 @@ func (c *cli) Run(ctx context.Context, in string) {
 		<-done
 	case <-done:
 	}
+}
+
+// runFile runs a script from a file.
+func (c *cli) runFile(ctx context.Context, filename string) {
+	in, err := ioutil.ReadFile(filename)
+	if err != nil {
+		c.printError(errors.Wrap(err, filename))
+		return
+	}
+
+	c.Run(ctx, string(in))
 }
 
 // Suggest finds all command suggestions.

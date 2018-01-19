@@ -614,7 +614,7 @@ var DefReflectors = []Reflector{
 //
 // The server must have the reflection service enabled.
 //
-// Currently, it is able to reflect commands for methods that use to following
+// Currently, it is able to reflect commands for methods that use the following
 // field types:
 //
 //	- String

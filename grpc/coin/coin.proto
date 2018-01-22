@@ -23,36 +23,10 @@ option go_package = "github.com/stratumn/alice/grpc/coin;coin";
 
 // The coin service definition.
 service Coin {
-    // Start the consensus engine on the node.
-    rpc StartEngine (StartEngineReq) returns (StartEngineResp) {
-        option (stratumn.alice.grpc.ext.method_desc) = "Start the consensus engine on the node";
-    }
-
-    // Stop the consensus engine on the node.
-    rpc StopEngine (StopEngineReq) returns (StopEngineResp) {
-        option (stratumn.alice.grpc.ext.method_desc) = "Stop the consensus engine on the node";
-    }
-
     // Send a coin transaction to the consensus engine.
     rpc Transaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
     }
-}
-
-// A request to start the consensus engine.
-message StartEngineReq {
-}
-
-// The response to a request to start the consensus engine.
-message StartEngineResp {
-}
-
-// A request to stop the consensus engine.
-message StopEngineReq {
-}
-
-// The response to a request to stop the consensus engine.
-message StopEngineResp {
 }
 
 // The response to a request to do a coin transaction.

@@ -1,0 +1,106 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "google/protobuf/timestamp.proto";
+
+package stratumn.alice.pb.coin;
+
+option go_package = "github.com/stratumn/alice/pb/coin;coin";
+
+// A coin transaction.
+message Transaction {
+    repeated Input inputs = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Transaction inputs",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    repeated Output outputs = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Transaction outputs",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// A transaction input. We're using the UTXO model so a transaction input
+// uses an unspent previous transaction's output.
+message Input {
+    bytes previous_tx = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Previous transaction hash",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    int32 index = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Index of the transaction output",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// A transaction output. We're using the UTXO model so a transaction output
+// will either be used as input in a next transaction or adds to the recipient's
+// current balance.
+message Output {
+    bytes peer_id = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Recipient Peer ID",
+        (stratumn.alice.grpc.ext.field_required) = true,
+        (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+    int32 value = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Output value",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// A block header.
+message Header {
+    int32 version = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block version",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    int32 block_number = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block number",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    bytes previous_hash = 3 [
+        (stratumn.alice.grpc.ext.field_desc) = "Hash of the previous header",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    bytes merkle_root = 4 [
+        (stratumn.alice.grpc.ext.field_desc) = "Merkle root of block transactions",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    google.protobuf.Timestamp timestamp = 5 [
+        (stratumn.alice.grpc.ext.field_desc) = "Timestamp of the block creation",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    int32 nonce = 6 [
+        (stratumn.alice.grpc.ext.field_desc) = "The nonce used to generate the block to allow variations of the header",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    int32 difficulty = 7 [
+        (stratumn.alice.grpc.ext.field_desc) = "The difficulty of the proof of work algorithm",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// A block.
+message Block {
+    Header header = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block header",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    repeated Transaction transactions = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block transactions",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}

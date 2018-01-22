@@ -1,0 +1,63 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/pb/coin/coin.proto";
+
+package stratumn.alice.grpc.coin;
+
+option go_package = "github.com/stratumn/alice/grpc/coin;coin";
+
+// The coin service definition.
+service Coin {
+    // Start the consensus engine on the node.
+    rpc StartEngine (StartEngineReq) returns (StartEngineResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Start the consensus engine on the node";
+    }
+
+    // Stop the consensus engine on the node.
+    rpc StopEngine (StopEngineReq) returns (StopEngineResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Stop the consensus engine on the node";
+    }
+
+    // Send a coin transaction to the consensus engine.
+    rpc Transaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
+    }
+}
+
+// A request to start the consensus engine.
+message StartEngineReq {
+}
+
+// The response to a request to start the consensus engine.
+message StartEngineResp {
+}
+
+// A request to stop the consensus engine.
+message StopEngineReq {
+}
+
+// The response to a request to stop the consensus engine.
+message StopEngineResp {
+}
+
+// The response to a request to do a coin transaction.
+message TransactionResp {
+    bytes tx_hash = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction. Can be used to reference the transaction's UTXO."
+    ];
+}

@@ -23,12 +23,26 @@ option go_package = "github.com/stratumn/alice/pb/coin;coin";
 
 // A coin transaction.
 message Transaction {
-    repeated Input inputs = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Transaction inputs",
+    bytes from = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Sender Peer ID",
+        (stratumn.alice.grpc.ext.field_required) = true,
+        (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+    bytes to = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Recipient Peer ID",
+        (stratumn.alice.grpc.ext.field_required) = true,
+        (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+    int64 value = 3 [
+        (stratumn.alice.grpc.ext.field_desc) = "Value to send",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
-    repeated Output outputs = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Transaction outputs",
+    int64 nonce = 4 [
+        (stratumn.alice.grpc.ext.field_desc) = "Nonce to prevent replay attacks",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    Signature signature = 5 [
+        (stratumn.alice.grpc.ext.field_desc) = "Signature of the transaction proving ownership of the coins",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
 }
@@ -53,38 +67,6 @@ message Signature {
     ];
     bytes signature = 3 [
         (stratumn.alice.grpc.ext.field_desc) = "Signature bytes",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-}
-
-// A transaction input. We're using the UTXO model so a transaction input
-// uses an unspent previous transaction's output.
-message Input {
-    bytes previous_tx = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Previous transaction hash",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-    int32 index = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Index of the transaction output",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-    Signature signature = 3 [
-        (stratumn.alice.grpc.ext.field_desc) = "Signature of the input",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-}
-
-// A transaction output. We're using the UTXO model so a transaction output
-// will either be used as input in a next transaction or adds to the recipient's
-// current balance.
-message Output {
-    bytes peer_id = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Recipient Peer ID",
-        (stratumn.alice.grpc.ext.field_required) = true,
-        (stratumn.alice.grpc.ext.field_base58) = true
-    ];
-    int64 value = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Output value",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
 }

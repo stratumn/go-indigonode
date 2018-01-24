@@ -216,9 +216,7 @@ func (el *ConsoleRPCEventListener) print(ev *pbevent.Event) {
 		el.cons.Debugf("Unknown event level: %d.\n", ev.Level)
 	}
 
-	// This is necessary to re-render the prompt ("Alice>"").
-	// See https://github.com/c-bata/go-prompt/issues/18.
-	if err := el.sig.Signal(syscall.SIGWINCH); err != nil {
+	if err := renderPrompt(el.sig); err != nil {
 		el.cons.Debugln("Couldn't send signal to the OS to re-render. Ignoring.")
 	}
 }

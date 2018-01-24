@@ -24,7 +24,7 @@ type Protocol interface {
 	AddTransaction(tx *pb.Transaction) error
 
 	// AppendBlock validates the incoming block and adds it at the end of
-	// the chain.
+	// the chain, updating internal state to reflect the block's transactions.
 	// Note: it might cause the consensus engine to stop mining on an outdated
 	// block and mine on top of the newly added block.
 	AppendBlock(block *pb.Block) error

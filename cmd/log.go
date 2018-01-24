@@ -41,7 +41,7 @@ var (
 // logCmd represents the log command.
 var logCmd = &cobra.Command{
 	Use:   "log <filename>",
-	Short: "Pretty print log files.",
+	Short: "Pretty print log files",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			if err := RootCmd.Usage(); err != nil {

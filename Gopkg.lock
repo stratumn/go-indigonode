@@ -263,6 +263,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/takama/daemon"
+  packages = ["."]
+  revision = "f30a97dd1445619884e03e7ed088bc1b3c4f767e"
+  version = "0.9.3"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = [
@@ -366,6 +372,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "415bf61feed47d15ce9299ca60716e07dc45ef10439d5f85d456688ededc0caa"
+  inputs-digest = "94eef4929ccd45fcdf2933e077c98392db663d88ec7a152174db1b99c65c11be"
   solver-name = "gps-cdcl"
   solver-version = 1

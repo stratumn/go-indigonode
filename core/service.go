@@ -19,6 +19,7 @@ import (
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/chat"
 	"github.com/stratumn/alice/core/service/clock"
+	"github.com/stratumn/alice/core/service/coin"
 	"github.com/stratumn/alice/core/service/connmgr"
 	"github.com/stratumn/alice/core/service/contacts"
 	"github.com/stratumn/alice/core/service/event"
@@ -43,6 +44,7 @@ func BuiltinServices() []manager.Service {
 		&bootstrap.Service{},
 		&chat.Service{},
 		&clock.Service{},
+		&coin.Service{},
 		&connmgr.Service{},
 		&contacts.Service{},
 		&event.Service{},

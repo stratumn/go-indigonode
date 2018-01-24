@@ -80,6 +80,9 @@ var migrations = []cfg.MigrateHandler{
 
 		return addServiceToGroup(tree, "event", "util")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("coin.host", "host")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

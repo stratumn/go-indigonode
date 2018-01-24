@@ -31,13 +31,8 @@ type ChainReader interface {
 	// CurrentHeader retrieves the current header from the local chain.
 	CurrentHeader() *pb.Header
 
-	// GetHeader retrieves a block header from the local chain
-	// by hash and block number.
-	// In case of forks multiple blocks might have the same number,
-	// which is why hash is needed in the index.
-	GetHeader(hash []byte, number uint64) *pb.Header
-
 	// GetHeaderByNumber retrieves block headers from the database by number.
+	// In case of forks there might be multiple headers with the same number.
 	GetHeaderByNumber(number uint64) []*pb.Header
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.

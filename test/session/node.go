@@ -314,10 +314,10 @@ func (s TestNodeSet) Up(ctx context.Context) error {
 			wg.Done()
 		}(i)
 
-		conn, err := s[i].WaitForAPI(ctx)
-		if err == nil {
-			conn.Close()
-		}
+		// conn, err := s[i].WaitForAPI(ctx) // ANTON: only called once the node exited?
+		// if err == nil {
+		// 	conn.Close()
+		// }
 	}, len(s))
 
 	wg.Wait()

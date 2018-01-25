@@ -122,6 +122,25 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.kaddht", "kaddht")
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("raft.election_tick", int64(10)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.heartbeat_tick", int64(1)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.max_size_per_msg", int64(1024*1024)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.max_inflight_msgs", int64(256)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.ticker_interval", int64(100)); err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

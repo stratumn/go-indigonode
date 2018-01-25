@@ -33,6 +33,7 @@ import (
 	"github.com/stratumn/alice/core/service/ping"
 	"github.com/stratumn/alice/core/service/pruner"
 	"github.com/stratumn/alice/core/service/pubsub"
+	"github.com/stratumn/alice/core/service/raft"
 	"github.com/stratumn/alice/core/service/relay"
 	"github.com/stratumn/alice/core/service/signal"
 	"github.com/stratumn/alice/core/service/swarm"
@@ -59,6 +60,7 @@ func BuiltinServices() []manager.Service {
 		&ping.Service{},
 		&pruner.Service{},
 		&pubsub.Service{},
+		&raft.Service{},
 		&relay.Service{},
 		&signal.Service{},
 		&swarm.Service{},

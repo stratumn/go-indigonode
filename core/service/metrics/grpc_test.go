@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	p2pmetrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
+	p2pmetrics "gx/ipfs/Qmb1QrSXKwGFWgiGEcyac4s5wakJG4yPvCPk49xZHxr5ux/go-libp2p-metrics"
 )
 
 func testGRPCServer() grpcServer {
@@ -46,6 +46,9 @@ func TestGRPCServer_Bandwidth(t *testing.T) {
 	srv := testGRPCServer()
 
 	srv.GetMetrics().LogRecvMessage(1000)
+
+	// TODO: improve this test.
+	time.Sleep(time.Second)
 
 	req := &pb.BandwidthReq{}
 	res, err := srv.Bandwidth(ctx, req)

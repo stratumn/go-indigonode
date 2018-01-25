@@ -22,7 +22,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
-	"github.com/stratumn/alice/core/protocol/coin/mockcoin"
+	"github.com/stratumn/alice/core/protocol/coin/state/mockstate"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -84,7 +84,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		defer hosts[i].Close()
 
 		coins[i] = &Coin{
-			mempool: mockcoin.NewMockMempool(ctrl),
+			mempool: mockstate.NewMockMempool(ctrl),
 		}
 
 		ii := i
@@ -116,7 +116,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		assert.NoError(t, err, "Encode()")
 
 		tx := randomTx()
-		coins[1].mempool.(*mockcoin.MockMempool).
+		coins[1].mempool.(*mockstate.MockMempool).
 			EXPECT().
 			AddTransaction(&TxMatcher{value: tx.GetTx().Value}).
 			Times(1)
@@ -144,7 +144,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		require.NoError(t, err, "NewStream()")
 
 		tx1 := randomTx()
-		coins[1].mempool.(*mockcoin.MockMempool).
+		coins[1].mempool.(*mockstate.MockMempool).
 			EXPECT().
 			AddTransaction(&TxMatcher{value: tx1.GetTx().Value}).
 			Times(1)
@@ -157,7 +157,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		assert.NoError(t, err, "Close()")
 
 		tx2 := randomTx()
-		coins[0].mempool.(*mockcoin.MockMempool).
+		coins[0].mempool.(*mockstate.MockMempool).
 			EXPECT().
 			AddTransaction(&TxMatcher{value: tx2.GetTx().Value}).
 			Times(1)

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockcoin -destination mockcoin/mockmempool.go github.com/stratumn/alice/core/protocol/coin Mempool
+//go:generate mockgen -package mockstate -destination mockstate/mockmempool.go github.com/stratumn/alice/core/protocol/coin/state Mempool
 
-package coin
+package state
 
 import pb "github.com/stratumn/alice/pb/coin"
 

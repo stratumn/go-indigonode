@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coin
+package state
 
 // State stores users' account balances.
 type State interface {
-	StateReader
-	StateWriter
+	Reader
+	Writer
 }
 
-// StateReader gives read access to users' account balances.
-type StateReader interface {
+// Reader gives read access to users' account balances.
+type Reader interface {
 }
 
-// StateWriter gives write access to users' account balances.
-type StateWriter interface {
+// Writer gives write access to users' account balances.
+type Writer interface {
 }

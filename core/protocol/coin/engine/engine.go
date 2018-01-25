@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockcoin -destination mockcoin/mockengine.go github.com/stratumn/alice/core/protocol/coin Engine
+//go:generate mockgen -package mockengine -destination mockengine/mockengine.go github.com/stratumn/alice/core/protocol/coin/engine Engine
 
-package coin
+package engine
 
 import (
 	"context"
 
+	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -26,21 +28,21 @@ import (
 type Engine interface {
 	// VerifyHeader checks whether a header conforms to the consensus
 	// rules of a given engine.
-	VerifyHeader(chain ChainReader, header *pb.Header) error
+	VerifyHeader(chain chain.Reader, header *pb.Header) error
 
 	// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 	// concurrently. The input context can be used for cancellation.
 	// The method returns a results channel to retrieve the async verifications
 	// (the order is that of the input slice).
-	VerifyHeaders(ctx context.Context, chain ChainReader, headers []*pb.Header) <-chan error
+	VerifyHeaders(ctx context.Context, chain chain.Reader, headers []*pb.Header) <-chan error
 
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.
-	Prepare(chain ChainReader, header *pb.Header) error
+	Prepare(chain chain.Reader, header *pb.Header) error
 
 	// Finalize verifies transactions, updates the state to apply them
 	// and assembles the final block.
 	// The block header might be updated (including a merkle root of the
 	// transactions for example).
-	Finalize(chain ChainReader, header *pb.Header, state *State, txs []*pb.Transaction) (*pb.Block, error)
+	Finalize(chain chain.Reader, header *pb.Header, state *state.State, txs []*pb.Transaction) (*pb.Block, error)
 }

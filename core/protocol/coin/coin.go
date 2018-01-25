@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
@@ -47,7 +48,7 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
-	mempool Mempool
+	mempool state.Mempool
 }
 
 // NewCoin creates a new Coin.

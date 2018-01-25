@@ -43,6 +43,7 @@ var (
 
 // grpcServer is a gRPC server for the coin service.
 type grpcServer struct {
+	AddTransaction func(*pb.Transaction) error
 }
 
 // Transaction sends a coin transaction to the consensus engine.
@@ -52,6 +53,11 @@ func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (respo
 	}
 
 	b, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.AddTransaction(req)
 	if err != nil {
 		return nil, err
 	}

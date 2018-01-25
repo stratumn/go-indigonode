@@ -58,9 +58,10 @@ func init() {
 }
 
 type grpcTestCase struct {
-	name     string
-	tx       func() *pb.Transaction
-	validate func(*rpcpb.TransactionResp, error)
+	name          string
+	tx            func() *pb.Transaction
+	validate      func(*rpcpb.TransactionResp, error)
+	expectedAdded bool
 }
 
 // newTransaction creates a valid transaction.
@@ -98,6 +99,7 @@ func TestGRPCServer(t *testing.T) {
 			assert.EqualError(t, err, ErrEmptyTx.Error())
 			assert.Nil(t, txResp)
 		},
+		false,
 	}, {
 		"empty-value",
 		func() *pb.Transaction {
@@ -109,6 +111,7 @@ func TestGRPCServer(t *testing.T) {
 			assert.EqualError(t, err, ErrInvalidTxValue.Error())
 			assert.Nil(t, txResp)
 		},
+		false,
 	}, {
 		"missing-to",
 		func() *pb.Transaction {
@@ -120,6 +123,7 @@ func TestGRPCServer(t *testing.T) {
 			assert.EqualError(t, err, ErrInvalidTxRecipient.Error())
 			assert.Nil(t, txResp)
 		},
+		false,
 	}, {
 		"missing-from",
 		func() *pb.Transaction {
@@ -131,6 +135,7 @@ func TestGRPCServer(t *testing.T) {
 			assert.EqualError(t, err, ErrInvalidTxSender.Error())
 			assert.Nil(t, txResp)
 		},
+		false,
 	}, {
 		"missing-signature",
 		func() *pb.Transaction {
@@ -142,6 +147,7 @@ func TestGRPCServer(t *testing.T) {
 			assert.EqualError(t, err, ErrMissingTxSignature.Error())
 			assert.Nil(t, txResp)
 		},
+		false,
 	}, {
 		"valid-tx",
 		func() *pb.Transaction {
@@ -153,13 +159,22 @@ func TestGRPCServer(t *testing.T) {
 			assert.NotNil(t, txResp)
 			assert.NotNil(t, txResp.TxHash)
 		},
+		true,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			server := &grpcServer{}
+			added := false
+			server := &grpcServer{
+				func(_ *pb.Transaction) error {
+					added = true
+					return nil
+				},
+			}
+
 			txResp, err := server.Transaction(context.Background(), tt.tx())
 			tt.validate(txResp, err)
+			assert.Equal(t, tt.expectedAdded, added, "added")
 		})
 	}
 }

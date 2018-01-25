@@ -15,8 +15,20 @@
 package coin
 
 import (
+	"context"
+
 	pb "github.com/stratumn/alice/pb/coin"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
+
+// ProtocolID is the protocol ID of the protocol.
+var ProtocolID = protocol.ID("/alice/coin/v1.0.0")
+
+// log is the logger for the service.
+var log = logging.Logger("coin")
 
 // Protocol describes the interface exposed to other nodes in the network.
 type Protocol interface {
@@ -28,4 +40,38 @@ type Protocol interface {
 	// Note: it might cause the consensus engine to stop mining on an outdated
 	// block and mine on top of the newly added block.
 	AppendBlock(block *pb.Block) error
+}
+
+// Coin implements Protocol with a PoW engine.
+type Coin struct {
+}
+
+// NewCoin creates a new Coin.
+func NewCoin() *Coin {
+	return nil
+}
+
+// StreamHandler handles incoming messages from peers.
+func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
+	log.Event(ctx, "beginStream", logging.Metadata{
+		"stream": stream,
+	})
+	defer log.Event(ctx, "endStream", logging.Metadata{
+		"stream": stream,
+	})
+
+	// TODO: decode incoming message and route to appropriate protocol method.
+}
+
+// AddTransaction validates transaction signatures and adds it to the mempool.
+func (c *Coin) AddTransaction(tx *pb.Transaction) error {
+	return nil
+}
+
+// AppendBlock validates the incoming block and adds it at the end of
+// the chain, updating internal state to reflect the block's transactions.
+// It will send that block to the consensus engine that will mine on top
+// of it.
+func (c *Coin) AppendBlock(block *pb.Block) error {
+	return nil
 }

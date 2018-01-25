@@ -15,12 +15,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
+	"github.com/stratumn/alice/core/manager"
 )
 
 // fail prints an error and exits if the error is not nil.
@@ -63,4 +67,45 @@ func requireCLIConfigSet() cli.ConfigurableSet {
 	}
 
 	return set
+}
+
+// up launches a node.
+func up(mgr *manager.Manager) {
+	config := requireCoreConfigSet().Configs()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{}, 1)
+
+	start := func() {
+		c, err := core.New(
+			config,
+			core.OptServices(services...),
+			core.OptManager(mgr),
+		)
+		fail(err)
+
+		err = c.Boot(ctx)
+		if errors.Cause(err) != context.Canceled {
+			fail(err)
+		}
+
+		done <- struct{}{}
+	}
+
+	go start()
+
+	// Reload configuration and restart on SIGHUP signal.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGHUP)
+
+	for range sig {
+		cancel()
+		<-done
+		ctx, cancel = context.WithCancel(context.Background())
+		config = requireCoreConfigSet().Configs()
+		go start()
+	}
+
+	// So the linter doesn't complain.
+	cancel()
 }

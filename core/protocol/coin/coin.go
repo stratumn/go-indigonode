@@ -16,9 +16,12 @@ package coin
 
 import (
 	"context"
+	"fmt"
+	"io"
 
 	pb "github.com/stratumn/alice/pb/coin"
 
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -44,11 +47,12 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
+	mempool Mempool
 }
 
 // NewCoin creates a new Coin.
 func NewCoin() *Coin {
-	return nil
+	return &Coin{}
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -60,12 +64,43 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 		"stream": stream,
 	})
 
-	// TODO: decode incoming message and route to appropriate protocol method.
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+
+	for {
+		var gossip pb.Gossip
+		err := dec.Decode(&gossip)
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			log.Event(ctx, "Decode", logging.Metadata{"error": err})
+			continue
+		}
+
+		switch m := gossip.Msg.(type) {
+		case *pb.Gossip_Tx:
+			err := c.AddTransaction(m.Tx)
+			if err != nil {
+				log.Event(ctx, "AddTransaction", logging.Metadata{"error": err})
+			}
+		case *pb.Gossip_Block:
+			err := c.AppendBlock(m.Block)
+			if err != nil {
+				log.Event(ctx, "AppendBlock", logging.Metadata{"error": err})
+			}
+		default:
+			log.Event(ctx, "Gossip", logging.Metadata{
+				"error": "Unexpected type",
+				"type":  fmt.Sprintf("%T", m),
+			})
+		}
+	}
 }
 
 // AddTransaction validates transaction signatures and adds it to the mempool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
-	return nil
+	// TODO: validate tx
+	return c.mempool.AddTransaction(tx)
 }
 
 // AppendBlock validates the incoming block and adds it at the end of

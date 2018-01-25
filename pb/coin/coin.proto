@@ -15,11 +15,21 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "google/protobuf/timestamp.proto";
 
 package stratumn.alice.pb.coin;
 
 option go_package = "github.com/stratumn/alice/pb/coin;coin";
+
+// The consensus engine exchanges Gossip messages between peers.
+// They are used to forward transactions to all peers, notify of a new block, etc.
+message Gossip {
+    oneof msg {
+        Transaction tx = 1;
+        Block block = 2;
+    }
+}
 
 // A coin transaction.
 message Transaction {
@@ -90,6 +100,7 @@ message Header {
         (stratumn.alice.grpc.ext.field_required) = true
     ];
     google.protobuf.Timestamp timestamp = 5 [
+        (gogoproto.stdtime) = true,
         (stratumn.alice.grpc.ext.field_desc) = "Timestamp of the block creation",
         (stratumn.alice.grpc.ext.field_required) = true
     ];

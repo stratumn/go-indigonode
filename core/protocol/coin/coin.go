@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -49,6 +50,7 @@ type Protocol interface {
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
 	mempool state.Mempool
+	engine  engine.Engine
 }
 
 // NewCoin creates a new Coin.
@@ -109,5 +111,5 @@ func (c *Coin) AddTransaction(tx *pb.Transaction) error {
 // It will send that block to the consensus engine that will mine on top
 // of it.
 func (c *Coin) AppendBlock(block *pb.Block) error {
-	return nil
+	return c.engine.VerifyHeader(nil, block.Header)
 }

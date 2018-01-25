@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
 	"github.com/stratumn/alice/core/protocol/coin/state/mockstate"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -71,6 +72,18 @@ func (m TxMatcher) String() string {
 	return fmt.Sprintf("%d", m.value)
 }
 
+type HeaderMatcher struct {
+	blockNumber int64
+}
+
+func (m HeaderMatcher) Matches(x interface{}) bool {
+	return m.blockNumber == x.(*pb.Header).BlockNumber
+}
+
+func (m HeaderMatcher) String() string {
+	return fmt.Sprintf("%d", m.blockNumber)
+}
+
 func TestCoinProtocolHandler(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -85,6 +98,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 
 		coins[i] = &Coin{
 			mempool: mockstate.NewMockMempool(ctrl),
+			engine:  mockengine.NewMockEngine(ctrl),
 		}
 
 		ii := i
@@ -108,11 +122,22 @@ func TestCoinProtocolHandler(t *testing.T) {
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 
-		// TODO: verify blocks received
-		err = enc0_1.Encode(randomBlock())
+		block1 := randomBlock()
+		coins[1].engine.(*mockengine.MockEngine).
+			EXPECT().
+			VerifyHeader(nil, &HeaderMatcher{blockNumber: block1.GetBlock().Header.BlockNumber}).
+			Times(1)
+
+		err = enc0_1.Encode(block1)
 		assert.NoError(t, err, "Encode()")
 
-		err = enc1_0.Encode(randomBlock())
+		block2 := randomBlock()
+		coins[0].engine.(*mockengine.MockEngine).
+			EXPECT().
+			VerifyHeader(nil, &HeaderMatcher{blockNumber: block2.GetBlock().Header.BlockNumber}).
+			Times(1)
+
+		err = enc1_0.Encode(block2)
 		assert.NoError(t, err, "Encode()")
 
 		tx := randomTx()

@@ -16,14 +16,13 @@ package coin
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
 	"github.com/stratumn/alice/core/protocol/coin/state/mockstate"
+	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,56 +32,6 @@ import (
 	inet "gx/ipfs/QmU4vCDZTPLDqSDKguWbHCiUe46mZUtmM2g2suBZ9NE8ko/go-libp2p-net"
 	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
-
-func randomTx() *pb.Gossip {
-	return &pb.Gossip{
-		Msg: &pb.Gossip_Tx{
-			Tx: &pb.Transaction{
-				From:  []byte("Alice"),
-				To:    []byte("Bob"),
-				Value: rand.Int63(),
-				Nonce: rand.Int63(),
-			},
-		},
-	}
-}
-
-func randomBlock() *pb.Gossip {
-	return &pb.Gossip{
-		Msg: &pb.Gossip_Block{
-			Block: &pb.Block{
-				Header: &pb.Header{
-					Version:     1,
-					BlockNumber: rand.Int63(),
-				},
-			},
-		},
-	}
-}
-
-type TxMatcher struct {
-	value int64
-}
-
-func (m TxMatcher) Matches(x interface{}) bool {
-	return m.value == x.(*pb.Transaction).Value
-}
-
-func (m TxMatcher) String() string {
-	return fmt.Sprintf("%d", m.value)
-}
-
-type HeaderMatcher struct {
-	blockNumber int64
-}
-
-func (m HeaderMatcher) Matches(x interface{}) bool {
-	return m.blockNumber == x.(*pb.Header).BlockNumber
-}
-
-func (m HeaderMatcher) String() string {
-	return fmt.Sprintf("%d", m.blockNumber)
-}
 
 func TestCoinProtocolHandler(t *testing.T) {
 	ctx := context.Background()
@@ -122,28 +71,28 @@ func TestCoinProtocolHandler(t *testing.T) {
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 
-		block1 := randomBlock()
+		block1 := ctestutil.RandomGossipBlock()
 		coins[1].engine.(*mockengine.MockEngine).
 			EXPECT().
-			VerifyHeader(nil, &HeaderMatcher{blockNumber: block1.GetBlock().Header.BlockNumber}).
+			VerifyHeader(nil, ctestutil.NewHeaderMatcher(block1.GetBlock().Header.BlockNumber)).
 			Times(1)
 
 		err = enc0_1.Encode(block1)
 		assert.NoError(t, err, "Encode()")
 
-		block2 := randomBlock()
+		block2 := ctestutil.RandomGossipBlock()
 		coins[0].engine.(*mockengine.MockEngine).
 			EXPECT().
-			VerifyHeader(nil, &HeaderMatcher{blockNumber: block2.GetBlock().Header.BlockNumber}).
+			VerifyHeader(nil, ctestutil.NewHeaderMatcher(block2.GetBlock().Header.BlockNumber)).
 			Times(1)
 
 		err = enc1_0.Encode(block2)
 		assert.NoError(t, err, "Encode()")
 
-		tx := randomTx()
+		tx := ctestutil.RandomGossipTx()
 		coins[1].mempool.(*mockstate.MockMempool).
 			EXPECT().
-			AddTransaction(&TxMatcher{value: tx.GetTx().Value}).
+			AddTransaction(ctestutil.NewTxMatcher(tx.GetTx().Value)).
 			Times(1)
 
 		err = enc0_1.Encode(tx)
@@ -168,10 +117,10 @@ func TestCoinProtocolHandler(t *testing.T) {
 		s0_1, err := hosts[0].NewStream(ctx, hosts[1].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
 
-		tx1 := randomTx()
+		tx1 := ctestutil.RandomGossipTx()
 		coins[1].mempool.(*mockstate.MockMempool).
 			EXPECT().
-			AddTransaction(&TxMatcher{value: tx1.GetTx().Value}).
+			AddTransaction(ctestutil.NewTxMatcher(tx1.GetTx().Value)).
 			Times(1)
 
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
@@ -181,10 +130,10 @@ func TestCoinProtocolHandler(t *testing.T) {
 		err = s0_1.Close()
 		assert.NoError(t, err, "Close()")
 
-		tx2 := randomTx()
+		tx2 := ctestutil.RandomGossipTx()
 		coins[0].mempool.(*mockstate.MockMempool).
 			EXPECT().
-			AddTransaction(&TxMatcher{value: tx2.GetTx().Value}).
+			AddTransaction(ctestutil.NewTxMatcher(tx2.GetTx().Value)).
 			Times(1)
 
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)

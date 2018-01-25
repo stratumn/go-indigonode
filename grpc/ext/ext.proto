@@ -26,6 +26,8 @@ extend google.protobuf.MethodOptions {
   // connected clients over a long-lived stream.
   // Event emitters should only accept requests to listen for events.
   bool method_event_emitter = 50001;
+  // Set this flag to true if the method should not be exposed by the CLI.
+  bool method_no_cli = 50002;
 }
 
 extend google.protobuf.FieldOptions {

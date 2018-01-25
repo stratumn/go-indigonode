@@ -26,6 +26,7 @@ service Coin {
     // Send a coin transaction to the consensus engine.
     rpc Transaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
+        option (stratumn.alice.grpc.ext.method_no_cli) = true;
     }
 }
 

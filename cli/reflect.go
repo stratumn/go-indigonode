@@ -738,6 +738,12 @@ func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDe
 	for _, methodDesc := range methodDescs {
 		opts := methodDesc.GetMethodOptions()
 		if opts != nil {
+			noCLI, err := proto.GetExtension(opts, ext.E_MethodNoCli)
+			if err == nil && *noCLI.(*bool) {
+				r.cons.Debugf("%s ignored (no-cli set).\n", methodDesc.GetName())
+				continue
+			}
+
 			eventEmitterEx, err := proto.GetExtension(opts, ext.E_MethodEventEmitter)
 			if err == nil && *eventEmitterEx.(*bool) {
 				el := NewConsoleRPCEventListener(

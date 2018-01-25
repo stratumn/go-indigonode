@@ -116,12 +116,12 @@ generate:
 protobuf: $(GRPC_GO) $(PROTOS_GO)
 
 grpc/%.pb.go: grpc/%.proto
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --go_out=plugins=grpc:$(GOPATH)/src
+	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --gofast_out=plugins=grpc:$(GOPATH)/src
 	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
 	rm $@.bak
 
 pb/%.pb.go: pb/%.proto
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --go_out=$(GOPATH)/src
+	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --gofast_out=$(GOPATH)/src
 
 # == doc ======================================================================
 

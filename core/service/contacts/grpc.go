@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/contacts"
 
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 var (

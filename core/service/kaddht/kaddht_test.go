@@ -27,9 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ifconnmgr "gx/ipfs/QmSAJm4QdTJ3EGF2cvgNcQyXTEbxqWSW1x4kCVV1aJQUQr/go-libp2p-interface-connmgr"
-	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
-	kaddht "gx/ipfs/QmfUvYQhL2GinafMbPDYz7VFoZv4iiuLuR33aRsPurXGag/go-libp2p-kad-dht"
+	testutil "gx/ipfs/QmV1axkk86DDkYwS269AvPy9eV5h7mUyHveJkSVHPjrQtY/go-libp2p-netutil"
+	ifconnmgr "gx/ipfs/QmZdqgq4h6AdodSmPwb5FZzhwnmhchu1hhJgv8tnFdod1o/go-libp2p-interface-connmgr"
+	kaddht "gx/ipfs/QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL/go-libp2p-kad-dht"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {

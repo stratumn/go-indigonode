@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	circuit "gx/ipfs/QmVqNgx6RByRcnLVsr9spbo5ScomJyDZrb9Gz4XMWkYB7Z/go-libp2p-circuit"
+	circuit "gx/ipfs/QmS1Cmc1ZP4vwvwSuJ92pWdrdmd51YPqpxYu8byYKwPnKv/go-libp2p-circuit"
+	testutil "gx/ipfs/QmV1axkk86DDkYwS269AvPy9eV5h7mUyHveJkSVHPjrQtY/go-libp2p-netutil"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	testutil "gx/ipfs/QmZTcPxK6VqrwY94JpKZPvEqAZ6tEr1rLrpcqJbbRZbg2V/go-libp2p-netutil"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {

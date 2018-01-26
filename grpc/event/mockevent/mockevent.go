@@ -5,11 +5,10 @@ package mockevent
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	event "github.com/stratumn/alice/grpc/event"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockEmitter_ListenServer is a mock of Emitter_ListenServer interface

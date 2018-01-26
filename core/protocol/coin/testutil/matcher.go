@@ -23,23 +23,27 @@ import (
 // TxMatcher matches transactions.
 type TxMatcher struct {
 	value int64
+	nonce int64
 }
 
 // NewTxMatcher creates a TxMatcher.
-func NewTxMatcher(expectedValue int64) TxMatcher {
+func NewTxMatcher(expectedTx *pb.Transaction) TxMatcher {
 	return TxMatcher{
-		value: expectedValue,
+		value: expectedTx.Value,
+		nonce: expectedTx.Nonce,
 	}
 }
 
 // Matches returns whether x is a match.
+// For unit tests, matching on value and nonce should be enough.
 func (m TxMatcher) Matches(x interface{}) bool {
-	return m.value == x.(*pb.Transaction).Value
+	return m.value == x.(*pb.Transaction).Value &&
+		m.nonce == x.(*pb.Transaction).Nonce
 }
 
 // String describes what the matcher matches.
 func (m TxMatcher) String() string {
-	return fmt.Sprintf("Matching on value: %d", m.value)
+	return fmt.Sprintf("Matching on value=%d and nonce=%d", m.value, m.nonce)
 }
 
 // HeaderMatcher matches headers.
@@ -47,19 +51,20 @@ type HeaderMatcher struct {
 	blockNumber int64
 }
 
-// NewHeaderMatcher creates a HeaderMatcher
-func NewHeaderMatcher(expectedBlockNumber int64) HeaderMatcher {
+// NewHeaderMatcher creates a HeaderMatcher.
+func NewHeaderMatcher(expectedHeader *pb.Header) HeaderMatcher {
 	return HeaderMatcher{
-		blockNumber: expectedBlockNumber,
+		blockNumber: expectedHeader.BlockNumber,
 	}
 }
 
 // Matches returns whether x is a match.
+// For unit tests, matching on block number should be enough.
 func (m HeaderMatcher) Matches(x interface{}) bool {
 	return m.blockNumber == x.(*pb.Header).BlockNumber
 }
 
 // String describes what the matcher matches.
 func (m HeaderMatcher) String() string {
-	return fmt.Sprintf("Matching on block number: %d", m.blockNumber)
+	return fmt.Sprintf("Matching on block number=%d", m.blockNumber)
 }

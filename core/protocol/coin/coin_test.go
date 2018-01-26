@@ -18,10 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
-	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
-	"github.com/stratumn/alice/core/protocol/coin/state/mockstate"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -35,9 +32,6 @@ import (
 
 func TestCoinProtocolHandler(t *testing.T) {
 	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	hosts := make([]ihost.Host, 2)
 	coins := make([]*Coin, 2)
 
@@ -48,8 +42,8 @@ func TestCoinProtocolHandler(t *testing.T) {
 		}(hosts[i])
 
 		coins[i] = &Coin{
-			mempool: mockstate.NewMockMempool(ctrl),
-			engine:  mockengine.NewMockEngine(ctrl),
+			mempool: &ctestutil.InMemoryMempool{},
+			engine:  &ctestutil.DummyEngine{},
 		}
 
 		ii := i
@@ -74,31 +68,22 @@ func TestCoinProtocolHandler(t *testing.T) {
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 
 		block1 := ctestutil.RandomGossipBlock()
-		coins[1].engine.(*mockengine.MockEngine).
-			EXPECT().
-			VerifyHeader(nil, ctestutil.NewHeaderMatcher(block1.GetBlock().Header.BlockNumber)).
-			Times(1)
-
 		err = enc0_1.Encode(block1)
 		assert.NoError(t, err, "Encode()")
 
 		block2 := ctestutil.RandomGossipBlock()
-		coins[0].engine.(*mockengine.MockEngine).
-			EXPECT().
-			VerifyHeader(nil, ctestutil.NewHeaderMatcher(block2.GetBlock().Header.BlockNumber)).
-			Times(1)
-
 		err = enc1_0.Encode(block2)
 		assert.NoError(t, err, "Encode()")
 
 		tx := ctestutil.RandomGossipTx()
-		coins[1].mempool.(*mockstate.MockMempool).
-			EXPECT().
-			AddTransaction(ctestutil.NewTxMatcher(tx.GetTx().Value)).
-			Times(1)
-
 		err = enc0_1.Encode(tx)
 		assert.NoError(t, err, "Encode()")
+
+		ctestutil.WaitUntil(t, func() bool {
+			return coins[0].engine.(*ctestutil.DummyEngine).VerifiedHeader(block2.GetBlock().Header) &&
+				coins[1].engine.(*ctestutil.DummyEngine).VerifiedHeader(block1.GetBlock().Header) &&
+				coins[1].mempool.(*ctestutil.InMemoryMempool).Contains(tx.GetTx())
+		})
 	})
 
 	t.Run("Ignore invalid messages", func(t *testing.T) {
@@ -120,11 +105,6 @@ func TestCoinProtocolHandler(t *testing.T) {
 		require.NoError(t, err, "NewStream()")
 
 		tx1 := ctestutil.RandomGossipTx()
-		coins[1].mempool.(*mockstate.MockMempool).
-			EXPECT().
-			AddTransaction(ctestutil.NewTxMatcher(tx1.GetTx().Value)).
-			Times(1)
-
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
 		err = enc0_1.Encode(tx1)
 		assert.NoError(t, err, "Encode()")
@@ -133,13 +113,13 @@ func TestCoinProtocolHandler(t *testing.T) {
 		assert.NoError(t, err, "Close()")
 
 		tx2 := ctestutil.RandomGossipTx()
-		coins[0].mempool.(*mockstate.MockMempool).
-			EXPECT().
-			AddTransaction(ctestutil.NewTxMatcher(tx2.GetTx().Value)).
-			Times(1)
-
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 		err = enc1_0.Encode(tx2)
 		assert.NoError(t, err, "Encode()")
+
+		ctestutil.WaitUntil(t, func() bool {
+			return coins[1].mempool.(*ctestutil.InMemoryMempool).Contains(tx1.GetTx()) &&
+				coins[0].mempool.(*ctestutil.InMemoryMempool).Contains(tx2.GetTx())
+		})
 	})
 }

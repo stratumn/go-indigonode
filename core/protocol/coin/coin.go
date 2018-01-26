@@ -19,8 +19,12 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/miner"
+	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
@@ -49,13 +53,29 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
-	mempool state.Mempool
-	engine  engine.Engine
+	engine    engine.Engine
+	mempool   state.Mempool
+	processor processor.Processor
+	validator validator.Validator
+
+	miner *miner.Miner
 }
 
 // NewCoin creates a new Coin.
-func NewCoin() *Coin {
-	return &Coin{}
+func NewCoin(
+	m state.Mempool,
+	e engine.Engine,
+	s state.State,
+	c chain.Chain,
+	v validator.Validator,
+	p processor.Processor) *Coin {
+	return &Coin{
+		engine:    e,
+		mempool:   m,
+		processor: p,
+		validator: v,
+		miner:     miner.NewMiner(m, e, s, c, v, p),
+	}
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -100,16 +120,33 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	}
 }
 
-// AddTransaction validates transaction signatures and adds it to the mempool.
+// AddTransaction validates incoming transactions against the latest state
+// and adds them to the mempool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
-	// TODO: validate tx
+	err := c.validator.ValidateTx(tx, nil)
+	if err != nil {
+		return err
+	}
+
 	return c.mempool.AddTransaction(tx)
 }
 
 // AppendBlock validates the incoming block and adds it at the end of
 // the chain, updating internal state to reflect the block's transactions.
-// It will send that block to the consensus engine that will mine on top
-// of it.
+// The miner will be notified of the new block and can decide to mine
+// on top of it or keep mining on another fork.
 func (c *Coin) AppendBlock(block *pb.Block) error {
-	return c.engine.VerifyHeader(nil, block.Header)
+	// Validate block contents.
+	err := c.validator.ValidateBlock(block, nil)
+	if err != nil {
+		return err
+	}
+
+	// Validate block header according to consensus.
+	err = c.engine.VerifyHeader(nil, block.Header)
+	if err != nil {
+		return err
+	}
+
+	return c.processor.Process(block, nil, nil)
 }

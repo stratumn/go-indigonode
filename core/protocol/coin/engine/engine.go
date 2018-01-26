@@ -25,6 +25,10 @@ import (
 )
 
 // Engine is an algorithm agnostic consensus engine.
+// It verifies that headers are valid and properly assembles blocks
+// according to the consensus rules.
+// It doesn't change any state, it's the responsibility of the caller
+// to process the blocks assembled by the engine.
 type Engine interface {
 	// VerifyHeader checks whether a header conforms to the consensus
 	// rules of a given engine.
@@ -40,9 +44,11 @@ type Engine interface {
 	// rules of a particular engine. The changes are executed inline.
 	Prepare(chain chain.Reader, header *pb.Header) error
 
-	// Finalize verifies transactions, updates the state to apply them
-	// and assembles the final block.
+	// Finalize assumes that transactions have already been validated and don't
+	// violate state rules.
+	// It assembles the transactions in a final block, potentially adding more
+	// transactions than those from the input (for example, block rewards).
 	// The block header might be updated (including a merkle root of the
 	// transactions for example).
-	Finalize(chain chain.Reader, header *pb.Header, state *state.State, txs []*pb.Transaction) (*pb.Block, error)
+	Finalize(chain chain.Reader, header *pb.Header, state *state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }

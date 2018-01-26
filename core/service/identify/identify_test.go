@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	identify "gx/ipfs/QmNRN4eZGmY89CRC4T5PC4xDYRx6GkDKEfRnvrT65fVeio/go-libp2p/p2p/protocol/identify"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	identify "gx/ipfs/Qma23bpHwQrQyvKeBemaeJh7sAoRHggPkgnge1B9489ff5/go-libp2p/p2p/protocol/identify"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -45,7 +45,9 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(host *mockidentify.MockHost) {
+func expectHost(net *mockidentify.MockNetwork, host *mockidentify.MockHost) {
+	host.EXPECT().Network().Return(net)
+	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(identify.ID), gomock.Any())
 	host.EXPECT().SetIDService(gomock.Any())
 	host.EXPECT().SetIDService(nil)
@@ -63,8 +65,9 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	net := mockidentify.NewMockNetwork(ctrl)
 	host := mockidentify.NewMockHost(ctrl)
-	expectHost(host)
+	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
@@ -79,8 +82,9 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	net := mockidentify.NewMockNetwork(ctrl)
 	host := mockidentify.NewMockHost(ctrl)
-	expectHost(host)
+	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
 	testservice.TestRun(ctx, t, serv, time.Second)

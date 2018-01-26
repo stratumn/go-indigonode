@@ -20,9 +20,9 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/metrics"
 
-	peer "gx/ipfs/QmWNY7dV54ZDYmTA1ykVdwNCqC11mpU4zSUp6XDpLTH9eG/go-libp2p-peer"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	metrics "gx/ipfs/QmaL2WYJGbWKqHoLujoi9GQ5jj4JVFrBqHUBWmEYzJPVWT/go-libp2p-metrics"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	metrics "gx/ipfs/Qmb1QrSXKwGFWgiGEcyac4s5wakJG4yPvCPk49xZHxr5ux/go-libp2p-metrics"
 )
 
 // grpcServer is a gRPC server for the metrics service.

@@ -16,11 +16,31 @@
 
 package state
 
-import pb "github.com/stratumn/alice/pb/coin"
+import (
+	"sync"
+
+	pb "github.com/stratumn/alice/pb/coin"
+)
 
 // Mempool stores transactions that need to be processed.
 type Mempool interface {
 	// AddTransaction adds a transaction to the mempool.
 	// It assumes that the transaction has been validated.
 	AddTransaction(tx *pb.Transaction) error
+}
+
+// InMemoryMempool is a very simple mempool that stores queued transactions
+// in memory.
+type InMemoryMempool struct {
+	mu  sync.RWMutex
+	txs []*pb.Transaction
+}
+
+// AddTransaction adds a transaction in memory.
+func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.txs = append(m.txs, tx)
+	return nil
 }

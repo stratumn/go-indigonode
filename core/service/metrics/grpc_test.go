@@ -45,16 +45,11 @@ func TestGRPCServer_Bandwidth(t *testing.T) {
 
 	srv := testGRPCServer()
 
-	srv.GetMetrics().LogRecvMessage(1000)
-
-	// TODO: improve this test.
-	time.Sleep(time.Second)
-
 	req := &pb.BandwidthReq{}
 	res, err := srv.Bandwidth(ctx, req)
 
 	require.NoError(t, err)
-	require.Equal(t, uint64(1000), res.TotalIn)
+	require.Equal(t, uint64(0), res.TotalIn)
 }
 
 func TestGRPCServer_Bandwidth_unavailable(t *testing.T) {

@@ -12,18 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coin
+package testutil
 
-// State stores users' account balances.
-type State interface {
-	StateReader
-	StateWriter
-}
+import (
+	"testing"
+	"time"
 
-// StateReader gives read access to users' account balances.
-type StateReader interface {
-}
+	"github.com/stretchr/testify/assert"
+)
 
-// StateWriter gives write access to users' account balances.
-type StateWriter interface {
+// WaitUntil waits for a condition to happen or fails after a small time.
+// This is useful when you want to assert that asynchronous conditions need
+// to be verified.
+func WaitUntil(t *testing.T, cond func() bool) {
+	condChan := make(chan struct{})
+	go func() {
+		for {
+			if cond() {
+				condChan <- struct{}{}
+				return
+			}
+
+			<-time.After(10 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case <-condChan:
+	case <-time.After(100 * time.Millisecond):
+		assert.Fail(t, "waitUntil")
+	}
 }

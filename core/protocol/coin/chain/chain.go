@@ -12,21 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coin
+//go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/alice/core/protocol/coin/chain Reader
+
+package chain
 
 import (
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// ChainConfig describes the blockchain's chain configuration.
-type ChainConfig struct {
+// Config describes the blockchain's chain configuration.
+type Config struct {
 }
 
-// ChainReader defines a small collection of methods needed to access the local
+// Reader defines a small collection of methods needed to access the local
 // blockchain.
-type ChainReader interface {
+type Reader interface {
 	// Config retrieves the blockchain's chain configuration.
-	Config() *ChainConfig
+	Config() *Config
 
 	// CurrentHeader retrieves the current header from the local chain.
 	CurrentHeader() *pb.Header

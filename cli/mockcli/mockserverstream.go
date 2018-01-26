@@ -4,10 +4,9 @@
 package mockcli
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	proto "github.com/golang/protobuf/proto"
+	reflect "reflect"
 )
 
 // MockServerStream is a mock of ServerStream interface

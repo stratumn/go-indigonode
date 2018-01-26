@@ -41,10 +41,10 @@ func TestCoinProtocolHandler(t *testing.T) {
 			h.Close()
 		}(hosts[i])
 
-		coins[i] = &Coin{
-			mempool: &ctestutil.InMemoryMempool{},
-			engine:  &ctestutil.DummyEngine{},
-		}
+		// We configure validation to fail.
+		// We only want to test that the coin protocol
+		// correctly called the validator.
+		coins[i] = &Coin{validator: &ctestutil.Rejector{}}
 
 		ii := i
 		hosts[i].SetStreamHandler(ProtocolID, func(stream inet.Stream) {
@@ -80,9 +80,9 @@ func TestCoinProtocolHandler(t *testing.T) {
 		assert.NoError(t, err, "Encode()")
 
 		ctestutil.WaitUntil(t, func() bool {
-			return coins[0].engine.(*ctestutil.DummyEngine).VerifiedHeader(block2.GetBlock().Header) &&
-				coins[1].engine.(*ctestutil.DummyEngine).VerifiedHeader(block1.GetBlock().Header) &&
-				coins[1].mempool.(*ctestutil.InMemoryMempool).Contains(tx.GetTx())
+			return coins[0].validator.(*ctestutil.Rejector).ValidatedBlock(block2.GetBlock()) &&
+				coins[1].validator.(*ctestutil.Rejector).ValidatedBlock(block1.GetBlock()) &&
+				coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx.GetTx())
 		})
 	})
 
@@ -118,8 +118,8 @@ func TestCoinProtocolHandler(t *testing.T) {
 		assert.NoError(t, err, "Encode()")
 
 		ctestutil.WaitUntil(t, func() bool {
-			return coins[1].mempool.(*ctestutil.InMemoryMempool).Contains(tx1.GetTx()) &&
-				coins[0].mempool.(*ctestutil.InMemoryMempool).Contains(tx2.GetTx())
+			return coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx1.GetTx()) &&
+				coins[0].validator.(*ctestutil.Rejector).ValidatedTx(tx2.GetTx())
 		})
 	})
 }

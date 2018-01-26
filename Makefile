@@ -116,12 +116,41 @@ generate:
 protobuf: $(GRPC_GO) $(PROTOS_GO)
 
 grpc/%.pb.go: grpc/%.proto
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --gofast_out=plugins=grpc:$(GOPATH)/src
+	protoc \
+		-I vendor/github.com/gogo/protobuf/protobuf \
+		-I vendor \
+		-I $(GOPATH)/src/ \
+		--gofast_out=\
+Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor,\
+Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types,\
+plugins=grpc\
+:$(GOPATH)/src \
+		github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<
 	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
 	rm $@.bak
 
 pb/%.pb.go: pb/%.proto
-	protoc -I $(GOPATH)/src/ github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$< --gofast_out=$(GOPATH)/src
+	protoc \
+		-I vendor/github.com/gogo/protobuf/protobuf \
+		-I vendor \
+		-I $(GOPATH)/src/ \
+		--gofast_out=\
+Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor,\
+Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/field_mask.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
+Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types\
+:$(GOPATH)/src\
+		github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<
 
 # == doc ======================================================================
 

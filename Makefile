@@ -94,7 +94,10 @@ gometalinter:
 graphpkg:
 	go get -u github.com/davecheney/graphpkg
 
-deps: gx dep gometalinter graphpkg
+gofast:
+	go get github.com/gogo/protobuf/protoc-gen-gofast
+
+deps: gx dep gometalinter graphpkg gofast
 	gx install
 	dep ensure
 

@@ -15,7 +15,6 @@
 package testutil
 
 import (
-	"runtime"
 	"testing"
 	"time"
 
@@ -34,7 +33,6 @@ func WaitUntil(t *testing.T, cond func() bool) {
 				return
 			}
 
-			runtime.Gosched()
 			<-time.After(10 * time.Millisecond)
 		}
 	}()

@@ -43,7 +43,9 @@ func TestCoinProtocolHandler(t *testing.T) {
 
 	for i := 0; i < 2; i++ {
 		hosts[i] = p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-		defer hosts[i].Close()
+		defer func(h ihost.Host) {
+			h.Close()
+		}(hosts[i])
 
 		coins[i] = &Coin{
 			mempool: mockstate.NewMockMempool(ctrl),

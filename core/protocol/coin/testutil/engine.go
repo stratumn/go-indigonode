@@ -32,7 +32,7 @@ type DummyEngine struct {
 // VerifyHeader records that header was verified.
 func (e *DummyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 	e.mu.Lock()
-	e.mu.Unlock()
+	defer e.mu.Unlock()
 
 	e.verified = append(e.verified, header)
 	return nil
@@ -46,7 +46,7 @@ func (e *DummyEngine) VerifyHeaders(ctx context.Context, chain chain.Reader, hea
 // VerifiedHeader checks if the input header was verified by the engine.
 func (e *DummyEngine) VerifiedHeader(header *pb.Header) bool {
 	e.mu.RLock()
-	e.mu.RUnlock()
+	defer e.mu.RUnlock()
 
 	matcher := NewHeaderMatcher(header)
 	for _, h := range e.verified {

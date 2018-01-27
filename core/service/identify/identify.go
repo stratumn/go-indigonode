@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockidentify -destination mockidentify/mockidentify.go github.com/stratumn/alice/core/service/identify Host
+//go:generate mockgen -package mockidentify -destination mockidentify/mocknet.go gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net Network
 
 // Package identify defines a service that identifies peers on the network.
 package identify
@@ -22,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	ihost "gx/ipfs/QmP46LGWhzVZTMmt5akNNLfoV8qL4h5wTwmzQxLyDafggd/go-libp2p-host"
-	identify "gx/ipfs/Qma23bpHwQrQyvKeBemaeJh7sAoRHggPkgnge1B9489ff5/go-libp2p/p2p/protocol/identify"
+	identify "gx/ipfs/QmNRN4eZGmY89CRC4T5PC4xDYRx6GkDKEfRnvrT65fVeio/go-libp2p/p2p/protocol/identify"
+	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
 var (

@@ -17,15 +17,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stratumn/alice/core"
-)
-
-var (
-	coreCfgFilename = "alice.core.toml"
-	cliCfgFilename  = "alice.cli.toml"
 )
 
 // services are the services that will be used by core.
@@ -49,11 +45,14 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&coreCfgFilename, "core-config", coreCfgFilename, "core configuration file")
-	RootCmd.PersistentFlags().StringVar(&cliCfgFilename, "cli-config", cliCfgFilename, "command line interface configuration file")
+	RootCmd.PersistentFlags().String("core-config", "alice.core.toml", "core configuration file")
+	RootCmd.PersistentFlags().String("cli-config", "alice.cli.toml", "command line interface configuration file")
+	viper.BindPFlags(RootCmd.PersistentFlags())
 }
 
-// initConfig reads in config file and ENV variables if set.
+// initConfig reads in ENV variables if set.
 func initConfig() {
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.SetEnvPrefix("alice")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
 }

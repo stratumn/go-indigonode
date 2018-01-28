@@ -28,20 +28,20 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := core.InitConfig(core.NewConfigurableSet(services), coreCfgFilename); err != nil {
+		if err := core.InitConfig(core.NewConfigurableSet(services), coreCfgFilename()); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the core configuration file: %s.\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Created configuration file %q.\n", coreCfgFilename)
+		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
 		fmt.Println("Keep this file private!!!")
 
-		if err := cli.InitConfig(cli.NewConfigurableSet(), cliCfgFilename); err != nil {
+		if err := cli.InitConfig(cli.NewConfigurableSet(), cliCfgFilename()); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the command line interface configuration file: %s.\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Created configuration file %q.\n", cliCfgFilename)
+		fmt.Printf("Created configuration file %q.\n", cliCfgFilename())
 		fmt.Println("Keep this file private!!!")
 	},
 }

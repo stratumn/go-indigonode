@@ -26,7 +26,7 @@ var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Register the daemon service",
 	Run: func(cmd *cobra.Command, args []string) {
-		cfgPath, err := filepath.Abs(coreCfgFilename)
+		cfgPath, err := filepath.Abs(coreCfgFilename())
 		fail(err)
 
 		status, err := newDaemon().Install("up", "--core-config", cfgPath)

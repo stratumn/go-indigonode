@@ -2,6 +2,7 @@
 
 ## Users
 
+* [Systemd Installation](install_systemd.md)
 * [Services](services.md)
 * [FAQ](faq.md)
 

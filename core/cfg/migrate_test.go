@@ -128,7 +128,7 @@ func TestMigrate_migrationError(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
-	assert.Error(t, err, "Migrate()")
+	assert.EqualError(t, err, "migration 0: fail", "Migrate()")
 }
 
 func TestMigrate_invalidVersion(t *testing.T) {
@@ -141,5 +141,18 @@ func TestMigrate_invalidVersion(t *testing.T) {
 	set := Set{"version": &testVersionHandler{}}
 
 	err = Migrate(set, filename, "version.version", nil, 0600)
-	assert.Error(t, err, "Migrate()")
+	assert.EqualError(t, err, ErrInvalidVersion.Error(), "Migrate()")
+}
+
+func TestMigrate_outdatedVersion(t *testing.T) {
+	dir, err := ioutil.TempDir("", "")
+	require.NoError(t, err, `ioutil.TempDir("", "")`)
+
+	filename := filepath.Join(dir, "migrate.toml")
+	createOld(t, filename, 1)
+
+	set := Set{"version": &testVersionHandler{}}
+
+	err = Migrate(set, filename, "version.version", nil, 0600)
+	assert.EqualError(t, err, ErrOutdatedExec.Error(), "Migrate()")
 }

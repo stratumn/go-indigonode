@@ -30,6 +30,10 @@ import (
 var (
 	// ErrInvalidVersion is returned when the config version is invalid.
 	ErrInvalidVersion = errors.New("config version is invalid")
+
+	// ErrOutdatedExec is returned when the config version is more recent
+	// than the executable.
+	ErrOutdatedExec = errors.New("exec is out of date with config version")
 )
 
 // Tree is used by migrations to modify the configuration tree.
@@ -144,6 +148,10 @@ func Migrate(
 		err := errors.WithStack(ErrInvalidVersion)
 		event.SetError(err)
 		return err
+	}
+
+	if version > int64(len(migrations)) {
+		return errors.WithStack(ErrOutdatedExec)
 	}
 
 	migrations = migrations[version:]

@@ -91,14 +91,17 @@ func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, state state.Reader) er
 		return err
 	}
 
-	err = v.validateBalance(tx, state)
-	if err != nil {
-		return err
+	if state != nil {
+		err = v.validateBalance(tx, state)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
+// validateFormat validates the format of the incoming tx (fields, etc).
 func (v *BalanceValidator) validateFormat(tx *pb.Transaction) error {
 	if tx == nil {
 		return ErrEmptyTx
@@ -123,6 +126,7 @@ func (v *BalanceValidator) validateFormat(tx *pb.Transaction) error {
 	return nil
 }
 
+// validateSignature validates transaction signature.
 func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 	// Extract the payload part
 	payload := &pb.Transaction{
@@ -179,6 +183,7 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 	return nil
 }
 
+// validateBalance validates that the sender does not send coins he doesn't have.
 func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reader) error {
 	balance := state.GetBalance(tx.From)
 	if balance < tx.Value {
@@ -190,5 +195,41 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reade
 
 // ValidateBlock validates the transactions contained in a block.
 func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
+	for _, tx := range block.Transactions {
+		// Validate everything else than balance.
+		err := v.ValidateTx(tx, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Aggregate transactions from the same sender and verify balance.
+	txs := make(map[peer.ID]int64)
+	for _, tx := range block.Transactions {
+		senderID, err := peer.IDFromBytes(tx.From)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		_, ok := txs[senderID]
+		if !ok {
+			txs[senderID] = 0
+		}
+
+		txs[senderID] += tx.Value
+	}
+
+	for from, val := range txs {
+		err := v.validateBalance(
+			&pb.Transaction{
+				From:  []byte(from),
+				Value: val,
+			},
+			state)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -23,19 +23,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: test cases:
-// Validate block one invalid signature
-// Validate valid block
-// Validate block multiple txs, one becomes negative
-
-type validateTxTestCase struct {
-	name  string
-	tx    func() *pb.Transaction
-	state func() state.State
-	err   error
-}
-
 func TestValidateTx(t *testing.T) {
+	type validateTxTestCase struct {
+		name  string
+		tx    func() *pb.Transaction
+		state func() state.State
+		err   error
+	}
+
 	testCases := []validateTxTestCase{{
 		"empty-tx",
 		func() *pb.Transaction { return nil },
@@ -112,6 +107,83 @@ func TestValidateTx(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validator.ValidateTx(tt.tx(), tt.state())
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateBlock(t *testing.T) {
+	type validateBlockTxTestCase struct {
+		name  string
+		block func() *pb.Block
+		state func() state.State
+		err   error
+	}
+
+	testCases := []validateBlockTxTestCase{{
+		"empty-block",
+		func() *pb.Block { return &pb.Block{} },
+		func() state.State { return nil },
+		nil,
+	}, {
+		"invalid-signature",
+		func() *pb.Block {
+			block := &pb.Block{
+				Transactions: []*pb.Transaction{
+					testutil.NewTransaction(t, 3, 5),
+					testutil.NewTransaction(t, 7, 1),
+				},
+			}
+
+			block.Transactions[1].Signature.Signature[5] ^= block.Transactions[1].Signature.Signature[5]
+
+			return block
+		},
+		func() state.State { return nil },
+		ErrInvalidTxSignature,
+	}, {
+		"invalid-balance",
+		func() *pb.Block {
+			return &pb.Block{
+				Transactions: []*pb.Transaction{
+					testutil.NewTransaction(t, 3, 5),
+					testutil.NewTransaction(t, 7, 1),
+				},
+			}
+		},
+		func() state.State {
+			state := testutil.NewSimpleState()
+			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 8))
+			return state
+		},
+		ErrInsufficientBalance,
+	}, {
+		"valid-block",
+		func() *pb.Block {
+			return &pb.Block{
+				Transactions: []*pb.Transaction{
+					testutil.NewTransaction(t, 3, 5),
+					testutil.NewTransaction(t, 7, 1),
+				},
+			}
+		},
+		func() state.State {
+			state := testutil.NewSimpleState()
+			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 10))
+			return state
+		},
+		nil,
+	}}
+
+	validator := NewBalanceValidator()
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validator.ValidateBlock(tt.block(), tt.state())
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

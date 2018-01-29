@@ -37,7 +37,7 @@ type Rejector struct {
 }
 
 // ValidateTx records the incoming tx and rejects it.
-func (r *Rejector) ValidateTx(tx *pb.Transaction, state *state.Reader) error {
+func (r *Rejector) ValidateTx(tx *pb.Transaction, state state.Reader) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -46,7 +46,7 @@ func (r *Rejector) ValidateTx(tx *pb.Transaction, state *state.Reader) error {
 }
 
 // ValidateBlock records the incoming block and rejects it.
-func (r *Rejector) ValidateBlock(block *pb.Block, _ *state.Reader) error {
+func (r *Rejector) ValidateBlock(block *pb.Block, _ state.Reader) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

@@ -48,6 +48,9 @@ var (
 
 	// ErrTxSignatureNotHandled is returned when the transaction signature scheme isn't implemented.
 	ErrTxSignatureNotHandled = errors.New("tx signature scheme not supported yet")
+
+	// ErrInsufficientBalance is returned when the sender tries to send more coins than he has.
+	ErrInsufficientBalance = errors.New("tx sender does not have enough coins to send")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -58,9 +61,9 @@ type Validator interface {
 	// ValidateTx validates a transaction.
 	// If state is nil, ValidateTx only validates that the
 	// transaction is well-formed and properly signed.
-	ValidateTx(tx *pb.Transaction, state *state.Reader) error
+	ValidateTx(tx *pb.Transaction, state state.Reader) error
 	// ValidateBlock validates the contents of a block.
-	ValidateBlock(block *pb.Block, state *state.Reader) error
+	ValidateBlock(block *pb.Block, state state.Reader) error
 }
 
 // BalanceValidator validates coin transactions.
@@ -77,7 +80,7 @@ func NewBalanceValidator() Validator {
 // ValidateTx validates a transaction.
 // If state is nil, ValidateTx only validates that the
 // transaction is well-formed and properly signed.
-func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, state *state.Reader) error {
+func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
 	err := v.validateFormat(tx)
 	if err != nil {
 		return err
@@ -176,12 +179,16 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 	return nil
 }
 
-func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state *state.Reader) error {
-	// TODO
+func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reader) error {
+	balance := state.GetBalance(tx.From)
+	if balance < tx.Value {
+		return ErrInsufficientBalance
+	}
+
 	return nil
 }
 
 // ValidateBlock validates the transactions contained in a block.
-func (v *BalanceValidator) ValidateBlock(block *pb.Block, state *state.Reader) error {
+func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
 	return nil
 }

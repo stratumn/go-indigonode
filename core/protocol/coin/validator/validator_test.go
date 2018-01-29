@@ -17,27 +17,29 @@ package validator
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 )
 
 // TODO: test cases:
-// Validate signature negative balance
 // Validate block one invalid signature
 // Validate valid block
 // Validate block multiple txs, one becomes negative
 
 type validateTxTestCase struct {
-	name string
-	tx   func() *pb.Transaction
-	err  error
+	name  string
+	tx    func() *pb.Transaction
+	state func() state.State
+	err   error
 }
 
 func TestValidateTx(t *testing.T) {
 	testCases := []validateTxTestCase{{
 		"empty-tx",
 		func() *pb.Transaction { return nil },
+		func() state.State { return nil },
 		ErrEmptyTx,
 	}, {
 		"empty-value",
@@ -45,6 +47,7 @@ func TestValidateTx(t *testing.T) {
 			tx := testutil.NewTransaction(t, 0, 42)
 			return tx
 		},
+		func() state.State { return nil },
 		ErrInvalidTxValue,
 	}, {
 		"missing-to",
@@ -53,6 +56,7 @@ func TestValidateTx(t *testing.T) {
 			tx.To = nil
 			return tx
 		},
+		func() state.State { return nil },
 		ErrInvalidTxRecipient,
 	}, {
 		"missing-from",
@@ -61,6 +65,7 @@ func TestValidateTx(t *testing.T) {
 			tx.From = nil
 			return tx
 		},
+		func() state.State { return nil },
 		ErrInvalidTxSender,
 	}, {
 		"missing-signature",
@@ -69,6 +74,7 @@ func TestValidateTx(t *testing.T) {
 			tx.Signature = nil
 			return tx
 		},
+		func() state.State { return nil },
 		ErrMissingTxSignature,
 	}, {
 		"invalid-signature",
@@ -77,12 +83,26 @@ func TestValidateTx(t *testing.T) {
 			tx.Signature.Signature[3] ^= 1
 			return tx
 		},
+		func() state.State { return nil },
 		ErrInvalidTxSignature,
+	}, {
+		"invalid-balance",
+		func() *pb.Transaction {
+			tx := testutil.NewTransaction(t, 42, 42)
+			return tx
+		},
+		func() state.State { return testutil.NewSimpleState() },
+		ErrInsufficientBalance,
 	}, {
 		"valid-tx",
 		func() *pb.Transaction {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
+		},
+		func() state.State {
+			state := testutil.NewSimpleState()
+			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 80))
+			return state
 		},
 		nil,
 	}}
@@ -91,7 +111,7 @@ func TestValidateTx(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validator.ValidateTx(tt.tx(), nil)
+			err := validator.ValidateTx(tt.tx(), tt.state())
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

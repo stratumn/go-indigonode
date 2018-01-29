@@ -50,5 +50,5 @@ type Engine interface {
 	// transactions than those from the input (for example, block rewards).
 	// The block header might be updated (including a merkle root of the
 	// transactions for example).
-	Finalize(chain chain.Reader, header *pb.Header, state *state.Reader, txs []*pb.Transaction) (*pb.Block, error)
+	Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }

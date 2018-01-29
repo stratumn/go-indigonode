@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -31,9 +30,6 @@ var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
 )
-
-// log is the logger for the service.
-var log = logging.Logger("pubsub")
 
 // Host represents an Alice host.
 type Host = ihost.Host

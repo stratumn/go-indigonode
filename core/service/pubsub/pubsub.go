@@ -63,7 +63,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "Subscribes and pubishes to topics."
+	return "Subscribes and publishes to topics."
 }
 
 // Config returns the current service configuration or creates one with

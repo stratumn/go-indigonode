@@ -26,13 +26,13 @@ import (
 // It allows tests to easily customize users' balances.
 type SimpleState struct {
 	mu       sync.RWMutex
-	balances map[string]int64
+	balances map[peer.ID]int64
 }
 
 // NewSimpleState returns a SimpleState ready to use in tests.
 func NewSimpleState() *SimpleState {
 	return &SimpleState{
-		balances: make(map[string]int64),
+		balances: make(map[peer.ID]int64),
 	}
 }
 
@@ -46,7 +46,7 @@ func (s *SimpleState) GetBalance(pubKey []byte) int64 {
 		return 0
 	}
 
-	return s.balances[string(id)]
+	return s.balances[id]
 }
 
 // AddBalance adds coins to a user account.
@@ -59,6 +59,6 @@ func (s *SimpleState) AddBalance(pubKey []byte, amount int64) error {
 		return errors.WithStack(err)
 	}
 
-	s.balances[string(id)] += amount
+	s.balances[id] += amount
 	return nil
 }

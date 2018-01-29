@@ -26,6 +26,9 @@ var installCmd = &cobra.Command{
 	Use:   "install",
 	Short: "Register the daemon service",
 	Run: func(cmd *cobra.Command, args []string) {
+		// Make sure the config file exists.
+		requireCoreConfigSet()
+
 		cfgPath, err := filepath.Abs(coreCfgFilename())
 		fail(err)
 

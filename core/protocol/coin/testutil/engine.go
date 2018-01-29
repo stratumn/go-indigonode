@@ -64,6 +64,6 @@ func (e *DummyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 }
 
 // Finalize does nothing.
-func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state *state.State, txs []*pb.Transaction) (*pb.Block, error) {
+func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state *state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	return nil, nil
 }

@@ -116,7 +116,7 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.coin = protocol.NewCoin()
+	s.coin = &protocol.Coin{}
 
 	// Wrap the stream handler with the context.
 	handler := func(stream inet.Stream) {

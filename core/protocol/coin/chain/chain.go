@@ -13,6 +13,8 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/alice/core/protocol/coin/chain Reader
+//go:generate mockgen -package mockchain -destination mockchain/mockchainwriter.go github.com/stratumn/alice/core/protocol/coin/chain Writer
+//go:generate mockgen -package mockchain -destination mockchain/mockchain.go github.com/stratumn/alice/core/protocol/coin/chain Chain
 
 package chain
 
@@ -42,4 +44,17 @@ type Reader interface {
 
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash []byte, number uint64) *pb.Block
+}
+
+// Writer defines methods needed to write to the local blockchain.
+type Writer interface {
+	// AddBlock adds a block to the chain.
+	// It assumes that the block has been validated.
+	AddBlock(block *pb.Block) error
+}
+
+// Chain defines methods to interact with the local blockchain.
+type Chain interface {
+	Reader
+	Writer
 }

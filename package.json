@@ -159,6 +159,12 @@
       "hash": "QmV1axkk86DDkYwS269AvPy9eV5h7mUyHveJkSVHPjrQtY",
       "name": "go-libp2p-netutil",
       "version": "0.3.7"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4",
+      "name": "go-libp2p-floodsub",
+      "version": "0.9.9"
     }
   ],
   "gxVersion": "0.11.0",

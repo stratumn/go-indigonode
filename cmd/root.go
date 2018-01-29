@@ -47,7 +47,11 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().String("core-config", "alice.core.toml", "core configuration file")
 	RootCmd.PersistentFlags().String("cli-config", "alice.cli.toml", "command line interface configuration file")
-	viper.BindPFlags(RootCmd.PersistentFlags())
+
+	err := viper.BindPFlags(RootCmd.PersistentFlags())
+	if err != nil {
+		panic(err)
+	}
 }
 
 // initConfig reads in ENV variables if set.

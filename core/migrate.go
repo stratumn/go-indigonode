@@ -83,6 +83,14 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.host", "host")
 	},
+	func(tree *cfg.Tree) error {
+		err := tree.Set("pubsub.host", "host")
+		if err != nil {
+			return err
+		}
+
+		return addServiceToGroup(tree, "pubsub", "p2p")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

@@ -3,6 +3,7 @@
 ## Users
 
 * [Systemd Installation](install_systemd.md)
+* [Launchd Installation](install_launchd.md)
 * [Services](services.md)
 * [FAQ](faq.md)
 

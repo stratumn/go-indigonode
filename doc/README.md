@@ -2,6 +2,7 @@
 
 ## Users
 
+* [Launchd Installation](install_launchd.md)
 * [Services](services.md)
 * [FAQ](faq.md)
 

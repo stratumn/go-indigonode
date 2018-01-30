@@ -79,6 +79,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+
+[[projects]]
+  branch = "master"
   name = "github.com/hashicorp/go-immutable-radix"
   packages = ["."]
   revision = "8aac2701530899b64bdea735a1de8da899815220"
@@ -273,6 +279,25 @@
   version = "v1.2.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util"
+  ]
+  revision = "211f780988068502fe874c44dae530528ebd840f"
+
+[[projects]]
   name = "github.com/takama/daemon"
   packages = ["."]
   revision = "f30a97dd1445619884e03e7ed088bc1b3c4f767e"
@@ -382,6 +407,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "db2bc17b8029313fdadc6efe3d0384147fb76d9cbc02ff56f1b5ae171278eee8"
+  inputs-digest = "61baa5409b36aa3e92212c8bc7577289ffd67609e6b1319b1b73caf61ed22347"
   solver-name = "gps-cdcl"
   solver-version = 1

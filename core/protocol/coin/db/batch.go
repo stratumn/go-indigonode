@@ -21,7 +21,8 @@ type Batch interface {
 	Writer
 
 	// Commit commits all the write operations to the database. If an error
-	// occurs, the state of the database should not have changed.
+	// occurs, the state of the database should not have changed. It is
+	// executed atomically like a transaction.
 	Commit() error
 }
 

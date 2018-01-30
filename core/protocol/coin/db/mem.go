@@ -32,8 +32,8 @@ type memDB struct {
 
 // NewMemDB creates a new in-memory key-value database.
 //
-// It can be used for testing, but it will run out of memory quickly under
-// normal circumstances.
+// It can be used for testing or for storing small amounts of data, but it
+// will run out of memory quickly otherwise.
 func NewMemDB() DB {
 	return &memDB{lock: true, values: map[string][]byte{}}
 }

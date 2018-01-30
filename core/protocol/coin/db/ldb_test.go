@@ -14,31 +14,10 @@
 
 package db
 
-import (
-	"io/ioutil"
-	"os"
-	"testing"
+import "testing"
 
-	"github.com/stretchr/testify/assert"
-)
-
-func TestLevelDB(t *testing.T) {
-	var tmpDirs []string
-
-	defer func() {
-		for _, dir := range tmpDirs {
-			os.RemoveAll(dir)
-		}
-	}()
-
+func TestMemDB(t *testing.T) {
 	testImplementation(t, func(*testing.T) DB {
-		filename, err := ioutil.TempDir("", "")
-		assert.NoError(t, err, "ioutil.TempDir()")
-		tmpDirs = append(tmpDirs, filename)
-
-		db, err := OpenLevelDBFile(filename, nil)
-		assert.NoError(t, err, "OpenLevelDBFile()")
-
-		return db
+		return NewMemDB()
 	})
 }

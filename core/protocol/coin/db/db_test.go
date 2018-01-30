@@ -22,79 +22,77 @@ import (
 
 // testImplementation runs implementation-agnostic tests.
 func testImplementation(t *testing.T, create func(*testing.T) DB) {
-	assert := assert.New(t)
-
 	tests := []struct {
 		name string
-		run  func(DB)
+		run  func(*testing.T, DB)
 	}{{
 		"get-existing-value",
-		func(db DB) {
-			assert.NoError(db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
+		func(t *testing.T, db DB) {
+			assert.NoError(t, db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
 			v, err := db.Get([]byte("keyA"))
-			assert.NoError(err, "db.Get(A)")
-			assert.EqualValues("valA", v)
+			assert.NoError(t, err, "db.Get(A)")
+			assert.EqualValues(t, "valA", v)
 		},
 	}, {
 		"get-inexisting-value",
-		func(db DB) {
+		func(t *testing.T, db DB) {
 			_, err := db.Get([]byte("keyA"))
-			assert.EqualError(err, ErrNotFound.Error())
+			assert.EqualError(t, err, ErrNotFound.Error())
 		},
 	}, {
 		"put-overwrite",
-		func(db DB) {
-			assert.NoError(db.Put([]byte("keyA"), []byte("val1")), "db.Put(A)")
-			assert.NoError(db.Put([]byte("keyA"), []byte("val2")), "db.Put(A)")
+		func(t *testing.T, db DB) {
+			assert.NoError(t, db.Put([]byte("keyA"), []byte("val1")), "db.Put(A)")
+			assert.NoError(t, db.Put([]byte("keyA"), []byte("val2")), "db.Put(A)")
 			v, err := db.Get([]byte("keyA"))
-			assert.NoError(err, "db.Get(A)")
-			assert.EqualValues("val2", v)
+			assert.NoError(t, err, "db.Get(A)")
+			assert.EqualValues(t, "val2", v)
 		},
 	}, {
 		"delete-existing-value",
-		func(db DB) {
-			assert.NoError(db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
+		func(t *testing.T, db DB) {
+			assert.NoError(t, db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
 			err := db.Delete([]byte("keyA"))
-			assert.NoError(err, "db.Delete(A)")
+			assert.NoError(t, err, "db.Delete(A)")
 			_, err = db.Get([]byte("keyA"))
-			assert.EqualError(err, ErrNotFound.Error(), "db.Get(A)")
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(A)")
 		},
 	}, {
 		"delete-inexisting-value",
-		func(db DB) {
+		func(t *testing.T, db DB) {
 			err := db.Delete([]byte("keyA"))
-			assert.EqualError(err, ErrNotFound.Error())
+			assert.EqualError(t, err, ErrNotFound.Error())
 		},
 	}, {
 		"batch-commit",
-		func(db DB) {
+		func(t *testing.T, db DB) {
 			b := db.Batch()
-			assert.NoError(b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
-			assert.NoError(b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
-			assert.NoError(b.Commit())
+			assert.NoError(t, b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
+			assert.NoError(t, b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
+			assert.NoError(t, b.Commit())
 
 			// Make sure DB was updated.
 			v, err := db.Get([]byte("keyA"))
-			assert.NoError(err, "db.Get(A)")
-			assert.EqualValues("valA", v)
+			assert.NoError(t, err, "db.Get(A)")
+			assert.EqualValues(t, "valA", v)
 			v, err = db.Get([]byte("keyB"))
-			assert.NoError(err, "db.Get(B)")
-			assert.EqualValues("valB", v)
+			assert.NoError(t, err, "db.Get(B)")
+			assert.EqualValues(t, "valB", v)
 		},
 	}, {
 		"batch-commit-error",
-		func(db DB) {
+		func(t *testing.T, db DB) {
 			b := db.Batch()
-			assert.NoError(b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
-			assert.NoError(b.Delete([]byte("keyB")), "b.Delete(B)")
-			assert.NoError(b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
-			assert.EqualError(b.Commit(), ErrNotFound.Error())
+			assert.NoError(t, b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
+			assert.NoError(t, b.Delete([]byte("keyB")), "b.Delete(B)")
+			assert.NoError(t, b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
+			assert.EqualError(t, b.Commit(), ErrNotFound.Error())
 
 			// Make sure DB didn't changed.
 			_, err := db.Get([]byte("keyA"))
-			assert.EqualError(err, ErrNotFound.Error(), "db.Get(A)")
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(A)")
 			_, err = db.Get([]byte("keyB"))
-			assert.EqualError(err, ErrNotFound.Error(), "db.Get(B)")
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(B)")
 		},
 	}}
 
@@ -103,7 +101,7 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			db := create(t)
 			defer db.Close()
 
-			tt.run(db)
+			tt.run(t, db)
 		})
 	}
 }

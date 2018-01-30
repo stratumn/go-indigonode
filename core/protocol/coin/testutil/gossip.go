@@ -27,8 +27,8 @@ func RandomGossipTx() *pb.Gossip {
 			Tx: &pb.Transaction{
 				From:  []byte("Alice"),
 				To:    []byte("Bob"),
-				Value: rand.Int63(),
-				Nonce: rand.Int63(),
+				Value: rand.Uint64(),
+				Nonce: rand.Uint64(),
 			},
 		},
 	}
@@ -41,7 +41,7 @@ func RandomGossipBlock() *pb.Gossip {
 			Block: &pb.Block{
 				Header: &pb.Header{
 					Version:     1,
-					BlockNumber: rand.Int63(),
+					BlockNumber: rand.Uint64(),
 				},
 			},
 		},

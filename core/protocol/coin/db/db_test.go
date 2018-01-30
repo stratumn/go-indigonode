@@ -42,6 +42,15 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			assert.EqualError(err, ErrNotFound.Error())
 		},
 	}, {
+		"put-overwrite",
+		func(db DB) {
+			assert.NoError(db.Put([]byte("keyA"), []byte("val1")), "db.Put(A)")
+			assert.NoError(db.Put([]byte("keyA"), []byte("val2")), "db.Put(A)")
+			v, err := db.Get([]byte("keyA"))
+			assert.NoError(err, "db.Get(A)")
+			assert.EqualValues("val2", v)
+		},
+	}, {
 		"delete-existing-value",
 		func(db DB) {
 			assert.NoError(db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
@@ -55,6 +64,37 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 		func(db DB) {
 			err := db.Delete([]byte("keyA"))
 			assert.EqualError(err, ErrNotFound.Error())
+		},
+	}, {
+		"batch-commit",
+		func(db DB) {
+			b := db.Batch()
+			assert.NoError(b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
+			assert.NoError(b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
+			assert.NoError(b.Commit())
+
+			// Make sure DB was updated.
+			v, err := db.Get([]byte("keyA"))
+			assert.NoError(err, "db.Get(A)")
+			assert.EqualValues("valA", v)
+			v, err = db.Get([]byte("keyB"))
+			assert.NoError(err, "db.Get(B)")
+			assert.EqualValues("valB", v)
+		},
+	}, {
+		"batch-commit-error",
+		func(db DB) {
+			b := db.Batch()
+			assert.NoError(b.Put([]byte("keyA"), []byte("valA")), "b.Put(A)")
+			assert.NoError(b.Delete([]byte("keyB")), "b.Delete(B)")
+			assert.NoError(b.Put([]byte("keyB"), []byte("valB")), "b.Put(B)")
+			assert.EqualError(b.Commit(), ErrNotFound.Error())
+
+			// Make sure DB didn't changed.
+			_, err := db.Get([]byte("keyA"))
+			assert.EqualError(err, ErrNotFound.Error(), "db.Get(A)")
+			_, err = db.Get([]byte("keyB"))
+			assert.EqualError(err, ErrNotFound.Error(), "db.Get(B)")
 		},
 	}}
 

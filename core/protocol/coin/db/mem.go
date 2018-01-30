@@ -70,7 +70,40 @@ func (db *memDB) Delete(key []byte) error {
 	return nil
 }
 
-// Close doesn't do anything in this implementation.
 func (db *memDB) Close() error {
 	return nil
+}
+
+func (db *memDB) Batch() Batch {
+	commit := func(ops []interface{}) error {
+		db.mu.Lock()
+		defer db.mu.Unlock()
+
+		// Clone the values in case something goes wrong, in which
+		// case the state of the DB will remain untouched.
+		clone := NewMemDB().(*memDB)
+		for k, v := range db.values {
+			clone.values[k] = v
+		}
+
+		for _, op := range ops {
+			switch v := op.(type) {
+			case batchPut:
+				if err := clone.Put(v.key, v.value); err != nil {
+					return err
+				}
+			case batchDelete:
+				if err := clone.Delete(v.key); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Now we can safely update the values.
+		db.values = clone.values
+
+		return nil
+	}
+
+	return newBatch(commit)
 }

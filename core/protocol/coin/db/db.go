@@ -45,6 +45,10 @@ type DB interface {
 	Reader
 	Writer
 
+	// Batch returns a type that makes it possible to commit multiple write
+	// operations at once.
+	Batch() Batch
+
 	// Close may close the underlying storage.
 	Close() error
 }

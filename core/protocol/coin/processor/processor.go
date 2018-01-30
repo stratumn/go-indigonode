@@ -26,5 +26,5 @@ import (
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state *state.Writer, chain *chain.Writer) error
+	Process(block *pb.Block, state state.Writer, chain chain.Writer) error
 }

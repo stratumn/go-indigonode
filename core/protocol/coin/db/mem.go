@@ -22,9 +22,9 @@ import (
 )
 
 type memDB struct {
-	// If true, don't use the mutex (used by batch commits since locking
-	// is unecessary in this case.
-	noLock bool
+	// If false, don't use the mutex (used by batch commits since locking
+	// is unnecessary in this case).
+	lock bool
 
 	mu     sync.RWMutex
 	values map[string][]byte
@@ -35,11 +35,11 @@ type memDB struct {
 // It can be used for testing, but it will run out of memory quickly under
 // normal circumstances.
 func NewMemDB() DB {
-	return &memDB{values: map[string][]byte{}}
+	return &memDB{lock: true, values: map[string][]byte{}}
 }
 
 func (db *memDB) Get(key []byte) ([]byte, error) {
-	if !db.noLock {
+	if db.lock {
 		db.mu.RLock()
 		defer db.mu.RUnlock()
 	}
@@ -53,7 +53,7 @@ func (db *memDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *memDB) Put(key, value []byte) error {
-	if !db.noLock {
+	if db.lock {
 		db.mu.Lock()
 		defer db.mu.Unlock()
 	}
@@ -64,7 +64,7 @@ func (db *memDB) Put(key, value []byte) error {
 }
 
 func (db *memDB) Delete(key []byte) error {
-	if !db.noLock {
+	if db.lock {
 		db.mu.Lock()
 		defer db.mu.Unlock()
 	}
@@ -72,7 +72,7 @@ func (db *memDB) Delete(key []byte) error {
 	k := hex.EncodeToString(key)
 
 	if _, ok := db.values[k]; !ok {
-		return errors.WithStack(ErrNotFound)
+		return ErrNotFound
 	}
 
 	delete(db.values, k)
@@ -95,7 +95,7 @@ func (db *memDB) commit(ops []interface{}) error {
 
 	// Clone the values in case something goes wrong, in which
 	// case the state of the DB will remain untouched.
-	clone := memDB{values: map[string][]byte{}, noLock: true}
+	clone := memDB{values: map[string][]byte{}}
 	for k, v := range db.values {
 		clone.values[k] = v
 	}

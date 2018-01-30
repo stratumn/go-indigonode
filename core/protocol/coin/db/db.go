@@ -46,7 +46,7 @@ type DB interface {
 	Writer
 
 	// Batch returns a type that makes it possible to commit multiple write
-	// operations at once.
+	// operations at once. A batch is only intended to be commited once.
 	Batch() Batch
 
 	// Close may close the underlying storage.

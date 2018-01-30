@@ -14,6 +14,8 @@
 
 package db
 
+import "sync"
+
 // Batch can commit batched write operations to a key-value database.
 type Batch interface {
 	Writer
@@ -36,29 +38,43 @@ type batchDelete struct {
 
 // batch implements a batch by storing write operations.
 type batch struct {
-	ops    []interface{}
 	commit func([]interface{}) error
+
+	mu  sync.Mutex
+	ops []interface{}
 }
 
 // newBatch creates a new batch.
 //
 // It should be given a function to commit the operations.
 func newBatch(commit func([]interface{}) error) *batch {
-	return &batch{nil, commit}
+	return &batch{commit: commit}
 }
 
+// Put appends a put operation to the batch.
 func (b *batch) Put(key, value []byte) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	b.ops = append(b.ops, batchPut{key, value})
 
 	return nil
 }
 
+// Delete appends a delete operation to the batch.
 func (b *batch) Delete(key []byte) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	b.ops = append(b.ops, batchDelete{key})
 
 	return nil
 }
 
+// Commit commits all the operations in the batch.
 func (b *batch) Commit() error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	return b.commit(b.ops)
 }

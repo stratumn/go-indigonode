@@ -22,6 +22,10 @@ import (
 )
 
 type memDB struct {
+	// If true, don't use the mutex (used by batch commits since locking
+	// is unecessary in this case.
+	noLock bool
+
 	mu     sync.RWMutex
 	values map[string][]byte
 }
@@ -35,8 +39,10 @@ func NewMemDB() DB {
 }
 
 func (db *memDB) Get(key []byte) ([]byte, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
+	if !db.noLock {
+		db.mu.RLock()
+		defer db.mu.RUnlock()
+	}
 
 	v, ok := db.values[hex.EncodeToString(key)]
 	if !ok {
@@ -47,8 +53,10 @@ func (db *memDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *memDB) Put(key, value []byte) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	if !db.noLock {
+		db.mu.Lock()
+		defer db.mu.Unlock()
+	}
 
 	db.values[hex.EncodeToString(key)] = value
 
@@ -56,8 +64,10 @@ func (db *memDB) Put(key, value []byte) error {
 }
 
 func (db *memDB) Delete(key []byte) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+	if !db.noLock {
+		db.mu.Lock()
+		defer db.mu.Unlock()
+	}
 
 	k := hex.EncodeToString(key)
 
@@ -75,35 +85,36 @@ func (db *memDB) Close() error {
 }
 
 func (db *memDB) Batch() Batch {
-	commit := func(ops []interface{}) error {
-		db.mu.Lock()
-		defer db.mu.Unlock()
+	return newBatch(db.commit)
+}
 
-		// Clone the values in case something goes wrong, in which
-		// case the state of the DB will remain untouched.
-		clone := NewMemDB().(*memDB)
-		for k, v := range db.values {
-			clone.values[k] = v
-		}
+// commit commits operations from a batch.
+func (db *memDB) commit(ops []interface{}) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
 
-		for _, op := range ops {
-			switch v := op.(type) {
-			case batchPut:
-				if err := clone.Put(v.key, v.value); err != nil {
-					return err
-				}
-			case batchDelete:
-				if err := clone.Delete(v.key); err != nil {
-					return err
-				}
-			}
-		}
-
-		// Now we can safely update the values.
-		db.values = clone.values
-
-		return nil
+	// Clone the values in case something goes wrong, in which
+	// case the state of the DB will remain untouched.
+	clone := memDB{values: map[string][]byte{}, noLock: true}
+	for k, v := range db.values {
+		clone.values[k] = v
 	}
 
-	return newBatch(commit)
+	for _, op := range ops {
+		switch v := op.(type) {
+		case batchPut:
+			if err := clone.Put(v.key, v.value); err != nil {
+				return err
+			}
+		case batchDelete:
+			if err := clone.Delete(v.key); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Now we can safely update the values.
+	db.values = clone.values
+
+	return nil
 }

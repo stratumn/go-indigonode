@@ -17,6 +17,8 @@
 package validator
 
 import (
+	"bytes"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -127,6 +129,10 @@ func (v *BalanceValidator) validateFormat(tx *pb.Transaction) error {
 	}
 
 	if tx.To == nil {
+		return ErrInvalidTxRecipient
+	}
+
+	if bytes.Equal(tx.To, tx.From) {
 		return ErrInvalidTxRecipient
 	}
 

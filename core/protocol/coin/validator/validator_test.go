@@ -63,6 +63,15 @@ func TestValidateTx(t *testing.T) {
 		func() state.State { return nil },
 		ErrInvalidTxSender,
 	}, {
+		"send-to-self",
+		func() *pb.Transaction {
+			tx := testutil.NewTransaction(t, 42, 42)
+			tx.From = tx.To
+			return tx
+		},
+		func() state.State { return nil },
+		ErrInvalidTxRecipient,
+	}, {
 		"missing-signature",
 		func() *pb.Transaction {
 			tx := testutil.NewTransaction(t, 42, 42)

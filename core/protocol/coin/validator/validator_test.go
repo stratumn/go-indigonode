@@ -102,7 +102,7 @@ func TestValidateTx(t *testing.T) {
 		nil,
 	}}
 
-	validator := NewBalanceValidator()
+	validator := NewBalanceValidator(DefaultMaxTxPerBlock)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -129,6 +129,20 @@ func TestValidateBlock(t *testing.T) {
 		func() *pb.Block { return &pb.Block{} },
 		func() state.State { return nil },
 		nil,
+	}, {
+		"too-many-txs",
+		func() *pb.Block {
+			return &pb.Block{
+				Transactions: []*pb.Transaction{
+					testutil.NewTransaction(t, 1, 1),
+					testutil.NewTransaction(t, 2, 2),
+					testutil.NewTransaction(t, 1, 3),
+					testutil.NewTransaction(t, 3, 4),
+				},
+			}
+		},
+		func() state.State { return nil },
+		ErrTooManyTxs,
 	}, {
 		"invalid-signature",
 		func() *pb.Block {
@@ -179,7 +193,7 @@ func TestValidateBlock(t *testing.T) {
 		nil,
 	}}
 
-	validator := NewBalanceValidator()
+	validator := NewBalanceValidator(3)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {

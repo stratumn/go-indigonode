@@ -26,6 +26,12 @@ import (
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
+const (
+	// DefaultMaxTxPerBlock is the recommended maximum number
+	// of transactions allowed in a block.
+	DefaultMaxTxPerBlock = 100
+)
+
 var (
 	// ErrEmptyTx is returned when the transaction is nil.
 	ErrEmptyTx = errors.New("tx is empty")
@@ -50,6 +56,9 @@ var (
 
 	// ErrInsufficientBalance is returned when the sender tries to send more coins than he has.
 	ErrInsufficientBalance = errors.New("tx sender does not have enough coins to send")
+
+	// ErrTooManyTxs is returned when the sender tries to put too many transactions in a block.
+	ErrTooManyTxs = errors.New("too many txs in proposed block")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -69,11 +78,14 @@ type Validator interface {
 // It verifies that transactions are well-formed and signed,
 // and that users don't spend more coins than they have.
 type BalanceValidator struct {
+	maxTxPerBlock int
 }
 
 // NewBalanceValidator creates a BalanceValidator.
-func NewBalanceValidator() Validator {
-	return &BalanceValidator{}
+func NewBalanceValidator(maxTxPerBlock int) Validator {
+	return &BalanceValidator{
+		maxTxPerBlock: maxTxPerBlock,
+	}
 }
 
 // ValidateTx validates a transaction.
@@ -194,6 +206,10 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reade
 
 // ValidateBlock validates the transactions contained in a block.
 func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
+	if v.maxTxPerBlock < len(block.Transactions) {
+		return ErrTooManyTxs
+	}
+
 	for _, tx := range block.Transactions {
 		// Validate everything else than balance.
 		err := v.ValidateTx(tx, nil)

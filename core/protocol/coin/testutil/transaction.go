@@ -15,9 +15,9 @@
 package testutil
 
 import (
-	"encoding/json"
 	"testing"
 
+	"github.com/gogo/protobuf/proto"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/require"
 
@@ -67,8 +67,8 @@ func NewTransaction(t *testing.T, value, nonce int64) *pb.Transaction {
 		Nonce: nonce,
 	}
 
-	b, err := json.Marshal(tx)
-	require.NoError(t, err, "json.Marshal(tx)")
+	b, err := proto.Marshal(tx)
+	require.NoError(t, err, "proto.Marshal(tx)")
 
 	sig, err := txSenderPrivateKey.Sign(b)
 	require.NoError(t, err, "testSenderPrivateKey.Sign(b)")

@@ -17,8 +17,7 @@
 package validator
 
 import (
-	"encoding/json"
-
+	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -136,7 +135,7 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 		Nonce: tx.Nonce,
 	}
 
-	b, err := json.Marshal(payload)
+	b, err := proto.Marshal(payload)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -206,6 +205,14 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) er
 	// Aggregate transactions from the same sender and verify balance.
 	txs := make(map[peer.ID]int64)
 	for _, tx := range block.Transactions {
+		// We need to validate each Tx individually as well so that balance
+		// cannot wrap around because of int overflow.
+		// Later we could use a more efficient implementation taking into
+		// account received txs and ordering by nonce.
+		if err := v.validateBalance(tx, state); err != nil {
+			return err
+		}
+
 		senderID, err := peer.IDFromBytes(tx.From)
 		if err != nil {
 			return errors.WithStack(err)

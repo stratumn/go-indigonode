@@ -219,7 +219,7 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) er
 	}
 
 	// Aggregate transactions from the same sender and verify balance.
-	txs := make(map[peer.ID]int64)
+	txs := make(map[peer.ID]uint64)
 	for _, tx := range block.Transactions {
 		// We need to validate each Tx individually as well so that balance
 		// cannot wrap around because of int overflow.

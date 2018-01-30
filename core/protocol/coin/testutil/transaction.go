@@ -59,7 +59,7 @@ func init() {
 }
 
 // NewTransaction creates a properly signed transaction.
-func NewTransaction(t *testing.T, value, nonce int64) *pb.Transaction {
+func NewTransaction(t *testing.T, value, nonce uint64) *pb.Transaction {
 	tx := &pb.Transaction{
 		From:  []byte(TxSenderPID),
 		To:    []byte(TxRecipientPID),

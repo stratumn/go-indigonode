@@ -24,7 +24,7 @@ type State interface {
 type Reader interface {
 	// GetBalance gets the account balance of a user identified
 	// by his public key.
-	GetBalance(pubKey []byte) int64
+	GetBalance(pubKey []byte) uint64
 }
 
 // Writer gives write access to users' account balances.

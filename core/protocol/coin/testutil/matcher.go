@@ -22,8 +22,8 @@ import (
 
 // TxMatcher matches transactions.
 type TxMatcher struct {
-	value int64
-	nonce int64
+	value uint64
+	nonce uint64
 }
 
 // NewTxMatcher creates a TxMatcher.
@@ -48,7 +48,7 @@ func (m TxMatcher) String() string {
 
 // HeaderMatcher matches headers.
 type HeaderMatcher struct {
-	blockNumber int64
+	blockNumber uint64
 }
 
 // NewHeaderMatcher creates a HeaderMatcher.

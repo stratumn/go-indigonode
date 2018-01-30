@@ -26,18 +26,18 @@ import (
 // It allows tests to easily customize users' balances.
 type SimpleState struct {
 	mu       sync.RWMutex
-	balances map[peer.ID]int64
+	balances map[peer.ID]uint64
 }
 
 // NewSimpleState returns a SimpleState ready to use in tests.
 func NewSimpleState() *SimpleState {
 	return &SimpleState{
-		balances: make(map[peer.ID]int64),
+		balances: make(map[peer.ID]uint64),
 	}
 }
 
 // GetBalance returns the balance of a peer.
-func (s *SimpleState) GetBalance(pubKey []byte) int64 {
+func (s *SimpleState) GetBalance(pubKey []byte) uint64 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,7 +50,7 @@ func (s *SimpleState) GetBalance(pubKey []byte) int64 {
 }
 
 // AddBalance adds coins to a user account.
-func (s *SimpleState) AddBalance(pubKey []byte, amount int64) error {
+func (s *SimpleState) AddBalance(pubKey []byte, amount uint64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

@@ -4,7 +4,6 @@
 package mockengine
 
 import (
-	context "context"
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	state "github.com/stratumn/alice/core/protocol/coin/state"
@@ -36,7 +35,7 @@ func (_m *MockEngine) EXPECT() *MockEngineMockRecorder {
 }
 
 // Finalize mocks base method
-func (_m *MockEngine) Finalize(_param0 chain.Reader, _param1 *coin.Header, _param2 *state.Reader, _param3 []*coin.Transaction) (*coin.Block, error) {
+func (_m *MockEngine) Finalize(_param0 chain.Reader, _param1 *coin.Header, _param2 state.Reader, _param3 []*coin.Transaction) (*coin.Block, error) {
 	ret := _m.ctrl.Call(_m, "Finalize", _param0, _param1, _param2, _param3)
 	ret0, _ := ret[0].(*coin.Block)
 	ret1, _ := ret[1].(error)
@@ -70,16 +69,4 @@ func (_m *MockEngine) VerifyHeader(_param0 chain.Reader, _param1 *coin.Header) e
 // VerifyHeader indicates an expected call of VerifyHeader
 func (_mr *MockEngineMockRecorder) VerifyHeader(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "VerifyHeader", reflect.TypeOf((*MockEngine)(nil).VerifyHeader), arg0, arg1)
-}
-
-// VerifyHeaders mocks base method
-func (_m *MockEngine) VerifyHeaders(_param0 context.Context, _param1 chain.Reader, _param2 []*coin.Header) <-chan error {
-	ret := _m.ctrl.Call(_m, "VerifyHeaders", _param0, _param1, _param2)
-	ret0, _ := ret[0].(<-chan error)
-	return ret0
-}
-
-// VerifyHeaders indicates an expected call of VerifyHeaders
-func (_mr *MockEngineMockRecorder) VerifyHeaders(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "VerifyHeaders", reflect.TypeOf((*MockEngine)(nil).VerifyHeaders), arg0, arg1, arg2)
 }

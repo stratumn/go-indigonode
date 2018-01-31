@@ -17,6 +17,7 @@ package miner
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ import (
 
 func TestMiner_StartStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	m := NewMiner(ctx, nil, nil, nil, nil, nil, nil)
+	m := NewMinerBuilder(ctx).Build()
 
 	testutil.WaitUntil(t, m.IsRunning, "m.IsRunning()")
 
@@ -34,24 +35,68 @@ func TestMiner_StartStop(t *testing.T) {
 }
 
 func TestMiner_Mempool(t *testing.T) {
-	t.Run("Pops transactions from mempool", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	t.Run("Pops transactions from mempool", func(t *testing.T) {
 		mempool := &testutil.InMemoryMempool{}
-		m := NewMiner(ctx, mempool, nil, nil, nil, nil, nil)
+		m := NewMinerBuilder(ctx).WithMempool(mempool).Build()
 
 		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
 
-		t1 := testutil.NewTransaction(t, 1, 1)
-		mempool.AddTransaction(t1)
-		txs := <-m.txsChan
-		assert.True(t, testutil.NewTxMatcher(t1).Matches(txs[0]), "TxMatcher.Matches(tx)")
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 2))
 
-		t2 := testutil.NewTransaction(t, 1, 2)
-		mempool.AddTransaction(t2)
-		txs = <-m.txsChan
-		assert.True(t, testutil.NewTxMatcher(t2).Matches(txs[0]), "TxMatcher.Matches(tx)")
+		testutil.WaitUntil(
+			t,
+			func() bool { return mempool.TxCount() == 0 },
+			"mempool.TxCount() == 0",
+		)
+
+		assert.True(t, m.IsRunning(), "m.IsRunning()")
+	})
+
+	t.Run("Puts transactions back into mempool if block production failed", func(t *testing.T) {
+		mempool := &testutil.InMemoryMempool{}
+		m := NewMinerBuilder(ctx).
+			WithMempool(mempool).
+			WithEngine(&testutil.FaultyEngine{}).
+			Build()
+
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		testutil.WaitUntil(
+			t,
+			func() bool { return mempool.PopCount() >= 1 },
+			"mempool.PopCount() >= 1",
+		)
+
+		// Transaction should be put back in the mempool after the engine error.
+		testutil.WaitUntil(
+			t,
+			func() bool { return mempool.TxCount() == 1 },
+			"mempool.TxCount() == 1",
+		)
+
+		assert.True(t, m.IsRunning(), "m.IsRunning()")
+	})
+
+	t.Run("Removes invalid transactions from mempool definitively", func(t *testing.T) {
+		mempool := &testutil.InMemoryMempool{}
+		m := NewMinerBuilder(ctx).
+			WithMempool(mempool).
+			WithValidator(&testutil.Rejector{}).
+			Build()
+
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		testutil.WaitUntil(
+			t,
+			func() bool { return mempool.PopCount() >= 1 },
+			"mempool.PopCount() == 1",
+		)
+
+		// Wait a bit before verifying that the transaction
+		// was not put back in the mempool.
+		<-time.After(10 * time.Millisecond)
 
 		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
 		assert.True(t, m.IsRunning(), "m.IsRunning()")

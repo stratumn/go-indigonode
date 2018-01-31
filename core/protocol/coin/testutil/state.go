@@ -15,55 +15,17 @@
 package testutil
 
 import (
-	"sync"
+	"testing"
 
-	"github.com/pkg/errors"
+	db "github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
-
-	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	"github.com/stretchr/testify/require"
 )
 
-// SimpleState is a simple implementation of the State interface.
-// It allows tests to easily customize users' accounts.
-type SimpleState struct {
-	mu       sync.RWMutex
-	accounts map[peer.ID]state.Account
-}
-
 // NewSimpleState returns a SimpleState ready to use in tests.
-func NewSimpleState() *SimpleState {
-	return &SimpleState{
-		accounts: make(map[peer.ID]state.Account),
-	}
-}
+func NewSimpleState(t *testing.T) state.State {
+	memdb, err := db.NewMemDB(nil)
+	require.NoError(t, err, "db.NewMemDB()")
 
-// GetAccount returns the account of a peer.
-func (s *SimpleState) GetAccount(pubKey []byte) state.Account {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	id, err := peer.IDFromBytes(pubKey)
-	if err != nil {
-		return state.Account{}
-	}
-
-	return s.accounts[id]
-}
-
-// UpdateAccount updates a user account.
-func (s *SimpleState) UpdateAccount(pubKey []byte, balance uint64, nonce uint64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	id, err := peer.IDFromBytes(pubKey)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	s.accounts[id] = state.Account{
-		Balance: balance,
-		Nonce:   nonce,
-	}
-
-	return nil
+	return state.NewState(memdb, []byte("test-"))
 }

@@ -34,15 +34,6 @@ var (
 type State interface {
 	Reader
 	Writer
-
-	// AddBalance atomically adds coins to an account. It returns the new
-	// balance.
-	AddBalance(pubKey []byte, amount uint64) (uint64, error)
-
-	// SubBalance atomically removes coins from an account. It returns the
-	// new balance. It returns an error if the amount is greater than the
-	// current balance.
-	SubBalance(pubKey []byte, amount uint64) (uint64, error)
 }
 
 // Reader gives read access to users' account balances.
@@ -57,6 +48,15 @@ type Writer interface {
 	// SetBalance sets the account balance of a user identified by his
 	// public key.
 	SetBalance(pubKey []byte, value uint64) error
+
+	// AddBalance atomically adds coins to an account. It returns the new
+	// balance.
+	AddBalance(pubKey []byte, amount uint64) (uint64, error)
+
+	// SubBalance atomically removes coins from an account. It returns the
+	// new balance. It returns an error if the amount is greater than the
+	// current balance.
+	SubBalance(pubKey []byte, amount uint64) (uint64, error)
 
 	// Batch creates a batch which can be used to execute multiple write
 	// operations efficiently.

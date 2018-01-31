@@ -95,7 +95,7 @@ func TestValidateTx(t *testing.T) {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
-		func() state.State { return testutil.NewSimpleState() },
+		func() state.State { return testutil.NewSimpleState(t) },
 		ErrInsufficientBalance,
 	}, {
 		"invalid-nonce",
@@ -104,9 +104,13 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 80, 42))
-			return state
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 80, Nonce: 42},
+			)
+			assert.NoError(t, err)
+			return s
 		},
 		ErrInvalidTxNonce,
 	}, {
@@ -116,9 +120,13 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 80, 40))
-			return state
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 80, Nonce: 40},
+			)
+			assert.NoError(t, err)
+			return s
 		},
 		nil,
 	}}
@@ -191,9 +199,13 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 8, 1))
-			return state
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 8, Nonce: 1},
+			)
+			assert.NoError(t, err)
+			return s
 		},
 		ErrInsufficientBalance,
 	}, {
@@ -207,9 +219,13 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 10, 3))
-			return state
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 10, Nonce: 3},
+			)
+			assert.NoError(t, err)
+			return s
 		},
 		nil,
 	}}

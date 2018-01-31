@@ -35,7 +35,6 @@ var log = logging.Logger("miner")
 // Miner produces new blocks, adds them to the chain and notifies
 // other participants of the blocks it produces.
 type Miner struct {
-	ctx     context.Context
 	mu      sync.RWMutex
 	running bool
 
@@ -61,7 +60,6 @@ func NewMiner(
 	p processor.Processor) *Miner {
 
 	miner := &Miner{
-		ctx:       ctx,
 		chain:     c,
 		engine:    e,
 		mempool:   m,
@@ -71,7 +69,7 @@ func NewMiner(
 		txsChan:   make(chan []*pb.Transaction),
 	}
 
-	go miner.start()
+	go miner.start(ctx)
 	return miner
 }
 
@@ -91,23 +89,23 @@ func (m *Miner) setRunning(running bool) {
 }
 
 // start starts the mining loop.
-func (m *Miner) start() {
+func (m *Miner) start(ctx context.Context) {
 	m.setRunning(true)
 	defer m.setRunning(false)
 
-	go m.startTxLoop()
+	go m.startTxLoop(ctx)
 
 	for {
 		select {
 		case txs := <-m.txsChan:
 			err := m.produce(txs)
 			if err != nil {
-				log.Event(m.ctx, "BlockProductionFailed", logging.Metadata{"error": err})
+				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err})
 			} else {
-				log.Event(m.ctx, "NewBlockProduced")
+				log.Event(ctx, "NewBlockProduced")
 			}
-		case <-m.ctx.Done():
-			log.Event(m.ctx, "Stopped")
+		case <-ctx.Done():
+			log.Event(ctx, "Stopped")
 			return
 		}
 	}
@@ -116,9 +114,9 @@ func (m *Miner) start() {
 // startTxLoop starts the transaction selection process.
 // It queries the mempool for transactions and chooses
 // a batch of transactions to use for a new block.
-func (m *Miner) startTxLoop() {
+func (m *Miner) startTxLoop(ctx context.Context) {
 	if m.mempool == nil {
-		log.Event(m.ctx, "NilMempool")
+		log.Event(ctx, "NilMempool")
 		return
 	}
 
@@ -127,7 +125,7 @@ func (m *Miner) startTxLoop() {
 	// profitable.
 	for {
 		select {
-		case <-m.ctx.Done():
+		case <-ctx.Done():
 			return
 		default:
 			tx := m.mempool.PopTransaction()

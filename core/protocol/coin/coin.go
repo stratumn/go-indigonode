@@ -53,8 +53,6 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
-	ctx context.Context
-
 	engine    engine.Engine
 	mempool   state.Mempool
 	processor processor.Processor
@@ -76,7 +74,6 @@ func NewCoin(
 	miner := miner.NewMiner(ctx, m, e, s, c, v, p)
 
 	return &Coin{
-		ctx:       ctx,
 		engine:    e,
 		mempool:   m,
 		processor: p,

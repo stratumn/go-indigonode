@@ -23,89 +23,216 @@ import (
 )
 
 func TestState(t *testing.T) {
+	alice := []byte("alice")
+	bob := []byte("bob")
+
 	tests := []struct {
 		name string
 		run  func(*testing.T, State)
 	}{{
 		"set-get",
 		func(t *testing.T, s State) {
-			k := []byte("alice")
-
-			assert.NoError(t, s.SetBalance(k, 10), "s.SetBalance()")
-			v, err := s.GetBalance(k)
+			assert.NoError(t, s.SetBalance(alice, 10), "s.SetBalance()")
+			v, err := s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance()")
 			assert.Equal(t, uint64(10), v)
 
-			assert.NoError(t, s.SetBalance(k, 20), "s.SetBalance()")
-			v, err = s.GetBalance(k)
+			assert.NoError(t, s.SetBalance(alice, 20), "s.SetBalance()")
+			v, err = s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance()")
 			assert.Equal(t, uint64(20), v)
 		},
 	}, {
 		"get-inexisting",
 		func(t *testing.T, s State) {
-			v, err := s.GetBalance([]byte("alice"))
+			v, err := s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance()")
 			assert.Equal(t, uint64(0), v)
 		},
 	}, {
 		"add-sub",
 		func(t *testing.T, s State) {
-			k := []byte("alice")
-
-			v, err := s.AddBalance(k, 10)
+			v, err := s.AddBalance(alice, 10)
 			assert.NoError(t, err, "s.AddBalance()")
 			assert.Equal(t, uint64(10), v, "s.AddBalance()")
 
-			v, err = s.SubBalance(k, 4)
+			v, err = s.SubBalance(alice, 4)
 			assert.NoError(t, err, "s.SubBalance()")
 			assert.Equal(t, uint64(6), v, "s.SubBalance()")
 
-			v, err = s.GetBalance(k)
+			v, err = s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance()")
 			assert.Equal(t, uint64(6), v, "s.GetBalance()")
 		},
 	}, {
 		"sub-too-big",
 		func(t *testing.T, s State) {
-			k := []byte("alice")
-
-			_, err := s.AddBalance(k, 1)
+			_, err := s.AddBalance(alice, 1)
 			assert.NoError(t, err, "s.AddBalance()")
 
-			_, err = s.SubBalance(k, 4)
+			_, err = s.SubBalance(alice, 4)
 			assert.EqualError(t, err, ErrAmountTooBig.Error())
 
 			// Make sure balance hasn't changed.
-			v, err := s.GetBalance(k)
+			v, err := s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance()")
 			assert.Equal(t, uint64(1), v, "s.GetBalance()")
+		},
+	}, {
+		"transfer",
+		func(t *testing.T, s State) {
+			_, err := s.AddBalance(alice, 10)
+			assert.NoError(t, err, "s.AddBalance(alice)")
+
+			err = s.Transfer(alice, bob, 4)
+			assert.NoError(t, err)
+
+			v, err := s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.Equal(t, uint64(6), v, "s.GetBalance(alice)")
+
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.Equal(t, uint64(4), v, "s.GetBalance(bob)")
+		},
+	}, {
+		"transfer-too-big",
+		func(t *testing.T, s State) {
+			_, err := s.AddBalance(alice, 10)
+			assert.NoError(t, err, "s.AddBalance(alice)")
+
+			err = s.Transfer(alice, bob, 14)
+			assert.EqualError(t, err, ErrAmountTooBig.Error())
 		},
 	}, {
 		"write",
 		func(t *testing.T, s State) {
 			b := s.Batch()
-			b.SetBalance([]byte("alice"), 10)
-			b.SetBalance([]byte("bob"), 20)
+			b.SetBalance(alice, 10)
+			b.SetBalance(bob, 20)
 
 			// Make sure state is not updated yet.
-			v, err := s.GetBalance([]byte("alice"))
+			v, err := s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance(alice)")
 			assert.Equal(t, uint64(0), v)
-			v, err = s.GetBalance([]byte("bob"))
+			v, err = s.GetBalance(bob)
 			assert.NoError(t, err, "s.GetBalance(bob)")
 			assert.Equal(t, uint64(0), v)
 
 			assert.NoError(t, s.Write(b))
 
 			// Make sure state was updated.
-			v, err = s.GetBalance([]byte("alice"))
+			v, err = s.GetBalance(alice)
 			assert.NoError(t, err, "s.GetBalance(alice)")
 			assert.EqualValues(t, 10, v, "s.GetBalance(alice)")
 
-			v, err = s.GetBalance([]byte("bob"))
+			v, err = s.GetBalance(bob)
 			assert.NoError(t, err, "s.GetBalance(bob)")
 			assert.EqualValues(t, 20, v, "s.GetBalance(bob)")
+		},
+	}, {
+		"commit",
+		func(t *testing.T, s State) {
+			tx, err := s.Transaction()
+			require.NoError(t, err, "s.Transaction()")
+
+			err = tx.SetBalance(alice, 10)
+			assert.NoError(t, err, "tx.SetBalance(alice)")
+
+			err = tx.Transfer(alice, bob, 4)
+			assert.NoError(t, err, "tx.Transfer(alice, bob)")
+
+			// Make sure state is not updated yet.
+			v, err := s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.Equal(t, uint64(0), v)
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.Equal(t, uint64(0), v)
+
+			assert.NoError(t, tx.Commit())
+
+			// Make sure state was updated.
+			v, err = s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.EqualValues(t, 6, v, "s.GetBalance(alice)")
+
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.EqualValues(t, 4, v, "s.GetBalance(bob)")
+		},
+	}, {
+		"discard",
+		func(t *testing.T, s State) {
+			tx, err := s.Transaction()
+			require.NoError(t, err, "s.Transaction()")
+
+			err = tx.SetBalance(alice, 10)
+			assert.NoError(t, err, "tx.SetBalance(alice)")
+
+			err = tx.Transfer(alice, bob, 4)
+			assert.NoError(t, err, "tx.Transfer(alice, bob)")
+
+			// Make sure state is not updated yet.
+			v, err := s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.Equal(t, uint64(0), v)
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.Equal(t, uint64(0), v)
+
+			tx.Discard()
+
+			// Make sure state was not updated.
+			v, err = s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.Equal(t, uint64(0), v)
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.Equal(t, uint64(0), v)
+		},
+	}, {
+		"transaction-write",
+		func(t *testing.T, s State) {
+			tx, err := s.Transaction()
+			assert.NoError(t, err, "s.Transaction()")
+
+			b := tx.Batch()
+			b.SetBalance(alice, 10)
+			b.SetBalance(bob, 20)
+
+			// Make sure state is not updated yet.
+			v, err := tx.GetBalance(alice)
+			assert.NoError(t, err, "tx.GetBalance(alice)")
+			assert.Equal(t, uint64(0), v)
+			v, err = tx.GetBalance(bob)
+			assert.NoError(t, err, "tx.GetBalance(bob)")
+			assert.Equal(t, uint64(0), v)
+
+			assert.NoError(t, tx.Write(b))
+
+			assert.NoError(t, tx.Commit(), "tx.Commit()")
+
+			// Make sure state was updated.
+			v, err = s.GetBalance(alice)
+			assert.NoError(t, err, "s.GetBalance(alice)")
+			assert.EqualValues(t, 10, v, "s.GetBalance(alice)")
+
+			v, err = s.GetBalance(bob)
+			assert.NoError(t, err, "s.GetBalance(bob)")
+			assert.EqualValues(t, 20, v, "s.GetBalance(bob)")
+		},
+	}, {
+		"transaction-transfer-too-big",
+		func(t *testing.T, s State) {
+			tx, err := s.Transaction()
+			assert.NoError(t, err, "s.Transaction()")
+
+			_, err = tx.AddBalance(alice, 10)
+			assert.NoError(t, err, "tx.AddBalance(alice)")
+
+			err = tx.Transfer(alice, bob, 14)
+			assert.EqualError(t, err, ErrAmountTooBig.Error())
 		},
 	}}
 

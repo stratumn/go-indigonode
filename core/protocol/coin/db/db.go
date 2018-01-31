@@ -67,7 +67,8 @@ type DB interface {
 }
 
 // Batch can execute multiple write operations efficiently. It is only intended
-// to be used once.
+// to be used once. When writing the batch to the database, the operations may
+// execute concurrently, so order is not guaranteed.
 type Batch interface {
 	// Put sets or overwrites the value of a key.
 	Put(key, value []byte)

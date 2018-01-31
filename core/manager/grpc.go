@@ -40,6 +40,15 @@ func (s grpcServer) List(req *pb.ListReq, srv pb.Manager_ListServer) error {
 	return s.sendServices(srv.Send)
 }
 
+// Info returns information on a service.
+func (s grpcServer) Info(ctx context.Context, req *pb.InfoReq) (*pb.Service, error) {
+	if req.Id == "" {
+		return nil, errors.WithStack(ErrMissingServiceID)
+	}
+
+	return s.mgr.Proto(req.Id)
+}
+
 // Start starts a service.
 func (s grpcServer) Start(ctx context.Context, req *pb.StartReq) (*pb.Service, error) {
 	if req.Id == "" {

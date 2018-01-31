@@ -95,12 +95,17 @@ func (m *Miner) start() {
 	m.setRunning(true)
 	defer m.setRunning(false)
 
-	m.startTxLoop()
+	go m.startTxLoop()
 
 	for {
 		select {
 		case txs := <-m.txsChan:
-			m.produce(txs)
+			err := m.produce(txs)
+			if err != nil {
+				log.Event(m.ctx, "BlockProductionFailed", logging.Metadata{"error": err})
+			} else {
+				log.Event(m.ctx, "NewBlockProduced")
+			}
 		case <-m.ctx.Done():
 			log.Event(m.ctx, "Stopped")
 			return
@@ -135,6 +140,35 @@ func (m *Miner) startTxLoop() {
 	}
 }
 
-func (m *Miner) produce(txs []*pb.Transaction) {
-	// TODO
+// produce produces a new block from the input transactions.
+// It returns when it has finished producing the block or when
+// a new block is advertised (which makes the current work obsolete).
+func (m *Miner) produce(txs []*pb.Transaction) (err error) {
+	defer func() {
+		if err != nil {
+			m.putBackInMempool(txs)
+		}
+	}()
+
+	block := &pb.Block{Transactions: txs}
+	if err = m.validator.ValidateBlock(block, m.state); err != nil {
+		return
+	}
+
+	header := &pb.Header{}
+	if err = m.engine.Prepare(m.chain, header); err != nil {
+		return
+	}
+
+	return
+}
+
+// putBackInMempool puts back transactions into the mempool.
+// It discards invalid transactions.
+func (m *Miner) putBackInMempool(txs []*pb.Transaction) {
+	for _, tx := range txs {
+		if err := m.validator.ValidateTx(tx, m.state); err == nil {
+			m.mempool.AddTransaction(tx)
+		}
+	}
 }

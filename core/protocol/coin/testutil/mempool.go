@@ -23,8 +23,9 @@ import (
 // InMemoryMempool is a basic mempool implementation that stores
 // transactions in RAM.
 type InMemoryMempool struct {
-	mu  sync.RWMutex
-	txs []*pb.Transaction
+	mu       sync.RWMutex
+	txs      []*pb.Transaction
+	popCount int
 }
 
 // AddTransaction adds transaction to the mempool.
@@ -70,5 +71,15 @@ func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
 
 	tx := m.txs[len(m.txs)-1]
 	m.txs = m.txs[:len(m.txs)-1]
+	m.popCount++
+
 	return tx
+}
+
+// PopCount returns the number of times PopTransaction was called.
+func (m *InMemoryMempool) PopCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return m.popCount
 }

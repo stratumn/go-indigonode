@@ -35,7 +35,7 @@ func (_m *MockProcessor) EXPECT() *MockProcessorMockRecorder {
 }
 
 // Process mocks base method
-func (_m *MockProcessor) Process(_param0 *coin.Block, _param1 *state.Writer, _param2 *chain.Writer) error {
+func (_m *MockProcessor) Process(_param0 *coin.Block, _param1 state.Writer, _param2 chain.Writer) error {
 	ret := _m.ctrl.Call(_m, "Process", _param0, _param1, _param2)
 	ret0, _ := ret[0].(error)
 	return ret0

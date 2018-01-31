@@ -15,8 +15,6 @@
 package miner
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
@@ -28,8 +26,6 @@ import (
 // MinerBuilder is a utility to create miners with custom mocks
 // to simulate a wide variety of miner configuration.
 type MinerBuilder struct {
-	ctx context.Context
-
 	chain     chain.Chain
 	engine    engine.Engine
 	mempool   state.Mempool
@@ -40,9 +36,8 @@ type MinerBuilder struct {
 
 // NewMinerBuilder creates a MinerBuilder with a context and
 // good default values to build a test Miner.
-func NewMinerBuilder(ctx context.Context) *MinerBuilder {
+func NewMinerBuilder() *MinerBuilder {
 	return &MinerBuilder{
-		ctx:       ctx,
 		engine:    &testutil.DummyEngine{},
 		mempool:   &testutil.InMemoryMempool{},
 		validator: &testutil.DummyValidator{},
@@ -71,7 +66,6 @@ func (m *MinerBuilder) WithValidator(validator validator.Validator) *MinerBuilde
 // It's now ready to use in your tests.
 func (m *MinerBuilder) Build() *Miner {
 	return NewMiner(
-		m.ctx,
 		m.mempool,
 		m.engine,
 		m.state,

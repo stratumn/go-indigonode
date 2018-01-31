@@ -117,7 +117,12 @@ func (s *Service) Expose() interface{} {
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	coinCtx, cancel := context.WithCancel(ctx)
-	s.coin = protocol.NewCoin(coinCtx, nil, nil, nil, nil, nil, nil)
+	s.coin = protocol.NewCoin(nil, nil, nil, nil, nil, nil)
+
+	errChan := make(chan error)
+	go func() {
+		errChan <- s.coin.StartMining(coinCtx)
+	}()
 
 	// Wrap the stream handler with the context.
 	handler := func(stream inet.Stream) {
@@ -134,7 +139,13 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.host.RemoveStreamHandler(protocol.ProtocolID)
 
 	cancel()
+
+	err := <-errChan
 	s.coin = nil
+
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	return errors.WithStack(ctx.Err())
 }

@@ -51,7 +51,6 @@ type Miner struct {
 // NewMiner creates a new miner that will start mining on the given chain.
 // To stop the miner, you should cancel the input context.
 func NewMiner(
-	ctx context.Context,
 	m state.Mempool,
 	e engine.Engine,
 	s state.State,
@@ -69,7 +68,6 @@ func NewMiner(
 		txsChan:   make(chan []*pb.Transaction),
 	}
 
-	go miner.start(ctx)
 	return miner
 }
 
@@ -88,13 +86,16 @@ func (m *Miner) setRunning(running bool) {
 	m.running = running
 }
 
-// start starts the mining loop.
-func (m *Miner) start(ctx context.Context) {
+// Start starts mining to produce blocks.
+func (m *Miner) Start(ctx context.Context) error {
 	m.setRunning(true)
 	defer m.setRunning(false)
 
-	go m.startTxLoop(ctx)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go m.startTxLoop(ctx, &wg)
 
+miningLoop:
 	for {
 		select {
 		case txs := <-m.txsChan:
@@ -106,15 +107,21 @@ func (m *Miner) start(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			log.Event(ctx, "Stopped")
-			return
+			break miningLoop
 		}
 	}
+
+	wg.Wait()
+
+	return nil
 }
 
 // startTxLoop starts the transaction selection process.
 // It queries the mempool for transactions and chooses
 // a batch of transactions to use for a new block.
-func (m *Miner) startTxLoop(ctx context.Context) {
+func (m *Miner) startTxLoop(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	if m.mempool == nil {
 		log.Event(ctx, "NilMempool")
 		return

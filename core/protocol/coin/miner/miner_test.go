@@ -25,13 +25,20 @@ import (
 
 func TestMiner_StartStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	m := NewMinerBuilder(ctx).Build()
+	m := NewMinerBuilder().Build()
+
+	assert.False(t, m.IsRunning(), "m.IsRunning()")
+
+	errChan := make(chan error)
+	go func() {
+		errChan <- m.Start(ctx)
+	}()
 
 	testutil.WaitUntil(t, m.IsRunning, "m.IsRunning()")
 
 	cancel()
-
-	testutil.WaitUntil(t, func() bool { return !m.IsRunning() }, "!m.IsRunning()")
+	assert.NoError(t, <-errChan, "m.Start(ctx)")
+	assert.False(t, m.IsRunning(), "m.IsRunning()")
 }
 
 func TestMiner_Mempool(t *testing.T) {
@@ -40,7 +47,8 @@ func TestMiner_Mempool(t *testing.T) {
 
 	t.Run("Pops transactions from mempool", func(t *testing.T) {
 		mempool := &testutil.InMemoryMempool{}
-		m := NewMinerBuilder(ctx).WithMempool(mempool).Build()
+		m := NewMinerBuilder().WithMempool(mempool).Build()
+		go m.Start(ctx)
 
 		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
 
@@ -58,10 +66,11 @@ func TestMiner_Mempool(t *testing.T) {
 
 	t.Run("Puts transactions back into mempool if block production failed", func(t *testing.T) {
 		mempool := &testutil.InMemoryMempool{}
-		m := NewMinerBuilder(ctx).
+		m := NewMinerBuilder().
 			WithMempool(mempool).
 			WithEngine(&testutil.FaultyEngine{}).
 			Build()
+		go m.Start(ctx)
 
 		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
 		testutil.WaitUntil(
@@ -82,10 +91,11 @@ func TestMiner_Mempool(t *testing.T) {
 
 	t.Run("Removes invalid transactions from mempool definitively", func(t *testing.T) {
 		mempool := &testutil.InMemoryMempool{}
-		m := NewMinerBuilder(ctx).
+		m := NewMinerBuilder().
 			WithMempool(mempool).
 			WithValidator(&testutil.Rejector{}).
 			Build()
+		go m.Start(ctx)
 
 		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
 		testutil.WaitUntil(

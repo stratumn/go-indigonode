@@ -19,13 +19,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMemDB(t *testing.T) {
 	testImplementation(t, func(*testing.T) DB {
 		db, err := NewMemDB(nil)
-		assert.NoError(t, err, "NewMemDB()")
+		require.NoError(t, err, "NewMemDB()")
 
 		return db
 	})
@@ -42,11 +42,11 @@ func TestFileDB(t *testing.T) {
 
 	testImplementation(t, func(*testing.T) DB {
 		filename, err := ioutil.TempDir("", "")
-		assert.NoError(t, err, "ioutil.TempDir()")
+		require.NoError(t, err, "ioutil.TempDir()")
 		tmpDirs = append(tmpDirs, filename)
 
 		db, err := NewFileDB(filename, nil)
-		assert.NoError(t, err, "OpenLevelDBFile()")
+		require.NoError(t, err, "OpenLevelDBFile()")
 
 		return db
 	})

@@ -202,7 +202,11 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 
 // validateBalance validates that the sender does not send coins he doesn't have.
 func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reader) error {
-	balance := state.GetBalance(tx.From)
+	balance, err := state.GetBalance(tx.From)
+	if err != nil {
+		return err
+	}
+
 	if balance < tx.Value {
 		return ErrInsufficientBalance
 	}

@@ -95,7 +95,7 @@ func TestValidateTx(t *testing.T) {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
-		func() state.State { return testutil.NewSimpleState() },
+		func() state.State { return testutil.NewSimpleState(t) },
 		ErrInsufficientBalance,
 	}, {
 		"valid-tx",
@@ -104,8 +104,9 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 80))
+			state := testutil.NewSimpleState(t)
+			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 80)
+			assert.NoError(t, err)
 			return state
 		},
 		nil,
@@ -179,8 +180,9 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 8))
+			state := testutil.NewSimpleState(t)
+			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 8)
+			assert.NoError(t, err)
 			return state
 		},
 		ErrInsufficientBalance,
@@ -195,8 +197,9 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 10))
+			state := testutil.NewSimpleState(t)
+			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 10)
+			assert.NoError(t, err)
 			return state
 		},
 		nil,

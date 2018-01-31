@@ -15,50 +15,19 @@
 package testutil
 
 import (
-	"sync"
+	"testing"
 
-	"github.com/pkg/errors"
-
-	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	db "github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// SimpleState is a simple implementation of the State interface.
-// It allows tests to easily customize users' balances.
-type SimpleState struct {
-	mu       sync.RWMutex
-	balances map[peer.ID]uint64
-}
-
 // NewSimpleState returns a SimpleState ready to use in tests.
-func NewSimpleState() *SimpleState {
-	return &SimpleState{
-		balances: make(map[peer.ID]uint64),
-	}
-}
+func NewSimpleState(t *testing.T) state.State {
+	memdb, err := db.NewMemDB(nil)
+	assert.NoError(t, err, "db.NewMemDB()")
+	require.NoError(t, err, "db.NewMemDB()")
 
-// GetBalance returns the balance of a peer.
-func (s *SimpleState) GetBalance(pubKey []byte) uint64 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	id, err := peer.IDFromBytes(pubKey)
-	if err != nil {
-		return 0
-	}
-
-	return s.balances[id]
-}
-
-// AddBalance adds coins to a user account.
-func (s *SimpleState) AddBalance(pubKey []byte, amount uint64) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	id, err := peer.IDFromBytes(pubKey)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	s.balances[id] += amount
-	return nil
+	return state.NewState(memdb, []byte("test-"))
 }

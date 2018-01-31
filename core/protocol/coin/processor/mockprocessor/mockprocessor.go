@@ -46,3 +46,27 @@ func (m *MockProcessor) Process(arg0 *coin.Block, arg1 state.State, arg2 chain.W
 func (mr *MockProcessorMockRecorder) Process(arg0, arg1, arg2 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Process", reflect.TypeOf((*MockProcessor)(nil).Process), arg0, arg1, arg2)
 }
+
+// Rollback mocks base method
+func (m *MockProcessor) Rollback(arg0 *coin.Block, arg1 state.State, arg2 chain.Chain) error {
+	ret := m.ctrl.Call(m, "Rollback", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Rollback indicates an expected call of Rollback
+func (mr *MockProcessorMockRecorder) Rollback(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rollback", reflect.TypeOf((*MockProcessor)(nil).Rollback), arg0, arg1, arg2)
+}
+
+// RollbackTo mocks base method
+func (m *MockProcessor) RollbackTo(arg0 []byte, arg1 state.State, arg2 chain.Chain) error {
+	ret := m.ctrl.Call(m, "RollbackTo", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RollbackTo indicates an expected call of RollbackTo
+func (mr *MockProcessorMockRecorder) RollbackTo(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RollbackTo", reflect.TypeOf((*MockProcessor)(nil).RollbackTo), arg0, arg1, arg2)
+}

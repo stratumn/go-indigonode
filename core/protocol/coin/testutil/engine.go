@@ -15,7 +15,7 @@
 package testutil
 
 import (
-	"context"
+	"errors"
 	"sync"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -35,11 +35,6 @@ func (e *DummyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error 
 	defer e.mu.Unlock()
 
 	e.verified = append(e.verified, header)
-	return nil
-}
-
-// VerifyHeaders records that headers were verified.
-func (e *DummyEngine) VerifyHeaders(ctx context.Context, chain chain.Reader, headers []*pb.Header) <-chan error {
 	return nil
 }
 
@@ -64,6 +59,27 @@ func (e *DummyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 }
 
 // Finalize does nothing.
-func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state *state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	return nil, nil
+}
+
+// ErrFaultyEngine is the error returned by a FaultyEngine.
+var ErrFaultyEngine = errors.New("unknown error: engine must be faulty")
+
+// FaultyEngine always returns an ErrFaultyEngine error.
+type FaultyEngine struct{}
+
+// VerifyHeader records that header was verified.
+func (e *FaultyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
+	return ErrFaultyEngine
+}
+
+// Prepare does nothing.
+func (e *FaultyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
+	return ErrFaultyEngine
+}
+
+// Finalize does nothing.
+func (e *FaultyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+	return nil, ErrFaultyEngine
 }

@@ -17,8 +17,6 @@
 package engine
 
 import (
-	"context"
-
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -33,12 +31,6 @@ type Engine interface {
 	// VerifyHeader checks whether a header conforms to the consensus
 	// rules of a given engine.
 	VerifyHeader(chain chain.Reader, header *pb.Header) error
-
-	// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
-	// concurrently. The input context can be used for cancellation.
-	// The method returns a results channel to retrieve the async verifications
-	// (the order is that of the input slice).
-	VerifyHeaders(ctx context.Context, chain chain.Reader, headers []*pb.Header) <-chan error
 
 	// Prepare initializes the consensus fields of a block header according to the
 	// rules of a particular engine. The changes are executed inline.

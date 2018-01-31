@@ -49,6 +49,10 @@ type Protocol interface {
 	// Note: it might cause the consensus engine to stop mining on an outdated
 	// block and mine on top of the newly added block.
 	AppendBlock(block *pb.Block) error
+
+	// StartMining starts mining blocks.
+	// This method will not return until the input context is canceled.
+	StartMining(ctx context.Context) error
 }
 
 // Coin implements Protocol with a PoW engine.
@@ -69,12 +73,15 @@ func NewCoin(
 	c chain.Chain,
 	v validator.Validator,
 	p processor.Processor) *Coin {
+
+	miner := miner.NewMiner(m, e, s, c, v, p)
+
 	return &Coin{
 		engine:    e,
 		mempool:   m,
 		processor: p,
 		validator: v,
-		miner:     miner.NewMiner(m, e, s, c, v, p),
+		miner:     miner,
 	}
 }
 
@@ -149,4 +156,9 @@ func (c *Coin) AppendBlock(block *pb.Block) error {
 	}
 
 	return c.processor.Process(block, nil, nil)
+}
+
+// StartMining starts the underlying miner.
+func (c *Coin) StartMining(ctx context.Context) error {
+	return c.miner.Start(ctx)
 }

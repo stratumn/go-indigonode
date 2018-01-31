@@ -168,7 +168,10 @@ func (m *Miner) produce(txs []*pb.Transaction) (err error) {
 func (m *Miner) putBackInMempool(txs []*pb.Transaction) {
 	for _, tx := range txs {
 		if err := m.validator.ValidateTx(tx, m.state); err == nil {
-			m.mempool.AddTransaction(tx)
+			err := m.mempool.AddTransaction(tx)
+			if err != nil {
+				log.Debugf("couldn't add tx to mempool: %s", err.Error())
+			}
 		}
 	}
 }

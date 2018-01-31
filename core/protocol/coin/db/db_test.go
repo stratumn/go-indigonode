@@ -73,6 +73,13 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			b := db.Batch()
 			b.Put([]byte("keyA"), []byte("valA"))
 			b.Put([]byte("keyB"), []byte("valB"))
+
+			// Make sure DB is not updated yet.
+			_, err := db.Get([]byte("keyA"))
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(A)")
+			_, err = db.Get([]byte("keyB"))
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(B)")
+
 			assert.NoError(t, db.Write(b))
 
 			// Make sure DB was updated.
@@ -98,6 +105,12 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			assert.EqualValues(t, "valA", v, "tx.Get(A)")
 
 			assert.NoError(t, tx.Delete([]byte("keyA")), "tx.Delete(A)")
+
+			// Make sure DB is not updated yet.
+			_, err = db.Get([]byte("keyA"))
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(A)")
+			_, err = db.Get([]byte("keyB"))
+			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(B)")
 
 			assert.NoError(t, tx.Commit())
 
@@ -133,9 +146,9 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			b := tx.Batch()
 			b.Put([]byte("keyA"), []byte("valA"))
 			b.Put([]byte("keyB"), []byte("valB"))
-			assert.NoError(t, tx.Write(b))
+			assert.NoError(t, tx.Write(b), "tx.Write()")
 
-			assert.NoError(t, tx.Commit())
+			assert.NoError(t, tx.Commit(), "tx.Commit()")
 
 			// Make sure DB was updated.
 			v, err := db.Get([]byte("keyA"))

@@ -26,5 +26,30 @@ import (
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state state.Writer, chain chain.Writer) error
+	Process(block *pb.Block, state state.State, chain chain.Writer) error
+}
+
+type processor struct{}
+
+// NewProcessor creates a new processor.
+func NewProcessor() Processor {
+	return processor{}
+}
+
+func (processor) Process(block *pb.Block, state state.State, chain chain.Writer) error {
+	// TODO: update chain
+
+	stateTx, err := state.Transaction()
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range block.Transactions {
+		if err := stateTx.Transfer(tx.From, tx.To, tx.Value); err != nil {
+			stateTx.Discard()
+			return err
+		}
+	}
+
+	return stateTx.Commit()
 }

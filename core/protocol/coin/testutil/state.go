@@ -19,14 +19,12 @@ import (
 
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // NewSimpleState returns a SimpleState ready to use in tests.
 func NewSimpleState(t *testing.T) state.State {
 	memdb, err := db.NewMemDB(nil)
-	assert.NoError(t, err, "db.NewMemDB()")
 	require.NoError(t, err, "db.NewMemDB()")
 
 	return state.NewState(memdb, []byte("test-"))

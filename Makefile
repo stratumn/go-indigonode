@@ -113,7 +113,10 @@ generate:
 
 # == protobuf =================================================================
 
-protobuf: $(GRPC_GO) $(PROTOS_GO)
+protobuf: protodeps $(GRPC_GO) $(PROTOS_GO)
+
+protodeps:
+	go get -u github.com/gogo/protobuf/protoc-gen-gofast
 
 grpc/%.pb.go: grpc/%.proto
 	protoc \

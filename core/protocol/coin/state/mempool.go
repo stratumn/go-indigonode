@@ -27,6 +27,9 @@ type Mempool interface {
 	// AddTransaction adds a transaction to the mempool.
 	// It assumes that the transaction has been validated.
 	AddTransaction(tx *pb.Transaction) error
+
+	// PopTransaction pops the oldest transaction from the mempool.
+	PopTransaction() *pb.Transaction
 }
 
 // InMemoryMempool is a very simple mempool that stores queued transactions
@@ -43,4 +46,18 @@ func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
 
 	m.txs = append(m.txs, tx)
 	return nil
+}
+
+// PopTransaction pops the oldest transaction from the mempool.
+func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if len(m.txs) == 0 {
+		return nil
+	}
+
+	tx := m.txs[len(m.txs)-1]
+	m.txs = m.txs[:len(m.txs)-1]
+	return tx
 }

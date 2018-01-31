@@ -27,6 +27,11 @@ service Manager {
     option (stratumn.alice.grpc.ext.method_desc) = "List all the available services";
   }
 
+  // Returns information about a service.
+  rpc Info (InfoReq) returns (Service) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Get information on a service";
+  }
+
   // Starts a service.
   rpc Start (StartReq) returns (Service) {
     option (stratumn.alice.grpc.ext.method_desc) = "Start a service";
@@ -45,6 +50,14 @@ service Manager {
 
 // The list request message.
 message ListReq {
+}
+
+// The info request message.
+message InfoReq {
+  string id = 1 [
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_desc) = "Service ID"
+  ];
 }
 
 // The start request message.

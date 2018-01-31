@@ -50,6 +50,41 @@ func TestGRPCServer_List(t *testing.T) {
 	assert.NoError(t, err, "s.List(req, ss)")
 }
 
+func TestGRPCServer_Info(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mgr := mockmanager.NewMockGRPCManager(ctrl)
+	s := grpcServer{mgr}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	serv := pb.Service{
+		Id:     "serv1",
+		Status: pb.Service_RUNNING,
+	}
+
+	mgr.EXPECT().Proto("serv1").Return(&serv, nil).Times(1)
+
+	req := &pb.InfoReq{Id: "serv1"}
+	res, err := s.Info(ctx, req)
+	assert.NoError(t, err, "s.Info(ctx, req)")
+
+	assert.Equal(t, serv.Id, res.Id, "res.Id")
+	assert.Equal(t, serv.Status, res.Status, "res.Status")
+
+	req = &pb.InfoReq{}
+	_, err = s.Info(ctx, req)
+	assert.Equal(t, ErrMissingServiceID, errors.Cause(err), "s.Info(ctx, req)")
+
+	mgr.EXPECT().Proto("serv2").Return(nil, ErrNotFound).Times(1)
+
+	req = &pb.InfoReq{Id: "serv2"}
+	_, err = s.Info(ctx, req)
+	assert.Equal(t, ErrNotFound, errors.Cause(err), "s.Info(ctx, req)")
+}
+
 func TestGRPCServer_Start(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

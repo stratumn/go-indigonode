@@ -50,3 +50,25 @@ func (m *InMemoryMempool) Contains(tx *pb.Transaction) bool {
 
 	return false
 }
+
+// TxCount returns the number of transactions in the mempool.
+func (m *InMemoryMempool) TxCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return len(m.txs)
+}
+
+// PopTransaction pops the oldest transaction from the mempool.
+func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if len(m.txs) == 0 {
+		return nil
+	}
+
+	tx := m.txs[len(m.txs)-1]
+	m.txs = m.txs[:len(m.txs)-1]
+	return tx
+}

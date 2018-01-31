@@ -103,10 +103,7 @@ func (s *stateDB) GetBalance(pubKey []byte) (uint64, error) {
 }
 
 func (s *stateDB) SetBalance(pubKey []byte, value uint64) error {
-	v := make([]byte, 8)
-	binary.LittleEndian.PutUint64(v, value)
-
-	return s.db.Put(prefixKey(s.prefix, pubKey), v)
+	return s.db.Put(prefixKey(s.prefix, pubKey), encodeUint64(value))
 }
 
 func (s *stateDB) AddBalance(pubKey []byte, amount uint64) (uint64, error) {
@@ -150,10 +147,7 @@ func (s *stateDB) incBalance(pubKey []byte, amount uint64, add bool) (uint64, er
 		amount = current - amount
 	}
 
-	v := make([]byte, 8)
-	binary.LittleEndian.PutUint64(v, amount)
-
-	if err := tx.Put(prefixKey(s.prefix, pubKey), v); err != nil {
+	if err := tx.Put(prefixKey(s.prefix, pubKey), encodeUint64(amount)); err != nil {
 		tx.Discard()
 		return 0, err
 	}
@@ -181,9 +175,15 @@ type dbBatch struct {
 }
 
 func (b dbBatch) SetBalance(pubKey []byte, value uint64) {
+	b.batch.Put(prefixKey(b.prefix, pubKey), encodeUint64(value))
+}
+
+// encodeUint64 encodes an uint64 to a buffer.
+func encodeUint64(value uint64) []byte {
 	v := make([]byte, 8)
 	binary.LittleEndian.PutUint64(v, value)
-	b.batch.Put(prefixKey(b.prefix, pubKey), v)
+
+	return v
 }
 
 // prefixKey prefixes the given key.

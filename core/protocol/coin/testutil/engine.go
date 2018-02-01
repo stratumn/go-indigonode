@@ -67,19 +67,96 @@ func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state stat
 var ErrFaultyEngine = errors.New("unknown error: engine must be faulty")
 
 // FaultyEngine always returns an ErrFaultyEngine error.
-type FaultyEngine struct{}
+type FaultyEngine struct {
+	mu            sync.RWMutex
+	verifyCount   int
+	prepareCount  int
+	finalizeCount int
+}
 
 // VerifyHeader records that header was verified.
 func (e *FaultyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.verifyCount++
 	return ErrFaultyEngine
+}
+
+// VerifyCount returns the number of calls to VerifyHeader.
+func (e *FaultyEngine) VerifyCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.verifyCount
 }
 
 // Prepare does nothing.
 func (e *FaultyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.prepareCount++
 	return ErrFaultyEngine
+}
+
+// PrepareCount returns the number of calls to Prepare.
+func (e *FaultyEngine) PrepareCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.prepareCount
 }
 
 // Finalize does nothing.
 func (e *FaultyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.finalizeCount++
 	return nil, ErrFaultyEngine
+}
+
+// FinalizeCount returns the number of calls to Finalize.
+func (e *FaultyEngine) FinalizeCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.finalizeCount
+}
+
+// DummyProofOfWait is a dummy proof-of-wait © engine.
+type DummyProofOfWait struct {
+	DummyEngine
+
+	min int
+	max int
+
+	mu            sync.RWMutex
+	intervalCount int
+}
+
+// NewDummyProofOfWait creates a new DummyProofOfWait.
+func NewDummyProofOfWait(min, max int) *DummyProofOfWait {
+	return &DummyProofOfWait{
+		min: min,
+		max: max,
+	}
+}
+
+// Interval increments a counter and returns a configurable interval for the proof-of-wait.
+func (e *DummyProofOfWait) Interval() (int, int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.intervalCount++
+	return e.min, e.max
+}
+
+// IntervalCount returns the number of calls to Interval.
+func (e *DummyProofOfWait) IntervalCount() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.intervalCount
 }

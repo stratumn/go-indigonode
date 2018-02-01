@@ -19,6 +19,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/processor"
+
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,5 +113,80 @@ func TestMiner_Mempool(t *testing.T) {
 
 		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
 		assert.True(t, m.IsRunning(), "m.IsRunning()")
+	})
+}
+
+func TestMiner_Produce(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Start a miner with a mempool containing a valid transaction.
+	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryMempool {
+		mempool := &testutil.InMemoryMempool{}
+		mempool.AddTransaction(testutil.NewTransaction(t, 3, 5))
+
+		m := NewMinerBuilder().
+			WithEngine(e).
+			WithMempool(mempool).
+			WithProcessor(p).
+			Build()
+		go m.Start(ctx)
+
+		return mempool
+	}
+
+	t.Run("Sends new valid block to processor", func(t *testing.T) {
+		processor := &testutil.DummyProcessor{}
+		startMiner(processor, &testutil.DummyEngine{})
+
+		testutil.WaitUntil(
+			t,
+			func() bool { return processor.ProcessedCount() > 0 },
+			"p.ProcessedCount() > 0",
+		)
+	})
+
+	t.Run("Aborts block if engine returns an error", func(t *testing.T) {
+		processor := &testutil.DummyProcessor{}
+		engine := &testutil.FaultyEngine{}
+		startMiner(processor, engine)
+
+		testutil.WaitUntil(
+			t,
+			func() bool { return engine.PrepareCount() > 0 },
+			"engine.PrepareCount() > 0",
+		)
+
+		assert.Equal(t, 0, processor.ProcessedCount(), "processor.ProcessedCount()")
+	})
+
+	t.Run("Aborts block if processor returns an error", func(t *testing.T) {
+		processor := &testutil.FaultyProcessor{}
+		mempool := startMiner(processor, &testutil.DummyEngine{})
+
+		testutil.WaitUntil(
+			t,
+			func() bool { return processor.ProcessedCount() > 0 },
+			"processor.ProcessedCount() > 0",
+		)
+
+		// If the transaction goes back to the mempool it means the block
+		// was correctly aborted.
+		testutil.WaitUntil(
+			t,
+			func() bool { return mempool.TxCount() > 0 },
+			"mempool.TxCount() > 0",
+		)
+	})
+
+	t.Run("Uses PoW if available", func(t *testing.T) {
+		engine := testutil.NewDummyProofOfWait(1, 5)
+		startMiner(&testutil.DummyProcessor{}, engine)
+
+		testutil.WaitUntil(
+			t,
+			func() bool { return engine.IntervalCount() > 0 },
+			"engine.IntervalCount() > 0",
+		)
 	})
 }

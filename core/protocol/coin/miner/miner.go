@@ -17,6 +17,7 @@ package miner
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -165,6 +166,26 @@ func (m *Miner) produce(txs []*pb.Transaction) (err error) {
 
 	header := &pb.Header{}
 	if err = m.engine.Prepare(m.chain, header); err != nil {
+		return
+	}
+
+	powEngine, ok := m.engine.(engine.ProofOfWait)
+	if ok {
+		// Powerful PoW (Proof of Wait) © algorithm.
+		min, max := powEngine.Interval()
+		wait := min + rand.Intn(max-min+1)
+		<-time.After(time.Duration(wait) * time.Millisecond)
+
+		header.Nonce = uint64(wait)
+	}
+
+	block, err = m.engine.Finalize(m.chain, header, m.state, txs)
+	if err != nil {
+		return
+	}
+
+	err = m.processor.Process(block, m.state, m.chain)
+	if err != nil {
 		return
 	}
 

@@ -41,6 +41,10 @@ var (
 	// ErrInvalidTxValue is returned when the transaction value is 0.
 	ErrInvalidTxValue = errors.New("invalid tx value")
 
+	// ErrInvalidTxNonce is returned when the transaction nonce isn't greater
+	// than the last nonce used by the sender's account.
+	ErrInvalidTxNonce = errors.New("invalid tx nonce")
+
 	// ErrInvalidTxSender is returned when the transaction sender is invalid.
 	ErrInvalidTxSender = errors.New("invalid tx sender")
 
@@ -201,9 +205,13 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 }
 
 // validateBalance validates that the sender does not send coins he doesn't have.
-func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reader) error {
-	balance := state.GetBalance(tx.From)
-	if balance < tx.Value {
+func (v *BalanceValidator) validateBalance(tx *pb.Transaction, s state.Reader) error {
+	account := s.GetAccount(tx.From)
+	if tx.Nonce <= account.Nonce {
+		return ErrInvalidTxNonce
+	}
+
+	if account.Balance < tx.Value {
 		return ErrInsufficientBalance
 	}
 
@@ -211,7 +219,7 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, state state.Reade
 }
 
 // ValidateBlock validates the transactions contained in a block.
-func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
+func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error {
 	if v.maxTxPerBlock < len(block.Transactions) {
 		return ErrTooManyTxs
 	}
@@ -225,13 +233,13 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) er
 	}
 
 	// Aggregate transactions from the same sender and verify balance.
-	txs := make(map[peer.ID]uint64)
+	txs := make(map[peer.ID]state.Account)
 	for _, tx := range block.Transactions {
 		// We need to validate each Tx individually as well so that balance
 		// cannot wrap around because of int overflow.
 		// Later we could use a more efficient implementation taking into
 		// account received txs and ordering by nonce.
-		if err := v.validateBalance(tx, state); err != nil {
+		if err := v.validateBalance(tx, s); err != nil {
 			return err
 		}
 
@@ -242,19 +250,24 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, state state.Reader) er
 
 		_, ok := txs[senderID]
 		if !ok {
-			txs[senderID] = 0
+			txs[senderID] = state.Account{}
 		}
 
-		txs[senderID] += tx.Value
+		account := txs[senderID]
+		txs[senderID] = state.Account{
+			Balance: account.Balance + tx.Value,
+			Nonce:   tx.Nonce,
+		}
 	}
 
 	for from, val := range txs {
 		err := v.validateBalance(
 			&pb.Transaction{
 				From:  []byte(from),
-				Value: val,
+				Value: val.Balance,
+				Nonce: val.Nonce,
 			},
-			state)
+			s)
 		if err != nil {
 			return err
 		}

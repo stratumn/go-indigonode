@@ -19,7 +19,17 @@
 package chain
 
 import (
+	"errors"
+
 	pb "github.com/stratumn/alice/pb/coin"
+)
+
+var (
+	// ErrBlockHashNotFound is returned when looking for a block tha is not in teh chain
+	ErrBlockHashNotFound = errors.New("block hash not found in the chain")
+
+	// ErrBlockNumberNotFound is returned when looking for a block tha is not in teh chain
+	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
 )
 
 // Config describes the blockchain's chain configuration.
@@ -33,17 +43,17 @@ type Reader interface {
 	Config() *Config
 
 	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *pb.Header
+	CurrentHeader() (*pb.Header, error)
 
 	// GetHeaderByNumber retrieves block headers from the database by number.
 	// In case of forks there might be multiple headers with the same number.
-	GetHeaderByNumber(number uint64) []*pb.Header
+	GetHeaderByNumber(number uint64) ([]*pb.Header, error)
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash []byte) *pb.Header
+	GetHeaderByHash(hash []byte) (*pb.Header, error)
 
 	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash []byte, number uint64) *pb.Block
+	GetBlock(hash []byte, number uint64) (*pb.Block, error)
 }
 
 // Writer defines methods needed to write to the local blockchain.

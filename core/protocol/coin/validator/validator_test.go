@@ -98,16 +98,35 @@ func TestValidateTx(t *testing.T) {
 		func() state.State { return testutil.NewSimpleState(t) },
 		ErrInsufficientBalance,
 	}, {
+		"invalid-nonce",
+		func() *pb.Transaction {
+			tx := testutil.NewTransaction(t, 42, 42)
+			return tx
+		},
+		func() state.State {
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 80, Nonce: 42},
+			)
+			assert.NoError(t, err)
+			return s
+		},
+		ErrInvalidTxNonce,
+	}, {
 		"valid-tx",
 		func() *pb.Transaction {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
 		func() state.State {
-			state := testutil.NewSimpleState(t)
-			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 80)
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 80, Nonce: 40},
+			)
 			assert.NoError(t, err)
-			return state
+			return s
 		},
 		nil,
 	}}
@@ -175,15 +194,18 @@ func TestValidateBlock(t *testing.T) {
 			return &pb.Block{
 				Transactions: []*pb.Transaction{
 					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 1),
+					testutil.NewTransaction(t, 7, 6),
 				},
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState(t)
-			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 8)
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 8, Nonce: 1},
+			)
 			assert.NoError(t, err)
-			return state
+			return s
 		},
 		ErrInsufficientBalance,
 	}, {
@@ -192,15 +214,18 @@ func TestValidateBlock(t *testing.T) {
 			return &pb.Block{
 				Transactions: []*pb.Transaction{
 					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 1),
+					testutil.NewTransaction(t, 7, 8),
 				},
 			}
 		},
 		func() state.State {
-			state := testutil.NewSimpleState(t)
-			_, err := state.AddBalance([]byte(testutil.TxSenderPID), 10)
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				state.Account{Balance: 10, Nonce: 3},
+			)
 			assert.NoError(t, err)
-			return state
+			return s
 		},
 		nil,
 	}}

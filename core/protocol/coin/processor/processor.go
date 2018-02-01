@@ -27,21 +27,6 @@ type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
 	Process(block *pb.Block, state state.State, chain chain.Writer) error
-
-	// Rollback rolls back a block, setting the chain head to the previous
-	// block and updating the state accordingly by discarding the
-	// transactions contained in the block.
-	//
-	// The block arg is temporary. The block should be the head of the
-	// chain instead of a parameter.
-	//
-	//	block := chain.GetBlock(something, chain.CurrentHeader().BlockNumber)
-	Rollback(block *pb.Block, state state.State, chain chain.Chain) error
-
-	// RollbackTo rolls back to the block with the given hash, updating the
-	// chain head and updating the state accordingly by discarding
-	// transactions from blocks being rolled back.
-	RollbackTo(blockHash []byte, state state.State, chain chain.Chain) error
 }
 
 type processor struct{}
@@ -60,43 +45,11 @@ func (processor) Process(block *pb.Block, state state.State, chain chain.Writer)
 	}
 
 	for _, tx := range block.Transactions {
-		if err := stateTx.Transfer(tx.From, tx.To, tx.Value); err != nil {
+		if err := stateTx.Transfer(tx.From, tx.To, tx.Value, tx.Nonce); err != nil {
 			stateTx.Discard()
 			return err
 		}
 	}
 
 	return stateTx.Commit()
-}
-
-func (processor) Rollback(block *pb.Block, state state.State, chain chain.Chain) error {
-	// This is temporary. The block should be the head of the chain
-	// instead of a parameter.
-	//
-	//	block := chain.GetBlock(nil, chain.CurrentHeader().BlockNumber)
-
-	stateTx, err := state.Transaction()
-	if err != nil {
-		return err
-	}
-
-	for i := len(block.Transactions) - 1; i >= 0; i-- {
-		tx := block.Transactions[i]
-
-		if err := stateTx.Transfer(tx.To, tx.From, tx.Value); err != nil {
-			stateTx.Discard()
-			return err
-		}
-	}
-
-	return stateTx.Commit()
-
-	// TODO: update chain head, miner reward.
-}
-
-func (processor) RollbackTo(blockHash []byte, state state.State, chain chain.Chain) error {
-	// TODO: loopback from head and call rollback until target block is
-	// reached.
-
-	return nil
 }

@@ -46,13 +46,13 @@ func (mr *MockMempoolMockRecorder) AddTransaction(arg0 interface{}) *gomock.Call
 }
 
 // PopTransaction mocks base method
-func (_m *MockMempool) PopTransaction() *coin.Transaction {
-	ret := _m.ctrl.Call(_m, "PopTransaction")
+func (m *MockMempool) PopTransaction() *coin.Transaction {
+	ret := m.ctrl.Call(m, "PopTransaction")
 	ret0, _ := ret[0].(*coin.Transaction)
 	return ret0
 }
 
 // PopTransaction indicates an expected call of PopTransaction
-func (_mr *MockMempoolMockRecorder) PopTransaction() *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "PopTransaction", reflect.TypeOf((*MockMempool)(nil).PopTransaction))
+func (mr *MockMempoolMockRecorder) PopTransaction() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopTransaction", reflect.TypeOf((*MockMempool)(nil).PopTransaction))
 }

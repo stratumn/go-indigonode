@@ -31,37 +31,41 @@ func TestProcessor_Process(t *testing.T) {
 	p := NewProcessor()
 	s := testutil.NewSimpleState(t)
 
-	assert.NoError(t, s.SetBalance(alice, 20), "s.SetBalance(alice)")
+	err := s.UpdateAccount(alice, state.Account{Balance: 20})
+	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
 	block := &pb.Block{
 		Transactions: []*pb.Transaction{{
 			From:  alice,
 			To:    bob,
 			Value: 10,
+			Nonce: 1,
 		}, {
 			From:  bob,
 			To:    charlie,
 			Value: 5,
+			Nonce: 2,
 		}, {
 			From:  charlie,
 			To:    alice,
 			Value: 2,
+			Nonce: 3,
 		}},
 	}
 
 	assert.NoError(t, p.Process(block, s, nil))
 
-	v, err := s.GetBalance(alice)
-	assert.NoError(t, err, "s.GetBalance(alice)")
-	assert.EqualValues(t, 20-10+2, v, "s.GetBalance(alice)")
+	v, err := s.GetAccount(alice)
+	assert.NoError(t, err, "s.GetAccount(alice)")
+	assert.Equal(t, state.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
-	v, err = s.GetBalance(bob)
-	assert.NoError(t, err, "s.GetBalance(bob)")
-	assert.EqualValues(t, 10-5, v, "s.GetBalance(bob)")
+	v, err = s.GetAccount(bob)
+	assert.NoError(t, err, "s.GetAccount(bob)")
+	assert.Equal(t, state.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
 
-	v, err = s.GetBalance(charlie)
-	assert.NoError(t, err, "s.GetBalance(charlie)")
-	assert.EqualValues(t, 5-2, v, "s.GetBalance(charlie)")
+	v, err = s.GetAccount(charlie)
+	assert.NoError(t, err, "s.GetAccount(charlie)")
+	assert.Equal(t, state.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 }
 
 func TestProcessor_Process_amountTooBig(t *testing.T) {
@@ -71,7 +75,8 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	p := NewProcessor()
 	s := testutil.NewSimpleState(t)
 
-	assert.NoError(t, s.SetBalance(alice, 20), "s.SetBalance(alice)")
+	err := s.UpdateAccount(alice, state.Account{Balance: 20})
+	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
 	block := &pb.Block{
 		Transactions: []*pb.Transaction{{
@@ -88,53 +93,11 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	assert.EqualError(t, p.Process(block, s, nil), state.ErrAmountTooBig.Error())
 
 	// Make sure state wasn't updated.
-	v, err := s.GetBalance(alice)
-	assert.NoError(t, err, "s.GetBalance(alice)")
-	assert.EqualValues(t, 20, v, "s.GetBalance(alice)")
+	v, err := s.GetAccount(alice)
+	assert.NoError(t, err, "s.GetAccount(alice)")
+	assert.Equal(t, state.Account{Balance: 20}, v, "s.GetAccount(alice)")
 
-	v, err = s.GetBalance(bob)
-	assert.NoError(t, err, "s.GetBalance(bob)")
-	assert.EqualValues(t, 0, v, "s.GetBalance(bob)")
-}
-
-func TestProcessor_Rollback(t *testing.T) {
-	alice := []byte("alice")
-	bob := []byte("bob")
-	charlie := []byte("charlie")
-
-	p := NewProcessor()
-	s := testutil.NewSimpleState(t)
-
-	assert.NoError(t, s.SetBalance(alice, 20), "s.SetBalance(alice)")
-
-	block := &pb.Block{
-		Transactions: []*pb.Transaction{{
-			From:  alice,
-			To:    bob,
-			Value: 10,
-		}, {
-			From:  bob,
-			To:    charlie,
-			Value: 5,
-		}, {
-			From:  charlie,
-			To:    alice,
-			Value: 2,
-		}},
-	}
-
-	assert.NoError(t, p.Process(block, s, nil), "p.Process")
-	assert.NoError(t, p.Rollback(block, s, nil))
-
-	v, err := s.GetBalance(alice)
-	assert.NoError(t, err, "s.GetBalance(alice)")
-	assert.EqualValues(t, 20, v, "s.GetBalance(alice)")
-
-	v, err = s.GetBalance(bob)
-	assert.NoError(t, err, "s.GetBalance(bob)")
-	assert.EqualValues(t, 0, v, "s.GetBalance(bob)")
-
-	v, err = s.GetBalance(charlie)
-	assert.NoError(t, err, "s.GetBalance(charlie)")
-	assert.EqualValues(t, 0, v, "s.GetBalance(charlie)")
+	v, err = s.GetAccount(bob)
+	assert.NoError(t, err, "s.GetAccount(bob)")
+	assert.Equal(t, state.Account{}, v, "s.GetAccount(bob)")
 }

@@ -26,9 +26,43 @@ var (
 	// the current balance.
 	ErrAmountTooBig = errors.New("amount is too big")
 
+	// ErrInvalidAccount is returned when the binary representation of an
+	// account is invalid.
+	ErrInvalidAccount = errors.New("account is invalid")
+
 	// ErrInvalidBatch is returned when a batch is invalid.
 	ErrInvalidBatch = errors.New("batch is invalid")
 )
+
+// Account describes a user account.
+type Account struct {
+	// Balance is the number of coins the user has.
+	Balance uint64
+	// Nonce is the latest transaction nonce seen by the system.
+	// It can only increase.
+	Nonce uint64
+}
+
+// DecodeAccount decodes an account from its binary representation.
+func DecodeAccount(buf []byte) (Account, error) {
+	if len(buf) != 16 {
+		return Account{}, ErrInvalidAccount
+	}
+
+	return Account{
+		Balance: binary.LittleEndian.Uint64(buf),
+		Nonce:   binary.LittleEndian.Uint64(buf[8:]),
+	}, nil
+}
+
+// Encode encodes an account to its binary representation.
+func (a Account) Encode() []byte {
+	v := make([]byte, 16)
+	binary.LittleEndian.PutUint64(v, a.Balance)
+	binary.LittleEndian.PutUint64(v[8:], a.Nonce)
+
+	return v
+}
 
 // State stores users' account balances.
 type State interface {
@@ -42,30 +76,22 @@ type State interface {
 
 // Reader gives read access to users' account balances.
 type Reader interface {
-	// GetBalance gets the account balance of a user identified
-	// by his public key. It returns 0 if the account is not found.
-	GetBalance(pubKey []byte) (uint64, error)
+	// GetAccount gets the account details of a user identified
+	// by his public key. It returns Account{} if the account is not found.
+	GetAccount(pubKey []byte) (Account, error)
 }
 
 // Writer gives write access to users' account balances.
 type Writer interface {
-	// SetBalance sets the account balance of a user identified by his
-	// public key.
-	SetBalance(pubKey []byte, value uint64) error
+	// UpdateAccount sets or updates the account of a user identified by
+	// his public key.
+	UpdateAccount(pubKey []byte, value Account) error
 
-	// AddBalance atomically adds coins to an account. It returns the new
-	// balance.
-	AddBalance(pubKey []byte, amount uint64) (uint64, error)
-
-	// SubBalance atomically removes coins from an account. It returns the
-	// new balance. It returns an error if the amount is greater than the
-	// current balance.
-	SubBalance(pubKey []byte, amount uint64) (uint64, error)
-
-	// Transfer atomically transfers coins from an account to another. It
-	// returns an error if the amount transfered is greater than the
-	// balance the coins are sent from.
-	Transfer(fromPubKey, toPubKey []byte, amount uint64) error
+	// Transfer atomically transfers coins from an account to another. Only
+	// the nonce from the sender's account is updated. It returns an error
+	// if the amount transfered is greater than the balance the coins are
+	// sent from.
+	Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error
 
 	// Batch creates a batch which can be used to execute multiple write
 	// operations efficiently.
@@ -80,9 +106,9 @@ type Writer interface {
 // to be used once. When writing the batch to the database, the operations may
 // execute concurrently, so order is not guaranteed.
 type Batch interface {
-	// SetBalance sets the account balance of a user identified by his
-	// public key.
-	SetBalance(pubKey []byte, value uint64)
+	// UpdateAccount sets or updates the account of a user identified by
+	// his public key.
+	UpdateAccount(pubKey []byte, value Account)
 }
 
 // Transaction can be used to execute multiple operations atomically. It should
@@ -111,66 +137,36 @@ func NewState(db db.DB, prefix []byte) State {
 	return &stateDB{db: db, prefix: prefix}
 }
 
-func (s *stateDB) GetBalance(pubKey []byte) (uint64, error) {
+func (s *stateDB) GetAccount(pubKey []byte) (Account, error) {
 	v, err := s.db.Get(prefixKey(s.prefix, pubKey))
 	if errors.Cause(err) == db.ErrNotFound {
-		return 0, nil
+		return Account{}, nil
 	}
 
 	if err != nil {
-		return 0, err
+		return Account{}, err
 	}
 
-	return binary.LittleEndian.Uint64(v), nil
+	return DecodeAccount(v)
 }
 
-func (s *stateDB) SetBalance(pubKey []byte, value uint64) error {
-	return s.db.Put(prefixKey(s.prefix, pubKey), encodeUint64(value))
+func (s *stateDB) UpdateAccount(pubKey []byte, value Account) error {
+	return s.db.Put(prefixKey(s.prefix, pubKey), value.Encode())
 }
 
-func (s *stateDB) AddBalance(pubKey []byte, amount uint64) (uint64, error) {
-	tx, err := s.db.Transaction()
-	if err != nil {
-		return 0, err
-	}
-
-	amount, err = s.incBalance(tx, pubKey, amount, true)
-	if err != nil {
-		tx.Discard()
-		return 0, err
-	}
-
-	return amount, tx.Commit()
-}
-
-func (s *stateDB) SubBalance(pubKey []byte, amount uint64) (uint64, error) {
-	tx, err := s.db.Transaction()
-	if err != nil {
-		return 0, err
-	}
-
-	amount, err = s.incBalance(tx, pubKey, amount, false)
-	if err != nil {
-		tx.Discard()
-		return 0, err
-	}
-
-	return amount, tx.Commit()
-}
-
-func (s *stateDB) Transfer(fromPubKey, toPubKey []byte, amount uint64) error {
+func (s *stateDB) Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error {
 	tx, err := s.db.Transaction()
 	if err != nil {
 		return err
 	}
 
-	_, err = s.incBalance(tx, fromPubKey, amount, false)
+	err = s.incBalance(tx, fromPubKey, false, true, amount, nonce)
 	if err != nil {
 		tx.Discard()
 		return err
 	}
 
-	_, err = s.incBalance(tx, toPubKey, amount, true)
+	err = s.incBalance(tx, toPubKey, true, false, amount, 0)
 	if err != nil {
 		tx.Discard()
 		return err
@@ -181,35 +177,46 @@ func (s *stateDB) Transfer(fromPubKey, toPubKey []byte, amount uint64) error {
 
 // incBalance adds or subtracts coins from an account in a transaction. It
 // doesn't close the transaction.
-func (s *stateDB) incBalance(tx db.Transaction, pubKey []byte, amount uint64, add bool) (uint64, error) {
+func (s *stateDB) incBalance(
+	tx db.Transaction,
+	pubKey []byte,
+	add, updateNonce bool,
+	amount, nonce uint64,
+) error {
 	// Get current value.
-	current := uint64(0)
+	var a Account
 
-	c, err := tx.Get(prefixKey(s.prefix, pubKey))
+	buf, err := tx.Get(prefixKey(s.prefix, pubKey))
 	if err != nil {
 		if errors.Cause(err) != db.ErrNotFound {
-			return 0, err
+			return err
 		}
 	} else {
-		current = binary.LittleEndian.Uint64(c)
+		if a, err = DecodeAccount(buf); err != nil {
+			return err
+		}
 	}
 
 	// Update value.
 	if add {
-		amount += current
+		a.Balance += amount
 	} else {
-		if amount > current {
-			return 0, ErrAmountTooBig
+		if amount > a.Balance {
+			return ErrAmountTooBig
 		}
 
-		amount = current - amount
+		a.Balance -= amount
 	}
 
-	if err := tx.Put(prefixKey(s.prefix, pubKey), encodeUint64(amount)); err != nil {
-		return 0, err
+	if updateNonce {
+		a.Nonce = nonce
 	}
 
-	return amount, nil
+	if err := tx.Put(prefixKey(s.prefix, pubKey), a.Encode()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *stateDB) Batch() Batch {
@@ -240,8 +247,8 @@ type dbBatch struct {
 	prefix []byte
 }
 
-func (b dbBatch) SetBalance(pubKey []byte, value uint64) {
-	b.batch.Put(prefixKey(b.prefix, pubKey), encodeUint64(value))
+func (b dbBatch) UpdateAccount(pubKey []byte, value Account) {
+	b.batch.Put(prefixKey(b.prefix, pubKey), value.Encode())
 }
 
 // dbTx implements a transaction for stateDB.
@@ -250,59 +257,63 @@ type dbTx struct {
 	prefix []byte
 }
 
-func (tx dbTx) GetBalance(pubKey []byte) (uint64, error) {
+func (tx dbTx) GetAccount(pubKey []byte) (Account, error) {
 	v, err := tx.dbtx.Get(prefixKey(tx.prefix, pubKey))
 	if errors.Cause(err) == db.ErrNotFound {
-		return 0, nil
+		return Account{}, nil
 	}
 
 	if err != nil {
-		return 0, err
+		return Account{}, err
 	}
 
-	return binary.LittleEndian.Uint64(v), nil
+	return DecodeAccount(v)
 }
 
-func (tx dbTx) SetBalance(pubKey []byte, value uint64) error {
-	return tx.dbtx.Put(prefixKey(tx.prefix, pubKey), encodeUint64(value))
+func (tx dbTx) UpdateAccount(pubKey []byte, value Account) error {
+	return tx.dbtx.Put(prefixKey(tx.prefix, pubKey), value.Encode())
 }
 
-func (tx dbTx) AddBalance(pubKey []byte, amount uint64) (uint64, error) {
-	current, err := tx.GetBalance(pubKey)
-	if err != nil {
-		return 0, err
-	}
-
-	amount += current
-
-	return amount, tx.SetBalance(pubKey, amount)
-}
-
-func (tx dbTx) SubBalance(pubKey []byte, amount uint64) (uint64, error) {
-	current, err := tx.GetBalance(pubKey)
-	if err != nil {
-		return 0, err
-	}
-
-	if amount > current {
-		return 0, ErrAmountTooBig
-	}
-
-	amount = current - amount
-
-	return amount, tx.SetBalance(pubKey, amount)
-}
-
-func (tx dbTx) Transfer(fromPubKey, toPubKey []byte, amount uint64) error {
-	if _, err := tx.SubBalance(fromPubKey, amount); err != nil {
+func (tx dbTx) Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error {
+	if err := tx.incBalance(fromPubKey, false, true, amount, nonce); err != nil {
 		return err
 	}
 
-	if _, err := tx.AddBalance(toPubKey, amount); err != nil {
+	if err := tx.incBalance(toPubKey, true, false, amount, 0); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// incBalance adds or subtracts coins from an account in a transaction.
+func (tx dbTx) incBalance(
+	pubKey []byte,
+	add, updateNonce bool,
+	amount, nonce uint64,
+) error {
+	// Get current value.
+	a, err := tx.GetAccount(pubKey)
+	if err != nil {
+		return err
+	}
+
+	// Update value.
+	if add {
+		a.Balance += amount
+	} else {
+		if amount > a.Balance {
+			return ErrAmountTooBig
+		}
+
+		a.Balance -= amount
+	}
+
+	if updateNonce {
+		a.Nonce = nonce
+	}
+
+	return tx.UpdateAccount(pubKey, a)
 }
 
 func (tx dbTx) Batch() Batch {
@@ -324,14 +335,6 @@ func (tx dbTx) Commit() error {
 
 func (tx dbTx) Discard() {
 	tx.dbtx.Discard()
-}
-
-// encodeUint64 encodes an uint64 to a buffer.
-func encodeUint64(value uint64) []byte {
-	v := make([]byte, 8)
-	binary.LittleEndian.PutUint64(v, value)
-
-	return v
 }
 
 // prefixKey prefixes the given key.

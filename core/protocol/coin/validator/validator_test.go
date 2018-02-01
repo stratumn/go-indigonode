@@ -96,7 +96,7 @@ func TestValidateTx(t *testing.T) {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
-		func() state.State { return testutil.NewSimpleState() },
+		func() state.State { return testutil.NewSimpleState(t) },
 		validator.ErrInsufficientBalance,
 	}, {
 		"invalid-nonce",

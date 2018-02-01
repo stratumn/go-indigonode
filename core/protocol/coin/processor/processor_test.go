@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package processor
+package processor_test
 
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -28,7 +29,7 @@ func TestProcessor_Process(t *testing.T) {
 	bob := []byte("bob")
 	charlie := []byte("charlie")
 
-	p := NewProcessor()
+	p := processor.NewProcessor()
 	s := testutil.NewSimpleState(t)
 
 	err := s.UpdateAccount(alice, state.Account{Balance: 20})
@@ -72,7 +73,7 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	alice := []byte("alice")
 	bob := []byte("bob")
 
-	p := NewProcessor()
+	p := processor.NewProcessor()
 	s := testutil.NewSimpleState(t)
 
 	err := s.UpdateAccount(alice, state.Account{Balance: 20})

@@ -36,7 +36,7 @@ func NewInstrumentedProcessor(p processor.Processor) *InstrumentedProcessor {
 }
 
 // Process records the call.
-func (p *InstrumentedProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
+func (p *InstrumentedProcessor) Process(block *pb.Block, state state.State, chain chain.Writer) error {
 	atomic.AddUint32(&p.processedCount, 1)
 	return p.processor.Process(block, state, chain)
 }
@@ -51,7 +51,7 @@ func (p *InstrumentedProcessor) ProcessedCount() uint32 {
 type DummyProcessor struct{}
 
 // Process returns nil to simulate a processing success.
-func (p *DummyProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
+func (p *DummyProcessor) Process(block *pb.Block, state state.State, chain chain.Writer) error {
 	return nil
 }
 
@@ -63,6 +63,6 @@ var ErrProcessingFailed = errors.New("processing failed")
 type FaultyProcessor struct{}
 
 // Process returns an error to simulate a processing failure.
-func (p *FaultyProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
+func (p *FaultyProcessor) Process(block *pb.Block, state state.State, chain chain.Writer) error {
 	return ErrProcessingFailed
 }

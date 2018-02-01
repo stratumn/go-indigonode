@@ -44,3 +44,15 @@ func (m *MockMempool) AddTransaction(arg0 *coin.Transaction) error {
 func (mr *MockMempoolMockRecorder) AddTransaction(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTransaction", reflect.TypeOf((*MockMempool)(nil).AddTransaction), arg0)
 }
+
+// PopTransaction mocks base method
+func (_m *MockMempool) PopTransaction() *coin.Transaction {
+	ret := _m.ctrl.Call(_m, "PopTransaction")
+	ret0, _ := ret[0].(*coin.Transaction)
+	return ret0
+}
+
+// PopTransaction indicates an expected call of PopTransaction
+func (_mr *MockMempoolMockRecorder) PopTransaction() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "PopTransaction", reflect.TypeOf((*MockMempool)(nil).PopTransaction))
+}

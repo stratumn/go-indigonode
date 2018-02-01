@@ -34,7 +34,7 @@ func (_m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // ValidateBlock mocks base method
-func (_m *MockValidator) ValidateBlock(_param0 *coin.Block, _param1 *state.Reader) error {
+func (_m *MockValidator) ValidateBlock(_param0 *coin.Block, _param1 state.Reader) error {
 	ret := _m.ctrl.Call(_m, "ValidateBlock", _param0, _param1)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -46,7 +46,7 @@ func (_mr *MockValidatorMockRecorder) ValidateBlock(arg0, arg1 interface{}) *gom
 }
 
 // ValidateTx mocks base method
-func (_m *MockValidator) ValidateTx(_param0 *coin.Transaction, _param1 *state.Reader) error {
+func (_m *MockValidator) ValidateTx(_param0 *coin.Transaction, _param1 state.Reader) error {
 	ret := _m.ctrl.Call(_m, "ValidateTx", _param0, _param1)
 	ret0, _ := ret[0].(error)
 	return ret0

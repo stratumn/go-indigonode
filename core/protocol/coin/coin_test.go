@@ -83,7 +83,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 			return coins[0].validator.(*ctestutil.Rejector).ValidatedBlock(block2.GetBlock()) &&
 				coins[1].validator.(*ctestutil.Rejector).ValidatedBlock(block1.GetBlock()) &&
 				coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx.GetTx())
-		})
+		}, "validator.ValidatedBlock()")
 	})
 
 	t.Run("Ignore invalid messages", func(t *testing.T) {
@@ -120,6 +120,6 @@ func TestCoinProtocolHandler(t *testing.T) {
 		ctestutil.WaitUntil(t, func() bool {
 			return coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx1.GetTx()) &&
 				coins[0].validator.(*ctestutil.Rejector).ValidatedTx(tx2.GetTx())
-		})
+		}, "validator.ValidatedTx")
 	})
 }

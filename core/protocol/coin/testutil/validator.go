@@ -83,3 +83,16 @@ func (r *Rejector) ValidatedBlock(block *pb.Block) bool {
 
 	return false
 }
+
+// DummyValidator is a validator that always returns nil (valid).
+type DummyValidator struct{}
+
+// ValidateTx always returns nil (valid tx).
+func (v *DummyValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
+	return nil
+}
+
+// ValidateBlock always returns nil (valid block).
+func (v *DummyValidator) ValidateBlock(block *pb.Block, _ state.Reader) error {
+	return nil
+}

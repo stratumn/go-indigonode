@@ -24,7 +24,7 @@ import (
 // WaitUntil waits for a condition to happen or fails after a small time.
 // This is useful when you want to assert that asynchronous conditions need
 // to be verified.
-func WaitUntil(t *testing.T, cond func() bool) {
+func WaitUntil(t *testing.T, cond func() bool, message string) {
 	condChan := make(chan struct{})
 	go func() {
 		for {
@@ -40,6 +40,6 @@ func WaitUntil(t *testing.T, cond func() bool) {
 	select {
 	case <-condChan:
 	case <-time.After(100 * time.Millisecond):
-		assert.Fail(t, "waitUntil")
+		assert.Fail(t, "waitUntil() condition failed:", message)
 	}
 }

@@ -19,43 +19,44 @@ import (
 	"sync"
 
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-var (
-	// ErrRejected is the error returns by Rejector.
-	ErrRejected = errors.New("Rejected")
-)
+// InstrumentedValidator adds method calls instrumentation to a validator.
+type InstrumentedValidator struct {
+	validator validator.Validator
 
-// Rejector implements the Validator interface and rejects
-// incoming transactions and blocks.
-// It records incoming transactions and blocks for assertions.
-type Rejector struct {
 	mu     sync.RWMutex
 	txs    []*pb.Transaction
 	blocks []*pb.Block
 }
 
-// ValidateTx records the incoming tx and rejects it.
-func (r *Rejector) ValidateTx(tx *pb.Transaction, state state.Reader) error {
+// NewInstrumentedValidator wraps a validator with instrumentation.
+func NewInstrumentedValidator(validator validator.Validator) *InstrumentedValidator {
+	return &InstrumentedValidator{validator: validator}
+}
+
+// ValidateTx records the incoming tx.
+func (r *InstrumentedValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.txs = append(r.txs, tx)
-	return ErrRejected
+	return r.validator.ValidateTx(tx, state)
 }
 
-// ValidateBlock records the incoming block and rejects it.
-func (r *Rejector) ValidateBlock(block *pb.Block, _ state.Reader) error {
+// ValidateBlock records the incoming block.
+func (r *InstrumentedValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	r.blocks = append(r.blocks, block)
-	return ErrRejected
+	return r.validator.ValidateBlock(block, state)
 }
 
-// ValidatedTx returns true if the rejector saw the given transaction.
-func (r *Rejector) ValidatedTx(tx *pb.Transaction) bool {
+// ValidatedTx returns true if the validator saw the given transaction.
+func (r *InstrumentedValidator) ValidatedTx(tx *pb.Transaction) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -69,8 +70,8 @@ func (r *Rejector) ValidatedTx(tx *pb.Transaction) bool {
 	return false
 }
 
-// ValidatedBlock returns true if the rejector saw the given block.
-func (r *Rejector) ValidatedBlock(block *pb.Block) bool {
+// ValidatedBlock returns true if the validator saw the given block.
+func (r *InstrumentedValidator) ValidatedBlock(block *pb.Block) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -82,6 +83,25 @@ func (r *Rejector) ValidatedBlock(block *pb.Block) bool {
 	}
 
 	return false
+}
+
+var (
+	// ErrRejected is the error returns by Rejector.
+	ErrRejected = errors.New("Rejected")
+)
+
+// Rejector implements the Validator interface and rejects
+// incoming transactions and blocks.
+type Rejector struct{}
+
+// ValidateTx records the incoming tx and rejects it.
+func (r *Rejector) ValidateTx(tx *pb.Transaction, state state.Reader) error {
+	return ErrRejected
+}
+
+// ValidateBlock records the incoming block and rejects it.
+func (r *Rejector) ValidateBlock(block *pb.Block, _ state.Reader) error {
+	return ErrRejected
 }
 
 // DummyValidator is a validator that always returns nil (valid).

@@ -16,6 +16,7 @@ package testutil
 
 import (
 	"sync"
+	"sync/atomic"
 
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -23,9 +24,10 @@ import (
 // InMemoryMempool is a basic mempool implementation that stores
 // transactions in RAM.
 type InMemoryMempool struct {
-	mu       sync.RWMutex
-	txs      []*pb.Transaction
-	popCount int
+	mu  sync.RWMutex
+	txs []*pb.Transaction
+
+	popCount uint32
 }
 
 // AddTransaction adds transaction to the mempool.
@@ -71,15 +73,13 @@ func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
 
 	tx := m.txs[len(m.txs)-1]
 	m.txs = m.txs[:len(m.txs)-1]
-	m.popCount++
+
+	atomic.AddUint32(&m.popCount, 1)
 
 	return tx
 }
 
 // PopCount returns the number of times PopTransaction was called.
-func (m *InMemoryMempool) PopCount() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
+func (m *InMemoryMempool) PopCount() uint32 {
 	return m.popCount
 }

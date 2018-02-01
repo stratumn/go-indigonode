@@ -136,7 +136,7 @@ func TestMiner_Produce(t *testing.T) {
 	}
 
 	t.Run("Sends new valid block to processor", func(t *testing.T) {
-		processor := &testutil.DummyProcessor{}
+		processor := testutil.NewInstrumentedProcessor(&testutil.DummyProcessor{})
 		startMiner(processor, &testutil.DummyEngine{})
 
 		testutil.WaitUntil(
@@ -147,8 +147,8 @@ func TestMiner_Produce(t *testing.T) {
 	})
 
 	t.Run("Aborts block if engine returns an error", func(t *testing.T) {
-		processor := &testutil.DummyProcessor{}
-		engine := &testutil.FaultyEngine{}
+		processor := testutil.NewInstrumentedProcessor(&testutil.DummyProcessor{})
+		engine := testutil.NewInstrumentedEngine(&testutil.FaultyEngine{})
 		startMiner(processor, engine)
 
 		testutil.WaitUntil(
@@ -157,11 +157,11 @@ func TestMiner_Produce(t *testing.T) {
 			"engine.PrepareCount() > 0",
 		)
 
-		assert.Equal(t, 0, processor.ProcessedCount(), "processor.ProcessedCount()")
+		assert.Equal(t, uint32(0), processor.ProcessedCount(), "processor.ProcessedCount()")
 	})
 
 	t.Run("Aborts block if processor returns an error", func(t *testing.T) {
-		processor := &testutil.FaultyProcessor{}
+		processor := testutil.NewInstrumentedProcessor(&testutil.FaultyProcessor{})
 		mempool := startMiner(processor, &testutil.DummyEngine{})
 
 		testutil.WaitUntil(
@@ -180,7 +180,7 @@ func TestMiner_Produce(t *testing.T) {
 	})
 
 	t.Run("Uses PoW if available", func(t *testing.T) {
-		engine := testutil.NewDummyProofOfWait(1, 5)
+		engine := testutil.NewDummyProofOfWait(&testutil.DummyEngine{}, 1, 5)
 		startMiner(&testutil.DummyProcessor{}, engine)
 
 		testutil.WaitUntil(

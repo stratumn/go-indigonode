@@ -16,36 +16,43 @@ package testutil
 
 import (
 	"errors"
-	"sync"
+	"sync/atomic"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// DummyProcessor is a dummy processor that always returns nil
-// as if processing ended correctly.
-type DummyProcessor struct {
-	mu             sync.RWMutex
-	processedCount int
+// InstrumentedProcessor adds method calls instrumentation to a processor.
+type InstrumentedProcessor struct {
+	processor      processor.Processor
+	processedCount uint32
 }
 
-// Process increments a counter and returns nil.
-// Simulates a processing success.
-func (p *DummyProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+// NewInstrumentedProcessor wraps a processor with instrumentation.
+func NewInstrumentedProcessor(p processor.Processor) *InstrumentedProcessor {
+	return &InstrumentedProcessor{processor: p}
+}
 
-	p.processedCount++
-	return nil
+// Process records the call.
+func (p *InstrumentedProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
+	atomic.AddUint32(&p.processedCount, 1)
+	return p.processor.Process(block, state, chain)
 }
 
 // ProcessedCount returns the number of blocks processed.
-func (p *DummyProcessor) ProcessedCount() int {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
+func (p *InstrumentedProcessor) ProcessedCount() uint32 {
 	return p.processedCount
+}
+
+// DummyProcessor is a dummy processor that always returns nil
+// as if processing ended correctly.
+type DummyProcessor struct{}
+
+// Process returns nil to simulate a processing success.
+func (p *DummyProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
+	return nil
 }
 
 // ErrProcessingFailed is the error returned by FaultyProcessor.
@@ -53,25 +60,9 @@ var ErrProcessingFailed = errors.New("processing failed")
 
 // FaultyProcessor is a dummy processor that always returns an error
 // as if processing failed.
-type FaultyProcessor struct {
-	mu             sync.RWMutex
-	processedCount int
-}
+type FaultyProcessor struct{}
 
-// Process increments a counter and returns an error.
-// Simulates a processing failure.
+// Process returns an error to simulate a processing failure.
 func (p *FaultyProcessor) Process(block *pb.Block, state state.Writer, chain chain.Writer) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.processedCount++
 	return ErrProcessingFailed
-}
-
-// ProcessedCount returns the number of blocks processed.
-func (p *FaultyProcessor) ProcessedCount() int {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	return p.processedCount
 }

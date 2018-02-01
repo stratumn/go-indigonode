@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validator
+package validator_test
 
 import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,7 +36,7 @@ func TestValidateTx(t *testing.T) {
 		"empty-tx",
 		func() *pb.Transaction { return nil },
 		func() state.State { return nil },
-		ErrEmptyTx,
+		validator.ErrEmptyTx,
 	}, {
 		"empty-value",
 		func() *pb.Transaction {
@@ -43,7 +44,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrInvalidTxValue,
+		validator.ErrInvalidTxValue,
 	}, {
 		"missing-to",
 		func() *pb.Transaction {
@@ -52,7 +53,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrInvalidTxRecipient,
+		validator.ErrInvalidTxRecipient,
 	}, {
 		"missing-from",
 		func() *pb.Transaction {
@@ -61,7 +62,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrInvalidTxSender,
+		validator.ErrInvalidTxSender,
 	}, {
 		"send-to-self",
 		func() *pb.Transaction {
@@ -70,7 +71,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrInvalidTxRecipient,
+		validator.ErrInvalidTxRecipient,
 	}, {
 		"missing-signature",
 		func() *pb.Transaction {
@@ -79,7 +80,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrMissingTxSignature,
+		validator.ErrMissingTxSignature,
 	}, {
 		"invalid-signature",
 		func() *pb.Transaction {
@@ -88,15 +89,15 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State { return nil },
-		ErrInvalidTxSignature,
+		validator.ErrInvalidTxSignature,
 	}, {
 		"invalid-balance",
 		func() *pb.Transaction {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
-		func() state.State { return testutil.NewSimpleState(t) },
-		ErrInsufficientBalance,
+		func() state.State { return testutil.NewSimpleState() },
+		validator.ErrInsufficientBalance,
 	}, {
 		"invalid-nonce",
 		func() *pb.Transaction {
@@ -112,7 +113,7 @@ func TestValidateTx(t *testing.T) {
 			assert.NoError(t, err)
 			return s
 		},
-		ErrInvalidTxNonce,
+		validator.ErrInvalidTxNonce,
 	}, {
 		"valid-tx",
 		func() *pb.Transaction {
@@ -131,7 +132,7 @@ func TestValidateTx(t *testing.T) {
 		nil,
 	}}
 
-	validator := NewBalanceValidator(DefaultMaxTxPerBlock)
+	validator := validator.NewBalanceValidator(validator.DefaultMaxTxPerBlock)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -171,7 +172,7 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State { return nil },
-		ErrTooManyTxs,
+		validator.ErrTooManyTxs,
 	}, {
 		"invalid-signature",
 		func() *pb.Block {
@@ -187,7 +188,7 @@ func TestValidateBlock(t *testing.T) {
 			return block
 		},
 		func() state.State { return nil },
-		ErrInvalidTxSignature,
+		validator.ErrInvalidTxSignature,
 	}, {
 		"invalid-balance",
 		func() *pb.Block {
@@ -207,7 +208,7 @@ func TestValidateBlock(t *testing.T) {
 			assert.NoError(t, err)
 			return s
 		},
-		ErrInsufficientBalance,
+		validator.ErrInsufficientBalance,
 	}, {
 		"valid-block",
 		func() *pb.Block {
@@ -230,7 +231,7 @@ func TestValidateBlock(t *testing.T) {
 		nil,
 	}}
 
-	validator := NewBalanceValidator(3)
+	validator := validator.NewBalanceValidator(3)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {

@@ -17,29 +17,44 @@ package testutil
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// DummyEngine is an engine that simply records method calls.
-type DummyEngine struct {
+// InstrumentedEngine adds method calls instrumentation to an engine.
+type InstrumentedEngine struct {
+	engine engine.Engine
+
 	mu       sync.RWMutex
 	verified []*pb.Header
+
+	verifyCount   uint32
+	prepareCount  uint32
+	finalizeCount uint32
+}
+
+// NewInstrumentedEngine wraps an engine with instrumentation.
+func NewInstrumentedEngine(e engine.Engine) *InstrumentedEngine {
+	return &InstrumentedEngine{engine: e}
 }
 
 // VerifyHeader records that header was verified.
-func (e *DummyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
+func (e *InstrumentedEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
+	atomic.AddUint32(&e.verifyCount, 1)
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	e.verified = append(e.verified, header)
-	return nil
+	return e.engine.VerifyHeader(chain, header)
 }
 
 // VerifiedHeader checks if the input header was verified by the engine.
-func (e *DummyEngine) VerifiedHeader(header *pb.Header) bool {
+func (e *InstrumentedEngine) VerifiedHeader(header *pb.Header) bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -51,6 +66,41 @@ func (e *DummyEngine) VerifiedHeader(header *pb.Header) bool {
 	}
 
 	return false
+}
+
+// VerifyCount returns the number of calls to VerifyHeader.
+func (e *InstrumentedEngine) VerifyCount() uint32 {
+	return e.verifyCount
+}
+
+// Prepare records the call.
+func (e *InstrumentedEngine) Prepare(chain chain.Reader, header *pb.Header) error {
+	atomic.AddUint32(&e.prepareCount, 1)
+	return e.engine.Prepare(chain, header)
+}
+
+// PrepareCount returns the number of calls to Prepare.
+func (e *InstrumentedEngine) PrepareCount() uint32 {
+	return e.prepareCount
+}
+
+// Finalize records the call.
+func (e *InstrumentedEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+	atomic.AddUint32(&e.prepareCount, 1)
+	return e.engine.Finalize(chain, header, state, txs)
+}
+
+// FinalizeCount returns the number of calls to Finalize.
+func (e *InstrumentedEngine) FinalizeCount() uint32 {
+	return e.finalizeCount
+}
+
+// DummyEngine is an engine that does nothing.
+type DummyEngine struct{}
+
+// VerifyHeader does nothing.
+func (e *DummyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
+	return nil
 }
 
 // Prepare does nothing.
@@ -67,96 +117,52 @@ func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state stat
 var ErrFaultyEngine = errors.New("unknown error: engine must be faulty")
 
 // FaultyEngine always returns an ErrFaultyEngine error.
-type FaultyEngine struct {
-	mu            sync.RWMutex
-	verifyCount   int
-	prepareCount  int
-	finalizeCount int
-}
+type FaultyEngine struct{}
 
 // VerifyHeader records that header was verified.
 func (e *FaultyEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.verifyCount++
 	return ErrFaultyEngine
-}
-
-// VerifyCount returns the number of calls to VerifyHeader.
-func (e *FaultyEngine) VerifyCount() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return e.verifyCount
 }
 
 // Prepare does nothing.
 func (e *FaultyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.prepareCount++
 	return ErrFaultyEngine
-}
-
-// PrepareCount returns the number of calls to Prepare.
-func (e *FaultyEngine) PrepareCount() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return e.prepareCount
 }
 
 // Finalize does nothing.
 func (e *FaultyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.finalizeCount++
 	return nil, ErrFaultyEngine
-}
-
-// FinalizeCount returns the number of calls to Finalize.
-func (e *FaultyEngine) FinalizeCount() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return e.finalizeCount
 }
 
 // DummyProofOfWait is a dummy proof-of-wait © engine.
 type DummyProofOfWait struct {
-	DummyEngine
+	InstrumentedEngine
+
+	intervalCount uint32
 
 	min int
 	max int
-
-	mu            sync.RWMutex
-	intervalCount int
 }
 
 // NewDummyProofOfWait creates a new DummyProofOfWait.
-func NewDummyProofOfWait(min, max int) *DummyProofOfWait {
-	return &DummyProofOfWait{
+func NewDummyProofOfWait(e engine.Engine, min, max int) *DummyProofOfWait {
+	powEngine := &DummyProofOfWait{
 		min: min,
 		max: max,
 	}
+
+	powEngine.InstrumentedEngine = InstrumentedEngine{engine: e}
+
+	return powEngine
 }
 
 // Interval increments a counter and returns a configurable interval for the proof-of-wait.
 func (e *DummyProofOfWait) Interval() (int, int) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.intervalCount++
+	atomic.AddUint32(&e.intervalCount, 1)
 	return e.min, e.max
 }
 
 // IntervalCount returns the number of calls to Interval.
-func (e *DummyProofOfWait) IntervalCount() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
+func (e *DummyProofOfWait) IntervalCount() uint32 {
 	return e.intervalCount
 }

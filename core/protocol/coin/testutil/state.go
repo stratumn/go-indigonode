@@ -18,39 +18,40 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/state"
 
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 // SimpleState is a simple implementation of the State interface.
-// It allows tests to easily customize users' balances.
+// It allows tests to easily customize users' accounts.
 type SimpleState struct {
 	mu       sync.RWMutex
-	balances map[peer.ID]uint64
+	accounts map[peer.ID]state.Account
 }
 
 // NewSimpleState returns a SimpleState ready to use in tests.
 func NewSimpleState() *SimpleState {
 	return &SimpleState{
-		balances: make(map[peer.ID]uint64),
+		accounts: make(map[peer.ID]state.Account),
 	}
 }
 
-// GetBalance returns the balance of a peer.
-func (s *SimpleState) GetBalance(pubKey []byte) uint64 {
+// GetAccount returns the account of a peer.
+func (s *SimpleState) GetAccount(pubKey []byte) state.Account {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	id, err := peer.IDFromBytes(pubKey)
 	if err != nil {
-		return 0
+		return state.Account{}
 	}
 
-	return s.balances[id]
+	return s.accounts[id]
 }
 
-// AddBalance adds coins to a user account.
-func (s *SimpleState) AddBalance(pubKey []byte, amount uint64) error {
+// UpdateAccount updates a user account.
+func (s *SimpleState) UpdateAccount(pubKey []byte, balance uint64, nonce uint64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -59,6 +60,10 @@ func (s *SimpleState) AddBalance(pubKey []byte, amount uint64) error {
 		return errors.WithStack(err)
 	}
 
-	s.balances[id] += amount
+	s.accounts[id] = state.Account{
+		Balance: balance,
+		Nonce:   nonce,
+	}
+
 	return nil
 }

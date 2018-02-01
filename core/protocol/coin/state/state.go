@@ -20,11 +20,20 @@ type State interface {
 	Writer
 }
 
+// Account describes a user account.
+type Account struct {
+	// Balance is the number of coins the user has.
+	Balance uint64
+	// Nonce is the latest transaction nonce seen by the system.
+	// It can only increase.
+	Nonce uint64
+}
+
 // Reader gives read access to users' account balances.
 type Reader interface {
-	// GetBalance gets the account balance of a user identified
+	// GetAccount gets the account details of a user identified
 	// by his public key.
-	GetBalance(pubKey []byte) uint64
+	GetAccount(pubKey []byte) Account
 }
 
 // Writer gives write access to users' account balances.

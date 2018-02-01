@@ -98,6 +98,18 @@ func TestValidateTx(t *testing.T) {
 		func() state.State { return testutil.NewSimpleState() },
 		ErrInsufficientBalance,
 	}, {
+		"invalid-nonce",
+		func() *pb.Transaction {
+			tx := testutil.NewTransaction(t, 42, 42)
+			return tx
+		},
+		func() state.State {
+			state := testutil.NewSimpleState()
+			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 80, 42))
+			return state
+		},
+		ErrInvalidTxNonce,
+	}, {
 		"valid-tx",
 		func() *pb.Transaction {
 			tx := testutil.NewTransaction(t, 42, 42)
@@ -105,7 +117,7 @@ func TestValidateTx(t *testing.T) {
 		},
 		func() state.State {
 			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 80))
+			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 80, 40))
 			return state
 		},
 		nil,
@@ -174,13 +186,13 @@ func TestValidateBlock(t *testing.T) {
 			return &pb.Block{
 				Transactions: []*pb.Transaction{
 					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 1),
+					testutil.NewTransaction(t, 7, 6),
 				},
 			}
 		},
 		func() state.State {
 			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 8))
+			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 8, 1))
 			return state
 		},
 		ErrInsufficientBalance,
@@ -190,13 +202,13 @@ func TestValidateBlock(t *testing.T) {
 			return &pb.Block{
 				Transactions: []*pb.Transaction{
 					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 1),
+					testutil.NewTransaction(t, 7, 8),
 				},
 			}
 		},
 		func() state.State {
 			state := testutil.NewSimpleState()
-			assert.NoError(t, state.AddBalance([]byte(testutil.TxSenderPID), 10))
+			assert.NoError(t, state.UpdateAccount([]byte(testutil.TxSenderPID), 10, 3))
 			return state
 		},
 		nil,

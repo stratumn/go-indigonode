@@ -16,6 +16,7 @@ package miner
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -27,6 +28,11 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+)
+
+var (
+	// ErrMempoolConfig is returned when the miner's mempool is misconfigured.
+	ErrMempoolConfig = errors.New("mempool is misconfigured: cannot start miner")
 )
 
 // log is the logger for the miner.
@@ -91,9 +97,10 @@ func (m *Miner) Start(ctx context.Context) error {
 	m.setRunning(true)
 	defer m.setRunning(false)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go m.startTxLoop(ctx, &wg)
+	txErrChan := make(chan error)
+	go func() {
+		txErrChan <- m.startTxLoop(ctx)
+	}()
 
 miningLoop:
 	for {
@@ -111,20 +118,16 @@ miningLoop:
 		}
 	}
 
-	wg.Wait()
-
-	return nil
+	return <-txErrChan
 }
 
 // startTxLoop starts the transaction selection process.
 // It queries the mempool for transactions and chooses
 // a batch of transactions to use for a new block.
-func (m *Miner) startTxLoop(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (m *Miner) startTxLoop(ctx context.Context) error {
 	if m.mempool == nil {
 		log.Event(ctx, "NilMempool")
-		return
+		return ErrMempoolConfig
 	}
 
 	// For now we simply pop the oldest transaction in the queue.
@@ -133,7 +136,7 @@ func (m *Miner) startTxLoop(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 			tx := m.mempool.PopTransaction()
 			if tx == nil {

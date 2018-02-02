@@ -56,6 +56,19 @@ type Writer interface {
 	Write(Batch) error
 }
 
+// ReadWriter can both read and write values to a key-value database.
+type ReadWriter interface {
+	Reader
+	Writer
+}
+
+// Transactor can create database transactions.
+type Transactor interface {
+	// Transaction creates a transaction which can be used to execute
+	// multiple operations atomically.
+	Transaction() (Transaction, error)
+}
+
 // Iterator iterates over a range of keys in the key-value database.
 type Iterator interface {
 	// Next returns whether there are keys left.
@@ -77,10 +90,7 @@ type Iterator interface {
 type DB interface {
 	Reader
 	Writer
-
-	// Transaction creates a transaction which can be used to execute
-	// multiple operations atomically.
-	Transaction() (Transaction, error)
+	Transactor
 
 	// Close may close the underlying storage.
 	Close() error

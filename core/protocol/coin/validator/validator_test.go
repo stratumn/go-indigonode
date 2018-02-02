@@ -96,7 +96,7 @@ func TestValidateTx(t *testing.T) {
 			tx := testutil.NewTransaction(t, 42, 42)
 			return tx
 		},
-		func() state.State { return testutil.NewSimpleState(t) },
+		func() state.State { return testutil.NewSimpleState(t, 0) },
 		validator.ErrInsufficientBalance,
 	}, {
 		"invalid-nonce",
@@ -105,7 +105,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State {
-			s := testutil.NewSimpleState(t)
+			s := testutil.NewSimpleState(t, 0)
 			err := s.UpdateAccount(
 				[]byte(testutil.TxSenderPID),
 				state.Account{Balance: 80, Nonce: 42},
@@ -121,7 +121,7 @@ func TestValidateTx(t *testing.T) {
 			return tx
 		},
 		func() state.State {
-			s := testutil.NewSimpleState(t)
+			s := testutil.NewSimpleState(t, 0)
 			err := s.UpdateAccount(
 				[]byte(testutil.TxSenderPID),
 				state.Account{Balance: 80, Nonce: 40},
@@ -200,7 +200,7 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			s := testutil.NewSimpleState(t)
+			s := testutil.NewSimpleState(t, 0)
 			err := s.UpdateAccount(
 				[]byte(testutil.TxSenderPID),
 				state.Account{Balance: 8, Nonce: 1},
@@ -220,7 +220,7 @@ func TestValidateBlock(t *testing.T) {
 			}
 		},
 		func() state.State {
-			s := testutil.NewSimpleState(t)
+			s := testutil.NewSimpleState(t, 0)
 			err := s.UpdateAccount(
 				[]byte(testutil.TxSenderPID),
 				state.Account{Balance: 10, Nonce: 3},

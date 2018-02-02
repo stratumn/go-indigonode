@@ -39,17 +39,8 @@ func NewProcessor() Processor {
 func (processor) Process(block *pb.Block, state state.State, chain chain.Writer) error {
 	// TODO: update chain, miner reward.
 
-	stateTx, err := state.Transaction()
-	if err != nil {
-		return err
-	}
+	// TODO: real block hash.
+	blockHash := []byte("todo")
 
-	for _, tx := range block.Transactions {
-		if err := stateTx.Transfer(tx.From, tx.To, tx.Value, tx.Nonce); err != nil {
-			stateTx.Discard()
-			return err
-		}
-	}
-
-	return stateTx.Commit()
+	return state.ProcessTransactions(blockHash, block.Transactions)
 }

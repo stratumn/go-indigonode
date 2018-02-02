@@ -24,7 +24,7 @@ type grpcServer struct {
 	GetEmitter func() Emitter
 }
 
-func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Emitter_ListenServer) error {
+func (s grpcServer) Listen(listenReq *pb.ListenReq, ss pb.Emitter_ListenServer) error {
 	log.Event(ss.Context(), "Listen")
 
 	emitter := s.GetEmitter()
@@ -32,7 +32,10 @@ func (s grpcServer) Listen(_ *pb.ListenReq, ss pb.Emitter_ListenServer) error {
 		return errors.New("cannot listen to events: event service is not running")
 	}
 
-	receiveChan := emitter.AddListener()
+	receiveChan, err := emitter.AddListener(listenReq.Topic)
+	if err != nil {
+		return err
+	}
 	defer emitter.RemoveListener(receiveChan)
 
 eventPump:

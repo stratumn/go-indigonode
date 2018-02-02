@@ -16,6 +16,7 @@ package chat
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -43,14 +44,16 @@ func TestChat(t *testing.T) {
 
 	t.Run("Send and receive message", func(t *testing.T) {
 		eventEmitter := event.NewEmitter(event.DefaultTimeout)
-		receiveChan := eventEmitter.AddListener()
+		receiveChan, err := eventEmitter.AddListener("chat.*")
+		assert.NoError(t, err, "eventEmitter.AddListener(chat.*)")
+
 		chat2 := NewChat(h2, eventEmitter)
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)
 		})
 
-		err := chat1.Send(ctx, h2.ID(), "hello world!")
+		err = chat1.Send(ctx, h2.ID(), "hello world!")
 		require.NoError(t, err, "chat.Send()")
 
 		select {
@@ -58,6 +61,7 @@ func TestChat(t *testing.T) {
 			assert.Fail(t, "chat.Send() did not send message")
 		case ev := <-receiveChan:
 			assert.Contains(t, ev.Message, "hello world!", "event.Message")
+			assert.Contains(t, ev.Topic, fmt.Sprintf("chat.%s", h1.ID().Pretty()), "event.Topic")
 			assert.Equal(t, pbevent.Level_INFO, ev.Level, "event.Level")
 		}
 	})

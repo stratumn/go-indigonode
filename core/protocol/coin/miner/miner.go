@@ -103,6 +103,7 @@ func (m *Miner) Start(ctx context.Context) error {
 		txErrChan <- m.startTxLoop(ctx)
 	}()
 
+	var miningErr error
 miningLoop:
 	for {
 		select {
@@ -114,12 +115,18 @@ miningLoop:
 				log.Event(ctx, "NewBlockProduced")
 			}
 		case <-ctx.Done():
-			log.Event(ctx, "Stopped")
+			miningErr = ctx.Err()
+			log.Event(ctx, "Stopped", logging.Metadata{"error": miningErr})
 			break miningLoop
 		}
 	}
 
-	return <-txErrChan
+	txErr := <-txErrChan
+	if miningErr != nil {
+		return miningErr
+	}
+
+	return txErr
 }
 
 // startTxLoop starts the transaction selection process.
@@ -137,7 +144,7 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
 			tx := m.mempool.PopTransaction()
 			if tx == nil {

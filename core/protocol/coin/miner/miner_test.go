@@ -40,7 +40,7 @@ func TestMiner_StartStop(t *testing.T) {
 	testutil.WaitUntil(t, m.IsRunning, "m.IsRunning()")
 
 	cancel()
-	assert.NoError(t, <-errChan, "m.Start(ctx)")
+	assert.EqualError(t, <-errChan, context.Canceled.Error(), "m.Start(ctx)")
 	assert.False(t, m.IsRunning(), "m.IsRunning()")
 }
 

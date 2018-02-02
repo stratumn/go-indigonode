@@ -44,3 +44,13 @@ type Engine interface {
 	// transactions for example).
 	Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }
+
+// ProofOfWait is a consensus engine based on the powerful proof-of-wait © algorithm.
+// It is only meant to be used as a PoC and in tests.
+type ProofOfWait interface {
+	Engine
+
+	// Interval returns the minimum and maximum number of
+	// milliseconds necessary to produce a block.
+	Interval() (int, int)
+}

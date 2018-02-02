@@ -40,6 +40,7 @@ func NewMinerBuilder() *MinerBuilder {
 	return &MinerBuilder{
 		engine:    &testutil.DummyEngine{},
 		mempool:   &testutil.InMemoryMempool{},
+		processor: &testutil.DummyProcessor{},
 		validator: &testutil.DummyValidator{},
 	}
 }
@@ -53,6 +54,12 @@ func (m *MinerBuilder) WithEngine(engine engine.Engine) *MinerBuilder {
 // WithMempool configures the builder to use the given mempool.
 func (m *MinerBuilder) WithMempool(mempool state.Mempool) *MinerBuilder {
 	m.mempool = mempool
+	return m
+}
+
+// WithProcessor configures the builder to use the given processor.
+func (m *MinerBuilder) WithProcessor(processor processor.Processor) *MinerBuilder {
+	m.processor = processor
 	return m
 }
 

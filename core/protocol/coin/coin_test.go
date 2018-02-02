@@ -44,7 +44,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		// We configure validation to fail.
 		// We only want to test that the coin protocol
 		// correctly called the validator.
-		coins[i] = &Coin{validator: &ctestutil.Rejector{}}
+		coins[i] = &Coin{validator: ctestutil.NewInstrumentedValidator(&ctestutil.Rejector{})}
 
 		ii := i
 		hosts[i].SetStreamHandler(ProtocolID, func(stream inet.Stream) {
@@ -79,10 +79,13 @@ func TestCoinProtocolHandler(t *testing.T) {
 		err = enc0_1.Encode(tx)
 		assert.NoError(t, err, "Encode()")
 
+		v0 := coins[0].validator.(*ctestutil.InstrumentedValidator)
+		v1 := coins[1].validator.(*ctestutil.InstrumentedValidator)
+
 		ctestutil.WaitUntil(t, func() bool {
-			return coins[0].validator.(*ctestutil.Rejector).ValidatedBlock(block2.GetBlock()) &&
-				coins[1].validator.(*ctestutil.Rejector).ValidatedBlock(block1.GetBlock()) &&
-				coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx.GetTx())
+			return v0.ValidatedBlock(block2.GetBlock()) &&
+				v1.ValidatedBlock(block1.GetBlock()) &&
+				v1.ValidatedTx(tx.GetTx())
 		}, "validator.ValidatedBlock()")
 	})
 
@@ -117,9 +120,11 @@ func TestCoinProtocolHandler(t *testing.T) {
 		err = enc1_0.Encode(tx2)
 		assert.NoError(t, err, "Encode()")
 
+		v0 := coins[0].validator.(*ctestutil.InstrumentedValidator)
+		v1 := coins[1].validator.(*ctestutil.InstrumentedValidator)
+
 		ctestutil.WaitUntil(t, func() bool {
-			return coins[1].validator.(*ctestutil.Rejector).ValidatedTx(tx1.GetTx()) &&
-				coins[0].validator.(*ctestutil.Rejector).ValidatedTx(tx2.GetTx())
+			return v1.ValidatedTx(tx1.GetTx()) && v0.ValidatedTx(tx2.GetTx())
 		}, "validator.ValidatedTx")
 	})
 }

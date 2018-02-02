@@ -16,6 +16,8 @@ package miner
 
 import (
 	"context"
+	"errors"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -27,6 +29,11 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+)
+
+var (
+	// ErrMempoolConfig is returned when the miner's mempool is misconfigured.
+	ErrMempoolConfig = errors.New("mempool is misconfigured: cannot start miner")
 )
 
 // log is the logger for the miner.
@@ -91,10 +98,12 @@ func (m *Miner) Start(ctx context.Context) error {
 	m.setRunning(true)
 	defer m.setRunning(false)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go m.startTxLoop(ctx, &wg)
+	txErrChan := make(chan error)
+	go func() {
+		txErrChan <- m.startTxLoop(ctx)
+	}()
 
+	var miningErr error
 miningLoop:
 	for {
 		select {
@@ -106,25 +115,27 @@ miningLoop:
 				log.Event(ctx, "NewBlockProduced")
 			}
 		case <-ctx.Done():
-			log.Event(ctx, "Stopped")
+			miningErr = ctx.Err()
+			log.Event(ctx, "Stopped", logging.Metadata{"error": miningErr})
 			break miningLoop
 		}
 	}
 
-	wg.Wait()
+	txErr := <-txErrChan
+	if miningErr != nil {
+		return miningErr
+	}
 
-	return nil
+	return txErr
 }
 
 // startTxLoop starts the transaction selection process.
 // It queries the mempool for transactions and chooses
 // a batch of transactions to use for a new block.
-func (m *Miner) startTxLoop(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func (m *Miner) startTxLoop(ctx context.Context) error {
 	if m.mempool == nil {
 		log.Event(ctx, "NilMempool")
-		return
+		return ErrMempoolConfig
 	}
 
 	// For now we simply pop the oldest transaction in the queue.
@@ -133,7 +144,7 @@ func (m *Miner) startTxLoop(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		default:
 			tx := m.mempool.PopTransaction()
 			if tx == nil {
@@ -162,6 +173,26 @@ func (m *Miner) produce(txs []*pb.Transaction) (err error) {
 
 	header := &pb.Header{}
 	if err = m.engine.Prepare(m.chain, header); err != nil {
+		return
+	}
+
+	powEngine, ok := m.engine.(engine.ProofOfWait)
+	if ok {
+		// Powerful PoW (Proof of Wait) © algorithm.
+		min, max := powEngine.Interval()
+		wait := min + rand.Intn(max-min+1)
+		<-time.After(time.Duration(wait) * time.Millisecond)
+
+		header.Nonce = uint64(wait)
+	}
+
+	block, err = m.engine.Finalize(m.chain, header, m.state, txs)
+	if err != nil {
+		return
+	}
+
+	err = m.processor.Process(block, m.state, m.chain)
+	if err != nil {
 		return
 	}
 

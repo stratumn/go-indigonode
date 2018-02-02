@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
+	pb "github.com/stratumn/alice/pb/coin"
 )
 
 var (
@@ -32,12 +33,19 @@ var (
 
 	// ErrInvalidBatch is returned when a batch is invalid.
 	ErrInvalidBatch = errors.New("batch is invalid")
+
+	// ErrInvalidJobID is returned when a job ID is invalid.
+	ErrInvalidJobID = errors.New("job ID is invalid")
 )
 
 // Account describes a user account.
+//
+// NOTE: we should make it a protobuf message, it would be easier to make
+// changes and we will probably need it for the API.
 type Account struct {
 	// Balance is the number of coins the user has.
 	Balance uint64
+
 	// Nonce is the latest transaction nonce seen by the system.
 	// It can only increase.
 	Nonce uint64
@@ -68,10 +76,6 @@ func (a Account) Encode() []byte {
 type State interface {
 	Reader
 	Writer
-
-	// Transaction creates a transaction which can be used to execute
-	// multiple operations atomically.
-	Transaction() (Transaction, error)
 }
 
 // Reader gives read access to users' account balances.
@@ -82,63 +86,77 @@ type Reader interface {
 }
 
 // Writer gives write access to users' account balances.
+//
+// NOTE: we could expose methods that take an existing database transactions
+// so that you can run a transaction on both the state and the chain.
 type Writer interface {
 	// UpdateAccount sets or updates the account of a user identified by
-	// his public key.
+	// his public key. It should only be used for testing as it cannot be
+	// rolled back.
 	UpdateAccount(pubKey []byte, value Account) error
 
-	// Transfer atomically transfers coins from an account to another. Only
-	// the nonce from the sender's account is updated. It returns an error
-	// if the amount transfered is greater than the balance the coins are
-	// sent from.
-	Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error
+	// ProcessTransactions processes all the given transactions and updates
+	// the state accordingly. It should be given a unique job ID, for
+	// instance the hash of the block containing the transactions.
+	ProcessTransactions(jobID []byte, txs []*pb.Transaction) error
 
-	// Batch creates a batch which can be used to execute multiple write
-	// operations efficiently.
-	Batch() Batch
-
-	// Write executes all the operations in a batch. It may write
-	// concurrently.
-	Write(Batch) error
+	// RollbackTransactions rolls back transactions. The parameters are
+	// expected to be identical to the ones that were given to the
+	// corresponding call to ProcessTransactions().
+	// You should only rollback the job corresponding to the current state.
+	RollbackTransactions(jobID []byte, txs []*pb.Transaction) error
 }
 
-// Batch can execute multiple write operations efficiently. It is only intended
-// to be used once. When writing the batch to the database, the operations may
-// execute concurrently, so order is not guaranteed.
-type Batch interface {
-	// UpdateAccount sets or updates the account of a user identified by
-	// his public key.
-	UpdateAccount(pubKey []byte, value Account)
-}
+// NOTE: prefixes should have be the same bytesize to prevent unexpected
+// behaviors when iterating over key prefixes. Smaller means less space used.
+var (
+	// accountPrefix is the prefix for account keys.
+	accountPrefix = []byte{0}
 
-// Transaction can be used to execute multiple operations atomically. It should
-// be closed exactly once by calling either Commit or Discard.
-type Transaction interface {
-	Reader
-	Writer
-
-	// Commit should be called to commit the transaction to the database.
-	Commit() error
-
-	// Discard should be called to discard the transaction.
-	Discard()
-}
+	// prevNoncePrefix is the prefix for previous nonce keys.
+	prevNoncePrefix = []byte{1}
+)
 
 // stateDB implements the State interface using a key-value database.
 type stateDB struct {
 	db     db.DB
 	prefix []byte
+
+	// jobIDLen is the bytesize of a job ID.
+	//
+	// It is required because we iterate over keys prefixed by the jobID.
+	// If the keys were not always the same size they could conflict.
+	//
+	// For example:
+	//
+	//	jobA  + BC -> jobABC
+	//	jobAB + C  -> jobABC
+	//
+	// Here the key jobABC would be included whether iterating over jobA or
+	// jobAB.
+	jobIDSize int
 }
 
 // NewState creates a new state from a DB instance.
 //
 // Prefix is used to prefix keys in the database.
-func NewState(db db.DB, prefix []byte) State {
-	return &stateDB{db: db, prefix: prefix}
+//
+// VERY IMPORTANT NOTE: ALL THE DIFFERENT MODULES THAT SHARE THE SAME INSTANCE
+// OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
+//
+// All job IDs must have the given bytesize.
+func NewState(db db.DB, prefix []byte, jobIDSize int) State {
+	return &stateDB{db: db, prefix: prefix, jobIDSize: jobIDSize}
 }
 
 func (s *stateDB) GetAccount(pubKey []byte) (Account, error) {
-	v, err := s.db.Get(append(s.prefix, pubKey...))
+	return s.doGetAccount(s.db, pubKey)
+}
+
+// doGetAccount is able to get an account using anything that implements the
+// db.Reader interface.
+func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (Account, error) {
+	v, err := dbr.Get(s.accountKey(pubKey))
 	if errors.Cause(err) == db.ErrNotFound {
 		return Account{}, nil
 	}
@@ -151,188 +169,223 @@ func (s *stateDB) GetAccount(pubKey []byte) (Account, error) {
 }
 
 func (s *stateDB) UpdateAccount(pubKey []byte, value Account) error {
-	return s.db.Put(append(s.prefix, pubKey...), value.Encode())
+	return s.doUpdateAccount(s.db, pubKey, value)
 }
 
-func (s *stateDB) Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error {
-	tx, err := s.db.Transaction()
-	if err != nil {
-		return err
+// doGetAccount updates an account using anything that implements db.Writer.
+func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, value Account) error {
+	// Delete empty accounts to save space.
+	if value.Balance == 0 && value.Nonce == 0 {
+		return dbw.Delete(s.accountKey(pubKey))
 	}
 
-	err = s.incBalance(tx, fromPubKey, false, true, amount, nonce)
-	if err != nil {
-		tx.Discard()
-		return err
-	}
-
-	err = s.incBalance(tx, toPubKey, true, false, amount, 0)
-	if err != nil {
-		tx.Discard()
-		return err
-	}
-
-	return tx.Commit()
+	return dbw.Put(s.accountKey(pubKey), value.Encode())
 }
 
-// incBalance adds or subtracts coins from an account in a transaction. It
-// doesn't close the transaction.
+func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error {
+	if s.jobIDSize != len(jobID) {
+		return ErrInvalidJobID
+	}
+
+	dbtx, err := s.db.Transaction()
+	if err != nil {
+		return err
+	}
+
+	// Save the current nonces.
+	if err := s.doSaveNonces(dbtx, jobID, txs); err != nil {
+		dbtx.Discard()
+		return err
+	}
+
+	// Update balances and nonces.
+	if err := s.doTransactions(dbtx, jobID, txs); err != nil {
+		dbtx.Discard()
+		return err
+	}
+
+	return dbtx.Commit()
+}
+
+// doSaveNonces saves the current nonces of all the senders using anything that
+// implements db.ReadWriter.
+func (s *stateDB) doSaveNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
+	if s.jobIDSize != len(jobID) {
+		return ErrInvalidJobID
+	}
+
+	// Note: it might save the nonce of the same account multiple times,
+	// but it has no impact on the integrity of the state (and probably
+	// very little on performance).
+
+	for _, tx := range txs {
+		account, err := s.doGetAccount(dbrw, tx.From)
+		if err != nil {
+			return err
+		}
+
+		buf := make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, account.Nonce)
+
+		if err := dbrw.Put(s.prevNonceKey(jobID, tx.From), buf); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doTransactions updates the accounts given a slice of transactions using
+// anything that implements db.ReadWriter.
+func (s *stateDB) doTransactions(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
+	for _, tx := range txs {
+		if err := s.doTransaction(dbrw, jobID, tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// doTransaction updates a pair of accounts given a transaction using anything
+// that implements db.ReadWriter.
+func (s *stateDB) doTransaction(dbrw db.ReadWriter, jobID []byte, tx *pb.Transaction) error {
+	// Subtract amount from sender.
+	err := s.incBalance(dbrw, tx.From, false, true, tx.Value, tx.Nonce)
+	if err != nil {
+		return err
+	}
+
+	// Add amount to receiver.
+	return s.incBalance(dbrw, tx.To, true, false, tx.Value, 0)
+}
+
+// incBalance adds or subtracts coins from an account using anything that
+// implements db.ReadWriter.
 func (s *stateDB) incBalance(
-	tx db.Transaction,
+	dbrw db.ReadWriter,
 	pubKey []byte,
 	add, updateNonce bool,
 	amount, nonce uint64,
 ) error {
-	// Get current value.
-	var a Account
-
-	buf, err := tx.Get(append(s.prefix, pubKey...))
+	account, err := s.doGetAccount(dbrw, pubKey)
 	if err != nil {
-		if errors.Cause(err) != db.ErrNotFound {
-			return err
-		}
-	} else {
-		if a, err = DecodeAccount(buf); err != nil {
-			return err
-		}
+		return nil
 	}
 
 	// Update value.
 	if add {
-		a.Balance += amount
+		account.Balance += amount
 	} else {
-		if amount > a.Balance {
+		if amount > account.Balance {
 			return ErrAmountTooBig
 		}
 
-		a.Balance -= amount
+		account.Balance -= amount
 	}
 
 	if updateNonce {
-		a.Nonce = nonce
+		account.Nonce = nonce
 	}
 
-	if err := tx.Put(append(s.prefix, pubKey...), a.Encode()); err != nil {
+	return s.doUpdateAccount(dbrw, pubKey, account)
+}
+
+func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) error {
+	if s.jobIDSize != len(jobID) {
+		return ErrInvalidJobID
+	}
+
+	dbtx, err := s.db.Transaction()
+	if err != nil {
 		return err
+	}
+
+	// Restore balances.
+	if err := s.doRollbackTransactions(dbtx, jobID, txs); err != nil {
+		dbtx.Discard()
+		return err
+	}
+
+	// Restore nonces.
+	if err := s.doRestoreNonces(dbtx, jobID, txs); err != nil {
+		dbtx.Discard()
+		return err
+	}
+
+	return dbtx.Commit()
+}
+
+// doRollbackTransactions reverts transactions using anything that implements
+// db.ReadWriter. It does not revert nonces.
+func (s *stateDB) doRollbackTransactions(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
+	for i := len(txs) - 1; i >= 0; i-- {
+		tx := txs[i]
+
+		if err := s.doRollbackTransaction(dbrw, jobID, tx); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (s *stateDB) Batch() Batch {
-	return dbBatch{s.db.Batch(), s.prefix}
-}
-
-func (s *stateDB) Transaction() (Transaction, error) {
-	tx, err := s.db.Transaction()
+// doRollbackTransaction reverts a transaction using anything that implements
+// db.ReadWriter. It does not revert the nonces.
+func (s *stateDB) doRollbackTransaction(dbrw db.ReadWriter, jobID []byte, tx *pb.Transaction) error {
+	// Add amount to sender.
+	err := s.incBalance(dbrw, tx.From, true, false, tx.Value, 0)
 	if err != nil {
-		return nil, err
-	}
-
-	return dbTx{dbtx: tx, prefix: s.prefix}, nil
-}
-
-func (s *stateDB) Write(batch Batch) error {
-	b, ok := batch.(dbBatch)
-	if !ok {
-		return ErrInvalidBatch
-	}
-
-	return s.db.Write(b.batch)
-}
-
-// dbBatch implements a batch for stateDB.
-type dbBatch struct {
-	batch  db.Batch
-	prefix []byte
-}
-
-func (b dbBatch) UpdateAccount(pubKey []byte, value Account) {
-	b.batch.Put(append(b.prefix, pubKey...), value.Encode())
-}
-
-// dbTx implements a transaction for stateDB.
-type dbTx struct {
-	dbtx   db.Transaction
-	prefix []byte
-}
-
-func (tx dbTx) GetAccount(pubKey []byte) (Account, error) {
-	v, err := tx.dbtx.Get(append(tx.prefix, pubKey...))
-	if errors.Cause(err) == db.ErrNotFound {
-		return Account{}, nil
-	}
-
-	if err != nil {
-		return Account{}, err
-	}
-
-	return DecodeAccount(v)
-}
-
-func (tx dbTx) UpdateAccount(pubKey []byte, value Account) error {
-	return tx.dbtx.Put(append(tx.prefix, pubKey...), value.Encode())
-}
-
-func (tx dbTx) Transfer(fromPubKey, toPubKey []byte, amount, nonce uint64) error {
-	if err := tx.incBalance(fromPubKey, false, true, amount, nonce); err != nil {
 		return err
 	}
 
-	if err := tx.incBalance(toPubKey, true, false, amount, 0); err != nil {
-		return err
+	// Subtract amount from receiver.
+	return s.incBalance(dbrw, tx.To, false, false, tx.Value, 0)
+}
+
+// doRestoreNonces restores the nonces to what they were before the given
+// transactions using anything that implements db.ReadWriter.
+func (s *stateDB) doRestoreNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
+	iter := dbrw.IteratePrefix(s.prevNoncePrefix(jobID))
+	defer iter.Release()
+
+	for iter.Next() {
+		// Get the public key part from the key.
+		from := iter.Key()[len(s.prevNoncePrefix(jobID)):]
+
+		// Update the account nonce.
+		account, err := s.doGetAccount(dbrw, from)
+		if err != nil {
+			return err
+		}
+
+		account.Nonce = binary.LittleEndian.Uint64(iter.Value())
+
+		if err := s.doUpdateAccount(dbrw, from, account); err != nil {
+			return err
+		}
+
+		// We can delete the nonce now to save space.
+		if err := dbrw.Delete(iter.Key()); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// incBalance adds or subtracts coins from an account in a transaction.
-func (tx dbTx) incBalance(
-	pubKey []byte,
-	add, updateNonce bool,
-	amount, nonce uint64,
-) error {
-	// Get current value.
-	a, err := tx.GetAccount(pubKey)
-	if err != nil {
-		return err
-	}
-
-	// Update value.
-	if add {
-		a.Balance += amount
-	} else {
-		if amount > a.Balance {
-			return ErrAmountTooBig
-		}
-
-		a.Balance -= amount
-	}
-
-	if updateNonce {
-		a.Nonce = nonce
-	}
-
-	return tx.UpdateAccount(pubKey, a)
+// accountKey returns the key corresponding to an account given its public key.
+func (s *stateDB) accountKey(pubKey []byte) []byte {
+	return append(append(s.prefix, accountPrefix...), pubKey...)
 }
 
-func (tx dbTx) Batch() Batch {
-	return dbBatch{batch: tx.dbtx.Batch(), prefix: tx.prefix}
+// prevNoncePrefix returns the previous nonce key prefix for the given job ID.
+func (s *stateDB) prevNoncePrefix(jobID []byte) []byte {
+	return append(append(s.prefix, prevNoncePrefix...), jobID...)
 }
 
-func (tx dbTx) Write(batch Batch) error {
-	b, ok := batch.(dbBatch)
-	if !ok {
-		return ErrInvalidBatch
-	}
-
-	return tx.dbtx.Write(b.batch)
-}
-
-func (tx dbTx) Commit() error {
-	return tx.dbtx.Commit()
-}
-
-func (tx dbTx) Discard() {
-	tx.dbtx.Discard()
+// prevNonceKey returns the key corresponding to a previous nonce given a job
+// ID and the public key of the sender.
+func (s *stateDB) prevNonceKey(jobID, pubKey []byte) []byte {
+	return append(s.prevNoncePrefix(jobID), pubKey...)
 }

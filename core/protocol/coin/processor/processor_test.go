@@ -30,7 +30,7 @@ func TestProcessor_Process(t *testing.T) {
 	charlie := []byte("charlie")
 
 	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t)
+	s := testutil.NewSimpleState(t, 4)
 
 	err := s.UpdateAccount(alice, state.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")
@@ -74,7 +74,7 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	bob := []byte("bob")
 
 	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t)
+	s := testutil.NewSimpleState(t, 4)
 
 	err := s.UpdateAccount(alice, state.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")

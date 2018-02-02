@@ -32,6 +32,11 @@ type Reader interface {
 	// Get returns the value of a key. If the key doesn't exist, it returns
 	// ErrNotFound (which feels a bit safer than returning nil).
 	Get(key []byte) ([]byte, error)
+
+	// IteratePrefix creates an iterator that iterates over all the keys
+	// that begin with the given prefix. Remember to call Release() on the
+	// iterator.
+	IteratePrefix(prefix []byte) Iterator
 }
 
 // Writer writes values to a key-value database.
@@ -49,6 +54,21 @@ type Writer interface {
 	// Write executes all the operations in a batch. It may write
 	// concurrently.
 	Write(Batch) error
+}
+
+// Iterator iterates over a range of keys in the key-value database.
+type Iterator interface {
+	// Next returns whether there are keys left.
+	Next() bool
+
+	// Key returns the key of the current entry.
+	Key() []byte
+
+	// Value returns the value of the current entry.
+	Value() []byte
+
+	// Release needs to be called to free the iterator.
+	Release()
 }
 
 // DB can read and write values to a key-value database.

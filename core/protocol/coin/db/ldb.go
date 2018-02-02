@@ -20,6 +20,7 @@ import (
 	ldberrors "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/storage"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 // levelDB makes a LevelDB database compatible with the DB interface.
@@ -95,6 +96,10 @@ func (db levelDB) Write(batch Batch) error {
 	return ldbErr(db.ldb.Write(b, nil))
 }
 
+func (db levelDB) IteratePrefix(prefix []byte) Iterator {
+	return db.ldb.NewIterator(util.BytesPrefix(prefix), nil)
+}
+
 func (db levelDB) Batch() Batch {
 	return &leveldb.Batch{}
 }
@@ -113,10 +118,6 @@ func (db levelDB) Close() error {
 // interface.
 type levelDBTx struct {
 	ldbtx *leveldb.Transaction
-}
-
-func (tx levelDBTx) Batch() Batch {
-	return &leveldb.Batch{}
 }
 
 func (tx levelDBTx) Get(key []byte) ([]byte, error) {
@@ -148,4 +149,12 @@ func (tx levelDBTx) Commit() error {
 
 func (tx levelDBTx) Discard() {
 	tx.ldbtx.Discard()
+}
+
+func (tx levelDBTx) Batch() Batch {
+	return &leveldb.Batch{}
+}
+
+func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {
+	return tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil)
 }

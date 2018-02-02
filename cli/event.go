@@ -129,7 +129,7 @@ func (el *ConsoleRPCEventListener) connect(ctx context.Context) (pbevent.Emitter
 	el.close = cancel
 
 	el.cons.Debugf("Connecting to event service.\n")
-	lc, err := el.client.Listen(listenCtx, &pbevent.ListenReq{})
+	lc, err := el.client.Listen(listenCtx, &pbevent.ListenReq{Topic: "**"})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

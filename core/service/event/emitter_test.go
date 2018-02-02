@@ -27,37 +27,44 @@ func TestEmitter(t *testing.T) {
 
 	t.Run("Can add and remove listeners", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
-		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		assert.Equal(0, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 
-		l1 := emitter.AddListener()
-		l2 := emitter.AddListener()
-		assert.Equal(2, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		l1, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
+
+		l2, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
+
+		assert.Equal(2, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 
 		emitter.RemoveListener(l2)
-		assert.Equal(1, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		assert.Equal(1, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 
 		emitter.RemoveListener(l1)
-		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		assert.Equal(0, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 	})
 
 	t.Run("Close closes all channels", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
 
-		emitter.AddListener()
-		emitter.AddListener()
+		emitter.AddListener("topic")
+		emitter.AddListener("topic")
 		emitter.Close()
 
-		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		assert.Equal(0, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 	})
 
 	t.Run("Emit to multiple listeners", func(t *testing.T) {
 		emitter := NewEmitter(DefaultTimeout)
 		defer emitter.Close()
 
-		l1 := emitter.AddListener()
-		l2 := emitter.AddListener()
+		l1, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
 
-		e := &pb.Event{Message: "Hey", Level: pb.Level_INFO}
+		l2, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
+
+		e := &pb.Event{Message: "Hey", Level: pb.Level_INFO, Topic: "topic"}
 		emitter.Emit(e)
 
 		assertReceived := func(l <-chan *pb.Event) {
@@ -73,14 +80,75 @@ func TestEmitter(t *testing.T) {
 		assertReceived(l2)
 	})
 
+	t.Run("Emit to listeners with the correct topic", func(t *testing.T) {
+		emitter := NewEmitter(DefaultTimeout)
+		defer emitter.Close()
+
+		type topicTestCase struct {
+			name        string
+			topic       string
+			shouldMatch bool
+		}
+
+		testCases := []topicTestCase{
+			{
+				"With the precise topic",
+				"topic.precise",
+				true,
+			}, {
+				"With a matching topic",
+				"topic.*",
+				true,
+			}, {
+				"With a non match topic",
+				"other.*",
+				false,
+			}, {
+				"With a different topic",
+				"other.different",
+				false,
+			}, {
+				"With a global topic",
+				"**",
+				true,
+			},
+		}
+
+		for _, t := range testCases {
+			l, err := emitter.AddListener(t.topic)
+			assert.NoError(err, "emitter.AddListener(%s)", t.topic)
+
+			e := &pb.Event{Message: "Hey", Level: pb.Level_INFO, Topic: "topic.precise"}
+			emitter.Emit(e)
+
+			assertReceived := func(l <-chan *pb.Event, expect bool) {
+				select {
+				case ee := <-l:
+					if !expect {
+						assert.Fail("emitter.Emit() should not have received event", t.name)
+					}
+					assert.Equal(e, ee, "emitter.Emit()")
+				case <-time.After(10 * time.Millisecond):
+					if expect {
+						assert.Fail("emitter.Emit() did not send event", t.name)
+					}
+				}
+			}
+
+			assertReceived(l, t.shouldMatch)
+		}
+
+	})
+
 	t.Run("Drop messages if listeners are too slow", func(t *testing.T) {
 		emitter := NewEmitter(5 * time.Millisecond)
 		defer emitter.Close()
 
-		l := emitter.AddListener()
+		l, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
 
-		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO}
-		e2 := &pb.Event{Message: "2", Level: pb.Level_INFO}
+		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO, Topic: "topic"}
+		e2 := &pb.Event{Message: "2", Level: pb.Level_INFO, Topic: "topic"}
 		emitter.Emit(e1)
 		emitter.Emit(e2)
 
@@ -107,8 +175,10 @@ func TestEmitter(t *testing.T) {
 		emitter := NewEmitter(10 * time.Millisecond)
 		defer emitter.Close()
 
-		l := emitter.AddListener()
-		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO}
+		l, err := emitter.AddListener("topic")
+		assert.NoError(err, "emitter.AddListener(topic)")
+
+		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO, Topic: "topic"}
 		emitter.Emit(e1)
 
 		removeChan := make(chan struct{})
@@ -126,6 +196,6 @@ func TestEmitter(t *testing.T) {
 		<-time.After(5 * time.Millisecond)
 
 		// Event should have been dropped and listener removed.
-		assert.Equal(0, emitter.GetListenersCount(), "emitter.GetListenersCount()")
+		assert.Equal(0, emitter.GetListenersCount("topic"), "emitter.GetListenersCount()")
 	})
 }

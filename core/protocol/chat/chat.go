@@ -95,6 +95,7 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	chatEvent := &pbevent.Event{
 		Message: fmt.Sprintf("[%s] %s", from, message.Message),
 		Level:   pbevent.Level_INFO,
+		Topic:   fmt.Sprintf("chat.%s", from),
 	}
 
 	c.eventEmitter.Emit(chatEvent)

@@ -21,15 +21,25 @@ import (
 	"sync"
 	"time"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+
+	"github.com/gobwas/glob"
+	"github.com/pkg/errors"
+
 	pb "github.com/stratumn/alice/grpc/event"
+)
+
+var (
+	// ErrNotSupportedTopic is returned when the topic cannot be parsed.
+	ErrNotSupportedTopic = errors.New("topic cannot be parsed")
 )
 
 // Emitter emits events.
 // Listeners can be added and removed.
 type Emitter interface {
-	AddListener() <-chan *pb.Event
+	AddListener(topic string) (<-chan *pb.Event, error)
 	RemoveListener(<-chan *pb.Event)
-	GetListenersCount() int
+	GetListenersCount(topic string) int
 	Emit(*pb.Event)
 	Close()
 }
@@ -42,30 +52,45 @@ type ServerEmitter struct {
 	timeout time.Duration
 
 	mu        sync.RWMutex
-	listeners []chan *pb.Event
+	listeners map[*listener]struct{}
 
 	pending sync.WaitGroup
+}
+
+type listener struct {
+	topic       glob.Glob
+	receiveChan chan *pb.Event
 }
 
 // NewEmitter creates a new event emitter.
 func NewEmitter(timeout time.Duration) Emitter {
 	return &ServerEmitter{
-		timeout: timeout,
+		timeout:   timeout,
+		listeners: make(map[*listener]struct{}),
 	}
 }
 
 // AddListener adds an event listener.
 // It returns the channel on which events will be pushed.
-func (e *ServerEmitter) AddListener() <-chan *pb.Event {
-	log.Event(context.Background(), "AddListener")
+func (e *ServerEmitter) AddListener(topic string) (<-chan *pb.Event, error) {
+	log.Event(context.Background(), "AddListener", logging.Metadata{
+		"topic": topic,
+	})
+
+	g, err := glob.Compile(topic, '.')
+	if err != nil {
+		return nil, errors.WithMessage(errors.WithStack(err), topic)
+	}
 
 	receiveChan := make(chan *pb.Event)
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.listeners = append(e.listeners, receiveChan)
-	return receiveChan
+	e.listeners[&listener{g,
+		receiveChan}] = struct{}{}
+
+	return receiveChan, nil
 }
 
 // RemoveListener removes an event listener.
@@ -79,21 +104,28 @@ func (e *ServerEmitter) RemoveListener(listener <-chan *pb.Event) {
 	// If needed, we could be smarter and have a sync.WaitGroup per channel.
 	e.pending.Wait()
 
-	for i, l := range e.listeners {
-		if l == listener {
-			e.listeners[i] = e.listeners[len(e.listeners)-1]
-			e.listeners = e.listeners[:len(e.listeners)-1]
+	for l := range e.listeners {
+		if l.receiveChan == listener {
+			delete(e.listeners, l)
 			break
 		}
 	}
 }
 
-// GetListenersCount returns the number of active listeners.
-func (e *ServerEmitter) GetListenersCount() int {
+// GetListenersCount returns the number of active listeners on a topic.
+func (e *ServerEmitter) GetListenersCount(topic string) int {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	return len(e.listeners)
+	count := 0
+
+	for l := range e.listeners {
+		if l.topic.Match(topic) {
+			count++
+		}
+	}
+
+	return count
 }
 
 // Emit emits an event to connected listeners.
@@ -101,18 +133,20 @@ func (e *ServerEmitter) Emit(ev *pb.Event) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	for _, listener := range e.listeners {
-		e.pending.Add(1)
+	for l := range e.listeners {
+		if l.topic.Match(ev.Topic) {
+			e.pending.Add(1)
 
-		go func(l chan *pb.Event) {
-			select {
-			case l <- ev:
-			case <-time.After(e.timeout):
-				break
-			}
+			go func(l chan *pb.Event) {
+				select {
+				case l <- ev:
+				case <-time.After(e.timeout):
+					break
+				}
 
-			e.pending.Done()
-		}(listener)
+				e.pending.Done()
+			}(l.receiveChan)
+		}
 	}
 }
 
@@ -124,8 +158,8 @@ func (e *ServerEmitter) Close() {
 	// We need to wait for pending messages to be delivered or dropped.
 	e.pending.Wait()
 
-	for _, listener := range e.listeners {
-		close(listener)
+	for l := range e.listeners {
+		close(l.receiveChan)
 	}
 
 	e.listeners = nil

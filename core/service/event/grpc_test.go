@@ -44,10 +44,10 @@ func TestGRPCServer_Listen_Add_Remove_Listeners(t *testing.T) {
 	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
 
 	ss.EXPECT().Context().AnyTimes().Return(ctx)
-	addListener := mockEmitter.EXPECT().AddListener().Times(1)
+	addListener := mockEmitter.EXPECT().AddListener("topic").Times(1)
 	mockEmitter.EXPECT().RemoveListener(gomock.Any()).After(addListener).Times(1)
 
-	assert.NoError(t, srv.Listen(&pb.ListenReq{}, ss), "srv.Listen()")
+	assert.NoError(t, srv.Listen(&pb.ListenReq{Topic: "topic"}, ss), "srv.Listen()")
 }
 
 func TestGRPCServer_Listen_Send_Events(t *testing.T) {
@@ -66,13 +66,13 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 
 	errChan := make(chan error)
 	go func() {
-		err := srv.Listen(&pb.ListenReq{}, ss)
+		err := srv.Listen(&pb.ListenReq{Topic: "topic"}, ss)
 		errChan <- err
 	}()
 
 	// We wait for the server to register a listener before emitting.
 	for {
-		if emitter.GetListenersCount() == 1 {
+		if emitter.GetListenersCount("topic") == 1 {
 			break
 		} else {
 			runtime.Gosched()
@@ -82,6 +82,7 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 	e := &pb.Event{
 		Message: "Hello",
 		Level:   pb.Level_INFO,
+		Topic:   "topic",
 	}
 	emitter.Emit(e)
 	ss.EXPECT().Send(e)

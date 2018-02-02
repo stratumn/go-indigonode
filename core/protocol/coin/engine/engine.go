@@ -54,3 +54,12 @@ type ProofOfWait interface {
 	// milliseconds necessary to produce a block.
 	Interval() (int, int)
 }
+
+// PoW is a consensus engine based on a proof-of-work algorithm.
+type PoW interface {
+	Engine
+
+	// Difficulty returns the difficulty of the proof-of-work.
+	// Blocks that don't conform to the current difficulty will be rejected.
+	Difficulty() uint64
+}

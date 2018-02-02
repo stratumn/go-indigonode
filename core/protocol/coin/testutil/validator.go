@@ -87,7 +87,7 @@ func (r *InstrumentedValidator) ValidatedBlock(block *pb.Block) bool {
 
 var (
 	// ErrRejected is the error returns by Rejector.
-	ErrRejected = errors.New("Rejected")
+	ErrRejected = errors.New("rejected")
 )
 
 // Rejector implements the Validator interface and rejects

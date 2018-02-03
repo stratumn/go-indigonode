@@ -29,13 +29,6 @@ var (
 	// the current balance.
 	ErrAmountTooBig = errors.New("amount is too big")
 
-	// ErrInvalidAccount is returned when the binary representation of an
-	// account is invalid.
-	ErrInvalidAccount = errors.New("account is invalid")
-
-	// ErrInvalidBatch is returned when a batch is invalid.
-	ErrInvalidBatch = errors.New("batch is invalid")
-
 	// ErrInvalidJobID is returned when a job ID is invalid.
 	ErrInvalidJobID = errors.New("job ID is invalid")
 
@@ -95,16 +88,12 @@ type stateDB struct {
 
 	// jobIDLen is the bytesize of a job ID.
 	//
-	// It is required because we iterate over keys prefixed by the jobID.
-	// If the keys were not always the same size they could conflict.
+	// It is required because to prevent collision of keys.
 	//
 	// For example:
 	//
 	//	jobA  + BC -> jobABC
 	//	jobAB + C  -> jobABC
-	//
-	// Here the key jobABC would be included whether iterating over jobA or
-	// jobAB.
 	jobIDSize int
 
 	diff *db.Diff
@@ -179,7 +168,7 @@ func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
 
-	// Four bytes per transaction.
+	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {

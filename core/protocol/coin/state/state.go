@@ -16,6 +16,7 @@ package state
 
 import (
 	"encoding/binary"
+	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
@@ -58,9 +59,6 @@ type Reader interface {
 }
 
 // Writer gives write access to users' account balances.
-//
-// NOTE: we could expose methods that take an existing database transaction
-// so that you can run a transaction on both the state and the chain.
 type Writer interface {
 	// UpdateAccount sets or updates the account of a user identified by
 	// his public key. It should only be used for testing as it cannot be
@@ -89,9 +87,10 @@ var (
 	prevNoncesPrefix = []byte{1}
 )
 
-// stateDB implements the State interface using a key-value database.
 type stateDB struct {
-	db     db.DB
+	mu sync.RWMutex
+	db db.DB
+
 	prefix []byte
 
 	// jobIDLen is the bytesize of a job ID.
@@ -107,6 +106,8 @@ type stateDB struct {
 	// Here the key jobABC would be included whether iterating over jobA or
 	// jobAB.
 	jobIDSize int
+
+	diff *db.Diff
 }
 
 // NewState creates a new state from a DB instance.
@@ -117,8 +118,13 @@ type stateDB struct {
 // OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
 //
 // All job IDs must have the given bytesize.
-func NewState(db db.DB, prefix []byte, jobIDSize int) State {
-	return &stateDB{db: db, prefix: prefix, jobIDSize: jobIDSize}
+func NewState(database db.DB, prefix []byte, jobIDSize int) State {
+	return &stateDB{
+		db:        database,
+		prefix:    prefix,
+		jobIDSize: jobIDSize,
+		diff:      db.NewDiff(database),
+	}
 }
 
 func (s *stateDB) GetAccount(pubKey []byte) (*pb.Account, error) {
@@ -143,6 +149,9 @@ func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (*pb.Account, error
 }
 
 func (s *stateDB) UpdateAccount(pubKey []byte, account *pb.Account) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.doUpdateAccount(s.db, pubKey, account)
 }
 
@@ -166,102 +175,54 @@ func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error
 		return ErrInvalidJobID
 	}
 
-	dbtx, err := s.db.Transaction()
-	if err != nil {
-		return err
-	}
-
-	// Save the current nonces.
-	if err := s.doSaveNonces(dbtx, jobID, txs); err != nil {
-		dbtx.Discard()
-		return err
-	}
-
-	// Update balances and nonces.
-	if err := s.doTransactions(dbtx, jobID, txs); err != nil {
-		dbtx.Discard()
-		return err
-	}
-
-	return dbtx.Commit()
-}
-
-// doSaveNonces saves the current nonces of all the senders using anything that
-// implements db.ReadWriter.
-func (s *stateDB) doSaveNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
-	if s.jobIDSize != len(jobID) {
-		return ErrInvalidJobID
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	defer s.diff.Reset()
 
 	// Four bytes per transaction.
-	buf := make([]byte, len(txs)*8)
+	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {
-		account, err := s.doGetAccount(dbrw, tx.From)
+		from, err := s.doGetAccount(s.diff, tx.From)
 		if err != nil {
 			return err
 		}
 
-		binary.LittleEndian.PutUint64(buf[i*8:], account.Nonce)
-	}
+		binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
-	return dbrw.Put(s.prevNoncesPrefix(jobID), buf)
-}
-
-// doTransactions updates the accounts given a slice of transactions using
-// anything that implements db.ReadWriter.
-func (s *stateDB) doTransactions(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
-	for _, tx := range txs {
-		if err := s.doTransaction(dbrw, jobID, tx); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// doTransaction updates a pair of accounts given a transaction using anything
-// that implements db.ReadWriter.
-func (s *stateDB) doTransaction(dbrw db.ReadWriter, jobID []byte, tx *pb.Transaction) error {
-	// Subtract amount from sender.
-	err := s.incBalance(dbrw, tx.From, false, true, tx.Value, tx.Nonce)
-	if err != nil {
-		return err
-	}
-
-	// Add amount to receiver.
-	return s.incBalance(dbrw, tx.To, true, false, tx.Value, 0)
-}
-
-// incBalance adds or subtracts coins from an account using anything that
-// implements db.ReadWriter.
-func (s *stateDB) incBalance(
-	dbrw db.ReadWriter,
-	pubKey []byte,
-	add, updateNonce bool,
-	amount, nonce uint64,
-) error {
-	account, err := s.doGetAccount(dbrw, pubKey)
-	if err != nil {
-		return nil
-	}
-
-	// Update value.
-	if add {
-		account.Balance += amount
-	} else {
-		if amount > account.Balance {
+		// Subtract amount from sender and update nonce.
+		if from.Balance < tx.Value {
 			return ErrAmountTooBig
 		}
 
-		account.Balance -= amount
+		from.Balance -= tx.Value
+		from.Nonce = tx.Nonce
+
+		err = s.doUpdateAccount(s.diff, tx.From, from)
+		if err != nil {
+			return err
+		}
+
+		// Add amount to receiver.
+		to, err := s.doGetAccount(s.diff, tx.To)
+		if err != nil {
+			return err
+		}
+
+		to.Balance += tx.Value
+
+		err = s.doUpdateAccount(s.diff, tx.To, to)
+		if err != nil {
+			return err
+		}
+
 	}
 
-	if updateNonce {
-		account.Nonce = nonce
+	if err := s.diff.Put(s.prevNoncesKey(jobID), nonces); err != nil {
+		return err
 	}
 
-	return s.doUpdateAccount(dbrw, pubKey, account)
+	return s.diff.Apply()
 }
 
 func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) error {
@@ -269,59 +230,11 @@ func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) erro
 		return ErrInvalidJobID
 	}
 
-	dbtx, err := s.db.Transaction()
-	if err != nil {
-		return err
-	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	defer s.diff.Reset()
 
-	// Restore balances.
-	if err := s.doRollbackTransactions(dbtx, jobID, txs); err != nil {
-		dbtx.Discard()
-		return err
-	}
-
-	// Restore nonces.
-	if err := s.doRestoreNonces(dbtx, jobID, txs); err != nil {
-		dbtx.Discard()
-		return err
-	}
-
-	return dbtx.Commit()
-}
-
-// doRollbackTransactions reverts transactions using anything that implements
-// db.ReadWriter. It does not revert nonces.
-func (s *stateDB) doRollbackTransactions(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
-	for i := len(txs) - 1; i >= 0; i-- {
-		tx := txs[i]
-
-		if err := s.doRollbackTransaction(dbrw, jobID, tx); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// doRollbackTransaction reverts a transaction using anything that implements
-// db.ReadWriter. It does not revert the nonces.
-func (s *stateDB) doRollbackTransaction(dbrw db.ReadWriter, jobID []byte, tx *pb.Transaction) error {
-	// Add amount to sender.
-	err := s.incBalance(dbrw, tx.From, true, false, tx.Value, 0)
-	if err != nil {
-		return err
-	}
-
-	// Subtract amount from receiver.
-	return s.incBalance(dbrw, tx.To, false, false, tx.Value, 0)
-}
-
-// doRestoreNonces restores the nonces to what they were before the given
-// transactions using anything that implements db.ReadWriter.
-func (s *stateDB) doRestoreNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
-	key := s.prevNoncesPrefix(jobID)
-
-	nonces, err := dbrw.Get(key)
+	nonces, err := s.db.Get(s.prevNoncesKey(jobID))
 	if err != nil {
 		return err
 	}
@@ -333,19 +246,39 @@ func (s *stateDB) doRestoreNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Tr
 	for i := len(txs) - 1; i >= 0; i-- {
 		tx := txs[i]
 
-		account, err := s.doGetAccount(dbrw, tx.From)
+		// Add amount to sender and restore nonce.
+		from, err := s.doGetAccount(s.diff, tx.From)
+		if err != nil {
+			return nil
+		}
+
+		from.Balance += tx.Value
+		from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
+
+		err = s.doUpdateAccount(s.diff, tx.From, from)
 		if err != nil {
 			return err
 		}
 
-		account.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
+		// Subtract amount from received.
+		to, err := s.doGetAccount(s.diff, tx.To)
+		if err != nil {
+			return nil
+		}
 
-		if err := s.doUpdateAccount(dbrw, tx.From, account); err != nil {
+		to.Balance -= tx.Value
+
+		err = s.doUpdateAccount(s.diff, tx.To, to)
+		if err != nil {
 			return err
 		}
 	}
 
-	return dbrw.Delete(key)
+	if err := s.diff.Delete(s.prevNoncesKey(jobID)); err != nil {
+		return err
+	}
+
+	return s.diff.Apply()
 }
 
 // accountKey returns the key corresponding to an account given its public key.
@@ -354,6 +287,6 @@ func (s *stateDB) accountKey(pubKey []byte) []byte {
 }
 
 // prevNoncesKey returns the previous nonces key for the given job ID.
-func (s *stateDB) prevNoncesPrefix(jobID []byte) []byte {
+func (s *stateDB) prevNoncesKey(jobID []byte) []byte {
 	return append(append(s.prefix, prevNoncesPrefix...), jobID...)
 }

@@ -27,12 +27,29 @@ var (
 	ErrInvalidTransaction = errors.New("transaction is invalid")
 )
 
+// DB can read and write values to a key-value database.
+//
+// Implementations should be concurrently safe.
+type DB interface {
+	Reader
+	Ranger
+	Writer
+	Batcher
+	Transactor
+
+	// Close may close the underlying storage.
+	Close() error
+}
+
 // Reader reads values from a key-value database.
 type Reader interface {
 	// Get returns the value of a key. If the key doesn't exist, it returns
 	// ErrNotFound (which feels a bit safer than returning nil).
 	Get(key []byte) ([]byte, error)
+}
 
+// Ranger can iterate over ranges.
+type Ranger interface {
 	// IteratePrefix creates an iterator that iterates over all the keys
 	// that begin with the given prefix. Remember to call Release() on the
 	// iterator.
@@ -46,13 +63,16 @@ type Writer interface {
 
 	// Delete removes a key. If the key doesn't exist, it is a NOP.
 	Delete(key []byte) error
+}
 
+// Batcher can batch write.
+type Batcher interface {
 	// Batch creates a batch which can be used to execute multiple write
-	// operations efficiently.
+	// operations atomically and efficiently.
 	Batch() Batch
 
-	// Write executes all the operations in a batch. It may write
-	// concurrently.
+	// Write executes all the operations in a batch atomically. It may
+	// write concurrently.
 	Write(Batch) error
 }
 
@@ -62,11 +82,11 @@ type ReadWriter interface {
 	Writer
 }
 
-// Transactor can create database transactions.
-type Transactor interface {
-	// Transaction creates a transaction which can be used to execute
-	// multiple operations atomically.
-	Transaction() (Transaction, error)
+// ReadWriteBatcher can both read, write, and batch write values to a key-value
+// database.
+type ReadWriteBatcher interface {
+	ReadWriter
+	Batcher
 }
 
 // Iterator iterates over a range of keys in the key-value database.
@@ -84,18 +104,6 @@ type Iterator interface {
 	Release()
 }
 
-// DB can read and write values to a key-value database.
-//
-// Implementations should be concurrently safe.
-type DB interface {
-	Reader
-	Writer
-	Transactor
-
-	// Close may close the underlying storage.
-	Close() error
-}
-
 // Batch can execute multiple write operations efficiently. It is only intended
 // to be used once. When writing the batch to the database, the operations may
 // execute concurrently, so order is not guaranteed.
@@ -107,11 +115,20 @@ type Batch interface {
 	Delete(key []byte)
 }
 
+// Transactor can create database transactions.
+type Transactor interface {
+	// Transaction creates a transaction which can be used to execute
+	// multiple operations atomically.
+	Transaction() (Transaction, error)
+}
+
 // Transaction can be used to execute multiple operations atomically. It should
 // be closed exactly once by calling either Commit or Discard.
 type Transaction interface {
 	Reader
+	Ranger
 	Writer
+	Batcher
 
 	// Commit should be called to commit the transaction to the database.
 	Commit() error

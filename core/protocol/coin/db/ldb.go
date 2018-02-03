@@ -79,12 +79,20 @@ func (db levelDB) Get(key []byte) ([]byte, error) {
 	return v, ldbErr(err)
 }
 
+func (db levelDB) IteratePrefix(prefix []byte) Iterator {
+	return db.ldb.NewIterator(util.BytesPrefix(prefix), nil)
+}
+
 func (db levelDB) Put(key, value []byte) error {
 	return ldbErr(db.ldb.Put(key, value, nil))
 }
 
 func (db levelDB) Delete(key []byte) error {
 	return ldbErr(db.ldb.Delete(key, nil))
+}
+
+func (db levelDB) Batch() Batch {
+	return &leveldb.Batch{}
 }
 
 func (db levelDB) Write(batch Batch) error {
@@ -94,14 +102,6 @@ func (db levelDB) Write(batch Batch) error {
 	}
 
 	return ldbErr(db.ldb.Write(b, nil))
-}
-
-func (db levelDB) IteratePrefix(prefix []byte) Iterator {
-	return db.ldb.NewIterator(util.BytesPrefix(prefix), nil)
-}
-
-func (db levelDB) Batch() Batch {
-	return &leveldb.Batch{}
 }
 
 func (db levelDB) Transaction() (Transaction, error) {
@@ -126,12 +126,20 @@ func (tx levelDBTx) Get(key []byte) ([]byte, error) {
 	return v, ldbErr(err)
 }
 
+func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {
+	return tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil)
+}
+
 func (tx levelDBTx) Put(key, value []byte) error {
 	return ldbErr(tx.ldbtx.Put(key, value, nil))
 }
 
 func (tx levelDBTx) Delete(key []byte) error {
 	return ldbErr(tx.ldbtx.Delete(key, nil))
+}
+
+func (tx levelDBTx) Batch() Batch {
+	return &leveldb.Batch{}
 }
 
 func (tx levelDBTx) Write(batch Batch) error {
@@ -149,12 +157,4 @@ func (tx levelDBTx) Commit() error {
 
 func (tx levelDBTx) Discard() {
 	tx.ldbtx.Discard()
-}
-
-func (tx levelDBTx) Batch() Batch {
-	return &leveldb.Batch{}
-}
-
-func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {
-	return tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil)
 }

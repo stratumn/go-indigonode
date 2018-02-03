@@ -34,28 +34,29 @@ func TestState(t *testing.T) {
 	}{{
 		"set-get",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 10, Nonce: 1})
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 10, Nonce: 1})
 			assert.NoError(t, err, "s.UpdateAccount()")
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{Balance: 10, Nonce: 1}, v)
+			assert.Equal(t, &pb.Account{Balance: 10, Nonce: 1}, v)
 
-			assert.NoError(t, s.UpdateAccount(alice, Account{Balance: 20}), "s.UpdateAccount()")
+			err = s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{Balance: 20}, v)
+			assert.Equal(t, &pb.Account{Balance: 20}, v)
 		},
 	}, {
 		"get-inexisting",
 		func(t *testing.T, s State) {
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{}, v)
+			assert.Equal(t, &pb.Account{}, v)
 		},
 	}, {
 		"process-transactions",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 20})
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
 
 			txs := []*pb.Transaction{{
@@ -80,20 +81,20 @@ func TestState(t *testing.T) {
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 		},
 	}, {
 		"process-transactions-too-big",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 20})
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
 
 			txs := []*pb.Transaction{{
@@ -114,7 +115,7 @@ func TestState(t *testing.T) {
 	}, {
 		"rollback-transactions",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 20})
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
 
 			// Process two jobs.
@@ -161,15 +162,15 @@ func TestState(t *testing.T) {
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 
 			// Rollback job1.
 
@@ -178,15 +179,15 @@ func TestState(t *testing.T) {
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 20}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, Account{}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
 		},
 	}, {
 		"rollback-transactions-invalid-job-id",
@@ -205,9 +206,4 @@ func TestState(t *testing.T) {
 			tt.run(t, NewState(memdb, []byte("test-"), 4))
 		})
 	}
-}
-
-func TestDecodeAccount_invalid(t *testing.T) {
-	_, err := DecodeAccount([]byte("alice"))
-	assert.EqualError(t, err, ErrInvalidAccount.Error())
 }

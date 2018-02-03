@@ -37,6 +37,10 @@ var (
 
 	// ErrInvalidJobID is returned when a job ID is invalid.
 	ErrInvalidJobID = errors.New("job ID is invalid")
+
+	// ErrInconsistentTransactions is returned when the transactions to
+	// roll back are inconsistent with the saved nonces.
+	ErrInconsistentTransactions = errors.New("transactions are inconsistent")
 )
 
 // State stores users' account balances.
@@ -81,8 +85,8 @@ var (
 	// accountPrefix is the prefix for account keys.
 	accountPrefix = []byte{0}
 
-	// prevNoncePrefix is the prefix for previous nonce keys.
-	prevNoncePrefix = []byte{1}
+	// prevNoncesPrefix is the prefix for previous nonces keys.
+	prevNoncesPrefix = []byte{1}
 )
 
 // stateDB implements the State interface using a key-value database.
@@ -189,25 +193,19 @@ func (s *stateDB) doSaveNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Trans
 		return ErrInvalidJobID
 	}
 
-	// Note: it might save the nonce of the same account multiple times,
-	// but it has no impact on the integrity of the state (and probably
-	// very little on performance).
+	// Four bytes per transaction.
+	buf := make([]byte, len(txs)*8)
 
-	for _, tx := range txs {
+	for i, tx := range txs {
 		account, err := s.doGetAccount(dbrw, tx.From)
 		if err != nil {
 			return err
 		}
 
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, account.Nonce)
-
-		if err := dbrw.Put(s.prevNonceKey(jobID, tx.From), buf); err != nil {
-			return err
-		}
+		binary.LittleEndian.PutUint64(buf[i*8:], account.Nonce)
 	}
 
-	return nil
+	return dbrw.Put(s.prevNoncesPrefix(jobID), buf)
 }
 
 // doTransactions updates the accounts given a slice of transactions using
@@ -321,32 +319,33 @@ func (s *stateDB) doRollbackTransaction(dbrw db.ReadWriter, jobID []byte, tx *pb
 // doRestoreNonces restores the nonces to what they were before the given
 // transactions using anything that implements db.ReadWriter.
 func (s *stateDB) doRestoreNonces(dbrw db.ReadWriter, jobID []byte, txs []*pb.Transaction) error {
-	iter := dbrw.IteratePrefix(s.prevNoncePrefix(jobID))
-	defer iter.Release()
+	key := s.prevNoncesPrefix(jobID)
 
-	for iter.Next() {
-		// Get the public key part from the key.
-		from := iter.Key()[len(s.prevNoncePrefix(jobID)):]
+	nonces, err := dbrw.Get(key)
+	if err != nil {
+		return err
+	}
 
-		// Update the account nonce.
-		account, err := s.doGetAccount(dbrw, from)
+	if len(nonces) != len(txs)*8 {
+		return ErrInconsistentTransactions
+	}
+
+	for i := len(txs) - 1; i >= 0; i-- {
+		tx := txs[i]
+
+		account, err := s.doGetAccount(dbrw, tx.From)
 		if err != nil {
 			return err
 		}
 
-		account.Nonce = binary.LittleEndian.Uint64(iter.Value())
+		account.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
 
-		if err := s.doUpdateAccount(dbrw, from, account); err != nil {
-			return err
-		}
-
-		// We can delete the nonce now to save space.
-		if err := dbrw.Delete(iter.Key()); err != nil {
+		if err := s.doUpdateAccount(dbrw, tx.From, account); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return dbrw.Delete(key)
 }
 
 // accountKey returns the key corresponding to an account given its public key.
@@ -354,13 +353,7 @@ func (s *stateDB) accountKey(pubKey []byte) []byte {
 	return append(append(s.prefix, accountPrefix...), pubKey...)
 }
 
-// prevNoncePrefix returns the previous nonce key prefix for the given job ID.
-func (s *stateDB) prevNoncePrefix(jobID []byte) []byte {
-	return append(append(s.prefix, prevNoncePrefix...), jobID...)
-}
-
-// prevNonceKey returns the key corresponding to a previous nonce given a job
-// ID and the public key of the sender.
-func (s *stateDB) prevNonceKey(jobID, pubKey []byte) []byte {
-	return append(s.prevNoncePrefix(jobID), pubKey...)
+// prevNoncesKey returns the previous nonces key for the given job ID.
+func (s *stateDB) prevNoncesPrefix(jobID []byte) []byte {
+	return append(append(s.prefix, prevNoncesPrefix...), jobID...)
 }

@@ -58,6 +58,7 @@ type Protocol interface {
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
 	engine    engine.Engine
+	state     state.State
 	mempool   state.Mempool
 	processor processor.Processor
 	validator validator.Validator
@@ -78,6 +79,7 @@ func NewCoin(
 
 	return &Coin{
 		engine:    e,
+		state:     s,
 		mempool:   m,
 		processor: p,
 		validator: v,
@@ -125,6 +127,11 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 			})
 		}
 	}
+}
+
+// State returns the read-only state.
+func (c *Coin) State() state.Reader {
+	return c.state
 }
 
 // AddTransaction validates incoming transactions against the latest state

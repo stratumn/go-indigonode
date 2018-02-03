@@ -18,13 +18,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-func BenchmarkState(b *testing.B) {
+func bench(b *testing.B, fn func(*testing.B, db.DB)) {
 	filename, err := ioutil.TempDir("", "")
 	if err != nil {
 		b.Fatal(err)
@@ -37,12 +38,74 @@ func BenchmarkState(b *testing.B) {
 	}
 	defer db.Close()
 
+	b.ResetTimer()
+	fn(b, db)
+}
+
+func BenchmarkState_Read(b *testing.B) {
+	bench(b, func(b *testing.B, database db.DB) {
+		s := NewState(database, nil, 14)
+
+		for i := 0; i < 10000; i++ {
+			err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
+				Balance: uint64(i),
+			})
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+
+		b.ResetTimer()
+
+		for i := 0; i < b.N; i++ {
+			_, err := s.GetAccount([]byte(fmt.Sprintf("#%10d", i%10000)))
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkState_Read_parallel(b *testing.B) {
+	bench(b, func(b *testing.B, database db.DB) {
+		b.RunParallel(func(p *testing.PB) {
+			s := NewState(database, nil, 14)
+
+			for i := 0; i < 10000; i++ {
+				err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
+					Balance: uint64(i),
+				})
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+
+			b.ResetTimer()
+
+			var i int64
+
+			for p.Next() {
+				atomic.AddInt64(&i, 1)
+				_, err := s.GetAccount([]byte(fmt.Sprintf("#%10d", i)))
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	})
+}
+
+func BenchmarkState_Write(b *testing.B) {
 	for i := 1; i < 100000; i *= 10 {
 		b.Run(fmt.Sprintf("process-transactions-block-size-%d", i), func(b *testing.B) {
-			benchmarkProcess(b, db, i)
+			bench(b, func(b *testing.B, database db.DB) {
+				benchmarkProcess(b, database, i)
+			})
 		})
 		b.Run(fmt.Sprintf("rollback-transactions-block-size-%d", i), func(b *testing.B) {
-			benchmarkRollback(b, db, i)
+			bench(b, func(b *testing.B, database db.DB) {
+				benchmarkRollback(b, database, i)
+			})
 		})
 	}
 }

@@ -52,7 +52,7 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 	s := NewState(db, nil, 14)
 
 	for i := 0; i < n; i++ {
-		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), Account{
+		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
 			Balance: 1, // no need to make it more :)
 		})
 		if err != nil {
@@ -85,7 +85,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	s := NewState(db, nil, 14)
 
 	for i := 0; i < n; i++ {
-		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), Account{
+		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
 			Balance: 1, // no need to make it more :)
 		})
 		if err != nil {

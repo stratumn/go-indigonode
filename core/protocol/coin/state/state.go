@@ -17,6 +17,7 @@ package state
 import (
 	"encoding/binary"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -38,40 +39,6 @@ var (
 	ErrInvalidJobID = errors.New("job ID is invalid")
 )
 
-// Account describes a user account.
-//
-// NOTE: we should make it a protobuf message, it would be easier to make
-// changes and we will probably need it for the API.
-type Account struct {
-	// Balance is the number of coins the user has.
-	Balance uint64
-
-	// Nonce is the latest transaction nonce seen by the system.
-	// It can only increase.
-	Nonce uint64
-}
-
-// DecodeAccount decodes an account from its binary representation.
-func DecodeAccount(buf []byte) (Account, error) {
-	if len(buf) != 16 {
-		return Account{}, ErrInvalidAccount
-	}
-
-	return Account{
-		Balance: binary.LittleEndian.Uint64(buf),
-		Nonce:   binary.LittleEndian.Uint64(buf[8:]),
-	}, nil
-}
-
-// Encode encodes an account to its binary representation.
-func (a Account) Encode() []byte {
-	v := make([]byte, 16)
-	binary.LittleEndian.PutUint64(v, a.Balance)
-	binary.LittleEndian.PutUint64(v[8:], a.Nonce)
-
-	return v
-}
-
 // State stores users' account balances.
 type State interface {
 	Reader
@@ -82,7 +49,7 @@ type State interface {
 type Reader interface {
 	// GetAccount gets the account details of a user identified
 	// by his public key. It returns Account{} if the account is not found.
-	GetAccount(pubKey []byte) (Account, error)
+	GetAccount(pubKey []byte) (*pb.Account, error)
 }
 
 // Writer gives write access to users' account balances.
@@ -93,7 +60,7 @@ type Writer interface {
 	// UpdateAccount sets or updates the account of a user identified by
 	// his public key. It should only be used for testing as it cannot be
 	// rolled back.
-	UpdateAccount(pubKey []byte, value Account) error
+	UpdateAccount(pubKey []byte, account *pb.Account) error
 
 	// ProcessTransactions processes all the given transactions and updates
 	// the state accordingly. It should be given a unique job ID, for
@@ -149,37 +116,44 @@ func NewState(db db.DB, prefix []byte, jobIDSize int) State {
 	return &stateDB{db: db, prefix: prefix, jobIDSize: jobIDSize}
 }
 
-func (s *stateDB) GetAccount(pubKey []byte) (Account, error) {
+func (s *stateDB) GetAccount(pubKey []byte) (*pb.Account, error) {
 	return s.doGetAccount(s.db, pubKey)
 }
 
 // doGetAccount is able to get an account using anything that implements the
 // db.Reader interface.
-func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (Account, error) {
-	v, err := dbr.Get(s.accountKey(pubKey))
+func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (*pb.Account, error) {
+	buf, err := dbr.Get(s.accountKey(pubKey))
 	if errors.Cause(err) == db.ErrNotFound {
-		return Account{}, nil
+		return &pb.Account{}, nil
 	}
-
 	if err != nil {
-		return Account{}, err
+		return nil, err
 	}
 
-	return DecodeAccount(v)
+	var account pb.Account
+	err = proto.Unmarshal(buf, &account)
+
+	return &account, errors.WithStack(err)
 }
 
-func (s *stateDB) UpdateAccount(pubKey []byte, value Account) error {
-	return s.doUpdateAccount(s.db, pubKey, value)
+func (s *stateDB) UpdateAccount(pubKey []byte, account *pb.Account) error {
+	return s.doUpdateAccount(s.db, pubKey, account)
 }
 
 // doGetAccount updates an account using anything that implements db.Writer.
-func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, value Account) error {
+func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Account) error {
 	// Delete empty accounts to save space.
-	if value.Balance == 0 && value.Nonce == 0 {
+	if account.Balance == 0 && account.Nonce == 0 {
 		return dbw.Delete(s.accountKey(pubKey))
 	}
 
-	return dbw.Put(s.accountKey(pubKey), value.Encode())
+	buf, err := proto.Marshal(account)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return dbw.Put(s.accountKey(pubKey), buf)
 }
 
 func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error {

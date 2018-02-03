@@ -237,7 +237,7 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 	}
 
 	// Aggregate transactions from the same sender and verify balance.
-	txs := make(map[peer.ID]state.Account)
+	txs := make(map[peer.ID]*pb.Account)
 	for _, tx := range block.Transactions {
 		// We need to validate each Tx individually as well so that balance
 		// cannot wrap around because of int overflow.
@@ -254,11 +254,11 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 
 		_, ok := txs[senderID]
 		if !ok {
-			txs[senderID] = state.Account{}
+			txs[senderID] = &pb.Account{}
 		}
 
 		account := txs[senderID]
-		txs[senderID] = state.Account{
+		txs[senderID] = &pb.Account{
 			Balance: account.Balance + tx.Value,
 			Nonce:   tx.Nonce,
 		}

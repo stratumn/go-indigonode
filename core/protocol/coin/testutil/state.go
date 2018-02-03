@@ -23,9 +23,9 @@ import (
 )
 
 // NewSimpleState returns a SimpleState ready to use in tests.
-func NewSimpleState(t *testing.T) state.State {
+func NewSimpleState(t *testing.T, jobIDSize int) state.State {
 	memdb, err := db.NewMemDB(nil)
 	require.NoError(t, err, "db.NewMemDB()")
 
-	return state.NewState(memdb, []byte("test-"))
+	return state.NewState(memdb, []byte("test-"), jobIDSize)
 }

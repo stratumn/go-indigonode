@@ -18,9 +18,12 @@ package coin
 
 import (
 	"context"
+	"crypto/sha256"
 
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
+	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -116,8 +119,16 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
+	// TODO: should be a file DB.
+	db, err := db.NewMemDB(nil)
+	if err != nil {
+		return err
+	}
+
+	state := state.NewState(db, nil, sha256.Size)
+
 	coinCtx, cancel := context.WithCancel(ctx)
-	s.coin = protocol.NewCoin(nil, nil, nil, nil, nil, nil)
+	s.coin = protocol.NewCoin(nil, nil, state, nil, nil, nil)
 
 	errChan := make(chan error)
 	go func() {
@@ -140,7 +151,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	cancel()
 
-	err := <-errChan
+	err = <-errChan
 	s.coin = nil
 
 	if err != nil {
@@ -153,6 +164,13 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	rpcpb.RegisterCoinServer(gs, grpcServer{
+		func(peerID []byte) (*pb.Account, error) {
+			if s.coin == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.coin.State().GetAccount(peerID)
+		},
 		func(tx *pb.Transaction) error {
 			if s.coin == nil {
 				return ErrUnavailable

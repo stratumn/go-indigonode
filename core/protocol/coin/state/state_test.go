@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	db "github.com/stratumn/alice/core/protocol/coin/db"
+	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,6 +26,7 @@ import (
 func TestState(t *testing.T) {
 	alice := []byte("alice")
 	bob := []byte("bob")
+	charlie := []byte("charlie")
 
 	tests := []struct {
 		name string
@@ -32,179 +34,166 @@ func TestState(t *testing.T) {
 	}{{
 		"set-get",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 10, Nonce: 1})
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 10, Nonce: 1})
 			assert.NoError(t, err, "s.UpdateAccount()")
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{Balance: 10, Nonce: 1}, v)
+			assert.Equal(t, &pb.Account{Balance: 10, Nonce: 1}, v)
 
-			assert.NoError(t, s.UpdateAccount(alice, Account{Balance: 20}), "s.UpdateAccount()")
+			err = s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{Balance: 20}, v)
+			assert.Equal(t, &pb.Account{Balance: 20}, v)
 		},
 	}, {
 		"get-inexisting",
 		func(t *testing.T, s State) {
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount()")
-			assert.Equal(t, Account{}, v)
+			assert.Equal(t, &pb.Account{}, v)
 		},
 	}, {
-		"transfer",
+		"process-transactions",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 10})
-			assert.NoError(t, err, "s.UpdateAccount(alice)")
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
 
-			err = s.Transfer(alice, bob, 4, 3)
+			txs := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 10,
+				Nonce: 1,
+			}, {
+				From:  bob,
+				To:    charlie,
+				Value: 5,
+				Nonce: 2,
+			}, {
+				From:  charlie,
+				To:    alice,
+				Value: 2,
+				Nonce: 3,
+			}}
+
+			err = s.ProcessTransactions([]byte("job1"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 6, Nonce: 3}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 4}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+
+			v, err = s.GetAccount(charlie)
+			assert.NoError(t, err, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"transfer-too-big",
+		"process-transactions-too-big",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, Account{Balance: 10})
-			assert.NoError(t, err, "s.UpdateAccount(alice)")
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
 
-			err = s.Transfer(alice, bob, 14, 0)
+			txs := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 30,
+			}}
+
+			err = s.ProcessTransactions([]byte("job1"), txs)
 			assert.EqualError(t, err, ErrAmountTooBig.Error())
 		},
 	}, {
-		"write",
+		"process-transactions-invalid-job-id",
 		func(t *testing.T, s State) {
-			b := s.Batch()
-			b.UpdateAccount(alice, Account{Balance: 10})
-			b.UpdateAccount(bob, Account{Balance: 20})
+			err := s.ProcessTransactions([]byte("job10"), nil)
+			assert.EqualError(t, err, ErrInvalidJobID.Error(), "s.ProcessTransactions(job10)")
+		},
+	}, {
+		"rollback-transactions",
+		func(t *testing.T, s State) {
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
 
-			// Make sure state is not updated yet.
+			// Process two jobs.
+
+			txs1 := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 10,
+				Nonce: 1,
+			}, {
+				From:  bob,
+				To:    charlie,
+				Value: 5,
+				Nonce: 2,
+			}, {
+				From:  charlie,
+				To:    alice,
+				Value: 2,
+				Nonce: 3,
+			}}
+
+			txs2 := []*pb.Transaction{{
+				From:  bob,
+				To:    charlie,
+				Value: 4,
+				Nonce: 3,
+			}, {
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Nonce: 4,
+			}}
+
+			err = s.ProcessTransactions([]byte("job1"), txs1)
+			assert.NoError(t, err, "s.ProcessTransactions(job1)")
+
+			err = s.ProcessTransactions([]byte("job2"), txs2)
+			assert.NoError(t, err, "s.ProcessTransactions(job2)")
+
+			// Rollback job2.
+
+			err = s.RollbackTransactions([]byte("job2"), txs2)
+			assert.NoError(t, err, "s.RollbackTransactions(job2)")
+
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{}, v)
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{}, v)
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
 
-			assert.NoError(t, s.Write(b))
+			v, err = s.GetAccount(charlie)
+			assert.NoError(t, err, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 
-			// Make sure state was updated.
+			// Rollback job1.
+
+			err = s.RollbackTransactions([]byte("job1"), txs1)
+			assert.NoError(t, err, "s.RollbackTransactions(job1)")
+
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 10}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 20}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(bob)")
+
+			v, err = s.GetAccount(charlie)
+			assert.NoError(t, err, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"commit",
+		"rollback-transactions-invalid-job-id",
 		func(t *testing.T, s State) {
-			tx, err := s.Transaction()
-			require.NoError(t, err, "s.Transaction()")
-
-			err = tx.UpdateAccount(alice, Account{Balance: 10})
-			assert.NoError(t, err, "tx.UpdateAccount(alice)")
-
-			err = tx.Transfer(alice, bob, 4, 2)
-			assert.NoError(t, err, "tx.Transfer(alice, bob)")
-
-			// Make sure state is not updated yet.
-			v, err := s.GetAccount(alice)
-			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{}, v)
-			v, err = s.GetAccount(bob)
-			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{}, v)
-
-			assert.NoError(t, tx.Commit())
-
-			// Make sure state was updated.
-			v, err = s.GetAccount(alice)
-			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 6, Nonce: 2}, v, "s.GetAccount(alice)")
-
-			v, err = s.GetAccount(bob)
-			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 4}, v, "s.GetAccount(bob)")
-		},
-	}, {
-		"discard",
-		func(t *testing.T, s State) {
-			tx, err := s.Transaction()
-			require.NoError(t, err, "s.Transaction()")
-
-			err = tx.UpdateAccount(alice, Account{Balance: 10})
-			assert.NoError(t, err, "tx.UpdateAccount(alice)")
-
-			err = tx.Transfer(alice, bob, 4, 2)
-			assert.NoError(t, err, "tx.Transfer(alice, bob)")
-
-			// Make sure state is not updated yet.
-			v, err := s.GetAccount(alice)
-			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{}, v)
-			v, err = s.GetAccount(bob)
-			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{}, v)
-
-			tx.Discard()
-
-			// Make sure state was not updated.
-			v, err = s.GetAccount(alice)
-			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{}, v)
-			v, err = s.GetAccount(bob)
-			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{}, v)
-		},
-	}, {
-		"transaction-write",
-		func(t *testing.T, s State) {
-			tx, err := s.Transaction()
-			assert.NoError(t, err, "s.Transaction()")
-
-			b := tx.Batch()
-			b.UpdateAccount(alice, Account{Balance: 10, Nonce: 1})
-			b.UpdateAccount(bob, Account{Balance: 20})
-
-			// Make sure state is not updated yet.
-			v, err := tx.GetAccount(alice)
-			assert.NoError(t, err, "tx.GetAccount(alice)")
-			assert.Equal(t, Account{}, v)
-			v, err = tx.GetAccount(bob)
-			assert.NoError(t, err, "tx.GetAccount(bob)")
-			assert.Equal(t, Account{}, v)
-
-			assert.NoError(t, tx.Write(b))
-
-			assert.NoError(t, tx.Commit(), "tx.Commit()")
-
-			// Make sure state was updated.
-			v, err = s.GetAccount(alice)
-			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, Account{Balance: 10, Nonce: 1}, v, "s.GetAccount(alice)")
-
-			v, err = s.GetAccount(bob)
-			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, Account{Balance: 20}, v, "s.GetAccount(bob)")
-		},
-	}, {
-		"transaction-transfer-too-big",
-		func(t *testing.T, s State) {
-			tx, err := s.Transaction()
-			assert.NoError(t, err, "s.Transaction()")
-
-			tx.UpdateAccount(alice, Account{Balance: 10})
-			assert.NoError(t, err, "tx.UpdateAccount(alice)")
-
-			err = tx.Transfer(alice, bob, 14, 2)
-			assert.EqualError(t, err, ErrAmountTooBig.Error())
+			err := s.RollbackTransactions([]byte("job10"), nil)
+			assert.EqualError(t, err, ErrInvalidJobID.Error(), "s.ProcessTransactions(job10)")
 		},
 	}}
 
@@ -214,12 +203,7 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, []byte("test-")))
+			tt.run(t, NewState(memdb, []byte("test-"), 4))
 		})
 	}
-}
-
-func TestDecodeAccount_invalid(t *testing.T) {
-	_, err := DecodeAccount([]byte("alice"))
-	assert.EqualError(t, err, ErrInvalidAccount.Error())
 }

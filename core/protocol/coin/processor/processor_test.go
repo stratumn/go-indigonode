@@ -30,9 +30,9 @@ func TestProcessor_Process(t *testing.T) {
 	charlie := []byte("charlie")
 
 	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t)
+	s := testutil.NewSimpleState(t, 4)
 
-	err := s.UpdateAccount(alice, state.Account{Balance: 20})
+	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
 	block := &pb.Block{
@@ -58,15 +58,15 @@ func TestProcessor_Process(t *testing.T) {
 
 	v, err := s.GetAccount(alice)
 	assert.NoError(t, err, "s.GetAccount(alice)")
-	assert.Equal(t, state.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+	assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 	v, err = s.GetAccount(bob)
 	assert.NoError(t, err, "s.GetAccount(bob)")
-	assert.Equal(t, state.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+	assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
 
 	v, err = s.GetAccount(charlie)
 	assert.NoError(t, err, "s.GetAccount(charlie)")
-	assert.Equal(t, state.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+	assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 }
 
 func TestProcessor_Process_amountTooBig(t *testing.T) {
@@ -74,9 +74,9 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	bob := []byte("bob")
 
 	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t)
+	s := testutil.NewSimpleState(t, 4)
 
-	err := s.UpdateAccount(alice, state.Account{Balance: 20})
+	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
 	block := &pb.Block{
@@ -96,9 +96,9 @@ func TestProcessor_Process_amountTooBig(t *testing.T) {
 	// Make sure state wasn't updated.
 	v, err := s.GetAccount(alice)
 	assert.NoError(t, err, "s.GetAccount(alice)")
-	assert.Equal(t, state.Account{Balance: 20}, v, "s.GetAccount(alice)")
+	assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(alice)")
 
 	v, err = s.GetAccount(bob)
 	assert.NoError(t, err, "s.GetAccount(bob)")
-	assert.Equal(t, state.Account{}, v, "s.GetAccount(bob)")
+	assert.Equal(t, &pb.Account{}, v, "s.GetAccount(bob)")
 }

@@ -19,13 +19,28 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 
+	"github.com/pkg/errors"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 // grpcServer is a gRPC server for the coin service.
 type grpcServer struct {
+	GetAccount     func([]byte) (*pb.Account, error)
 	AddTransaction func(*pb.Transaction) error
+}
+
+// Account returns an account.
+func (s grpcServer) Account(ctx context.Context, req *rpcpb.AccountReq) (*pb.Account, error) {
+	// Just for validation.
+	_, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return s.GetAccount(req.PeerId)
 }
 
 // Transaction sends a coin transaction to the consensus engine.

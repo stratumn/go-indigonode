@@ -123,11 +123,11 @@ message Block {
 // An account.
 message Account {
     uint64 balance = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Total balance",
+        (stratumn.alice.grpc.ext.field_desc) = "Balance",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
     uint64 nonce = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Nonce to prevent replay attacks",
+        (stratumn.alice.grpc.ext.field_desc) = "Nonce",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
 }

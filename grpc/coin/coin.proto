@@ -23,11 +23,25 @@ option go_package = "github.com/stratumn/alice/grpc/coin;coin";
 
 // The coin service definition.
 service Coin {
+    // Get an account.
+    rpc Account(AccountReq) returns (stratumn.alice.pb.coin.Account) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Display an account";
+    }
+
     // Send a coin transaction to the consensus engine.
     rpc Transaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
         option (stratumn.alice.grpc.ext.method_no_cli) = true;
     }
+}
+
+// The request to get an account.
+message AccountReq {
+    bytes peer_id = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
+      (stratumn.alice.grpc.ext.field_required) = true,
+      (stratumn.alice.grpc.ext.field_base58) = true
+    ];
 }
 
 // The response to a request to do a coin transaction.

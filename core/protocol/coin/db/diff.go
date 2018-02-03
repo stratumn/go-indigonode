@@ -99,13 +99,20 @@ func (d *Diff) Apply() error {
 		return err
 	}
 
-	d.Reset()
+	d.doReset()
 
 	return nil
 }
 
 // Reset resets all the recorded changes.
 func (d *Diff) Reset() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.doReset()
+}
+
+func (d *Diff) doReset() {
 	d.updated = map[string][]byte{}
 	d.deleted = map[string]struct{}{}
 }

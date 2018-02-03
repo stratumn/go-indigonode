@@ -48,13 +48,14 @@ type State interface {
 // Reader gives read access to users' account balances.
 type Reader interface {
 	// GetAccount gets the account details of a user identified
-	// by his public key. It returns Account{} if the account is not found.
+	// by his public key. It returns &pb.Account{} if the account is not
+	// found.
 	GetAccount(pubKey []byte) (*pb.Account, error)
 }
 
 // Writer gives write access to users' account balances.
 //
-// NOTE: we could expose methods that take an existing database transactions
+// NOTE: we could expose methods that take an existing database transaction
 // so that you can run a transaction on both the state and the chain.
 type Writer interface {
 	// UpdateAccount sets or updates the account of a user identified by

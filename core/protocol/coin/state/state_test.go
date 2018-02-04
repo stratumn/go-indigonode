@@ -203,7 +203,7 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, []byte("test-"), 6))
+			tt.run(t, NewState(memdb, OptPrefix([]byte("test-")), OptStateIDLen(6)))
 		})
 	}
 }

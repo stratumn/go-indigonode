@@ -15,6 +15,7 @@
 package state
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"sync"
 
@@ -79,10 +80,9 @@ const (
 )
 
 type stateDB struct {
-	mu sync.RWMutex
-	db db.DB
-
-	prefix []byte
+	mu   sync.RWMutex
+	db   db.DB
+	diff *db.Diff
 
 	// stateIDLen is the bytesize of a state ID.
 	//
@@ -92,9 +92,27 @@ type stateDB struct {
 	//
 	//	stateA  + BC -> stateABC
 	//	stateAB + C  -> stateABC
-	stateIDSize int
+	stateIDLen int
 
-	diff *db.Diff
+	prefix []byte
+}
+
+// Opt is an option for state.
+type Opt func(*stateDB)
+
+// OptPrefix sets a prefix for all the database keys.
+var OptPrefix = func(prefix []byte) Opt {
+	return func(s *stateDB) {
+		s.prefix = prefix
+	}
+}
+
+// OptStateIDLen sets the length of a state ID. They must all have the same
+// length. The default value is `sha256.Size`.
+var OptStateIDLen = func(len int) Opt {
+	return func(s *stateDB) {
+		s.stateIDLen = len
+	}
 }
 
 // NewState creates a new state from a DB instance.
@@ -103,15 +121,18 @@ type stateDB struct {
 //
 // VERY IMPORTANT NOTE: ALL THE DIFFERENT MODULES THAT SHARE THE SAME INSTANCE
 // OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
-//
-// All state IDs must have the given bytesize.
-func NewState(database db.DB, prefix []byte, stateIDSize int) State {
-	return &stateDB{
-		db:          database,
-		prefix:      prefix,
-		stateIDSize: stateIDSize,
-		diff:        db.NewDiff(database),
+func NewState(database db.DB, opts ...Opt) State {
+	s := &stateDB{
+		db:         database,
+		diff:       db.NewDiff(database),
+		stateIDLen: sha256.Size,
 	}
+
+	for _, o := range opts {
+		o(s)
+	}
+
+	return s
 }
 
 func (s *stateDB) GetAccount(pubKey []byte) (*pb.Account, error) {
@@ -158,7 +179,7 @@ func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Acco
 }
 
 func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) error {
-	if s.stateIDSize != len(stateID) {
+	if s.stateIDLen != len(stateID) {
 		return ErrInvalidStateID
 	}
 
@@ -213,7 +234,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 }
 
 func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) error {
-	if s.stateIDSize != len(stateID) {
+	if s.stateIDLen != len(stateID) {
 		return ErrInvalidStateID
 	}
 

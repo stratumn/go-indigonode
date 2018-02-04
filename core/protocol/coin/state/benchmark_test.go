@@ -112,7 +112,7 @@ func BenchmarkState_Write(b *testing.B) {
 
 // Benchmarks b.N blocks of size n.
 func benchmarkProcess(b *testing.B, db db.DB, n int) {
-	s := NewState(db, nil, 14)
+	s := NewState(db, nil, 16)
 
 	for i := 0; i < n; i++ {
 		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
@@ -136,7 +136,7 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("job-%10d", i)), txs)
+		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -145,7 +145,7 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 
 // Benchmarks b.N blocks of size n.
 func benchmarkRollback(b *testing.B, db db.DB, n int) {
-	s := NewState(db, nil, 14)
+	s := NewState(db, nil, 16)
 
 	for i := 0; i < n; i++ {
 		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
@@ -167,7 +167,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("job-%10d", i)), txs)
+		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -176,7 +176,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := b.N - 1; i >= 0; i-- {
-		err := s.RollbackTransactions([]byte(fmt.Sprintf("job-%10d", i)), txs)
+		err := s.RollbackTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -29,8 +29,8 @@ var (
 	// the current balance.
 	ErrAmountTooBig = errors.New("amount is too big")
 
-	// ErrInvalidJobID is returned when a job ID is invalid.
-	ErrInvalidJobID = errors.New("job ID is invalid")
+	// ErrInvalidStateID is returned when a state ID is invalid.
+	ErrInvalidStateID = errors.New("state ID is invalid")
 
 	// ErrInconsistentTransactions is returned when the transactions to
 	// roll back are inconsistent with the saved nonces.
@@ -59,25 +59,23 @@ type Writer interface {
 	UpdateAccount(pubKey []byte, account *pb.Account) error
 
 	// ProcessTransactions processes all the given transactions and updates
-	// the state accordingly. It should be given a unique job ID, for
+	// the state accordingly. It should be given a unique state ID, for
 	// instance the hash of the block containing the transactions.
-	ProcessTransactions(jobID []byte, txs []*pb.Transaction) error
+	ProcessTransactions(stateID []byte, txs []*pb.Transaction) error
 
 	// RollbackTransactions rolls back transactions. The parameters are
 	// expected to be identical to the ones that were given to the
 	// corresponding call to ProcessTransactions().
-	// You should only rollback the job corresponding to the current state.
-	RollbackTransactions(jobID []byte, txs []*pb.Transaction) error
+	// You should only rollback the current state to the previous one.
+	RollbackTransactions(stateID []byte, txs []*pb.Transaction) error
 }
 
-// NOTE: prefixes should have be the same bytesize to prevent unexpected
-// behaviors when iterating over key prefixes. Smaller means less space used.
-var (
+const (
 	// accountPrefix is the prefix for account keys.
-	accountPrefix = []byte{0}
+	accountPrefix byte = iota
 
 	// prevNoncesPrefix is the prefix for previous nonces keys.
-	prevNoncesPrefix = []byte{1}
+	prevNoncesPrefix = iota + 1
 )
 
 type stateDB struct {
@@ -86,15 +84,15 @@ type stateDB struct {
 
 	prefix []byte
 
-	// jobIDLen is the bytesize of a job ID.
+	// stateIDLen is the bytesize of a state ID.
 	//
 	// It is required because to prevent collision of keys.
 	//
 	// For example:
 	//
-	//	jobA  + BC -> jobABC
-	//	jobAB + C  -> jobABC
-	jobIDSize int
+	//	stateA  + BC -> stateABC
+	//	stateAB + C  -> stateABC
+	stateIDSize int
 
 	diff *db.Diff
 }
@@ -106,13 +104,13 @@ type stateDB struct {
 // VERY IMPORTANT NOTE: ALL THE DIFFERENT MODULES THAT SHARE THE SAME INSTANCE
 // OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
 //
-// All job IDs must have the given bytesize.
-func NewState(database db.DB, prefix []byte, jobIDSize int) State {
+// All state IDs must have the given bytesize.
+func NewState(database db.DB, prefix []byte, stateIDSize int) State {
 	return &stateDB{
-		db:        database,
-		prefix:    prefix,
-		jobIDSize: jobIDSize,
-		diff:      db.NewDiff(database),
+		db:          database,
+		prefix:      prefix,
+		stateIDSize: stateIDSize,
+		diff:        db.NewDiff(database),
 	}
 }
 
@@ -159,9 +157,9 @@ func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Acco
 	return dbw.Put(s.accountKey(pubKey), buf)
 }
 
-func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error {
-	if s.jobIDSize != len(jobID) {
-		return ErrInvalidJobID
+func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) error {
+	if s.stateIDSize != len(stateID) {
+		return ErrInvalidStateID
 	}
 
 	s.mu.Lock()
@@ -207,23 +205,23 @@ func (s *stateDB) ProcessTransactions(jobID []byte, txs []*pb.Transaction) error
 
 	}
 
-	if err := s.diff.Put(s.prevNoncesKey(jobID), nonces); err != nil {
+	if err := s.diff.Put(s.prevNoncesKey(stateID), nonces); err != nil {
 		return err
 	}
 
 	return s.diff.Apply()
 }
 
-func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) error {
-	if s.jobIDSize != len(jobID) {
-		return ErrInvalidJobID
+func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) error {
+	if s.stateIDSize != len(stateID) {
+		return ErrInvalidStateID
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
 
-	nonces, err := s.db.Get(s.prevNoncesKey(jobID))
+	nonces, err := s.db.Get(s.prevNoncesKey(stateID))
 	if err != nil {
 		return err
 	}
@@ -263,7 +261,7 @@ func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) erro
 		}
 	}
 
-	if err := s.diff.Delete(s.prevNoncesKey(jobID)); err != nil {
+	if err := s.diff.Delete(s.prevNoncesKey(stateID)); err != nil {
 		return err
 	}
 
@@ -272,10 +270,10 @@ func (s *stateDB) RollbackTransactions(jobID []byte, txs []*pb.Transaction) erro
 
 // accountKey returns the key corresponding to an account given its public key.
 func (s *stateDB) accountKey(pubKey []byte) []byte {
-	return append(append(s.prefix, accountPrefix...), pubKey...)
+	return append(append(s.prefix, accountPrefix), pubKey...)
 }
 
-// prevNoncesKey returns the previous nonces key for the given job ID.
-func (s *stateDB) prevNoncesKey(jobID []byte) []byte {
-	return append(append(s.prefix, prevNoncesPrefix...), jobID...)
+// prevNoncesKey returns the previous nonces key for the given state ID.
+func (s *stateDB) prevNoncesKey(stateID []byte) []byte {
+	return append(append(s.prefix, prevNoncesPrefix), stateID...)
 }

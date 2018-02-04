@@ -76,7 +76,7 @@ func TestState(t *testing.T) {
 				Nonce: 3,
 			}}
 
-			err = s.ProcessTransactions([]byte("job1"), txs)
+			err = s.ProcessTransactions([]byte("state1"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -103,14 +103,14 @@ func TestState(t *testing.T) {
 				Value: 30,
 			}}
 
-			err = s.ProcessTransactions([]byte("job1"), txs)
+			err = s.ProcessTransactions([]byte("state1"), txs)
 			assert.EqualError(t, err, ErrAmountTooBig.Error())
 		},
 	}, {
-		"process-transactions-invalid-job-id",
+		"process-transactions-invalid-state-id",
 		func(t *testing.T, s State) {
-			err := s.ProcessTransactions([]byte("job10"), nil)
-			assert.EqualError(t, err, ErrInvalidJobID.Error(), "s.ProcessTransactions(job10)")
+			err := s.ProcessTransactions([]byte("state10"), nil)
+			assert.EqualError(t, err, ErrInvalidStateID.Error(), "s.ProcessTransactions(state10)")
 		},
 	}, {
 		"rollback-transactions",
@@ -118,7 +118,7 @@ func TestState(t *testing.T) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
 
-			// Process two jobs.
+			// Process two states.
 
 			txs1 := []*pb.Transaction{{
 				From:  alice,
@@ -149,16 +149,16 @@ func TestState(t *testing.T) {
 				Nonce: 4,
 			}}
 
-			err = s.ProcessTransactions([]byte("job1"), txs1)
-			assert.NoError(t, err, "s.ProcessTransactions(job1)")
+			err = s.ProcessTransactions([]byte("state1"), txs1)
+			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
-			err = s.ProcessTransactions([]byte("job2"), txs2)
-			assert.NoError(t, err, "s.ProcessTransactions(job2)")
+			err = s.ProcessTransactions([]byte("state2"), txs2)
+			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
-			// Rollback job2.
+			// Rollback state2.
 
-			err = s.RollbackTransactions([]byte("job2"), txs2)
-			assert.NoError(t, err, "s.RollbackTransactions(job2)")
+			err = s.RollbackTransactions([]byte("state2"), txs2)
+			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -172,10 +172,10 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 
-			// Rollback job1.
+			// Rollback state1.
 
-			err = s.RollbackTransactions([]byte("job1"), txs1)
-			assert.NoError(t, err, "s.RollbackTransactions(job1)")
+			err = s.RollbackTransactions([]byte("state1"), txs1)
+			assert.NoError(t, err, "s.RollbackTransactions(state1)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -190,10 +190,10 @@ func TestState(t *testing.T) {
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"rollback-transactions-invalid-job-id",
+		"rollback-transactions-invalid-state-id",
 		func(t *testing.T, s State) {
-			err := s.RollbackTransactions([]byte("job10"), nil)
-			assert.EqualError(t, err, ErrInvalidJobID.Error(), "s.ProcessTransactions(job10)")
+			err := s.RollbackTransactions([]byte("state10"), nil)
+			assert.EqualError(t, err, ErrInvalidStateID.Error(), "s.ProcessTransactions(state10)")
 		},
 	}}
 
@@ -203,7 +203,7 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, []byte("test-"), 4))
+			tt.run(t, NewState(memdb, []byte("test-"), 6))
 		})
 	}
 }

@@ -44,7 +44,7 @@ func bench(b *testing.B, fn func(*testing.B, db.DB)) {
 
 func BenchmarkState_Read(b *testing.B) {
 	bench(b, func(b *testing.B, database db.DB) {
-		s := NewState(database, nil, 14)
+		s := NewState(database, OptStateIDLen(14))
 
 		for i := 0; i < 10000; i++ {
 			err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
@@ -69,7 +69,7 @@ func BenchmarkState_Read(b *testing.B) {
 func BenchmarkState_Read_parallel(b *testing.B) {
 	bench(b, func(b *testing.B, database db.DB) {
 		b.RunParallel(func(p *testing.PB) {
-			s := NewState(database, nil, 14)
+			s := NewState(database, nil, OptStateIDLen(14))
 
 			for i := 0; i < 10000; i++ {
 				err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
@@ -112,7 +112,7 @@ func BenchmarkState_Write(b *testing.B) {
 
 // Benchmarks b.N blocks of size n.
 func benchmarkProcess(b *testing.B, db db.DB, n int) {
-	s := NewState(db, nil, 16)
+	s := NewState(db, OptStateIDLen(16))
 
 	for i := 0; i < n; i++ {
 		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{
@@ -145,7 +145,7 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 
 // Benchmarks b.N blocks of size n.
 func benchmarkRollback(b *testing.B, db db.DB, n int) {
-	s := NewState(db, nil, 16)
+	s := NewState(db, OptStateIDLen(16))
 
 	for i := 0; i < n; i++ {
 		err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{

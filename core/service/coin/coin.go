@@ -18,7 +18,6 @@ package coin
 
 import (
 	"context"
-	"crypto/sha256"
 
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
@@ -125,7 +124,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	state := state.NewState(db, nil, sha256.Size)
+	state := state.NewState(db)
 
 	coinCtx, cancel := context.WithCancel(ctx)
 	s.coin = protocol.NewCoin(nil, nil, state, nil, nil, nil)

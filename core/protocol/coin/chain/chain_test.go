@@ -139,7 +139,7 @@ func TestChain(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewDBChain(memdb))
+			tt.run(t, NewChainDB(memdb))
 		})
 	}
 }

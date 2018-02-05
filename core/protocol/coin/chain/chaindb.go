@@ -42,8 +42,8 @@ type chainDB struct {
 	db db.DB
 }
 
-// NewDBChain returns a new blockchain using a given DB instance.
-func NewDBChain(db db.DB) Chain {
+// NewChainDB returns a new blockchain using a given DB instance.
+func NewChainDB(db db.DB) Chain {
 	return &chainDB{db: db}
 }
 

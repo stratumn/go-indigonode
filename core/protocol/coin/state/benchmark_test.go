@@ -69,7 +69,7 @@ func BenchmarkState_Read(b *testing.B) {
 func BenchmarkState_Read_parallel(b *testing.B) {
 	bench(b, func(b *testing.B, database db.DB) {
 		b.RunParallel(func(p *testing.PB) {
-			s := NewState(database, nil, OptStateIDLen(14))
+			s := NewState(database, OptStateIDLen(14))
 
 			for i := 0; i < 10000; i++ {
 				err := s.UpdateAccount([]byte(fmt.Sprintf("#%10d", i)), &pb.Account{

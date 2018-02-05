@@ -25,10 +25,10 @@ import (
 )
 
 var (
-	// ErrBlockHashNotFound is returned when looking for a block tha is not in teh chain
+	// ErrBlockHashNotFound is returned when looking for a block that is not in the chain.
 	ErrBlockHashNotFound = errors.New("block hash not found in the chain")
 
-	// ErrBlockNumberNotFound is returned when looking for a block tha is not in teh chain
+	// ErrBlockNumberNotFound is returned when looking for a block that is not in the chain.
 	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
 )
 
@@ -61,6 +61,9 @@ type Writer interface {
 	// AddBlock adds a block to the chain.
 	// It assumes that the block has been validated.
 	AddBlock(block *pb.Block) error
+
+	// SetHead sets the head of the chain
+	SetHead(block *pb.Block) error
 }
 
 // Chain defines methods to interact with the local blockchain.

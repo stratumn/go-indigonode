@@ -27,12 +27,12 @@ import (
 // prefixes for db keys
 var (
 	lastBlockKey    = []byte("LastBlock")
-	blockPrefix     = []byte("b") // blockPrefix + num -> block
+	blockPrefix     = []byte("b") // blockPrefix + hash -> block
 	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash
 )
 
 /*
-dbChain implements the Chain interface with a given DB
+dbChain implements the Chain interface with a given DB.
 We store 3 types of values for now (see prefixes):
 	- serialized blocks indexed by hash
 	- mapping between block numbers and corresponding hashes (1 to many)
@@ -42,20 +42,23 @@ type dbChain struct {
 	db db.DB
 }
 
-// NewDBChain returns a new blockchain using a given DB instance
+// NewDBChain returns a new blockchain using a given DB instance.
 func NewDBChain(db db.DB) Chain {
 	return &dbChain{db: db}
 }
 
+// Config retrieves the blockchain's chain configuration.
 func (dbChain) Config() *Config {
 	return &Config{}
 }
 
+// GetBlock retrieves a block from the database by hash and number.
 func (c *dbChain) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
-	// We don't really need both hash and number for now
+	// We don't really need both hash and number for now.
 	return c.dbGetBlock(append(blockPrefix, hash...))
 }
 
+// CurrentHeader retrieves the current header from the local chain.
 func (c *dbChain) CurrentHeader() (*pb.Header, error) {
 	block, err := c.dbGetBlock(lastBlockKey)
 	if err != nil {
@@ -65,6 +68,8 @@ func (c *dbChain) CurrentHeader() (*pb.Header, error) {
 	return block.Header, nil
 }
 
+// GetHeaderByNumber retrieves block headers from the database by number.
+// In case of forks there might be multiple headers with the same number.
 func (c *dbChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	hashes, err := c.dbGetHashes(number)
 	if err != nil {
@@ -84,6 +89,7 @@ func (c *dbChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	return res, nil
 }
 
+// GetHeaderByHash retrieves a block header from the database by its hash.
 func (c *dbChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	block, err := c.dbGetBlock(append(blockPrefix, hash...))
 	if err != nil {
@@ -93,23 +99,26 @@ func (c *dbChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	return block.Header, nil
 }
 
+// AddBlock adds a block to the chain.
+// It assumes that the block has been validated.
 func (c *dbChain) AddBlock(block *pb.Block) error {
-	// Once here, we consider the block to valid and legit
-	// We just add it to the chain
+	// Once here, we consider the block to valid and legit.
+	// We just add it to the chain.
 
 	tx, err := c.db.Transaction()
 	if err != nil {
 		return err
 	}
 
-	b, err := json.Marshal(block)
-	h := sha256.Sum256(b)
+	b, err := block.Marshal()
 	n := block.Header.BlockNumber
 
 	// Add block to the chain
 	if err != nil {
 		return err
 	}
+
+	h := sha256.Sum256(b)
 	if err = tx.Put(append(blockPrefix, h[:]...), b); err != nil {
 		return err
 	}
@@ -123,7 +132,7 @@ func (c *dbChain) AddBlock(block *pb.Block) error {
 	}
 
 	hashes = append(hashes, h[:])
-	hs, err := json.Marshal(hashes)
+	hs, err := serializeHashes(hashes)
 	if err != nil {
 		return err
 	}
@@ -132,12 +141,22 @@ func (c *dbChain) AddBlock(block *pb.Block) error {
 		return err
 	}
 
-	// Update LastBlock
-	if err = tx.Put(lastBlockKey, b); err != nil {
+	return tx.Commit()
+}
+
+// SetHead sets the head of the chain
+func (c *dbChain) SetHead(block *pb.Block) error {
+	b, err := block.Marshal()
+	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	// Update LastBlock
+	if err := c.db.Put(lastBlockKey, b); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Get a value from the DB and deserialize it into a pb.Block
@@ -152,7 +171,7 @@ func (c *dbChain) dbGetBlock(idx []byte) (*pb.Block, error) {
 	}
 
 	block := &pb.Block{}
-	err = json.Unmarshal(b, block)
+	err = block.Unmarshal(b)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +179,7 @@ func (c *dbChain) dbGetBlock(idx []byte) (*pb.Block, error) {
 	return block, nil
 }
 
-// Get a value from the DB and deserialize it into a pb.Block
+// Get the list of block hashes for a block height
 func (c *dbChain) dbGetHashes(number uint64) ([][]byte, error) {
 	b, err := c.db.Get(append(numToHashPrefix, encodeUint64(number)...))
 	if errors.Cause(err) == db.ErrNotFound {
@@ -171,13 +190,7 @@ func (c *dbChain) dbGetHashes(number uint64) ([][]byte, error) {
 		return nil, err
 	}
 
-	hashes := [][]byte{}
-	err = json.Unmarshal(b, &hashes)
-	if err != nil {
-		return nil, err
-	}
-
-	return hashes, nil
+	return deserializeHashes(b)
 }
 
 // encodeUint64 encodes an uint64 to a buffer.
@@ -186,4 +199,20 @@ func encodeUint64(value uint64) []byte {
 	binary.LittleEndian.PutUint64(v, value)
 
 	return v
+}
+
+// Serialize a list of hashes into a byte array.
+func serializeHashes(h [][]byte) ([]byte, error) {
+	return json.Marshal(h)
+}
+
+// Desirialize a byte array into a list of hashes.
+func deserializeHashes(b []byte) ([][]byte, error) {
+	hashes := [][]byte{}
+	err := json.Unmarshal(b, &hashes)
+	if err != nil {
+		return nil, err
+	}
+
+	return hashes, nil
 }

@@ -36,6 +36,10 @@ var (
 	// ErrDifficultyNotMet is the error returned  by VerifyHeader
 	// when the block's difficulty has not been met (for PoW).
 	ErrDifficultyNotMet = errors.New("invalid header: difficulty not met")
+
+	// ErrInvalidChain is the error returned when the input chain
+	// returns invalid or unactionable results.
+	ErrInvalidChain = errors.New("invalid chain")
 )
 
 // Engine is an algorithm agnostic consensus engine.

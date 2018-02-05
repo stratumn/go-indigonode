@@ -40,6 +40,10 @@ func (c *SimpleChain) CurrentHeader() *pb.Header {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
+	if c.currentBlock == nil {
+		return nil
+	}
+
 	return c.currentBlock.Header
 }
 
@@ -64,13 +68,13 @@ func (c *SimpleChain) GetHeaderByHash(hash []byte) *pb.Header {
 	return b.Header
 }
 
-// GetBlock returns the first block with the given hash.
+// GetBlock returns the first block with the given header hash.
 func (c *SimpleChain) GetBlock(hash []byte, _ uint64) *pb.Block {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	for _, b := range c.blocks {
-		blockHash, err := coinutils.HashBlock(b)
+		blockHash, err := coinutils.HashHeader(b.Header)
 		if err != nil {
 			return nil
 		}

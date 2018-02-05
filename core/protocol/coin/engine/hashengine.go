@@ -15,6 +15,7 @@
 package engine
 
 import (
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutils"
@@ -60,8 +61,27 @@ func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 	return nil
 }
 
+// Prepare initializes the fields of the given header to respect
+// consensus rules.
 func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
-	panic("not implemented")
+	currentHeader := chain.CurrentHeader()
+	if currentHeader == nil {
+		return ErrInvalidChain
+	}
+
+	previousHash, err := coinutils.HashHeader(currentHeader)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	header.BlockNumber = currentHeader.BlockNumber + 1
+	header.MerkleRoot = nil
+	header.Nonce = 0
+	header.PreviousHash = previousHash
+	header.Timestamp = ptypes.TimestampNow()
+	header.Version = 1
+
+	return nil
 }
 
 func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {

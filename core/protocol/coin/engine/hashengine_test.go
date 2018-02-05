@@ -17,6 +17,7 @@ package engine_test
 import (
 	"testing"
 
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
@@ -42,9 +43,9 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		"missing-previous-block",
 		0,
 		func(t *testing.T, e engine.Engine) {
-			previousBlock := &pb.Block{Header: &pb.Header{BlockNumber: 41}}
-			previousHash, err := coinutils.HashBlock(previousBlock)
-			require.NoError(t, err, "coinutils.HashBlock()")
+			previousHeader := &pb.Header{BlockNumber: 41}
+			previousHash, err := coinutils.HashHeader(previousHeader)
+			require.NoError(t, err, "coinutils.HashHeader()")
 
 			h := &pb.Header{
 				BlockNumber:  42,
@@ -59,8 +60,8 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		0,
 		func(t *testing.T, e engine.Engine) {
 			previousBlock := &pb.Block{Header: &pb.Header{BlockNumber: 3}}
-			previousHash, err := coinutils.HashBlock(previousBlock)
-			require.NoError(t, err, "coinutils.HashBlock()")
+			previousHash, err := coinutils.HashHeader(previousBlock.Header)
+			require.NoError(t, err, "coinutils.HashHeader()")
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
@@ -87,8 +88,8 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		1,
 		func(t *testing.T, e engine.Engine) {
 			previousBlock := &pb.Block{Header: &pb.Header{BlockNumber: 3}}
-			previousHash, err := coinutils.HashBlock(previousBlock)
-			require.NoError(t, err, "coinutils.HashBlock()")
+			previousHash, err := coinutils.HashHeader(previousBlock.Header)
+			require.NoError(t, err, "coinutils.HashHeader()")
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
@@ -96,7 +97,7 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 			h := &pb.Header{
 				BlockNumber:  4,
 				PreviousHash: previousHash,
-				Nonce:        212, // Pre-computed nonce that meets a difficulty of 1
+				Nonce:        226, // Pre-computed nonce that meets a difficulty of 1
 			}
 
 			err = e.VerifyHeader(chain, h)
@@ -107,6 +108,60 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := engine.NewHashEngine(tt.difficulty)
+			tt.run(t, e)
+		})
+	}
+}
+
+func TestHashEngine_Prepare(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func(*testing.T, engine.Engine)
+	}{{
+		"chain-error",
+		func(t *testing.T, e engine.Engine) {
+			h := &pb.Header{}
+			// An empty chain will have no current header so it should fail.
+			err := e.Prepare(&testutil.SimpleChain{}, h)
+			assert.EqualError(t, err, engine.ErrInvalidChain.Error(), "e.Prepare()")
+		},
+	}, {
+		"valid-header",
+		func(t *testing.T, e engine.Engine) {
+			chain := &testutil.SimpleChain{}
+			genesis := &pb.Block{Header: &pb.Header{
+				BlockNumber: 0,
+				Timestamp:   ptypes.TimestampNow(),
+				Nonce:       0,
+			}}
+
+			genesisHash, err := coinutils.HashHeader(genesis.Header)
+			assert.NoError(t, err, "coinutils.HashHeader()")
+
+			chain.AddBlock(genesis)
+
+			h := &pb.Header{}
+			err = e.Prepare(chain, h)
+			assert.NoError(t, err, "e.Prepare()")
+
+			assert.Equal(t, int32(1), h.Version, "h.Version")
+			assert.Equal(t, uint64(1), h.BlockNumber, "h.BlockNumber")
+			assert.EqualValues(t, genesisHash, h.PreviousHash, "h.PreviousHash")
+			assert.InDelta(
+				t,
+				genesis.Header.Timestamp.GetSeconds(),
+				h.Timestamp.GetSeconds(),
+				1.0,
+				"h.Timestamp",
+			)
+			assert.Nil(t, h.MerkleRoot, "h.MerkleRoot")
+			assert.Equal(t, uint64(0), h.Nonce, "h.Nonce")
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := engine.NewHashEngine(42)
 			tt.run(t, e)
 		})
 	}

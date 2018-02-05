@@ -14,7 +14,6 @@
 
 //go:generate mockgen -package mockcli -destination mockcli/mocksignaler.go github.com/stratumn/alice/cli Signaler
 //go:generate mockgen -package mockcli -destination mockcli/mockserverstream.go github.com/stratumn/alice/cli ServerStream
-//go:generate mockgen -package mockcli -destination mockcli/mockserverstreamstub.go github.com/stratumn/alice/cli ServerStreamStub
 
 package cli
 
@@ -28,9 +27,6 @@ import (
 	"syscall"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
-	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/pkg/errors"
 	pbevent "github.com/stratumn/alice/grpc/event"
 
@@ -49,57 +45,14 @@ type ServerStream interface {
 	RecvMsg() (proto.Message, error)
 }
 
-// ServerStreamStub is an interface to connect to a streaming server.
-type ServerStreamStub interface {
-	// Invoke connects to a streaming server.
-	Invoke(context.Context) (ServerStream, error)
-
-	// Name returns the name of the invoked endpoint.
-	Name() string
-}
-
-// rpcServerStreamStub implements ServerStreamStub.
-// It connects to a gRPC streaming server for a specific method.
-type rpcServerStreamStub struct {
-	stub       grpcdynamic.Stub
-	methodDesc *desc.MethodDescriptor
-}
-
-// newRPCServerStreamStub returns a ServerStreamStub that connects to a
-// specific gRPC streaming server endpoint.
-func newRPCServerStreamStub(conn *grpc.ClientConn, methodDesc *desc.MethodDescriptor) ServerStreamStub {
-	eventRegistry := dynamic.NewKnownTypeRegistryWithDefaults()
-	eventRegistry.AddKnownType((*pbevent.Event)(nil))
-	mf := dynamic.NewMessageFactoryWithKnownTypeRegistry(eventRegistry)
-	stub := grpcdynamic.NewStubWithMessageFactory(conn, mf)
-
-	return &rpcServerStreamStub{
-		stub:       stub,
-		methodDesc: methodDesc,
-	}
-}
-
-// Name returns the name of the invoked endpoint.
-func (s *rpcServerStreamStub) Name() string {
-	return s.methodDesc.GetName()
-}
-
-// Invoke connects to a streaming server.
-func (s *rpcServerStreamStub) Invoke(ctx context.Context) (ServerStream, error) {
-	req := dynamic.NewMessage(s.methodDesc.GetInputType())
-	return s.stub.InvokeRpcServerStream(ctx, s.methodDesc, req)
-}
-
 // ConsoleRPCEventListener implements the EventListener interface.
 // It connects to the RPC server's Listen endpoint and prints events to
 // the console.
 type ConsoleRPCEventListener struct {
-	service string
-
 	cons *Console
 	sig  Signaler
 
-	stub ServerStreamStub
+	client pbevent.EmitterClient
 
 	mu        sync.RWMutex
 	connected bool
@@ -108,31 +61,25 @@ type ConsoleRPCEventListener struct {
 
 // NewConsoleRPCEventListener creates a new ConsoleRPCEventListener
 // connected to a given console and RPC Listen endpoint.
-func NewConsoleRPCEventListener(cons *Console, conn *grpc.ClientConn, service string, methodDesc *desc.MethodDescriptor) EventListener {
-	stub := newRPCServerStreamStub(conn, methodDesc)
+func NewConsoleRPCEventListener(cons *Console, conn *grpc.ClientConn) EventListener {
+	client := pbevent.NewEmitterClient(conn)
 
 	p, err := os.FindProcess(syscall.Getpid())
 	if err != nil {
 		cons.Debugf("Could not get pid: %s.\n", err.Error())
 	}
 
-	return NewConsoleStubEventListener(cons, stub, service, p)
+	return NewConsoleClientEventListener(cons, client, p)
 }
 
-// NewConsoleStubEventListener creates a new ConsoleRPCEventListener for a given
-// ServerStreamStub.
-func NewConsoleStubEventListener(cons *Console, stub ServerStreamStub, service string, sig Signaler) EventListener {
+// NewConsoleClientEventListener creates a new ConsoleRPCEventListener for a given
+// emitter client.
+func NewConsoleClientEventListener(cons *Console, client pbevent.EmitterClient, sig Signaler) EventListener {
 	return &ConsoleRPCEventListener{
-		cons:    cons,
-		sig:     sig,
-		service: service,
-		stub:    stub,
+		cons:   cons,
+		sig:    sig,
+		client: client,
 	}
-}
-
-// Service returns the name of the streaming service.
-func (el *ConsoleRPCEventListener) Service() string {
-	return el.service
 }
 
 // Start connects to the corresponding event emitter and continuously
@@ -153,7 +100,8 @@ func (el *ConsoleRPCEventListener) Start(ctx context.Context) error {
 	}()
 
 	for {
-		res, err := ss.RecvMsg()
+		ev := &pbevent.Event{}
+		err := ss.RecvMsg(ev)
 		if err == io.EOF || err == context.Canceled || err != nil && strings.Contains(err.Error(), "Canceled") {
 			el.cons.Debugln("Event listener closed.")
 			return nil
@@ -162,39 +110,33 @@ func (el *ConsoleRPCEventListener) Start(ctx context.Context) error {
 			return err
 		}
 
-		ev, ok := res.(*pbevent.Event)
-		if !ok {
-			el.cons.Debugf("Could not parse event: %v.\n", res)
-			continue
-		}
-
 		el.print(ev)
 	}
 }
 
 // connect connects to the corresponding event emitter, closing a previous
 // connection if there is already one.
-func (el *ConsoleRPCEventListener) connect(ctx context.Context) (ServerStream, error) {
+func (el *ConsoleRPCEventListener) connect(ctx context.Context) (pbevent.Emitter_ListenClient, error) {
 	el.mu.Lock()
 	defer el.mu.Unlock()
 
 	if el.connected && el.close != nil {
-		el.cons.Debugf("Closing previous connection to %s.%s.\n", el.service, el.stub.Name())
+		el.cons.Debugf("Closing previous connection to event service.\n")
 		el.close()
 	}
 
 	listenCtx, cancel := context.WithCancel(ctx)
 	el.close = cancel
 
-	el.cons.Debugf("Connecting to event emitter: %s.%s.\n", el.service, el.stub.Name())
-	ss, err := el.stub.Invoke(listenCtx)
+	el.cons.Debugf("Connecting to event service.\n")
+	lc, err := el.client.Listen(listenCtx, &pbevent.ListenReq{})
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	el.connected = true
 
-	return ss, nil
+	return lc, nil
 }
 
 // print prints the event to the console.

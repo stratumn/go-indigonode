@@ -162,9 +162,9 @@ type cli struct {
 	apiCmds    []Cmd
 	allCmds    []Cmd
 
-	eventListeners     []EventListener
-	eventListenersWg   sync.WaitGroup
-	stopEventListeners context.CancelFunc
+	eventListener     EventListener
+	eventListenerWg   sync.WaitGroup
+	stopEventListener context.CancelFunc
 
 	addr string
 	conn *grpc.ClientConn
@@ -334,7 +334,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 	}
 
 	// Reflect API commands.
-	c.apiCmds, c.eventListeners, err = c.reflector.Reflect(ctx, conn)
+	c.apiCmds, err = c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			c.cons.Debugf("Could not close connection: %s.\n", err)
@@ -342,21 +342,24 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return err
 	}
 
+	c.eventListener = NewConsoleRPCEventListener(
+		c.cons,
+		conn,
+	)
+
 	// The input ctx will be cancelled once the connection is established.
 	// We need a longer context for the event listeners.
 	eventCtx, cancel := context.WithCancel(context.Background())
-	c.stopEventListeners = cancel
-	for _, el := range c.eventListeners {
-		c.eventListenersWg.Add(1)
-		go func(el EventListener) {
-			defer c.eventListenersWg.Done()
+	c.stopEventListener = cancel
+	c.eventListenerWg.Add(1)
+	go func(el EventListener) {
+		defer c.eventListenerWg.Done()
 
-			err := el.Start(eventCtx)
-			if err != nil {
-				c.cons.Debugf("[%s] Event listener error: %s.\n", el.Service(), err.Error())
-			}
-		}(el)
-	}
+		err := el.Start(eventCtx)
+		if err != nil {
+			c.cons.Debugf("Event listener error: %s.\n", err.Error())
+		}
+	}(c.eventListener)
 
 	c.allCmds = append(c.staticCmds, c.apiCmds...)
 	sortCmds(c.allCmds)
@@ -376,16 +379,16 @@ func (c *cli) Disconnect() error {
 
 	c.removeCmdsFromInterpreter(c.apiCmds)
 
-	if c.stopEventListeners != nil {
-		c.stopEventListeners()
-		c.eventListenersWg.Wait()
+	if c.stopEventListener != nil {
+		c.stopEventListener()
+		c.eventListenerWg.Wait()
 	}
 
 	conn := c.conn
 	c.conn = nil
 	c.allCmds = c.staticCmds
 	c.apiCmds = nil
-	c.eventListeners = nil
+	c.eventListener = nil
 
 	return errors.WithStack(conn.Close())
 }

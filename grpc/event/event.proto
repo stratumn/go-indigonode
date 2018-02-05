@@ -28,7 +28,6 @@ service Emitter {
     // Listen starts listening to events.
     rpc Listen (ListenReq) returns (stream Event) {
       option (stratumn.alice.grpc.ext.method_desc) = "Listen for events";
-      option (stratumn.alice.grpc.ext.method_event_emitter) = true;
     }
 }
 

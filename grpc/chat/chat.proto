@@ -15,7 +15,6 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/grpc/event/event.proto";
 
 package stratumn.alice.grpc.chat;
 

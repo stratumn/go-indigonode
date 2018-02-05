@@ -92,21 +92,6 @@ func TestState(t *testing.T) {
 			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"process-transactions-too-big",
-		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
-			assert.NoError(t, err, "s.UpdateAccount()")
-
-			txs := []*pb.Transaction{{
-				From:  alice,
-				To:    bob,
-				Value: 30,
-			}}
-
-			err = s.ProcessTransactions([]byte("state1"), txs)
-			assert.EqualError(t, err, ErrAmountTooBig.Error())
-		},
-	}, {
 		"process-transactions-invalid-state-id",
 		func(t *testing.T, s State) {
 			err := s.ProcessTransactions([]byte("state10"), nil)

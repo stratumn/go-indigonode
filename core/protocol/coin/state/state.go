@@ -19,17 +19,12 @@ import (
 	"encoding/binary"
 	"sync"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
 var (
-	// ErrAmountTooBig is returned when subtracting an amount greater than
-	// the current balance.
-	ErrAmountTooBig = errors.New("amount is too big")
-
 	// ErrInvalidStateID is returned when a state ID is invalid.
 	ErrInvalidStateID = errors.New("state ID is invalid")
 
@@ -38,7 +33,7 @@ var (
 	ErrInconsistentTransactions = errors.New("transactions are inconsistent")
 )
 
-// State stores users' account balances.
+// State stores users' account balances. It doesn't handle validation.
 type State interface {
 	Reader
 	Writer
@@ -86,7 +81,7 @@ type stateDB struct {
 
 	// stateIDLen is the bytesize of a state ID.
 	//
-	// It is required because to prevent collision of keys.
+	// It is required to prevent collision between keys.
 	//
 	// For example:
 	//
@@ -151,7 +146,7 @@ func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (*pb.Account, error
 	}
 
 	var account pb.Account
-	err = proto.Unmarshal(buf, &account)
+	err = account.Unmarshal(buf)
 
 	return &account, errors.WithStack(err)
 }
@@ -170,7 +165,7 @@ func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Acco
 		return dbw.Delete(s.accountKey(pubKey))
 	}
 
-	buf, err := proto.Marshal(account)
+	buf, err := account.Marshal()
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -185,7 +180,8 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	defer s.diff.Reset()
+
+	s.diff.Reset()
 
 	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
@@ -199,10 +195,6 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 		binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
 		// Subtract amount from sender and update nonce.
-		if from.Balance < tx.Value {
-			return ErrAmountTooBig
-		}
-
 		from.Balance -= tx.Value
 		from.Nonce = tx.Nonce
 

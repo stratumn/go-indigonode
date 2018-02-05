@@ -1,0 +1,104 @@
+// Copyright © 2017-2018  Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package trie
+
+import (
+	"crypto/rand"
+	"testing"
+
+	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestTrie_Random(t *testing.T) {
+	times := 1000
+	database, err := db.NewMemDB(nil)
+	require.NoError(t, err, "db.NewMemDB")
+
+	trie := New(database)
+	key := make([]byte, 64*times)
+	value := make([]byte, 128*times)
+
+	if _, err := rand.Read(key); err != nil {
+		require.NoError(t, err, "rand.Read(key)")
+	}
+
+	if _, err := rand.Read(value); err != nil {
+		require.NoError(t, err, "rand.Read(value)")
+	}
+
+	// Insert half the values.
+	for i := 0; i < times/2; i++ {
+		k := key[i*64 : (i+1)*64]
+		v := value[i*128 : (i+1)*128]
+
+		assert.NoError(t, trie.Put(k, v), "trie.Put()")
+
+		val, err := trie.Get(k)
+		assert.NoError(t, err, "trie.Get()")
+
+		assert.Equal(t, v, val, "trie.Get()")
+	}
+
+	// Save the Merkle root and a proof.
+	root1, err := trie.MerkleRoot()
+	require.NoError(t, err, "trie.MerkleRoot()")
+	proof1, err := trie.Proof(key[:64])
+	require.NoError(t, err, "trie.Proof()")
+
+	// Insert the other half.
+	for i := times / 2; i < times; i++ {
+		k := key[i*64 : (i+1)*64]
+		v := value[i*128 : (i+1)*128]
+
+		assert.NoError(t, trie.Put(k, v), "trie.Put()")
+
+		val, err := trie.Get(k)
+		assert.NoError(t, err, "trie.Get()")
+
+		assert.Equal(t, v, val, "trie.Get()")
+	}
+
+	// Delete half of the values.
+	for i := times / 2; i < times; i++ {
+		k := key[i*64 : (i+1)*64]
+
+		assert.NoError(t, trie.Delete(k), "trie.Delete()")
+
+		_, err := trie.Get(k)
+		assert.EqualError(t, err, db.ErrNotFound.Error(), "trie.Get()")
+	}
+
+	// Check other half still exists.
+	for i := 0; i < times/2; i++ {
+		k := key[i*64 : (i+1)*64]
+		v := value[i*128 : (i+1)*128]
+
+		val, err := trie.Get(k)
+		assert.NoError(t, err, "trie.Get()")
+
+		assert.Equal(t, v, val, "trie.Get()")
+	}
+
+	// Make sure the Merkle root and proof are the same as before
+	// hence deterministic.
+	root2, err := trie.MerkleRoot()
+	require.NoError(t, err, "trie.MerkleRoot()")
+	assert.Equal(t, root2, root1, "trie.MerkleRoot()")
+	proof2, err := trie.Proof(key[:64])
+	require.NoError(t, err, "trie.Proof()")
+	assert.Equal(t, proof1, proof2, "trie.Proof()")
+}

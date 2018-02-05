@@ -17,9 +17,25 @@
 package engine
 
 import (
+	"errors"
+
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
+)
+
+var (
+	// ErrInvalidPreviousBlock is the error returned by VerifyHeader
+	// when the previous block referenced can't be found.
+	ErrInvalidPreviousBlock = errors.New("invalid header: previous block could not be found")
+
+	// ErrInvalidBlockNumber is the error returned  by VerifyHeader
+	// when the block number is invalid.
+	ErrInvalidBlockNumber = errors.New("invalid header: block number is invalid")
+
+	// ErrDifficultyNotMet is the error returned  by VerifyHeader
+	// when the block's difficulty has not been met (for PoW).
+	ErrDifficultyNotMet = errors.New("invalid header: difficulty not met")
 )
 
 // Engine is an algorithm agnostic consensus engine.

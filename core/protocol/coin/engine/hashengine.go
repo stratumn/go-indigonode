@@ -15,7 +15,9 @@
 package engine
 
 import (
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -32,8 +34,30 @@ func NewHashEngine(difficulty uint64) PoW {
 	return &HashEngine{difficulty: difficulty}
 }
 
+// VerifyHeader verifies that the header met the PoW difficulty
+// and correctly chains to a previous block.
 func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
-	panic("not implemented")
+	headerHash, err := coinutils.HashHeader(header)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for i := uint64(0); i < e.difficulty; i++ {
+		if headerHash[i] != 0 {
+			return ErrDifficultyNotMet
+		}
+	}
+
+	previousBlock := chain.GetBlock(header.PreviousHash, header.BlockNumber-1)
+	if previousBlock == nil {
+		return ErrInvalidPreviousBlock
+	}
+
+	if previousBlock.Header.BlockNumber+1 != header.BlockNumber {
+		return ErrInvalidBlockNumber
+	}
+
+	return nil
 }
 
 func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
@@ -44,7 +68,7 @@ func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, state state
 	panic("not implemented")
 }
 
-// Difficulty returns the number of leading 0 we expect from the block hash.
+// Difficulty returns the number of leading 0 we expect from the header hash.
 func (e *HashEngine) Difficulty() uint64 {
 	return e.difficulty
 }

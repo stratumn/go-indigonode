@@ -92,12 +92,6 @@ func TestState(t *testing.T) {
 			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"process-transactions-invalid-state-id",
-		func(t *testing.T, s State) {
-			err := s.ProcessTransactions([]byte("state10"), nil)
-			assert.EqualError(t, err, ErrInvalidStateID.Error(), "s.ProcessTransactions(state10)")
-		},
-	}, {
 		"rollback-transactions",
 		func(t *testing.T, s State) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
@@ -174,12 +168,6 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
 		},
-	}, {
-		"rollback-transactions-invalid-state-id",
-		func(t *testing.T, s State) {
-			err := s.RollbackTransactions([]byte("state10"), nil)
-			assert.EqualError(t, err, ErrInvalidStateID.Error(), "s.ProcessTransactions(state10)")
-		},
 	}}
 
 	for _, tt := range tests {
@@ -188,7 +176,7 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, OptPrefix([]byte("test-")), OptStateIDLen(6)))
+			tt.run(t, NewState(memdb, OptPrefix([]byte("test-"))))
 		})
 	}
 }

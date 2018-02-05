@@ -19,7 +19,23 @@
 package chain
 
 import (
+	"errors"
+
 	pb "github.com/stratumn/alice/pb/coin"
+)
+
+var (
+	// ErrBlockHashNotFound is returned when looking for a block that is not in the chain.
+	ErrBlockHashNotFound = errors.New("block hash not found in the chain")
+
+	// ErrBlockNumberNotFound is returned when looking for a block that is not in the chain.
+	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
+
+	// ErrBlockNumberIncorrect is returned when adding a block with a bad number.
+	ErrBlockNumberIncorrect = errors.New("block number does not correspond to hash")
+
+	// ErrInvalidPreviousBlock is returned when adding a block with a bad number or previous hash.
+	ErrInvalidPreviousBlock = errors.New("link to previous block is invalid")
 )
 
 // Config describes the blockchain's chain configuration.
@@ -33,17 +49,17 @@ type Reader interface {
 	Config() *Config
 
 	// CurrentHeader retrieves the current header from the local chain.
-	CurrentHeader() *pb.Header
+	CurrentHeader() (*pb.Header, error)
 
 	// GetHeaderByNumber retrieves block headers from the database by number.
 	// In case of forks there might be multiple headers with the same number.
-	GetHeaderByNumber(number uint64) []*pb.Header
+	GetHeaderByNumber(number uint64) ([]*pb.Header, error)
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.
-	GetHeaderByHash(hash []byte) *pb.Header
+	GetHeaderByHash(hash []byte) (*pb.Header, error)
 
-	// GetBlock retrieves a block from the database by hash and number.
-	GetBlock(hash []byte, number uint64) *pb.Block
+	// GetBlock retrieves a block from the database by header hash and number.
+	GetBlock(hash []byte, number uint64) (*pb.Block, error)
 }
 
 // Writer defines methods needed to write to the local blockchain.
@@ -51,6 +67,9 @@ type Writer interface {
 	// AddBlock adds a block to the chain.
 	// It assumes that the block has been validated.
 	AddBlock(block *pb.Block) error
+
+	// SetHead sets the head of the chain
+	SetHead(block *pb.Block) error
 }
 
 // Chain defines methods to interact with the local blockchain.

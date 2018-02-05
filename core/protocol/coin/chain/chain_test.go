@@ -16,7 +16,6 @@ package chain
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"testing"
 
 	db "github.com/stratumn/alice/core/protocol/coin/db"
@@ -26,13 +25,13 @@ import (
 )
 
 func TestChain(t *testing.T) {
-	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 1}}
-	b1, err := json.Marshal(block1)
+	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
+	b1, err := block1.Marshal()
 	assert.NoError(t, err, "json.Marshal(block1)")
 	h1 := sha256.Sum256(b1)
 
-	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 2}}
-	b2, err := json.Marshal(block2)
+	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1[:]}}
+	b2, err := block2.Marshal()
 	assert.NoError(t, err, "json.Marshal(block2)")
 	h2 := sha256.Sum256(b2)
 
@@ -47,6 +46,20 @@ func TestChain(t *testing.T) {
 			assert.Nil(t, h, "s.CurrentHeader()")
 		},
 	}, {
+		"add-invalid-previous-hash",
+		func(t *testing.T, c Chain) {
+			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, PreviousHash: h2[:]}}
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
+			assert.EqualError(t, c.AddBlock(block), ErrBlockHashNotFound.Error(), "c.AddBlock()")
+		},
+	}, {
+		"add-invalid-number",
+		func(t *testing.T, c Chain) {
+			block := &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: h1[:]}}
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
+			assert.EqualError(t, c.AddBlock(block), ErrBlockNumberIncorrect.Error(), "c.AddBlock()")
+		},
+	}, {
 		"add-get",
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
@@ -55,10 +68,11 @@ func TestChain(t *testing.T) {
 			assert.Equal(t, b, block1)
 		},
 	}, {
-		"last-block",
+		"set-head",
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block2), "c.AddBlock()")
 
 			h, err := c.CurrentHeader()
 			assert.NoError(t, err, "c.CurrentHeader()")
@@ -81,7 +95,7 @@ func TestChain(t *testing.T) {
 	}, {
 		"get-by-number-multiple",
 		func(t *testing.T, c Chain) {
-			block := &pb.Block{Header: &pb.Header{BlockNumber: 1, Nonce: 42}}
+			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, Nonce: 42}}
 
 			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
 			assert.NoError(t, c.AddBlock(block), "c.AddBlock()")

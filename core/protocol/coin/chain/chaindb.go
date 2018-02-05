@@ -147,7 +147,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 		return err
 	}
 	if prevBlock.Header.BlockNumber != h.BlockNumber-1 {
-		return errors.New("block number does not follow previous block number")
+		return ErrBlockNumberIncorrect
 	}
 
 	return nil

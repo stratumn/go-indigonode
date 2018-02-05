@@ -245,11 +245,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if err := c.db.Put(lastBlockKey, b); err != nil {
-		return err
-	}
-
-	return nil
+	return c.db.Put(lastBlockKey, b)
 }
 
 // Get a value from the DB and deserialize it into a pb.Block

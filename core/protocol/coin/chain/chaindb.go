@@ -35,7 +35,7 @@ var (
 chainDB implements the Chain interface with a given DB.
 We store 3 types of values for now (see prefixes):
 	- serialized blocks indexed by hash
-	- mapping between block numbers and corresponding hashes (1 to many)
+	- mapping between block numbers and corresponding header hashes (1 to many)
 	- last block
 */
 type chainDB struct {
@@ -52,7 +52,7 @@ func (chainDB) Config() *Config {
 	return &Config{}
 }
 
-// GetBlock retrieves a block from the database by hash and number.
+// GetBlock retrieves a block from the database by header hash and number.
 func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	// Get the block from the hash
 	block, err := c.dbGetBlock(append(blockPrefix, hash...))
@@ -156,19 +156,23 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 // doAddBlock actually prepares the transaction to add a block
 func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	b, err := block.Marshal()
-	n := block.Header.BlockNumber
-
-	// Add block to the chain
 	if err != nil {
 		return err
 	}
 
-	h := sha256.Sum256(b)
+	header, err := block.Header.Marshal()
+	if err != nil {
+		return err
+	}
+
+	// Add block to the chain
+	h := sha256.Sum256(header)
 	if err = tx.Put(append(blockPrefix, h[:]...), b); err != nil {
 		return err
 	}
 
-	// Add block hash to the mapping
+	// Add header hash to the mapping
+	n := block.Header.BlockNumber
 	hashes, err := c.dbGetHashes(n)
 	if errors.Cause(err) == ErrBlockNumberNotFound {
 		hashes = make([][]byte, 0)
@@ -195,8 +199,12 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	if err != nil {
 		return err
 	}
+	header, err := block.Header.Marshal()
+	if err != nil {
+		return err
+	}
 
-	h := sha256.Sum256(b)
+	h := sha256.Sum256(header)
 
 	// Check that block is in the chain
 	_, err = c.db.Get(append(blockPrefix, h[:]...))

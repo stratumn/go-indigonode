@@ -26,14 +26,14 @@ import (
 
 func TestChain(t *testing.T) {
 	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
-	b1, err := block1.Marshal()
-	assert.NoError(t, err, "json.Marshal(block1)")
-	h1 := sha256.Sum256(b1)
+	header1, err := block1.Header.Marshal()
+	assert.NoError(t, err, "json.Marshal(header1)")
+	h1 := sha256.Sum256(header1)
 
 	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1[:]}}
-	b2, err := block2.Marshal()
-	assert.NoError(t, err, "json.Marshal(block2)")
-	h2 := sha256.Sum256(b2)
+	header2, err := block2.Header.Marshal()
+	assert.NoError(t, err, "json.Marshal(header2)")
+	h2 := sha256.Sum256(header2)
 
 	tests := []struct {
 		name string

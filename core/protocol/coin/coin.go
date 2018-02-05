@@ -59,6 +59,7 @@ type Protocol interface {
 type Coin struct {
 	engine    engine.Engine
 	state     state.State
+	chain     chain.Chain
 	mempool   state.Mempool
 	processor processor.Processor
 	validator validator.Validator
@@ -80,6 +81,7 @@ func NewCoin(
 	return &Coin{
 		engine:    e,
 		state:     s,
+		chain:     c,
 		mempool:   m,
 		processor: p,
 		validator: v,
@@ -162,7 +164,7 @@ func (c *Coin) AppendBlock(block *pb.Block) error {
 		return err
 	}
 
-	return c.processor.Process(block, nil, nil)
+	return c.processor.Process(block, c.state, c.chain)
 }
 
 // StartMining starts the underlying miner.

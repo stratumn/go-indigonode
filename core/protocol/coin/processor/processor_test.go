@@ -15,7 +15,10 @@
 package processor_test
 
 import (
+	"crypto/sha256"
 	"testing"
+
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -30,12 +33,16 @@ func TestProcessor_Process(t *testing.T) {
 	charlie := []byte("charlie")
 
 	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t, state.OptStateIDLen(4))
+	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
+	c := testutil.NewSimpleChain(t, chain.OptPrefix([]byte("c")))
 
 	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
 	block := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber: 0,
+		},
 		Transactions: []*pb.Transaction{{
 			From:  alice,
 			To:    bob,
@@ -54,8 +61,22 @@ func TestProcessor_Process(t *testing.T) {
 		}},
 	}
 
-	assert.NoError(t, p.Process(block, s, nil))
+	assert.NoError(t, p.Process(block, s, c))
 
+	// Check chain
+	headerBytes, err := block.Header.Marshal()
+	assert.NoError(t, err, "block.Header.Marshal()")
+	h := sha256.Sum256(headerBytes)
+
+	b, err := c.GetBlock(h[:], 0)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block, b, "GetBlock()")
+
+	header, err := c.CurrentHeader()
+	assert.NoError(t, err, "CurrentHeader()")
+	assert.Equal(t, block.Header, header, "CurrentHeader()")
+
+	// Check state
 	v, err := s.GetAccount(alice)
 	assert.NoError(t, err, "s.GetAccount(alice)")
 	assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")

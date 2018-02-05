@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
@@ -124,10 +125,14 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	state := state.NewState(db)
+	stateDBPrefix := []byte("s")
+	chainDBPrefix := []byte("c")
+
+	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
+	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
 
 	coinCtx, cancel := context.WithCancel(ctx)
-	s.coin = protocol.NewCoin(nil, nil, state, nil, nil, nil)
+	s.coin = protocol.NewCoin(nil, nil, state, chain, nil, nil)
 
 	errChan := make(chan error)
 	go func() {

@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockevent -destination mockevent/mockevent.go github.com/stratumn/alice/grpc/event Emitter_ListenServer
+//go:generate mockgen -package mockevent -destination mockevent/mockevent.go github.com/stratumn/alice/grpc/event Emitter_ListenServer,EmitterClient,Emitter_ListenClient
 
 package event

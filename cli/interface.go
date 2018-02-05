@@ -62,9 +62,6 @@ type Cmd interface {
 
 // EventListener is an interface that must be implemented by event listeners.
 type EventListener interface {
-	// Service returns the name of the service that hosts the event emitter.
-	Service() string
-
 	// Start connects to the corresponding event emitter and continuously
 	// listens for events and displays them.
 	// It disconnects from the event emitter when the context is cancelled.

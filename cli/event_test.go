@@ -26,21 +26,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/proto"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
-	pbchat "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
+	"github.com/stratumn/alice/grpc/event/mockevent"
 	"github.com/stretchr/testify/assert"
 )
-
-// IdleServerStream is a cli.ServerStream that doesn't push any message.
-type IdleServerStream struct{}
-
-func (_ IdleServerStream) RecvMsg() (proto.Message, error) {
-	<-time.After(10 * time.Second)
-	return nil, nil
-}
 
 // ClosedServerStream is a cli.ServerStream that closes the connection
 // on the first attempt to receive.
@@ -49,12 +40,12 @@ type ClosedServerStream struct {
 	called bool
 }
 
-func (s *ClosedServerStream) RecvMsg() (proto.Message, error) {
+func (s *ClosedServerStream) RecvMsg(interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.called = true
-	return nil, io.EOF
+	return io.EOF
 }
 
 func (s *ClosedServerStream) WaitUntilCalled(t *testing.T) {
@@ -69,22 +60,26 @@ func (s *ClosedServerStream) WaitUntilCalled(t *testing.T) {
 // BoundedServerStream returns a configured number of messages and then
 // closes the connection.
 type BoundedServerStream struct {
-	mu       sync.RWMutex
-	messages []proto.Message
+	mu     sync.RWMutex
+	events []*pbevent.Event
 }
 
-func (s *BoundedServerStream) RecvMsg() (proto.Message, error) {
+func (s *BoundedServerStream) RecvMsg(m interface{}) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if len(s.messages) == 0 {
-		return nil, io.EOF
+	if len(s.events) == 0 {
+		return io.EOF
 	}
 
-	msg := s.messages[0]
-	s.messages = s.messages[1:]
+	e := s.events[0]
 
-	return msg, nil
+	ev, _ := m.(*pbevent.Event)
+	ev.Message = e.Message
+	ev.Level = e.Level
+
+	s.events = s.events[1:]
+	return nil
 }
 
 func (s *BoundedServerStream) WaitUntilClosed(t *testing.T) {
@@ -92,25 +87,26 @@ func (s *BoundedServerStream) WaitUntilClosed(t *testing.T) {
 		s.mu.RLock()
 		defer s.mu.RUnlock()
 
-		return len(s.messages) == 0
+		return len(s.events) == 0
 	})
 }
 
-func testConsoleRPCEventListener(t *testing.T, w io.Writer, mockServerStream cli.ServerStream) (cli.EventListener, *gomock.Controller) {
+func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, *gomock.Controller, *mockevent.MockEmitter_ListenClient) {
 	mockCtrl := gomock.NewController(t)
 
 	mockSig := mockcli.NewMockSignaler(mockCtrl)
 	mockSig.EXPECT().Signal(syscall.SIGWINCH).AnyTimes()
 
-	mockStub := mockcli.NewMockServerStreamStub(mockCtrl)
-	mockStub.EXPECT().Name().Return("test").AnyTimes()
-	mockStub.EXPECT().Invoke(gomock.Any()).Return(mockServerStream, nil).AnyTimes()
+	cons := cli.NewConsole(w, false)
 
-	console := cli.NewConsole(w, false)
+	elc := mockevent.NewMockEmitter_ListenClient(mockCtrl)
 
-	el := cli.NewConsoleStubEventListener(console, mockStub, "test", mockSig)
+	client := mockevent.NewMockEmitterClient(mockCtrl)
+	client.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(elc, nil).AnyTimes()
 
-	return el, mockCtrl
+	el := cli.NewConsoleClientEventListener(cons, client, mockSig)
+
+	return el, mockCtrl, elc
 }
 
 func waitUntil(t *testing.T, cond func() bool) {
@@ -148,15 +144,11 @@ func start(t *testing.T, el cli.EventListener, ctx context.Context) {
 	}()
 }
 
-func TestConsoleRPCEventListener_GetService(t *testing.T) {
-	el := cli.NewConsoleStubEventListener(nil, nil, "event", nil)
-
-	assert.Equal(t, "event", el.Service(), "el.Service()")
-}
-
 func TestConsoleRPCEventListener_Start(t *testing.T) {
-	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, &IdleServerStream{})
+	el, mockCtrl, elc := testConsoleRPCEventListener(t, ioutil.Discard)
 	defer mockCtrl.Finish()
+
+	elc.EXPECT().RecvMsg(gomock.Any()).Return(nil).AnyTimes()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	start(t, el, ctx)
@@ -178,14 +170,16 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 	t.Run("Prints incoming events", func(t *testing.T) {
 		buf := bytes.NewBuffer(nil)
 		mockServerStream := &BoundedServerStream{
-			messages: []proto.Message{
-				&pbevent.Event{Message: "hello"},
-				&pbevent.Event{Message: "world"},
+			events: []*pbevent.Event{
+				{Message: "hello", Level: pbevent.Level_INFO},
+				{Message: "world", Level: pbevent.Level_INFO},
 			},
 		}
 
-		el, mockCtrl := testConsoleRPCEventListener(t, buf, mockServerStream)
+		el, mockCtrl, elc := testConsoleRPCEventListener(t, buf)
 		defer mockCtrl.Finish()
+
+		elc.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(mockServerStream.RecvMsg).Times(3)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		start(t, el, ctx)
@@ -196,31 +190,6 @@ func TestConsoleRPCEventListener_Print(t *testing.T) {
 
 		assert.Contains(buf.String(), "hello")
 		assert.Contains(buf.String(), "world")
-	})
-
-	t.Run("Ignores invalid events", func(t *testing.T) {
-		buf := bytes.NewBuffer(nil)
-		mockServerStream := &BoundedServerStream{
-			messages: []proto.Message{
-				&pbevent.Event{Message: "hello"},
-				&pbchat.ChatMessage{Message: "chat"},
-				&pbevent.Event{Message: "world"},
-			},
-		}
-
-		el, mockCtrl := testConsoleRPCEventListener(t, buf, mockServerStream)
-		defer mockCtrl.Finish()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		start(t, el, ctx)
-		defer cancel()
-
-		mockServerStream.WaitUntilClosed(t)
-		waitUntilDisconnected(t, el)
-
-		assert.Contains(buf.String(), "hello")
-		assert.Contains(buf.String(), "world")
-		assert.NotContains(buf.String(), "chat")
 	})
 }
 
@@ -228,8 +197,10 @@ func TestConsoleRPCEventListener_Stop(t *testing.T) {
 	assert := assert.New(t)
 
 	mockServerStream := &ClosedServerStream{}
-	el, mockCtrl := testConsoleRPCEventListener(t, ioutil.Discard, mockServerStream)
+	el, mockCtrl, elc := testConsoleRPCEventListener(t, ioutil.Discard)
 	defer mockCtrl.Finish()
+
+	elc.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(mockServerStream.RecvMsg).AnyTimes()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	start(t, el, ctx)

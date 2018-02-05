@@ -32,34 +32,44 @@ var (
 )
 
 /*
-dbChain implements the Chain interface with a given DB.
+chainDB implements the Chain interface with a given DB.
 We store 3 types of values for now (see prefixes):
 	- serialized blocks indexed by hash
 	- mapping between block numbers and corresponding hashes (1 to many)
 	- last block
 */
-type dbChain struct {
+type chainDB struct {
 	db db.DB
 }
 
 // NewDBChain returns a new blockchain using a given DB instance.
 func NewDBChain(db db.DB) Chain {
-	return &dbChain{db: db}
+	return &chainDB{db: db}
 }
 
 // Config retrieves the blockchain's chain configuration.
-func (dbChain) Config() *Config {
+func (chainDB) Config() *Config {
 	return &Config{}
 }
 
 // GetBlock retrieves a block from the database by hash and number.
-func (c *dbChain) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
-	// We don't really need both hash and number for now.
-	return c.dbGetBlock(append(blockPrefix, hash...))
+func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
+	// Get the block from the hash
+	block, err := c.dbGetBlock(append(blockPrefix, hash...))
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that the block number is correct
+	if block.Header.BlockNumber != number {
+		return nil, errors.New("incorrect block number")
+	}
+
+	return block, nil
 }
 
 // CurrentHeader retrieves the current header from the local chain.
-func (c *dbChain) CurrentHeader() (*pb.Header, error) {
+func (c *chainDB) CurrentHeader() (*pb.Header, error) {
 	block, err := c.dbGetBlock(lastBlockKey)
 	if err != nil {
 		return nil, err
@@ -70,7 +80,7 @@ func (c *dbChain) CurrentHeader() (*pb.Header, error) {
 
 // GetHeaderByNumber retrieves block headers from the database by number.
 // In case of forks there might be multiple headers with the same number.
-func (c *dbChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
+func (c *chainDB) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	hashes, err := c.dbGetHashes(number)
 	if err != nil {
 		return nil, err
@@ -90,7 +100,7 @@ func (c *dbChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 }
 
 // GetHeaderByHash retrieves a block header from the database by its hash.
-func (c *dbChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
+func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	block, err := c.dbGetBlock(append(blockPrefix, hash...))
 	if err != nil {
 		return nil, err
@@ -101,15 +111,50 @@ func (c *dbChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 
 // AddBlock adds a block to the chain.
 // It assumes that the block has been validated.
-func (c *dbChain) AddBlock(block *pb.Block) error {
-	// Once here, we consider the block to valid and legit.
-	// We just add it to the chain.
+// We still check that previous hash points to the block before this one
+func (c *chainDB) AddBlock(block *pb.Block) error {
 
+	// Check previous block
+	if err := c.checkAddBlock(block.Header); err != nil {
+		return err
+	}
+
+	// Add the block
 	tx, err := c.db.Transaction()
 	if err != nil {
 		return err
 	}
 
+	if err = c.doAddBlock(tx, block); err != nil {
+		tx.Discard()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// checkAddBlock checks that the previous block exsits
+// and that the block number is correct.
+func (c *chainDB) checkAddBlock(h *pb.Header) error {
+	// Is this the first block ?
+	if h.PreviousHash == nil && h.BlockNumber == 0 {
+		return nil
+	}
+
+	// Check previous block
+	prevBlock, err := c.dbGetBlock(append(blockPrefix, h.PreviousHash...))
+	if err != nil {
+		return err
+	}
+	if prevBlock.Header.BlockNumber != h.BlockNumber-1 {
+		return errors.New("block number does not follow previous block number")
+	}
+
+	return nil
+}
+
+// doAddBlock actually prepares the transaction to add a block
+func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	b, err := block.Marshal()
 	n := block.Header.BlockNumber
 
@@ -141,11 +186,11 @@ func (c *dbChain) AddBlock(block *pb.Block) error {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 // SetHead sets the head of the chain
-func (c *dbChain) SetHead(block *pb.Block) error {
+func (c *chainDB) SetHead(block *pb.Block) error {
 	b, err := block.Marshal()
 	if err != nil {
 		return err
@@ -160,7 +205,7 @@ func (c *dbChain) SetHead(block *pb.Block) error {
 }
 
 // Get a value from the DB and deserialize it into a pb.Block
-func (c *dbChain) dbGetBlock(idx []byte) (*pb.Block, error) {
+func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 	b, err := c.db.Get(idx)
 	if errors.Cause(err) == db.ErrNotFound {
 		return nil, ErrBlockHashNotFound
@@ -180,7 +225,7 @@ func (c *dbChain) dbGetBlock(idx []byte) (*pb.Block, error) {
 }
 
 // Get the list of block hashes for a block height
-func (c *dbChain) dbGetHashes(number uint64) ([][]byte, error) {
+func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	b, err := c.db.Get(append(numToHashPrefix, encodeUint64(number)...))
 	if errors.Cause(err) == db.ErrNotFound {
 		return nil, ErrBlockNumberNotFound

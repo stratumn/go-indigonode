@@ -57,7 +57,7 @@ func TestChain(t *testing.T) {
 		func(t *testing.T, c Chain) {
 			block := &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: h1[:]}}
 			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
-			assert.EqualError(t, c.AddBlock(block), ErrBlockNumberIncorrect.Error(), "c.AddBlock()")
+			assert.EqualError(t, c.AddBlock(block), ErrInvalidPreviousBlock.Error(), "c.AddBlock()")
 		},
 	}, {
 		"add-get",

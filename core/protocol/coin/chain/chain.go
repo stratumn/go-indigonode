@@ -32,7 +32,10 @@ var (
 	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
 
 	// ErrBlockNumberIncorrect is returned when adding a block with a bad number.
-	ErrBlockNumberIncorrect = errors.New("block number does not follow previous block number")
+	ErrBlockNumberIncorrect = errors.New("block number does not correspond to hash")
+
+	// ErrInvalidPreviousBlock is returned when adding a block with a bad number or previous hash.
+	ErrInvalidPreviousBlock = errors.New("link to previous block is invalid")
 )
 
 // Config describes the blockchain's chain configuration.

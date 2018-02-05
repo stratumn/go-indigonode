@@ -62,7 +62,7 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 
 	// Check that the block number is correct
 	if block.Header.BlockNumber != number {
-		return nil, errors.New("incorrect block number")
+		return nil, ErrBlockNumberIncorrect
 	}
 
 	return block, nil
@@ -133,7 +133,7 @@ func (c *chainDB) AddBlock(block *pb.Block) error {
 	return tx.Commit()
 }
 
-// checkAddBlock checks that the previous block exsits
+// checkAddBlock checks that the previous block exists
 // and that the block number is correct.
 func (c *chainDB) checkAddBlock(h *pb.Header) error {
 	// Is this the first block ?
@@ -143,11 +143,14 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 
 	// Check previous block
 	prevBlock, err := c.dbGetBlock(append(blockPrefix, h.PreviousHash...))
+	if errors.Cause(err) == ErrBlockNumberIncorrect {
+		return ErrInvalidPreviousBlock
+	}
 	if err != nil {
 		return err
 	}
 	if prevBlock.Header.BlockNumber != h.BlockNumber-1 {
-		return ErrBlockNumberIncorrect
+		return ErrInvalidPreviousBlock
 	}
 
 	return nil

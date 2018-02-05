@@ -678,7 +678,7 @@ func NewServerReflector(cons *Console, termWidth int, reflectors ...Reflector) S
 }
 
 // Reflect reflects the command of a server and returns commands for them.
-func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]Cmd, []EventListener, error) {
+func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]Cmd, error) {
 	r.cons.Debugln("Reflecting API commands...")
 
 	stub := grpc_reflection_v1alpha.NewServerReflectionClient(conn)
@@ -687,20 +687,18 @@ func (r ServerReflector) Reflect(ctx context.Context, conn *grpc.ClientConn) ([]
 
 	servNames, err := c.ListServices()
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	var cmds []Cmd
-	var eventListeners []EventListener
 	for _, d := range r.getServiceDescs(c, servNames) {
-		cmd, el := r.reflectService(conn, d)
+		cmd := r.reflectService(conn, d)
 		cmds = append(cmds, cmd...)
-		eventListeners = append(eventListeners, el...)
 	}
 
 	r.cons.Debugln("Reflected API commands.")
 
-	return cmds, eventListeners, err
+	return cmds, err
 }
 
 // getServicesDescs gets the service descriptors for the given service names.
@@ -730,29 +728,16 @@ func (r ServerReflector) getServiceDescs(c *grpcreflect.Client, servNames []stri
 }
 
 // reflectService reflect commands for the given service descriptor.
-func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDescriptor) ([]Cmd, []EventListener) {
+func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDescriptor) []Cmd {
 	methodDescs := d.GetMethods()
 
 	var cmds []Cmd
-	var eventListeners []EventListener
 	for _, methodDesc := range methodDescs {
 		opts := methodDesc.GetMethodOptions()
 		if opts != nil {
 			noCLI, err := proto.GetExtension(opts, ext.E_MethodNoCli)
 			if err == nil && *noCLI.(*bool) {
 				r.cons.Debugf("%s ignored (no-cli set).\n", methodDesc.GetName())
-				continue
-			}
-
-			eventEmitterEx, err := proto.GetExtension(opts, ext.E_MethodEventEmitter)
-			if err == nil && *eventEmitterEx.(*bool) {
-				el := NewConsoleRPCEventListener(
-					r.cons,
-					conn,
-					d.GetName(),
-					methodDesc,
-				)
-				eventListeners = append(eventListeners, el)
 				continue
 			}
 		}
@@ -768,7 +753,7 @@ func (r ServerReflector) reflectService(conn *grpc.ClientConn, d *desc.ServiceDe
 		}
 	}
 
-	return cmds, eventListeners
+	return cmds
 }
 
 // reflectMethods reflect the command for the given methods descriptor.

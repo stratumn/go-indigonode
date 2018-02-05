@@ -162,9 +162,9 @@ type cli struct {
 	apiCmds    []Cmd
 	allCmds    []Cmd
 
-	eventListeners     []EventListener
-	eventListenersWg   sync.WaitGroup
-	stopEventListeners context.CancelFunc
+	eventListener     EventListener
+	eventListenerCh   chan struct{}
+	stopEventListener context.CancelFunc
 
 	addr string
 	conn *grpc.ClientConn
@@ -188,13 +188,14 @@ func New(configSet cfg.ConfigSet) (CLI, error) {
 	}
 
 	c := cli{
-		conf:       config,
-		cons:       cons,
-		prompt:     prompt,
-		reflector:  NewServerReflector(cons, 0),
-		staticCmds: StaticCmds,
-		allCmds:    StaticCmds,
-		addr:       config.APIAddress,
+		conf:            config,
+		cons:            cons,
+		prompt:          prompt,
+		reflector:       NewServerReflector(cons, 0),
+		staticCmds:      StaticCmds,
+		allCmds:         StaticCmds,
+		addr:            config.APIAddress,
+		eventListenerCh: make(chan struct{}),
 	}
 
 	// Create the top closure.
@@ -334,7 +335,7 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 	}
 
 	// Reflect API commands.
-	c.apiCmds, c.eventListeners, err = c.reflector.Reflect(ctx, conn)
+	c.apiCmds, err = c.reflector.Reflect(ctx, conn)
 	if err != nil {
 		if err := conn.Close(); err != nil {
 			c.cons.Debugf("Could not close connection: %s.\n", err)
@@ -342,21 +343,22 @@ func (c *cli) Connect(ctx context.Context, addr string) error {
 		return err
 	}
 
+	c.eventListener = NewConsoleRPCEventListener(
+		c.cons,
+		conn,
+	)
+
 	// The input ctx will be cancelled once the connection is established.
 	// We need a longer context for the event listeners.
 	eventCtx, cancel := context.WithCancel(context.Background())
-	c.stopEventListeners = cancel
-	for _, el := range c.eventListeners {
-		c.eventListenersWg.Add(1)
-		go func(el EventListener) {
-			defer c.eventListenersWg.Done()
-
-			err := el.Start(eventCtx)
-			if err != nil {
-				c.cons.Debugf("[%s] Event listener error: %s.\n", el.Service(), err.Error())
-			}
-		}(el)
-	}
+	c.stopEventListener = cancel
+	go func(el EventListener) {
+		err := el.Start(eventCtx)
+		if err != nil {
+			c.cons.Debugf("Event listener error: %s.\n", err.Error())
+		}
+		c.eventListenerCh <- struct{}{}
+	}(c.eventListener)
 
 	c.allCmds = append(c.staticCmds, c.apiCmds...)
 	sortCmds(c.allCmds)
@@ -376,16 +378,16 @@ func (c *cli) Disconnect() error {
 
 	c.removeCmdsFromInterpreter(c.apiCmds)
 
-	if c.stopEventListeners != nil {
-		c.stopEventListeners()
-		c.eventListenersWg.Wait()
+	if c.stopEventListener != nil {
+		c.stopEventListener()
+		<-c.eventListenerCh
 	}
 
 	conn := c.conn
 	c.conn = nil
 	c.allCmds = c.staticCmds
 	c.apiCmds = nil
-	c.eventListeners = nil
+	c.eventListener = nil
 
 	return errors.WithStack(conn.Close())
 }

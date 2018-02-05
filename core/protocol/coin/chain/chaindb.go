@@ -196,6 +196,18 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 		return err
 	}
 
+	h := sha256.Sum256(b)
+
+	// Check that block is in the chain
+	_, err = c.db.Get(append(blockPrefix, h[:]...))
+	if errors.Cause(err) == db.ErrNotFound {
+		return ErrBlockHashNotFound
+	}
+
+	if err != nil {
+		return err
+	}
+
 	// Update LastBlock
 	if err := c.db.Put(lastBlockKey, b); err != nil {
 		return err

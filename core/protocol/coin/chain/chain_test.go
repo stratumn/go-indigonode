@@ -72,11 +72,16 @@ func TestChain(t *testing.T) {
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
-			assert.NoError(t, c.SetHead(block2), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
 
 			h, err := c.CurrentHeader()
 			assert.NoError(t, err, "c.CurrentHeader()")
 			assert.Equal(t, h, block2.Header)
+		},
+	}, {
+		"set-bad-head",
+		func(t *testing.T, c Chain) {
+			assert.EqualError(t, c.SetHead(block1), ErrBlockHashNotFound.Error(), "c.SetHead()")
 		},
 	}, {
 		"get-by-number",

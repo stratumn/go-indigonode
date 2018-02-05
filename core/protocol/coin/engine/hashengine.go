@@ -28,11 +28,17 @@ import (
 // a given number of 0.
 type HashEngine struct {
 	difficulty uint64
+
+	privKey *coinutils.PrivateKey
 }
 
 // NewHashEngine creates a PoW engine with an initial difficulty.
-func NewHashEngine(difficulty uint64) PoW {
-	return &HashEngine{difficulty: difficulty}
+// The miner should specify its public key to receive block rewards.
+func NewHashEngine(privKey *coinutils.PrivateKey, difficulty uint64) PoW {
+	return &HashEngine{
+		difficulty: difficulty,
+		privKey:    privKey,
+	}
 }
 
 // VerifyHeader verifies that the header met the PoW difficulty
@@ -84,11 +90,71 @@ func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 	return nil
 }
 
-func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
-	panic("not implemented")
+// Finalize verifies the header, create a reward for the miner and assembles
+// the finalized block.
+func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, _ state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+	previous := chain.GetHeaderByHash(header.PreviousHash)
+	if previous == nil {
+		return nil, ErrInvalidPreviousBlock
+	}
+
+	if previous.BlockNumber+1 != header.BlockNumber {
+		return nil, ErrInvalidBlockNumber
+	}
+
+	reward, err := e.createReward()
+	if err != nil {
+		return nil, err
+	}
+
+	blockTxs := append(txs, reward)
+	blockRoot, err := coinutils.TransactionRoot(blockTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	header.MerkleRoot = blockRoot
+
+	block := &pb.Block{
+		Header:       header,
+		Transactions: blockTxs,
+	}
+
+	return block, nil
 }
 
 // Difficulty returns the number of leading 0 we expect from the header hash.
 func (e *HashEngine) Difficulty() uint64 {
 	return e.difficulty
+}
+
+// createReward creates a reward for the miner finalizing the block.
+func (e *HashEngine) createReward() (*pb.Transaction, error) {
+	to, err := e.privKey.GetPublicKey().Bytes()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	reward := &pb.Transaction{
+		To:    to,
+		Value: 5,
+	}
+
+	txBytes, err := reward.Marshal()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	sig, err := e.privKey.Sign(txBytes)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	reward.Signature = &pb.Signature{
+		KeyType:   pb.KeyType_Ed25519,
+		PublicKey: to,
+		Signature: sig,
+	}
+
+	return reward, nil
 }

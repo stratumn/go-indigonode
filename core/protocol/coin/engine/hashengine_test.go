@@ -24,13 +24,15 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func TestHashEngine_Difficulty(t *testing.T) {
-	e := engine.NewHashEngine(42)
+	e := engine.NewHashEngine(nil, 42)
 	assert.Equal(t, uint64(42), e.Difficulty(), "e.Difficulty()")
 
-	e = engine.NewHashEngine(0)
+	e = engine.NewHashEngine(nil, 0)
 	assert.Equal(t, uint64(0), e.Difficulty(), "e.Difficulty()")
 }
 
@@ -107,7 +109,7 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(tt.difficulty)
+			e := engine.NewHashEngine(nil, tt.difficulty)
 			tt.run(t, e)
 		})
 	}
@@ -161,8 +163,114 @@ func TestHashEngine_Prepare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(42)
+			e := engine.NewHashEngine(nil, 42)
 			tt.run(t, e)
 		})
 	}
+}
+
+func TestHashEngine_Finalize(t *testing.T) {
+	chain := &testutil.SimpleChain{}
+
+	genesis := &pb.Block{Header: &pb.Header{Version: 1}}
+	genesisHash, err := coinutils.HashHeader(genesis.Header)
+	require.NoError(t, err, "coinutils.HashHeader()")
+	require.NoError(t, chain.AddBlock(genesis), "chain.AddBlock()")
+
+	firstBlock := &pb.Block{
+		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
+		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 2)},
+	}
+	firstHeaderHash, err := coinutils.HashHeader(firstBlock.Header)
+	require.NoError(t, err, "coinutils.HashHeader()")
+	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
+
+	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
+	require.NoError(t, err, "ic.GenerateKeyPair()")
+
+	privKey := coinutils.NewPrivateKey(sk, pb.KeyType_Ed25519)
+	pubKey := coinutils.NewPublicKey(pk, pb.KeyType_Ed25519)
+
+	tests := []struct {
+		name string
+		run  func(*testing.T, engine.Engine)
+	}{{
+		"invalid-block-number",
+		func(t *testing.T, e engine.Engine) {
+			invalidBlockNumber := &pb.Header{Version: 1, BlockNumber: 2, PreviousHash: genesisHash}
+
+			_, err := e.Finalize(chain, invalidBlockNumber, nil, nil)
+			assert.EqualError(t, err, engine.ErrInvalidBlockNumber.Error(), "e.Finalize()")
+		},
+	}, {
+		"missing-previous-block",
+		func(t *testing.T, e engine.Engine) {
+			invalidPrevious := &pb.Header{Version: 1, BlockNumber: 2, PreviousHash: []byte("hello")}
+
+			_, err := e.Finalize(chain, invalidPrevious, nil, nil)
+			assert.EqualError(t, err, engine.ErrInvalidPreviousBlock.Error(), "e.Finalize()")
+		},
+	}, {
+		"block-finalized",
+		func(t *testing.T, e engine.Engine) {
+			h := &pb.Header{}
+			assert.NoError(t, e.Prepare(chain, h), "e.Prepare()")
+
+			h.PreviousHash = firstHeaderHash
+			h.BlockNumber = 2
+
+			txs := []*pb.Transaction{
+				testutil.NewTransaction(t, 2, 1),
+				testutil.NewTransaction(t, 3, 2),
+			}
+
+			block, err := e.Finalize(chain, h, nil, txs)
+			assert.NoError(t, err, "e.Finalize()")
+			assert.NotNil(t, block.Header.MerkleRoot, "block.Header.MerkleRoot")
+			assert.Equal(t, h.BlockNumber, block.Header.BlockNumber, "block.Header.BlockNumber")
+			assert.EqualValues(t, h.PreviousHash, block.Header.PreviousHash, "block.Header.PreviousHash")
+
+			// A block reward tx should be added.
+			assert.Len(t, block.Transactions, 3, "block.Transactions")
+
+			var blockReward *pb.Transaction
+			for _, tx := range block.Transactions {
+				if tx.From == nil {
+					blockReward = tx
+					break
+				}
+			}
+
+			validateReward(t, blockReward, pubKey)
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := engine.NewHashEngine(privKey, 42)
+			tt.run(t, e)
+		})
+	}
+}
+
+func validateReward(t *testing.T, tx *pb.Transaction, pubKey *coinutils.PublicKey) {
+	assert.NotNil(t, tx, "tx")
+	assert.NotNil(t, tx.Signature, "tx.Signature")
+
+	to, err := pubKey.Bytes()
+	assert.NoError(t, err, "pubKey.Bytes()")
+	assert.EqualValues(t, to, tx.To, "tx.To")
+	assert.EqualValues(t, to, tx.Signature.PublicKey, "tx.Signature.PublicKey")
+
+	payload := &pb.Transaction{
+		To:    tx.To,
+		Value: tx.Value,
+		Nonce: tx.Nonce,
+	}
+	b, err := payload.Marshal()
+	assert.NoError(t, err, "payload.Marshal()")
+
+	valid, err := pubKey.Verify(b, tx.Signature.Signature)
+	assert.NoError(t, err, "pubKey.Verify()")
+	assert.True(t, valid, "pubKey.Verify")
 }

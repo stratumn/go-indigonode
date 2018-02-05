@@ -62,6 +62,10 @@ type Engine interface {
 	// transactions than those from the input (for example, block rewards).
 	// The block header might be updated (including a merkle root of the
 	// transactions for example).
+	// Since this method can update the header, if you need to run a long
+	// calculation that depends on the header (for example a PoW on the header
+	// hash) you should call Finalize and use the output of Finalize for your
+	// calculation.
 	Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }
 

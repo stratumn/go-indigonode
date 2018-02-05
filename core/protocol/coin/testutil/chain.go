@@ -65,6 +65,10 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) []*pb.Header {
 // GetHeaderByHash returns the first header of the block with the given hash.
 func (c *SimpleChain) GetHeaderByHash(hash []byte) *pb.Header {
 	b := c.GetBlock(hash, 0)
+	if b == nil {
+		return nil
+	}
+
 	return b.Header
 }
 

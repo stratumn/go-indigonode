@@ -19,6 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/coin"
+	"github.com/stratumn/sdk/merkle"
+	"github.com/stratumn/sdk/types"
 )
 
 // HashHeader computes the hash of a given header.
@@ -41,4 +43,35 @@ func HashBlock(block *pb.Block) ([]byte, error) {
 
 	blockHash := sha256.Sum256(b)
 	return blockHash[:], nil
+}
+
+// HashTransaction computes the hash of a given transaction.
+func HashTransaction(tx *pb.Transaction) ([]byte, error) {
+	b, err := tx.Marshal()
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	txHash := sha256.Sum256(b)
+	return txHash[:], nil
+}
+
+// TransactionRoot computes the merkle root of a set of transactions.
+func TransactionRoot(txs []*pb.Transaction) ([]byte, error) {
+	var leaves []types.Bytes32
+	for _, tx := range txs {
+		txHash, err := HashTransaction(tx)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		leaves = append(leaves, *types.NewBytes32FromBytes(txHash))
+	}
+
+	tree, err := merkle.NewStaticTree(leaves)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return tree.Root()[:], nil
 }

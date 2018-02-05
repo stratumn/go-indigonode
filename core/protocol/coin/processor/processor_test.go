@@ -68,37 +68,3 @@ func TestProcessor_Process(t *testing.T) {
 	assert.NoError(t, err, "s.GetAccount(charlie)")
 	assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 }
-
-func TestProcessor_Process_amountTooBig(t *testing.T) {
-	alice := []byte("alice")
-	bob := []byte("bob")
-
-	p := processor.NewProcessor()
-	s := testutil.NewSimpleState(t, state.OptStateIDLen(4))
-
-	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
-	assert.NoError(t, err, "s.UpdateAccount(alice)")
-
-	block := &pb.Block{
-		Transactions: []*pb.Transaction{{
-			From:  alice,
-			To:    bob,
-			Value: 10,
-		}, {
-			From:  alice,
-			To:    bob,
-			Value: 11,
-		}},
-	}
-
-	assert.EqualError(t, p.Process(block, s, nil), state.ErrAmountTooBig.Error())
-
-	// Make sure state wasn't updated.
-	v, err := s.GetAccount(alice)
-	assert.NoError(t, err, "s.GetAccount(alice)")
-	assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(alice)")
-
-	v, err = s.GetAccount(bob)
-	assert.NoError(t, err, "s.GetAccount(bob)")
-	assert.Equal(t, &pb.Account{}, v, "s.GetAccount(bob)")
-}

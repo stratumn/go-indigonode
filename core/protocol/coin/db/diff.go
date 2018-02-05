@@ -79,8 +79,8 @@ func (d *Diff) Delete(key []byte) error {
 	return nil
 }
 
-// Apply applies all the recorded the to underlying database and resets the
-// recorded changes.
+// Apply applies all the recorded changes to the underlying database. It also
+// resets the recorded changes.
 func (d *Diff) Apply() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()

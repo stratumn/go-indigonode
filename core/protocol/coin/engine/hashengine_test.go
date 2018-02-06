@@ -15,6 +15,7 @@
 package engine_test
 
 import (
+	"context"
 	"testing"
 
 	ptypes "github.com/gogo/protobuf/types"
@@ -170,6 +171,7 @@ func TestHashEngine_Prepare(t *testing.T) {
 }
 
 func TestHashEngine_Finalize(t *testing.T) {
+	ctx := context.Background()
 	chain := &testutil.SimpleChain{}
 
 	genesis := &pb.Block{Header: &pb.Header{Version: 1}}
@@ -181,8 +183,6 @@ func TestHashEngine_Finalize(t *testing.T) {
 		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
 		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 2)},
 	}
-	firstHeaderHash, err := coinutil.HashHeader(firstBlock.Header)
-	require.NoError(t, err, "coinutil.HashHeader()")
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 
 	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
@@ -192,46 +192,39 @@ func TestHashEngine_Finalize(t *testing.T) {
 	pubKey := coinutil.NewPublicKey(pk, pb.KeyType_Ed25519)
 
 	tests := []struct {
-		name string
-		run  func(*testing.T, engine.Engine)
+		name       string
+		difficulty uint64
+		run        func(*testing.T, engine.Engine)
 	}{{
 		"invalid-block-number",
+		0,
 		func(t *testing.T, e engine.Engine) {
 			invalidBlockNumber := &pb.Header{Version: 1, BlockNumber: 2, PreviousHash: genesisHash}
 
-			_, err := e.Finalize(chain, invalidBlockNumber, nil, nil)
+			_, err := e.Finalize(ctx, chain, invalidBlockNumber, nil, nil)
 			assert.EqualError(t, err, engine.ErrInvalidBlockNumber.Error(), "e.Finalize()")
 		},
 	}, {
 		"missing-previous-block",
+		0,
 		func(t *testing.T, e engine.Engine) {
 			invalidPrevious := &pb.Header{Version: 1, BlockNumber: 2, PreviousHash: []byte("hello")}
 
-			_, err := e.Finalize(chain, invalidPrevious, nil, nil)
+			_, err := e.Finalize(ctx, chain, invalidPrevious, nil, nil)
 			assert.EqualError(t, err, engine.ErrInvalidPreviousBlock.Error(), "e.Finalize()")
 		},
 	}, {
-		"block-finalized",
+		"block-reward",
+		0,
 		func(t *testing.T, e engine.Engine) {
-			h := &pb.Header{}
-			assert.NoError(t, e.Prepare(chain, h), "e.Prepare()")
-
-			h.PreviousHash = firstHeaderHash
-			h.BlockNumber = 2
-
-			txs := []*pb.Transaction{
-				testutil.NewTransaction(t, 2, 1),
-				testutil.NewTransaction(t, 3, 2),
-			}
-
-			block, err := e.Finalize(chain, h, nil, txs)
+			block, err := e.Finalize(ctx, chain, firstBlock.Header, nil, firstBlock.Transactions)
 			assert.NoError(t, err, "e.Finalize()")
 			assert.NotNil(t, block.Header.MerkleRoot, "block.Header.MerkleRoot")
-			assert.Equal(t, h.BlockNumber, block.Header.BlockNumber, "block.Header.BlockNumber")
-			assert.EqualValues(t, h.PreviousHash, block.Header.PreviousHash, "block.Header.PreviousHash")
+			assert.Equal(t, uint64(1), block.Header.BlockNumber, "block.Header.BlockNumber")
+			assert.EqualValues(t, genesisHash, block.Header.PreviousHash, "block.Header.PreviousHash")
 
 			// A block reward tx should be added.
-			assert.Len(t, block.Transactions, 3, "block.Transactions")
+			assert.Len(t, block.Transactions, 2, "block.Transactions")
 
 			var blockReward *pb.Transaction
 			for _, tx := range block.Transactions {
@@ -243,11 +236,35 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 			validateReward(t, blockReward, pubKey)
 		},
+	}, {
+		"block-nonce-pow",
+		1,
+		func(t *testing.T, e engine.Engine) {
+			block, err := e.Finalize(ctx, chain, firstBlock.Header, nil, firstBlock.Transactions)
+			assert.NoError(t, err, "e.Finalize()")
+			assert.True(t, block.Header.Nonce > 0, "block.Header.Nonce > 0")
+		},
+	}, {
+		"block-pow-cancel",
+		42,
+		func(t *testing.T, e engine.Engine) {
+			childCtx, cancel := context.WithCancel(ctx)
+			errChan := make(chan error)
+			go func() {
+				_, err := e.Finalize(childCtx, chain, firstBlock.Header, nil, firstBlock.Transactions)
+				errChan <- err
+			}()
+
+			cancel()
+			err := <-errChan
+
+			assert.EqualError(t, err, context.Canceled.Error(), "cancel()")
+		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(privKey, 42)
+			e := engine.NewHashEngine(privKey, tt.difficulty)
 			tt.run(t, e)
 		})
 	}

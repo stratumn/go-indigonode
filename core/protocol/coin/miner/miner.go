@@ -17,12 +17,10 @@ package miner
 import (
 	"context"
 	"errors"
-	"math"
 	"sync"
 	"time"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -177,14 +175,9 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		return
 	}
 
-	block, err = m.engine.Finalize(m.chain, header, m.state, txs)
+	block, err = m.engine.Finalize(ctx, m.chain, header, m.state, txs)
 	if err != nil {
 		return
-	}
-
-	powEngine, ok := m.engine.(engine.PoW)
-	if ok {
-		m.pow(ctx, powEngine, block)
 	}
 
 	err = m.processor.Process(block, m.state, m.chain)
@@ -193,32 +186,6 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 	}
 
 	return
-}
-
-// pow finds a solution to the proof of work problem.
-// It sets the block header's nonce appropriately.
-func (m *Miner) pow(ctx context.Context, e engine.PoW, block *pb.Block) {
-	difficulty := e.Difficulty()
-	for i := uint64(0); i < math.MaxUint64; i++ {
-		block.Header.Nonce = i
-		b, err := coinutil.HashHeader(block.Header)
-		if err != nil {
-			log.Event(ctx, "PoWError", logging.Metadata{"error": err})
-			continue
-		}
-
-		difficultyMet := true
-		for j := uint64(0); j < difficulty; j++ {
-			if b[j] != 0 {
-				difficultyMet = false
-				break
-			}
-		}
-
-		if difficultyMet {
-			break
-		}
-	}
 }
 
 // putBackInMempool puts back transactions into the mempool.

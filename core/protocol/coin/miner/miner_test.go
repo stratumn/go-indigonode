@@ -178,15 +178,4 @@ func TestMiner_Produce(t *testing.T) {
 			"mempool.TxCount() > 0",
 		)
 	})
-
-	t.Run("Uses PoW if available", func(t *testing.T) {
-		engine := testutil.NewDummyPoW(&testutil.DummyEngine{}, 1)
-		startMiner(&testutil.DummyProcessor{}, engine)
-
-		testutil.WaitUntil(
-			t,
-			func() bool { return engine.DifficultyCount() > 0 },
-			"engine.DifficultyCount() > 0",
-		)
-	})
 }

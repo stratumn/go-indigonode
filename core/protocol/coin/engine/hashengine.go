@@ -15,6 +15,9 @@
 package engine
 
 import (
+	"context"
+	"math"
+
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -44,15 +47,8 @@ func NewHashEngine(privKey *coinutil.PrivateKey, difficulty uint64) PoW {
 // VerifyHeader verifies that the header met the PoW difficulty
 // and correctly chains to a previous block.
 func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
-	headerHash, err := coinutil.HashHeader(header)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	for i := uint64(0); i < e.difficulty; i++ {
-		if headerHash[i] != 0 {
-			return ErrDifficultyNotMet
-		}
+	if err := e.verifyPow(header); err != nil {
+		return err
 	}
 
 	previousBlock, err := chain.GetBlock(header.PreviousHash, header.BlockNumber-1)
@@ -90,9 +86,11 @@ func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 	return nil
 }
 
-// Finalize verifies the header, create a reward for the miner and assembles
-// the finalized block.
-func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, _ state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+// Finalize verifies the header, creates a reward for the miner, finds a nonce
+// that meets the PoW difficulty and assembles the finalized block.
+// You can abort Finalize by cancelling the context (if for example a new block
+// arrives and you want to stop mining on an outdated block).
+func (e *HashEngine) Finalize(ctx context.Context, chain chain.Reader, header *pb.Header, _ state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	previous, err := chain.GetHeaderByHash(header.PreviousHash)
 	if err != nil || previous == nil {
 		return nil, ErrInvalidPreviousBlock
@@ -120,12 +118,53 @@ func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, _ state.Rea
 		Transactions: blockTxs,
 	}
 
+	err = e.pow(ctx, block)
+	if err != nil {
+		return nil, err
+	}
+
 	return block, nil
 }
 
 // Difficulty returns the number of leading 0 we expect from the header hash.
 func (e *HashEngine) Difficulty() uint64 {
 	return e.difficulty
+}
+
+// verifyPow verifies if the proof-of-work is valid.
+func (e *HashEngine) verifyPow(header *pb.Header) error {
+	headerHash, err := coinutil.HashHeader(header)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for i := uint64(0); i < e.difficulty; i++ {
+		if headerHash[i] != 0 {
+			return ErrDifficultyNotMet
+		}
+	}
+
+	return nil
+}
+
+// pow finds a solution to the proof-of-work problem.
+// It sets the block header's nonce appropriately.
+func (e *HashEngine) pow(ctx context.Context, block *pb.Block) error {
+	for i := uint64(0); i < math.MaxUint64; i++ {
+		// Stop if the caller doesn't want to mine this block anymore.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		block.Header.Nonce = i
+		if err := e.verifyPow(block.Header); err == nil {
+			break
+		}
+	}
+
+	return nil
 }
 
 // createReward creates a reward for the miner finalizing the block.

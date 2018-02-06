@@ -24,9 +24,6 @@ import (
 )
 
 var (
-	// ErrInvalidStateID is returned when a state ID is invalid.
-	ErrInvalidStateID = errors.New("state ID is invalid")
-
 	// ErrInconsistentTransactions is returned when the transactions to
 	// roll back are inconsistent with the saved nonces.
 	ErrInconsistentTransactions = errors.New("transactions are inconsistent")

@@ -17,9 +17,8 @@
 package processor
 
 import (
-	"crypto/sha256"
-
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -52,11 +51,10 @@ func (processor) Process(block *pb.Block, state state.State, chain chain.Writer)
 	// Update state.
 	// TODO: instead of recomputing the hash here,
 	// we can have chain.AddBlock return it.
-	headerBytes, err := block.Header.Marshal()
+	h, err := coinutils.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}
-	h := sha256.Sum256(headerBytes)
 
 	return state.ProcessTransactions(h[:], block.Transactions)
 }

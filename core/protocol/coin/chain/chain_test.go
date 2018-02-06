@@ -15,9 +15,9 @@
 package chain
 
 import (
-	"crypto/sha256"
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -26,14 +26,12 @@ import (
 
 func TestChain(t *testing.T) {
 	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
-	header1, err := block1.Header.Marshal()
-	assert.NoError(t, err, "json.Marshal(header1)")
-	h1 := sha256.Sum256(header1)
+	h1, err := coinutils.HashHeader(block1.Header)
+	assert.NoError(t, err, "coinutils.HashHeader()")
 
 	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1[:]}}
-	header2, err := block2.Header.Marshal()
-	assert.NoError(t, err, "json.Marshal(header2)")
-	h2 := sha256.Sum256(header2)
+	h2, err := coinutils.HashHeader(block2.Header)
+	assert.NoError(t, err, "coinutils.HashHeader()")
 
 	tests := []struct {
 		name string

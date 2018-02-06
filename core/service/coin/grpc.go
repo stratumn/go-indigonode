@@ -16,10 +16,9 @@ package coin
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -50,12 +49,11 @@ func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (respo
 		return nil, err
 	}
 
-	b, err := json.Marshal(req)
+	txHash, err := coinutils.HashTransaction(req)
 	if err != nil {
 		return nil, err
 	}
 
-	txHash := sha256.Sum256(b)
 	txResponse := &rpcpb.TransactionResp{
 		TxHash: txHash[:],
 	}

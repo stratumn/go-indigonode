@@ -15,12 +15,12 @@
 package chain
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/coinutils"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -185,13 +185,12 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	header, err := block.Header.Marshal()
+	h, err := coinutils.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}
 
 	// Add block to the chain
-	h := sha256.Sum256(header)
 	if err = tx.Put(c.blockKey(h[:]), b); err != nil {
 		return err
 	}
@@ -224,12 +223,11 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	if err != nil {
 		return err
 	}
-	header, err := block.Header.Marshal()
+
+	h, err := coinutils.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}
-
-	h := sha256.Sum256(header)
 
 	// Check that block is in the chain
 	_, err = c.db.Get(c.blockKey(h[:]))

@@ -17,6 +17,7 @@
 package engine
 
 import (
+	"context"
 	"errors"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -61,12 +62,9 @@ type Engine interface {
 	// It assembles the transactions in a final block, potentially adding more
 	// transactions than those from the input (for example, block rewards).
 	// The block header might be updated (including a merkle root of the
-	// transactions for example).
-	// Since this method can update the header, if you need to run a long
-	// calculation that depends on the header (for example a PoW on the header
-	// hash) you should call Finalize and use the output of Finalize for your
-	// calculation.
-	Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
+	// transactions, or computing a valid nonce for a proof-of-work algorithm
+	// for example).
+	Finalize(ctx context.Context, chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }
 
 // ProofOfWait is a consensus engine based on the powerful proof-of-wait © algorithm.

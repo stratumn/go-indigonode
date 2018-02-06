@@ -15,6 +15,7 @@
 package testutil
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -85,9 +86,9 @@ func (e *InstrumentedEngine) PrepareCount() uint32 {
 }
 
 // Finalize records the call.
-func (e *InstrumentedEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+func (e *InstrumentedEngine) Finalize(ctx context.Context, chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	atomic.AddUint32(&e.prepareCount, 1)
-	return e.engine.Finalize(chain, header, state, txs)
+	return e.engine.Finalize(ctx, chain, header, state, txs)
 }
 
 // FinalizeCount returns the number of calls to Finalize.
@@ -109,7 +110,7 @@ func (e *DummyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 }
 
 // Finalize returns an empty block with the given header.
-func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+func (e *DummyEngine) Finalize(ctx context.Context, chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	block := &pb.Block{Header: header}
 	return block, nil
 }
@@ -131,7 +132,7 @@ func (e *FaultyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 }
 
 // Finalize does nothing.
-func (e *FaultyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
+func (e *FaultyEngine) Finalize(ctx context.Context, chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
 	return nil, ErrFaultyEngine
 }
 

@@ -177,14 +177,9 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		return
 	}
 
-	block, err = m.engine.Finalize(m.chain, header, m.state, txs)
+	block, err = m.engine.Finalize(ctx, m.chain, header, m.state, txs)
 	if err != nil {
 		return
-	}
-
-	powEngine, ok := m.engine.(engine.PoW)
-	if ok {
-		m.pow(ctx, powEngine, block)
 	}
 
 	err = m.processor.Process(block, m.state, m.chain)

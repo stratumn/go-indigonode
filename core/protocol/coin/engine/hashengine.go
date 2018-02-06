@@ -55,8 +55,8 @@ func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 		}
 	}
 
-	previousBlock := chain.GetBlock(header.PreviousHash, header.BlockNumber-1)
-	if previousBlock == nil {
+	previousBlock, err := chain.GetBlock(header.PreviousHash, header.BlockNumber-1)
+	if err != nil || previousBlock == nil {
 		return ErrInvalidPreviousBlock
 	}
 
@@ -70,8 +70,8 @@ func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 // Prepare initializes the fields of the given header to respect
 // consensus rules.
 func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
-	currentHeader := chain.CurrentHeader()
-	if currentHeader == nil {
+	currentHeader, err := chain.CurrentHeader()
+	if err != nil || currentHeader == nil {
 		return ErrInvalidChain
 	}
 
@@ -93,8 +93,8 @@ func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 // Finalize verifies the header, create a reward for the miner and assembles
 // the finalized block.
 func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, _ state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
-	previous := chain.GetHeaderByHash(header.PreviousHash)
-	if previous == nil {
+	previous, err := chain.GetHeaderByHash(header.PreviousHash)
+	if err != nil || previous == nil {
 		return nil, ErrInvalidPreviousBlock
 	}
 

@@ -36,19 +36,19 @@ func (c *SimpleChain) Config() *chain.Config {
 }
 
 // CurrentHeader returns the header of the last block added.
-func (c *SimpleChain) CurrentHeader() *pb.Header {
+func (c *SimpleChain) CurrentHeader() (*pb.Header, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	if c.currentBlock == nil {
-		return nil
+		return nil, nil
 	}
 
-	return c.currentBlock.Header
+	return c.currentBlock.Header, nil
 }
 
 // GetHeaderByNumber returns all headers that have the input BlockNumber.
-func (c *SimpleChain) GetHeaderByNumber(number uint64) []*pb.Header {
+func (c *SimpleChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -59,36 +59,40 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) []*pb.Header {
 		}
 	}
 
-	return res
+	if res == nil {
+		return nil, chain.ErrBlockNumberNotFound
+	}
+
+	return res, nil
 }
 
 // GetHeaderByHash returns the first header of the block with the given hash.
-func (c *SimpleChain) GetHeaderByHash(hash []byte) *pb.Header {
-	b := c.GetBlock(hash, 0)
-	if b == nil {
-		return nil
+func (c *SimpleChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
+	b, err := c.GetBlock(hash, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	return b.Header
+	return b.Header, nil
 }
 
 // GetBlock returns the first block with the given header hash.
-func (c *SimpleChain) GetBlock(hash []byte, _ uint64) *pb.Block {
+func (c *SimpleChain) GetBlock(hash []byte, _ uint64) (*pb.Block, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	for _, b := range c.blocks {
 		blockHash, err := coinutils.HashHeader(b.Header)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 
 		if bytes.Equal(hash, blockHash) {
-			return b
+			return b, nil
 		}
 	}
 
-	return nil
+	return nil, chain.ErrBlockHashNotFound
 }
 
 // AddBlock adds a block to the chain without any validation.

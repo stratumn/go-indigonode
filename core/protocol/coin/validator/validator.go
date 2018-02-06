@@ -20,6 +20,7 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -64,6 +65,9 @@ var (
 
 	// ErrTooManyTxs is returned when the sender tries to put too many transactions in a block.
 	ErrTooManyTxs = errors.New("too many txs in proposed block")
+
+	// ErrInvalidMerkleRoot is returned when the merkle root doesn't represent the block transactions.
+	ErrInvalidMerkleRoot = errors.New("invalid merkle root")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -223,8 +227,12 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, s state.Reader) e
 
 // ValidateBlock validates the transactions contained in a block.
 func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error {
-	if v.maxTxPerBlock < len(block.Transactions) {
-		return ErrTooManyTxs
+	if err := v.validateTxCount(block); err != nil {
+		return err
+	}
+
+	if err := v.validateMerkleRoot(block); err != nil {
+		return err
 	}
 
 	for _, tx := range block.Transactions {
@@ -274,6 +282,35 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// validateTxCount restricts the number of transactions that can be
+// included in a block.
+func (v *BalanceValidator) validateTxCount(block *pb.Block) error {
+	if v.maxTxPerBlock < len(block.Transactions) {
+		return ErrTooManyTxs
+	}
+
+	return nil
+}
+
+// validateMerkleRoot verifies that the merkle root correctly
+// hashes the block's transactions.
+func (v *BalanceValidator) validateMerkleRoot(block *pb.Block) error {
+	if len(block.Transactions) == 0 {
+		return nil
+	}
+
+	expected, err := coinutil.TransactionRoot(block.Transactions)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(expected, block.Header.MerkleRoot) {
+		return ErrInvalidMerkleRoot
 	}
 
 	return nil

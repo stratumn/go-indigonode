@@ -17,6 +17,7 @@ package validator_test
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
@@ -162,28 +163,28 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"too-many-txs",
 		func() *pb.Block {
-			return &pb.Block{
-				Transactions: []*pb.Transaction{
-					testutil.NewTransaction(t, 1, 1),
-					testutil.NewTransaction(t, 2, 2),
-					testutil.NewTransaction(t, 1, 3),
-					testutil.NewTransaction(t, 3, 4),
-				},
-			}
+			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewTransaction(t, 1, 1),
+				testutil.NewTransaction(t, 2, 2),
+				testutil.NewTransaction(t, 1, 3),
+				testutil.NewTransaction(t, 3, 4),
+			})
 		},
 		func() state.State { return nil },
 		validator.ErrTooManyTxs,
 	}, {
 		"invalid-signature",
 		func() *pb.Block {
-			block := &pb.Block{
-				Transactions: []*pb.Transaction{
-					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 1),
-				},
-			}
+			block := testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewTransaction(t, 3, 5),
+				testutil.NewTransaction(t, 7, 1),
+			})
 
 			block.Transactions[1].Signature.Signature[5] ^= block.Transactions[1].Signature.Signature[5]
+			newRoot, err := coinutil.TransactionRoot(block.Transactions)
+			assert.NoError(t, err, "coinutil.TransactionRoot()")
+
+			block.Header.MerkleRoot = newRoot
 
 			return block
 		},
@@ -192,12 +193,10 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"invalid-balance",
 		func() *pb.Block {
-			return &pb.Block{
-				Transactions: []*pb.Transaction{
-					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 6),
-				},
-			}
+			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewTransaction(t, 3, 5),
+				testutil.NewTransaction(t, 7, 6),
+			})
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
@@ -210,14 +209,26 @@ func TestValidateBlock(t *testing.T) {
 		},
 		validator.ErrInsufficientBalance,
 	}, {
+		"invalid-merkle-root",
+		func() *pb.Block {
+			block := testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewTransaction(t, 3, 5),
+				testutil.NewTransaction(t, 7, 6),
+			})
+
+			block.Header.MerkleRoot = []byte("does not look valid")
+
+			return block
+		},
+		func() state.State { return nil },
+		validator.ErrInvalidMerkleRoot,
+	}, {
 		"valid-block",
 		func() *pb.Block {
-			return &pb.Block{
-				Transactions: []*pb.Transaction{
-					testutil.NewTransaction(t, 3, 5),
-					testutil.NewTransaction(t, 7, 8),
-				},
-			}
+			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewTransaction(t, 3, 5),
+				testutil.NewTransaction(t, 7, 8),
+			})
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)

@@ -18,8 +18,6 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/coin/chain"
-
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
@@ -34,7 +32,7 @@ func TestProcessor_Process(t *testing.T) {
 
 	p := processor.NewProcessor()
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
-	c := testutil.NewSimpleChain(t, chain.OptPrefix([]byte("c")))
+	c := &testutil.SimpleChain{}
 
 	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")

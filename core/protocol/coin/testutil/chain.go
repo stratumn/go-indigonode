@@ -106,3 +106,13 @@ func (c *SimpleChain) AddBlock(block *pb.Block) error {
 
 	return nil
 }
+
+// SetHead sets the given block as chain head.
+func (c *SimpleChain) SetHead(block *pb.Block) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.currentBlock = block
+
+	return nil
+}

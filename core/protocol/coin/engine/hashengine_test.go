@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -46,8 +46,8 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		0,
 		func(t *testing.T, e engine.Engine) {
 			previousHeader := &pb.Header{BlockNumber: 41}
-			previousHash, err := coinutils.HashHeader(previousHeader)
-			require.NoError(t, err, "coinutils.HashHeader()")
+			previousHash, err := coinutil.HashHeader(previousHeader)
+			require.NoError(t, err, "coinutil.HashHeader()")
 
 			h := &pb.Header{
 				BlockNumber:  42,
@@ -62,8 +62,8 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		0,
 		func(t *testing.T, e engine.Engine) {
 			previousBlock := &pb.Block{Header: &pb.Header{BlockNumber: 3}}
-			previousHash, err := coinutils.HashHeader(previousBlock.Header)
-			require.NoError(t, err, "coinutils.HashHeader()")
+			previousHash, err := coinutil.HashHeader(previousBlock.Header)
+			require.NoError(t, err, "coinutil.HashHeader()")
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
@@ -90,8 +90,8 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 		1,
 		func(t *testing.T, e engine.Engine) {
 			previousBlock := &pb.Block{Header: &pb.Header{BlockNumber: 3}}
-			previousHash, err := coinutils.HashHeader(previousBlock.Header)
-			require.NoError(t, err, "coinutils.HashHeader()")
+			previousHash, err := coinutil.HashHeader(previousBlock.Header)
+			require.NoError(t, err, "coinutil.HashHeader()")
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
@@ -137,8 +137,8 @@ func TestHashEngine_Prepare(t *testing.T) {
 				Nonce:       0,
 			}}
 
-			genesisHash, err := coinutils.HashHeader(genesis.Header)
-			assert.NoError(t, err, "coinutils.HashHeader()")
+			genesisHash, err := coinutil.HashHeader(genesis.Header)
+			assert.NoError(t, err, "coinutil.HashHeader()")
 
 			chain.AddBlock(genesis)
 
@@ -173,23 +173,23 @@ func TestHashEngine_Finalize(t *testing.T) {
 	chain := &testutil.SimpleChain{}
 
 	genesis := &pb.Block{Header: &pb.Header{Version: 1}}
-	genesisHash, err := coinutils.HashHeader(genesis.Header)
-	require.NoError(t, err, "coinutils.HashHeader()")
+	genesisHash, err := coinutil.HashHeader(genesis.Header)
+	require.NoError(t, err, "coinutil.HashHeader()")
 	require.NoError(t, chain.AddBlock(genesis), "chain.AddBlock()")
 
 	firstBlock := &pb.Block{
 		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
 		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 2)},
 	}
-	firstHeaderHash, err := coinutils.HashHeader(firstBlock.Header)
-	require.NoError(t, err, "coinutils.HashHeader()")
+	firstHeaderHash, err := coinutil.HashHeader(firstBlock.Header)
+	require.NoError(t, err, "coinutil.HashHeader()")
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 
 	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
 	require.NoError(t, err, "ic.GenerateKeyPair()")
 
-	privKey := coinutils.NewPrivateKey(sk, pb.KeyType_Ed25519)
-	pubKey := coinutils.NewPublicKey(pk, pb.KeyType_Ed25519)
+	privKey := coinutil.NewPrivateKey(sk, pb.KeyType_Ed25519)
+	pubKey := coinutil.NewPublicKey(pk, pb.KeyType_Ed25519)
 
 	tests := []struct {
 		name string
@@ -253,7 +253,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 	}
 }
 
-func validateReward(t *testing.T, tx *pb.Transaction, pubKey *coinutils.PublicKey) {
+func validateReward(t *testing.T, tx *pb.Transaction, pubKey *coinutil.PublicKey) {
 	assert.NotNil(t, tx, "tx")
 	assert.NotNil(t, tx.Signature, "tx.Signature")
 

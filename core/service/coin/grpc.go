@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -49,7 +49,7 @@ func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (respo
 		return nil, err
 	}
 
-	txHash, err := coinutils.HashTransaction(req)
+	txHash, err := coinutil.HashTransaction(req)
 	if err != nil {
 		return nil, err
 	}

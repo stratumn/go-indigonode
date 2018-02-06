@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -201,7 +201,7 @@ func (m *Miner) pow(ctx context.Context, e engine.PoW, block *pb.Block) {
 	difficulty := e.Difficulty()
 	for i := uint64(0); i < math.MaxUint64; i++ {
 		block.Header.Nonce = i
-		b, err := coinutils.HashHeader(block.Header)
+		b, err := coinutil.HashHeader(block.Header)
 		if err != nil {
 			log.Event(ctx, "PoWError", logging.Metadata{"error": err})
 			continue

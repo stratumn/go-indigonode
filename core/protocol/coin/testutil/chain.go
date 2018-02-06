@@ -19,7 +19,7 @@ import (
 	"sync"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -82,7 +82,7 @@ func (c *SimpleChain) GetBlock(hash []byte, _ uint64) (*pb.Block, error) {
 	defer c.mu.RUnlock()
 
 	for _, b := range c.blocks {
-		blockHash, err := coinutils.HashHeader(b.Header)
+		blockHash, err := coinutil.HashHeader(b.Header)
 		if err != nil {
 			return nil, err
 		}

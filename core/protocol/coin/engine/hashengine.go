@@ -18,7 +18,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -29,12 +29,12 @@ import (
 type HashEngine struct {
 	difficulty uint64
 
-	privKey *coinutils.PrivateKey
+	privKey *coinutil.PrivateKey
 }
 
 // NewHashEngine creates a PoW engine with an initial difficulty.
 // The miner should specify its public key to receive block rewards.
-func NewHashEngine(privKey *coinutils.PrivateKey, difficulty uint64) PoW {
+func NewHashEngine(privKey *coinutil.PrivateKey, difficulty uint64) PoW {
 	return &HashEngine{
 		difficulty: difficulty,
 		privKey:    privKey,
@@ -44,7 +44,7 @@ func NewHashEngine(privKey *coinutils.PrivateKey, difficulty uint64) PoW {
 // VerifyHeader verifies that the header met the PoW difficulty
 // and correctly chains to a previous block.
 func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
-	headerHash, err := coinutils.HashHeader(header)
+	headerHash, err := coinutil.HashHeader(header)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -75,7 +75,7 @@ func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 		return ErrInvalidChain
 	}
 
-	previousHash, err := coinutils.HashHeader(currentHeader)
+	previousHash, err := coinutil.HashHeader(currentHeader)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -108,7 +108,7 @@ func (e *HashEngine) Finalize(chain chain.Reader, header *pb.Header, _ state.Rea
 	}
 
 	blockTxs := append(txs, reward)
-	blockRoot, err := coinutils.TransactionRoot(blockTxs)
+	blockRoot, err := coinutil.TransactionRoot(blockTxs)
 	if err != nil {
 		return nil, err
 	}

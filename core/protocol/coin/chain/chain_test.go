@@ -17,7 +17,7 @@ package chain
 import (
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -26,12 +26,12 @@ import (
 
 func TestChain(t *testing.T) {
 	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
-	h1, err := coinutils.HashHeader(block1.Header)
-	assert.NoError(t, err, "coinutils.HashHeader()")
+	h1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
 
 	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1[:]}}
-	h2, err := coinutils.HashHeader(block2.Header)
-	assert.NoError(t, err, "coinutils.HashHeader()")
+	h2, err := coinutil.HashHeader(block2.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
 
 	tests := []struct {
 		name string

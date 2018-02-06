@@ -17,7 +17,7 @@ package processor_test
 import (
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
@@ -62,8 +62,8 @@ func TestProcessor_Process(t *testing.T) {
 	assert.NoError(t, p.Process(block, s, c))
 
 	// Check chain
-	h, err := coinutils.HashHeader(block.Header)
-	assert.NoError(t, err, "coinutils.HashHeader()")
+	h, err := coinutil.HashHeader(block.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
 
 	b, err := c.GetBlock(h[:], 0)
 	assert.NoError(t, err, "GetBlock()")

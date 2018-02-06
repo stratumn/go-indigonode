@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/coin/coinutils"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -185,7 +185,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	h, err := coinutils.HashHeader(block.Header)
+	h, err := coinutil.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 		return err
 	}
 
-	h, err := coinutils.HashHeader(block.Header)
+	h, err := coinutil.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}

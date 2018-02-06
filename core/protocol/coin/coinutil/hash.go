@@ -34,17 +34,6 @@ func HashHeader(header *pb.Header) ([]byte, error) {
 	return headerHash[:], nil
 }
 
-// HashBlock computes the hash of a given block.
-func HashBlock(block *pb.Block) ([]byte, error) {
-	b, err := block.Marshal()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	blockHash := sha256.Sum256(b)
-	return blockHash[:], nil
-}
-
 // HashTransaction computes the hash of a given transaction.
 func HashTransaction(tx *pb.Transaction) ([]byte, error) {
 	b, err := tx.Marshal()

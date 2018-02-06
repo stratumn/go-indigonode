@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -39,23 +40,41 @@ We store 3 types of values for now (see prefixes):
 	- last block
 */
 type chainDB struct {
-	db db.DB
+	mu     sync.RWMutex
+	db     db.DB
+	prefix []byte
+}
+
+// Opt is an option for Chain
+type Opt func(*chainDB)
+
+// OptPrefix sets a prefix for all the database keys.
+var OptPrefix = func(prefix []byte) Opt {
+	return func(c *chainDB) {
+		c.prefix = prefix
+	}
 }
 
 // NewChainDB returns a new blockchain using a given DB instance.
-func NewChainDB(db db.DB) Chain {
-	return &chainDB{db: db}
+func NewChainDB(db db.DB, opts ...Opt) Chain {
+	c := &chainDB{db: db}
+
+	for _, o := range opts {
+		o(c)
+	}
+
+	return c
 }
 
 // Config retrieves the blockchain's chain configuration.
-func (chainDB) Config() *Config {
+func (c *chainDB) Config() *Config {
 	return &Config{}
 }
 
 // GetBlock retrieves a block from the database by header hash and number.
 func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	// Get the block from the hash
-	block, err := c.dbGetBlock(append(blockPrefix, hash...))
+	block, err := c.dbGetBlock(c.blockKey(hash))
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +89,9 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 
 // CurrentHeader retrieves the current header from the local chain.
 func (c *chainDB) CurrentHeader() (*pb.Header, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
 	block, err := c.dbGetBlock(lastBlockKey)
 	if err != nil {
 		return nil, err
@@ -89,7 +111,7 @@ func (c *chainDB) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	res := make([]*pb.Header, len(hashes))
 
 	for i, h := range hashes {
-		block, err := c.dbGetBlock(append(blockPrefix, h...))
+		block, err := c.dbGetBlock(c.blockKey(h))
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +123,7 @@ func (c *chainDB) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 
 // GetHeaderByHash retrieves a block header from the database by its hash.
 func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
-	block, err := c.dbGetBlock(append(blockPrefix, hash...))
+	block, err := c.dbGetBlock(c.blockKey(hash))
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +164,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 	}
 
 	// Check previous block
-	prevBlock, err := c.dbGetBlock(append(blockPrefix, h.PreviousHash...))
+	prevBlock, err := c.dbGetBlock(c.blockKey(h.PreviousHash))
 	if errors.Cause(err) == ErrBlockNumberIncorrect {
 		return ErrInvalidPreviousBlock
 	}
@@ -170,7 +192,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 
 	// Add block to the chain
 	h := sha256.Sum256(header)
-	if err = tx.Put(append(blockPrefix, h[:]...), b); err != nil {
+	if err = tx.Put(c.blockKey(h[:]), b); err != nil {
 		return err
 	}
 
@@ -189,7 +211,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	if err = tx.Put(append(numToHashPrefix, encodeUint64(n)...), hs); err != nil {
+	if err = tx.Put(c.numToHashKey(n), hs); err != nil {
 		return err
 	}
 
@@ -210,7 +232,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	h := sha256.Sum256(header)
 
 	// Check that block is in the chain
-	_, err = c.db.Get(append(blockPrefix, h[:]...))
+	_, err = c.db.Get(c.blockKey(h[:]))
 	if errors.Cause(err) == db.ErrNotFound {
 		return ErrBlockHashNotFound
 	}
@@ -220,11 +242,10 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	}
 
 	// Update LastBlock
-	if err := c.db.Put(lastBlockKey, b); err != nil {
-		return err
-	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	return nil
+	return c.db.Put(lastBlockKey, b)
 }
 
 // Get a value from the DB and deserialize it into a pb.Block
@@ -249,7 +270,7 @@ func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 
 // Get the list of block hashes for a block height
 func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
-	b, err := c.db.Get(append(numToHashPrefix, encodeUint64(number)...))
+	b, err := c.db.Get(c.numToHashKey(number))
 	if errors.Cause(err) == db.ErrNotFound {
 		return nil, ErrBlockNumberNotFound
 	}
@@ -259,6 +280,16 @@ func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	}
 
 	return deserializeHashes(b)
+}
+
+// blockKey returns the key corresponding to a block in th DB
+func (c *chainDB) blockKey(hash []byte) []byte {
+	return append(append(c.prefix, blockPrefix...), hash...)
+}
+
+// blockKey returns the key corresponding to a block in th DB
+func (c *chainDB) numToHashKey(num uint64) []byte {
+	return append(append(c.prefix, numToHashPrefix...), encodeUint64(num)...)
 }
 
 // encodeUint64 encodes an uint64 to a buffer.

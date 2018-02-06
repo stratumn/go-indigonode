@@ -15,7 +15,6 @@
 package state
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"sync"
 
@@ -25,9 +24,6 @@ import (
 )
 
 var (
-	// ErrInvalidStateID is returned when a state ID is invalid.
-	ErrInvalidStateID = errors.New("state ID is invalid")
-
 	// ErrInconsistentTransactions is returned when the transactions to
 	// roll back are inconsistent with the saved nonces.
 	ErrInconsistentTransactions = errors.New("transactions are inconsistent")
@@ -75,20 +71,9 @@ const (
 )
 
 type stateDB struct {
-	mu   sync.RWMutex
-	db   db.DB
-	diff *db.Diff
-
-	// stateIDLen is the bytesize of a state ID.
-	//
-	// It is required to prevent collision between keys.
-	//
-	// For example:
-	//
-	//	stateA  + BC -> stateABC
-	//	stateAB + C  -> stateABC
-	stateIDLen int
-
+	mu     sync.RWMutex
+	db     db.DB
+	diff   *db.Diff
 	prefix []byte
 }
 
@@ -102,14 +87,6 @@ var OptPrefix = func(prefix []byte) Opt {
 	}
 }
 
-// OptStateIDLen sets the length of a state ID. They must all have the same
-// length. The default value is `sha256.Size`.
-var OptStateIDLen = func(len int) Opt {
-	return func(s *stateDB) {
-		s.stateIDLen = len
-	}
-}
-
 // NewState creates a new state from a DB instance.
 //
 // Prefix is used to prefix keys in the database.
@@ -118,9 +95,8 @@ var OptStateIDLen = func(len int) Opt {
 // OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
 func NewState(database db.DB, opts ...Opt) State {
 	s := &stateDB{
-		db:         database,
-		diff:       db.NewDiff(database),
-		stateIDLen: sha256.Size,
+		db:   database,
+		diff: db.NewDiff(database),
 	}
 
 	for _, o := range opts {
@@ -174,10 +150,6 @@ func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Acco
 }
 
 func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) error {
-	if s.stateIDLen != len(stateID) {
-		return ErrInvalidStateID
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -226,10 +198,6 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 }
 
 func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) error {
-	if s.stateIDLen != len(stateID) {
-		return ErrInvalidStateID
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()

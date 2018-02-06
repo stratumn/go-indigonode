@@ -156,7 +156,6 @@ func (e *HashEngine) pow(ctx context.Context, block *pb.Block) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			break
 		}
 
 		block.Header.Nonce = i

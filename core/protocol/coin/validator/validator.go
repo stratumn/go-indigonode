@@ -19,7 +19,6 @@ package validator
 import (
 	"bytes"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -157,7 +156,7 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 		Nonce: tx.Nonce,
 	}
 
-	b, err := proto.Marshal(payload)
+	b, err := payload.Marshal()
 	if err != nil {
 		return errors.WithStack(err)
 	}

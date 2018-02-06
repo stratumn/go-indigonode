@@ -108,9 +108,10 @@ func (e *DummyEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 	return nil
 }
 
-// Finalize does nothing.
+// Finalize returns an empty block with the given header.
 func (e *DummyEngine) Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error) {
-	return nil, nil
+	block := &pb.Block{Header: header}
+	return block, nil
 }
 
 // ErrFaultyEngine is the error returned by a FaultyEngine.
@@ -165,4 +166,30 @@ func (e *DummyProofOfWait) Interval() (int, int) {
 // IntervalCount returns the number of calls to Interval.
 func (e *DummyProofOfWait) IntervalCount() uint32 {
 	return e.intervalCount
+}
+
+// DummyPoW is a dummy proof-of-work engine.
+type DummyPoW struct {
+	InstrumentedEngine
+
+	difficulty      uint64
+	difficultyCount uint32
+}
+
+// NewDummyPoW creates a new DummyPoW.
+func NewDummyPoW(e engine.Engine, difficulty uint64) *DummyPoW {
+	powEngine := &DummyPoW{difficulty: difficulty}
+	powEngine.InstrumentedEngine = InstrumentedEngine{engine: e}
+	return powEngine
+}
+
+// Difficulty returns a configurable difficulty.
+func (e *DummyPoW) Difficulty() uint64 {
+	atomic.AddUint32(&e.difficultyCount, 1)
+	return e.difficulty
+}
+
+// DifficultyCount returns the number of calls to Difficulty.
+func (e *DummyPoW) DifficultyCount() uint32 {
+	return e.difficultyCount
 }

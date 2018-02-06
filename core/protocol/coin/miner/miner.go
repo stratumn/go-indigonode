@@ -17,11 +17,12 @@ package miner
 import (
 	"context"
 	"errors"
-	"math/rand"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -108,7 +109,7 @@ miningLoop:
 	for {
 		select {
 		case txs := <-m.txsChan:
-			err := m.produce(txs)
+			err := m.produce(ctx, txs)
 			if err != nil {
 				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err})
 			} else {
@@ -159,7 +160,7 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 // produce produces a new block from the input transactions.
 // It returns when it has finished producing the block or when
 // a new block is advertised (which makes the current work obsolete).
-func (m *Miner) produce(txs []*pb.Transaction) (err error) {
+func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) {
 	defer func() {
 		if err != nil {
 			m.putBackInMempool(txs)
@@ -176,19 +177,14 @@ func (m *Miner) produce(txs []*pb.Transaction) (err error) {
 		return
 	}
 
-	powEngine, ok := m.engine.(engine.ProofOfWait)
-	if ok {
-		// Powerful PoW (Proof of Wait) © algorithm.
-		min, max := powEngine.Interval()
-		wait := min + rand.Intn(max-min+1)
-		<-time.After(time.Duration(wait) * time.Millisecond)
-
-		header.Nonce = uint64(wait)
-	}
-
 	block, err = m.engine.Finalize(m.chain, header, m.state, txs)
 	if err != nil {
 		return
+	}
+
+	powEngine, ok := m.engine.(engine.PoW)
+	if ok {
+		m.pow(ctx, powEngine, block)
 	}
 
 	err = m.processor.Process(block, m.state, m.chain)
@@ -197,6 +193,32 @@ func (m *Miner) produce(txs []*pb.Transaction) (err error) {
 	}
 
 	return
+}
+
+// pow finds a solution to the proof of work problem.
+// It sets the block header's nonce appropriately.
+func (m *Miner) pow(ctx context.Context, e engine.PoW, block *pb.Block) {
+	difficulty := e.Difficulty()
+	for i := uint64(0); i < math.MaxUint64; i++ {
+		block.Header.Nonce = i
+		b, err := coinutil.HashHeader(block.Header)
+		if err != nil {
+			log.Event(ctx, "PoWError", logging.Metadata{"error": err})
+			continue
+		}
+
+		difficultyMet := true
+		for j := uint64(0); j < difficulty; j++ {
+			if b[j] != 0 {
+				difficultyMet = false
+				break
+			}
+		}
+
+		if difficultyMet {
+			break
+		}
+	}
 }
 
 // putBackInMempool puts back transactions into the mempool.

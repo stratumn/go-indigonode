@@ -17,9 +17,29 @@
 package engine
 
 import (
+	"errors"
+
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
+)
+
+var (
+	// ErrInvalidPreviousBlock is the error returned by VerifyHeader
+	// when the previous block referenced can't be found.
+	ErrInvalidPreviousBlock = errors.New("invalid header: previous block could not be found")
+
+	// ErrInvalidBlockNumber is the error returned  by VerifyHeader
+	// when the block number is invalid.
+	ErrInvalidBlockNumber = errors.New("invalid header: block number is invalid")
+
+	// ErrDifficultyNotMet is the error returned  by VerifyHeader
+	// when the block's difficulty has not been met (for PoW).
+	ErrDifficultyNotMet = errors.New("invalid header: difficulty not met")
+
+	// ErrInvalidChain is the error returned when the input chain
+	// returns invalid or unactionable results.
+	ErrInvalidChain = errors.New("invalid chain")
 )
 
 // Engine is an algorithm agnostic consensus engine.
@@ -42,6 +62,10 @@ type Engine interface {
 	// transactions than those from the input (for example, block rewards).
 	// The block header might be updated (including a merkle root of the
 	// transactions for example).
+	// Since this method can update the header, if you need to run a long
+	// calculation that depends on the header (for example a PoW on the header
+	// hash) you should call Finalize and use the output of Finalize for your
+	// calculation.
 	Finalize(chain chain.Reader, header *pb.Header, state state.Reader, txs []*pb.Transaction) (*pb.Block, error)
 }
 
@@ -53,4 +77,13 @@ type ProofOfWait interface {
 	// Interval returns the minimum and maximum number of
 	// milliseconds necessary to produce a block.
 	Interval() (int, int)
+}
+
+// PoW is a consensus engine based on a proof-of-work algorithm.
+type PoW interface {
+	Engine
+
+	// Difficulty returns the difficulty of the proof-of-work.
+	// Blocks that don't conform to the current difficulty will be rejected.
+	Difficulty() uint64
 }

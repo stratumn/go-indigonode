@@ -180,13 +180,13 @@ func TestMiner_Produce(t *testing.T) {
 	})
 
 	t.Run("Uses PoW if available", func(t *testing.T) {
-		engine := testutil.NewDummyProofOfWait(&testutil.DummyEngine{}, 1, 5)
+		engine := testutil.NewDummyPoW(&testutil.DummyEngine{}, 1)
 		startMiner(&testutil.DummyProcessor{}, engine)
 
 		testutil.WaitUntil(
 			t,
-			func() bool { return engine.IntervalCount() > 0 },
-			"engine.IntervalCount() > 0",
+			func() bool { return engine.DifficultyCount() > 0 },
+			"engine.DifficultyCount() > 0",
 		)
 	})
 }

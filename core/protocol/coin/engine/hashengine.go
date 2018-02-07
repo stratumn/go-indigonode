@@ -133,7 +133,7 @@ func (e *HashEngine) Difficulty() uint64 {
 
 // verifyPow verifies if the proof-of-work is valid.
 func (e *HashEngine) verifyPow(header *pb.Header) error {
-	headerHash, err := coinutil.HashHeader(header)
+	headerHash, err := coinutil.GetHeaderHashBytes(header)
 	if err != nil {
 		return errors.WithStack(err)
 	}

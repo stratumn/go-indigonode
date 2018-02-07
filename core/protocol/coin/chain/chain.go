@@ -58,6 +58,9 @@ type Reader interface {
 	// GetHeaderByHash retrieves a block header from the database by its hash.
 	GetHeaderByHash(hash []byte) (*pb.Header, error)
 
+	// CurrentBlock retrieves the current block from the local chain.
+	CurrentBlock() (*pb.Block, error)
+
 	// GetBlock retrieves a block from the database by header hash and number.
 	GetBlock(hash []byte, number uint64) (*pb.Block, error)
 }

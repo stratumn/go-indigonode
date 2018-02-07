@@ -35,6 +35,14 @@ func (c *SimpleChain) Config() *chain.Config {
 	return nil
 }
 
+// CurrentBlock returns the header of the last block added.
+func (c *SimpleChain) CurrentBlock() (*pb.Block, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.currentBlock, nil
+}
+
 // CurrentHeader returns the header of the last block added.
 func (c *SimpleChain) CurrentHeader() (*pb.Header, error) {
 	c.mu.RLock()
@@ -102,7 +110,6 @@ func (c *SimpleChain) AddBlock(block *pb.Block) error {
 	defer c.mu.Unlock()
 
 	c.blocks = append(c.blocks, block)
-	c.currentBlock = block
 
 	return nil
 }

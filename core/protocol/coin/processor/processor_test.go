@@ -37,7 +37,7 @@ func TestProcessor_Process(t *testing.T) {
 	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 	assert.NoError(t, err, "s.UpdateAccount(alice)")
 
-	block := &pb.Block{
+	block1 := &pb.Block{
 		Header: &pb.Header{
 			BlockNumber: 0,
 		},
@@ -46,7 +46,17 @@ func TestProcessor_Process(t *testing.T) {
 			To:    bob,
 			Value: 10,
 			Nonce: 1,
-		}, {
+		}},
+	}
+	h1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "HashHeader(block1)")
+
+	block2 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  1,
+			PreviousHash: h1,
+		},
+		Transactions: []*pb.Transaction{{
 			From:  bob,
 			To:    charlie,
 			Value: 5,
@@ -58,20 +68,24 @@ func TestProcessor_Process(t *testing.T) {
 			Nonce: 3,
 		}},
 	}
-
-	assert.NoError(t, p.Process(block, s, c))
-
-	// Check chain
-	h, err := coinutil.HashHeader(block.Header)
+	h2, err := coinutil.HashHeader(block2.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
-	b, err := c.GetBlock(h[:], 0)
+	assert.NoError(t, p.Process(block1, s, c))
+	assert.NoError(t, p.Process(block2, s, c))
+
+	// Check chain
+	b, err := c.GetBlock(h1, 0)
 	assert.NoError(t, err, "GetBlock()")
-	assert.Equal(t, block, b, "GetBlock()")
+	assert.Equal(t, block1, b, "GetBlock()")
+
+	b, err = c.GetBlock(h2, 1)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block2, b, "GetBlock()")
 
 	header, err := c.CurrentHeader()
 	assert.NoError(t, err, "CurrentHeader()")
-	assert.Equal(t, block.Header, header, "CurrentHeader()")
+	assert.Equal(t, block2.Header, header, "CurrentHeader()")
 
 	// Check state
 	v, err := s.GetAccount(alice)
@@ -85,4 +99,171 @@ func TestProcessor_Process(t *testing.T) {
 	v, err = s.GetAccount(charlie)
 	assert.NoError(t, err, "s.GetAccount(charlie)")
 	assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+}
+
+func TestProcessor_ProcessWithReorg(t *testing.T) {
+	alice := []byte("alice")
+	bob := []byte("bob")
+	charlie := []byte("charlie")
+	dexter := []byte("dexter")
+
+	p := processor.NewProcessor()
+	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
+	c := &testutil.SimpleChain{}
+
+	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+	assert.NoError(t, err, "s.UpdateAccount(alice)")
+
+	block1 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber: 0,
+			Nonce:       1,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  alice,
+			To:    bob,
+			Value: 10,
+			Nonce: 1,
+		}},
+	}
+	h1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "HashHeader(block1)")
+
+	block21 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  1,
+			PreviousHash: h1,
+			Nonce:        21,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  bob,
+			To:    charlie,
+			Value: 7,
+			Nonce: 2,
+		}, {
+			From:  charlie,
+			To:    alice,
+			Value: 2,
+			Nonce: 3,
+		}},
+	}
+	h21, err := coinutil.HashHeader(block21.Header)
+	assert.NoError(t, err, "HashHeader(block21)")
+
+	block31 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  2,
+			PreviousHash: h21,
+			Nonce:        31,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  bob,
+			To:    dexter,
+			Value: 3,
+			Nonce: 2,
+		}},
+	}
+	h31, err := coinutil.HashHeader(block31.Header)
+	assert.NoError(t, err, "HashHeader(block31)")
+
+	block22 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  1,
+			PreviousHash: h1,
+			Nonce:        22,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  bob,
+			To:    dexter,
+			Value: 5,
+			Nonce: 2,
+		}},
+	}
+	h22, err := coinutil.HashHeader(block22.Header)
+	assert.NoError(t, err, "HashHeader(block22)")
+
+	block32 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  2,
+			PreviousHash: h22,
+			Nonce:        32,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  alice,
+			To:    dexter,
+			Value: 4,
+			Nonce: 2,
+		}},
+	}
+	h32, err := coinutil.HashHeader(block32.Header)
+	assert.NoError(t, err, "HashHeader(block32)")
+
+	block4 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  3,
+			PreviousHash: h32,
+			Nonce:        4,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  dexter,
+			To:    bob,
+			Value: 1,
+			Nonce: 42,
+		}},
+	}
+	h4, err := coinutil.HashHeader(block4.Header)
+	assert.NoError(t, err, "HashHeader(block3)")
+
+	assert.NoError(t, p.Process(block1, s, c))
+	assert.NoError(t, p.Process(block21, s, c))
+	assert.NoError(t, p.Process(block31, s, c))
+	assert.NoError(t, p.Process(block22, s, c))
+	assert.NoError(t, p.Process(block32, s, c))
+	assert.NoError(t, p.Process(block4, s, c))
+
+	// Check chain
+	b, err := c.GetBlock(h1, 0)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block1, b, "GetBlock()")
+
+	b, err = c.GetBlock(h21, 1)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block21, b, "GetBlock()")
+
+	b, err = c.GetBlock(h22, 1)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block22, b, "GetBlock()")
+
+	b, err = c.GetBlock(h31, 2)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block31, b, "GetBlock()")
+
+	b, err = c.GetBlock(h32, 2)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block32, b, "GetBlock()")
+
+	b, err = c.GetBlock(h4, 2)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block4, b, "GetBlock()")
+
+	header, err := c.CurrentHeader()
+	assert.NoError(t, err, "CurrentHeader()")
+	assert.Equal(t, block4.Header, header, "CurrentHeader()")
+
+	// Check state
+	v, err := s.GetAccount(alice)
+	assert.NoError(t, err, "s.GetAccount(alice)")
+	assert.Equal(t, &pb.Account{Balance: 20 - 10 - 4, Nonce: 2}, v, "s.GetAccount(alice)")
+
+	v, err = s.GetAccount(bob)
+	assert.NoError(t, err, "s.GetAccount(bob)")
+	assert.Equal(t, &pb.Account{Balance: 10 - 5 + 1, Nonce: 2}, v, "s.GetAccount(bob)")
+
+	v, err = s.GetAccount(charlie)
+	assert.NoError(t, err, "s.GetAccount(charlie)")
+	assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
+
+	v, err = s.GetAccount(dexter)
+	assert.NoError(t, err, "s.GetAccount(dexter)")
+	assert.Equal(t, &pb.Account{Balance: 5 + 4 - 1, Nonce: 42}, v, "s.GetAccount(dexter)")
 }

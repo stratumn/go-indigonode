@@ -68,6 +68,7 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
+			require.NoError(t, chain.SetHead(previousBlock), "chain.SetHead()")
 
 			h := &pb.Header{
 				BlockNumber:  5,
@@ -96,11 +97,12 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 
 			chain := &testutil.SimpleChain{}
 			require.NoError(t, chain.AddBlock(previousBlock), "chain.AddBlock()")
+			require.NoError(t, chain.SetHead(previousBlock), "chain.SetHead()")
 
 			h := &pb.Header{
 				BlockNumber:  4,
 				PreviousHash: previousHash,
-				Nonce:        226, // Pre-computed nonce that meets a difficulty of 1
+				Nonce:        394, // Pre-computed nonce that meets a difficulty of 1
 			}
 
 			err = e.VerifyHeader(chain, h)
@@ -142,6 +144,7 @@ func TestHashEngine_Prepare(t *testing.T) {
 			assert.NoError(t, err, "coinutil.HashHeader()")
 
 			chain.AddBlock(genesis)
+			chain.SetHead(genesis)
 
 			h := &pb.Header{}
 			err = e.Prepare(chain, h)
@@ -178,12 +181,14 @@ func TestHashEngine_Finalize(t *testing.T) {
 	genesisHash, err := coinutil.HashHeader(genesis.Header)
 	require.NoError(t, err, "coinutil.HashHeader()")
 	require.NoError(t, chain.AddBlock(genesis), "chain.AddBlock()")
+	require.NoError(t, chain.SetHead(genesis), "chain.SetHead()")
 
 	firstBlock := &pb.Block{
 		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
 		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 2)},
 	}
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
+	require.NoError(t, chain.SetHead(firstBlock), "chain.SetHead()")
 
 	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
 	require.NoError(t, err, "ic.GenerateKeyPair()")

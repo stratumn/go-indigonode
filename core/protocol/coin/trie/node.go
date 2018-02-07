@@ -65,6 +65,7 @@ type NodeFlag byte
 // Node flags.
 const (
 	NodeFlagOdd NodeFlag = 1 << iota
+	NodeFlagChildHashes
 )
 
 // Node represents a node in a Patricia Merkle Trie.
@@ -80,17 +81,17 @@ const (
 //
 //	Parent node
 //	-----------
-//	0001  0001   10100                1001010010...  0100110101...
+//	0001  0000   10100                1001010010...  [0100110101...]
 //	type  flags  value len (uvarint)  value          16 child nodes
 //
 //	Leaf node
 //	---------
-//	0010  0001   10100                1001010010...
+//	0010  0000   10100                1001010010...
 //	type  flags  value len (uvarint)  value
 //
 //	Hash node
 //	---------
-//	0011  0000   0100110101...
+//	0011  0000   1100110101...
 //	type  flags  multihash
 //
 // Flags
@@ -100,12 +101,20 @@ const (
 //	An odd node means that the first four less significant bits of the last
 //	byte of the value should be ignored.
 //
+//	0010 child hashes
+//	-----------------
+//	If set the parent node is followed by 16 nodes of type hash or null.
+//	This is because in the database we might not insert the child hashes
+//	to save space since they can be computed dynamically. You can still
+//	find the child nodes in the database because their key will be their
+//	path in the tree.
+//
 // Multihash
 //
-//	0001111         0110101               1010101011...
+//	!001111         1110101               1010101011...
 //	algo (uvarint)  digest len (uvarint)  digest
 type Node interface {
-	Marshal() []byte
+	Marshal() ([]byte, error)
 	String() string
 }
 
@@ -113,8 +122,8 @@ type Node interface {
 type NullNode struct{}
 
 // Marshal marshals the node.
-func (n NullNode) Marshal() []byte {
-	return []byte{byte(NodeTypeNull)}
+func (n NullNode) Marshal() ([]byte, error) {
+	return []byte{byte(NodeTypeNull) << 4}, nil
 }
 
 // String returns a string representation of the node.
@@ -124,25 +133,42 @@ func (n NullNode) String() string {
 
 // ParentNode is a node that has children.
 type ParentNode struct {
-	IsOdd    bool
-	Children []Node
-	Value    []byte
+	IsOdd       bool
+	ChildHashes []Node
+	Value       []byte
 }
 
-// Marshal marshals the node.
-func (n ParentNode) Marshal() []byte {
-	buf := marshalValueNode(NodeTypeParent, n.IsOdd, n.Value)
+// parentHeadroom is the number of extra bytes to initially allocate to the
+// buffer when unmarshalling a node of type parent. This is simply to avoid
+// extra memory allocations as often as possible. It should be a number big
+// enough to store the child nodes most of the time, but not too big.
+const parentHeadroom = 128
 
-	for _, child := range n.Children {
-		buf = append(buf, child.Marshal()...)
+// Marshal marshals the node.
+func (n ParentNode) Marshal() ([]byte, error) {
+	buf := marshalValueNode(
+		NodeTypeParent,
+		n.IsOdd,
+		n.ChildHashes != nil,
+		n.Value,
+		parentHeadroom,
+	)
+
+	for _, child := range n.ChildHashes {
+		b, err := child.Marshal()
+		if err != nil {
+			return nil, err
+		}
+
+		buf = append(buf, b...)
 	}
 
-	return buf
+	return buf, nil
 }
 
 // String returns a string representation of the node.
 func (n ParentNode) String() string {
-	return fmt.Sprintf("%v %v %x %v", NodeTypeParent, n.IsOdd, n.Value, n.Children)
+	return fmt.Sprintf("%v %v %x %v", NodeTypeParent, n.IsOdd, n.Value, n.ChildHashes)
 }
 
 // LeafNode has no children.
@@ -152,8 +178,8 @@ type LeafNode struct {
 }
 
 // Marshal marshals the node.
-func (n LeafNode) Marshal() []byte {
-	return marshalValueNode(NodeTypeLeaf, n.IsOdd, n.Value)
+func (n LeafNode) Marshal() ([]byte, error) {
+	return marshalValueNode(NodeTypeLeaf, n.IsOdd, false, n.Value, 0), nil
 }
 
 // String returns a string representation of the node.
@@ -167,8 +193,12 @@ type HashNode struct {
 }
 
 // Marshal marshals the node.
-func (n HashNode) Marshal() []byte {
-	return append([]byte{byte(NodeTypeHash << 4)}, n.Hash...)
+func (n HashNode) Marshal() ([]byte, error) {
+	buf := make([]byte, len(n.Hash)+1)
+	buf[0] = byte(NodeTypeHash << 4)
+	copy(buf[1:], n.Hash)
+
+	return buf, nil
 }
 
 // String returns a string representation of the node.
@@ -192,6 +222,7 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 	// Get flags (next four most significant bits).
 	flags := buf[0] & 0x0F
 	isOdd := flags&byte(NodeFlagOdd) > 0
+	hashChildHashes := flags&byte(NodeFlagChildHashes) > 0
 
 	buf = buf[1:]
 	read := 1
@@ -227,23 +258,27 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 			Value: val,
 		}
 
-		// Get child nodes.
-		for i := 0; i < 16; i++ {
-			child, childRead, err := UnmarshalNode(buf)
-			if err != nil {
-				return nil, 0, err
-			}
+		if hashChildHashes {
+			n.ChildHashes = make([]Node, 16)
 
-			// Child nodes can only be null or hash.
-			switch child.(type) {
-			case NullNode, HashNode:
-			default:
-				return nil, 0, ErrInvalidNodeType
-			}
+			// Get child hash nodes.
+			for i := range n.ChildHashes {
+				child, childRead, err := UnmarshalNode(buf)
+				if err != nil {
+					return nil, 0, err
+				}
 
-			n.Children = append(n.Children, child)
-			buf = buf[childRead:]
-			read += childRead
+				// They can only be null or hash.
+				switch child.(type) {
+				case NullNode, HashNode:
+				default:
+					return nil, 0, errors.WithStack(ErrInvalidNodeType)
+				}
+
+				n.ChildHashes[i] = child
+				buf = buf[childRead:]
+				read += childRead
+			}
 		}
 
 		return n, read, nil
@@ -273,13 +308,22 @@ func MultihashLen(buf []byte) int {
 	return n1 + n2 + int(digestLen)
 }
 
-// marshalValueNode marshals a node type, parity flag, and a value.
-func marshalValueNode(typ NodeType, isOdd bool, val []byte) []byte {
-	buf := make([]byte, 1+binary.MaxVarintLen64+len(val))
+// marshalValueNode marshals a node type, flags, and a value.
+func marshalValueNode(
+	typ NodeType,
+	isOdd, hasChildHashes bool,
+	val []byte,
+	headroom int,
+) []byte {
+	buf := make([]byte, 1+binary.MaxVarintLen64+len(val)+headroom)
 	buf[0] = byte(typ) << 4
 
 	if isOdd {
 		buf[0] |= byte(NodeFlagOdd)
+	}
+
+	if hasChildHashes {
+		buf[0] |= byte(NodeFlagChildHashes)
 	}
 
 	l := binary.PutUvarint(buf[1:], uint64(len(val)))

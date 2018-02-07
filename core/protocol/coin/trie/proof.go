@@ -15,6 +15,4 @@
 package trie
 
 // Proof contains evidence that a value is in a Patricia Merkle Trie.
-//
-// It contains all the nodes leading to the value.
 type Proof []Node

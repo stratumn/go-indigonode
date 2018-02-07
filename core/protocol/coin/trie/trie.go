@@ -55,8 +55,8 @@
 // at the first four bits (0-15) of the value contained in the child node.
 //
 // Because the index takes four bits and not an entire byte, nodes have parity.
-// If a node is odd, the first four significant bits of the last byte of its
-// value are ignored.
+// If a node is odd, the first four less significant bits of the last byte of
+// its value are ignored.
 package trie
 
 import (

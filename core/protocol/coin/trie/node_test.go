@@ -65,9 +65,13 @@ func TestNode_Encoding(t *testing.T) {
 		nil,
 	}, {
 		"parent-node",
+		ParentNode{Value: []byte("Alice")},
+		nil,
+	}, {
+		"parent-node-with-child-hashes",
 		ParentNode{
 			Value: []byte("Alice"),
-			Children: []Node{
+			ChildHashes: []Node{
 				NullNode{},
 				NullNode{},
 				NullNode{},
@@ -88,20 +92,10 @@ func TestNode_Encoding(t *testing.T) {
 		},
 		nil,
 	}, {
-		"parent-node-invalid-length",
-		ParentNode{
-			Value: []byte("Alice"),
-			Children: []Node{
-				NullNode{},
-				HashNode{Hash: testHash1},
-			},
-		},
-		ErrInvalidNodeLen,
-	}, {
 		"parent-node-invalid-type",
 		ParentNode{
 			Value: []byte("Alice"),
-			Children: []Node{
+			ChildHashes: []Node{
 				NullNode{},
 				NullNode{},
 				NullNode{},
@@ -125,7 +119,9 @@ func TestNode_Encoding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf := tt.node.Marshal()
+			buf, err := tt.node.Marshal()
+			require.NoError(t, err, "tt.node.Marshal()")
+
 			node, read, err := UnmarshalNode(buf)
 
 			if tt.err != nil {
@@ -143,7 +139,7 @@ func TestNode_Encoding(t *testing.T) {
 func TestNode_String(t *testing.T) {
 	n := ParentNode{
 		Value: []byte("Alice"),
-		Children: []Node{
+		ChildHashes: []Node{
 			NullNode{},
 			NullNode{},
 			NullNode{},

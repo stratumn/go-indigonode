@@ -19,6 +19,7 @@ import (
 	"math"
 
 	ptypes "github.com/gogo/protobuf/types"
+	multihash "github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -141,10 +142,17 @@ func (e *HashEngine) Reward() uint64 {
 
 // verifyPow verifies if the proof-of-work is valid.
 func (e *HashEngine) verifyPow(header *pb.Header) error {
-	headerHash, err := coinutil.GetHeaderHashBytes(header)
+	headerHash, err := coinutil.HashHeader(header)
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	// headerHash is a Multihash. Get the actual digest.
+	mh, err := multihash.Decode(headerHash)
+	if err != nil {
+		return err
+	}
+	hash := mh.Digest
 
 	for i := uint64(0); i < e.difficulty; i++ {
 		if headerHash[i/8]&(1<<(7-(i%8))) != 0 {

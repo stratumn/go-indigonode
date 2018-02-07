@@ -159,20 +159,23 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {
-		from, err := s.doGetAccount(s.diff, tx.From)
-		if err != nil {
-			return err
-		}
+		// Substract amount for sender, except for coinbase transaction.
+		if tx.From != nil {
+			from, err := s.doGetAccount(s.diff, tx.From)
+			if err != nil {
+				return err
+			}
 
-		binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
+			binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
-		// Subtract amount from sender and update nonce.
-		from.Balance -= tx.Value
-		from.Nonce = tx.Nonce
+			// Subtract amount from sender and update nonce.
+			from.Balance -= tx.Value
+			from.Nonce = tx.Nonce
 
-		err = s.doUpdateAccount(s.diff, tx.From, from)
-		if err != nil {
-			return err
+			err = s.doUpdateAccount(s.diff, tx.From, from)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Add amount to receiver.

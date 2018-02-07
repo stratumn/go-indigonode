@@ -184,7 +184,7 @@ func (e *HashEngine) createReward() (*pb.Transaction, error) {
 
 	reward := &pb.Transaction{
 		To:    to,
-		Value: 5,
+		Value: e.reward,
 	}
 
 	return reward, nil

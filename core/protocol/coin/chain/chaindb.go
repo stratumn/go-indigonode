@@ -17,7 +17,6 @@ package chain
 import (
 	"encoding/binary"
 	"encoding/json"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -40,7 +39,6 @@ We store 3 types of values for now (see prefixes):
 	- last block
 */
 type chainDB struct {
-	mu     sync.RWMutex
 	db     db.DB
 	prefix []byte
 }
@@ -89,17 +87,11 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 
 // CurrentBlock retrieves the current block from the local chain.
 func (c *chainDB) CurrentBlock() (*pb.Block, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	return c.dbGetBlock(lastBlockKey)
 }
 
 // CurrentHeader retrieves the current header from the local chain.
 func (c *chainDB) CurrentHeader() (*pb.Header, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	block, err := c.dbGetBlock(lastBlockKey)
 	if err != nil {
 		return nil, err
@@ -248,9 +240,6 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	}
 
 	// Update LastBlock
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.db.Put(lastBlockKey, b)
 }
 

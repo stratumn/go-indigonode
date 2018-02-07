@@ -23,7 +23,7 @@ import (
 )
 
 // HashHeader computes the hash of a given header.
-func HashHeader(header *pb.Header) ([]byte, error) {
+func HashHeader(header *pb.Header) (multihash.Multihash, error) {
 	b, err := header.Marshal()
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -34,21 +34,8 @@ func HashHeader(header *pb.Header) ([]byte, error) {
 	return headerHash[:], err
 }
 
-// GetHeaderHashBytes hashes the header and returns teh actual hash bytes.
-func GetHeaderHashBytes(header *pb.Header) ([]byte, error) {
-	h, err := HashHeader(header)
-	if err != nil {
-		return nil, err
-	}
-	mh, err := multihash.Decode(h)
-	if err != nil {
-		return nil, err
-	}
-	return mh.Digest, nil
-}
-
 // HashTransaction computes the hash of a given transaction.
-func HashTransaction(tx *pb.Transaction) ([]byte, error) {
+func HashTransaction(tx *pb.Transaction) (multihash.Multihash, error) {
 	b, err := tx.Marshal()
 	if err != nil {
 		return nil, errors.WithStack(err)

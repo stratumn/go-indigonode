@@ -102,6 +102,18 @@ func TestProcessor_Process(t *testing.T) {
 }
 
 func TestProcessor_ProcessWithReorg(t *testing.T) {
+	/* Test a chain reorg
+	In this case, we start with a chain containing block1->block21->block31 (same as above).
+	We then add other blocks forking the chain from block1 until it is higher that the main chain:
+
+	block1  --->  block21  --->  block31
+				﹨
+				 ﹨-->  block22  ---> block32 ---> block4
+
+	The test checks that transactions from block21 and block31 are rollbacked in right order
+	and that transactions from block22, block32 and block4 are applied to the state.
+	*/
+
 	alice := []byte("alice")
 	bob := []byte("bob")
 	charlie := []byte("charlie")

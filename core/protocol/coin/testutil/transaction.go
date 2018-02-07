@@ -83,3 +83,11 @@ func NewTransaction(t *testing.T, value, nonce uint64) *pb.Transaction {
 
 	return tx
 }
+
+// NewCoinbaseTransaction creates a new coinbase transaction.
+func NewCoinbaseTransaction(t *testing.T, value uint64) *pb.Transaction {
+	return &pb.Transaction{
+		To:    []byte(TxRecipientPID),
+		Value: value,
+	}
+}

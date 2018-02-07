@@ -175,11 +175,13 @@ type DummyPoW struct {
 
 	difficulty      uint64
 	difficultyCount uint32
+
+	reward uint64
 }
 
 // NewDummyPoW creates a new DummyPoW.
-func NewDummyPoW(e engine.Engine, difficulty uint64) *DummyPoW {
-	powEngine := &DummyPoW{difficulty: difficulty}
+func NewDummyPoW(e engine.Engine, difficulty, reward uint64) *DummyPoW {
+	powEngine := &DummyPoW{difficulty: difficulty, reward: reward}
 	powEngine.InstrumentedEngine = InstrumentedEngine{engine: e}
 	return powEngine
 }
@@ -193,4 +195,9 @@ func (e *DummyPoW) Difficulty() uint64 {
 // DifficultyCount returns the number of calls to Difficulty.
 func (e *DummyPoW) DifficultyCount() uint32 {
 	return e.difficultyCount
+}
+
+// Reward returns the statically configured miner reward.
+func (e *DummyPoW) Reward() uint64 {
+	return e.reward
 }

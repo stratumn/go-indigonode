@@ -34,7 +34,7 @@ func HashHeader(header *pb.Header) ([]byte, error) {
 	return headerHash[:], err
 }
 
-// GetHeaderHashBytes hashes the ehader and returns teh actual hash bytes.
+// GetHeaderHashBytes hashes the header and returns teh actual hash bytes.
 func GetHeaderHashBytes(header *pb.Header) ([]byte, error) {
 	h, err := HashHeader(header)
 	if err != nil {

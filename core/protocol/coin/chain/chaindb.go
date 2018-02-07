@@ -139,7 +139,7 @@ func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	return block.Header, nil
 }
 
-// AddBlock adds a block to the chain and returns the hash of its header..
+// AddBlock adds a block to the chain.
 // It assumes that the block has been validated.
 // We still check that previous hash points to the block before this one
 func (c *chainDB) AddBlock(block *pb.Block) error {

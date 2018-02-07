@@ -92,6 +92,29 @@ func TestState(t *testing.T) {
 			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 		},
 	}, {
+		"process-coinbase-transaction",
+		func(t *testing.T, s State) {
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
+
+			txs := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 10,
+				Nonce: 1,
+			}, {
+				To:    alice,
+				Value: 5,
+			}}
+
+			err = s.ProcessTransactions([]byte("coinbase-state"), txs)
+			assert.NoError(t, err)
+
+			v, err := s.GetAccount(alice)
+			assert.NoError(t, err, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 5, Nonce: 1}, v, "s.GetAccount(alice)")
+		},
+	}, {
 		"rollback-transactions",
 		func(t *testing.T, s State) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})

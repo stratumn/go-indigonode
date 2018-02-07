@@ -188,6 +188,12 @@
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
 
 [[projects]]
+  name = "github.com/multiformats/go-multihash"
+  packages = ["."]
+  revision = "f85ddc806c2042548789544758350d503ad36b6d"
+  version = "v1.0.6"
+
+[[projects]]
   branch = "master"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
@@ -244,6 +250,12 @@
     "xfs"
   ]
   revision = "f98634e408857669d61064b283c4cde240622865"
+
+[[projects]]
+  name = "github.com/spaolacci/murmur3"
+  packages = ["."]
+  revision = "9f5d223c60793748f04a9d5b4b4eacddfc1f755d"
+  version = "v1.1"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -326,6 +338,16 @@
   packages = ["."]
   revision = "f30a97dd1445619884e03e7ed088bc1b3c4f767e"
   version = "0.9.3"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = [
+    "blake2b",
+    "blake2s",
+    "sha3"
+  ]
+  revision = "d9133f5469342136e669e85192a26056b587f503"
 
 [[projects]]
   branch = "master"
@@ -428,9 +450,15 @@
   packages = ["."]
   revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
 
+[[projects]]
+  branch = "master"
+  name = "leb.io/hashland"
+  packages = ["keccakpg"]
+  revision = "07375b562deaa8d6891f9618a04e94a0b98e2ee7"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "121d430378975fae2158b26c99af1307c11cdba278c33ed6e2ac346c62145fac"
+  inputs-digest = "d1083a3a621d9f7766e38e97125f72ad15609f1f88107f645cdb5ba68dfea228"
   solver-name = "gps-cdcl"
   solver-version = 1

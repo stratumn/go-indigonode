@@ -87,6 +87,14 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	return block, nil
 }
 
+// CurrentBlock retrieves the current block from the local chain.
+func (c *chainDB) CurrentBlock() (*pb.Block, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.dbGetBlock(lastBlockKey)
+}
+
 // CurrentHeader retrieves the current header from the local chain.
 func (c *chainDB) CurrentHeader() (*pb.Header, error) {
 	c.mu.RLock()
@@ -131,7 +139,7 @@ func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	return block.Header, nil
 }
 
-// AddBlock adds a block to the chain.
+// AddBlock adds a block to the chain and returns the hash of its header..
 // It assumes that the block has been validated.
 // We still check that previous hash points to the block before this one
 func (c *chainDB) AddBlock(block *pb.Block) error {
@@ -178,7 +186,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 	return nil
 }
 
-// doAddBlock actually prepares the transaction to add a block
+// doAddBlock actually prepares the transaction to add a block.
 func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	b, err := block.Marshal()
 	if err != nil {
@@ -191,7 +199,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	}
 
 	// Add block to the chain
-	if err = tx.Put(c.blockKey(h[:]), b); err != nil {
+	if err = tx.Put(c.blockKey(h), b); err != nil {
 		return err
 	}
 
@@ -204,7 +212,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	hashes = append(hashes, h[:])
+	hashes = append(hashes, h)
 	hs, err := serializeHashes(hashes)
 	if err != nil {
 		return err
@@ -230,7 +238,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	}
 
 	// Check that block is in the chain
-	_, err = c.db.Get(c.blockKey(h[:]))
+	_, err = c.db.Get(c.blockKey(h))
 	if errors.Cause(err) == db.ErrNotFound {
 		return ErrBlockHashNotFound
 	}

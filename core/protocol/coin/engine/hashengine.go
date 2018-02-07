@@ -147,7 +147,7 @@ func (e *HashEngine) verifyPow(header *pb.Header) error {
 	}
 
 	for i := uint64(0); i < e.difficulty; i++ {
-		if headerHash[i] != 0 {
+		if headerHash[i/8]&(1<<(7-(i%8))) != 0 {
 			return ErrDifficultyNotMet
 		}
 	}

@@ -152,10 +152,8 @@ func (e *HashEngine) verifyPow(header *pb.Header) error {
 	if err != nil {
 		return err
 	}
-	hash := mh.Digest
-
 	for i := uint64(0); i < e.difficulty; i++ {
-		if headerHash[i/8]&(1<<(7-(i%8))) != 0 {
+		if mh.Digest[i/8]&(1<<(7-(i%8))) != 0 {
 			return ErrDifficultyNotMet
 		}
 	}

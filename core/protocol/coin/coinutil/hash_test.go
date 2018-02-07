@@ -18,7 +18,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	multihash "github.com/multiformats/go-multihash"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,20 +29,7 @@ func Test_HashHeader(t *testing.T) {
 	expected, _ := hex.DecodeString("1220f18e9301eae406bbc26e46022df9bdf29f1b6393f8a2f47f03961797a6897d4e")
 
 	assert.NoError(t, err, "HashHeader()")
-	assert.Equal(t, expected, h, "HashHeader()")
-}
-
-func Test_GetHeaderHashBytes(t *testing.T) {
-	header := &pb.Header{Nonce: 42}
-
-	h, err := HashHeader(header)
-	assert.NoError(t, err, "HashHeader()")
-	hb, err := GetHeaderHashBytes(header)
-	assert.NoError(t, err, "GetHeaderHashBytes()")
-	mh, err := multihash.Decode(h)
-	assert.NoError(t, err, "multihash.Decode()")
-
-	assert.Equal(t, mh.Digest, hb, "HashHeader()")
+	assert.Equal(t, expected, []byte(h), "HashHeader()")
 }
 
 func Test_HashTransaction(t *testing.T) {
@@ -53,7 +39,7 @@ func Test_HashTransaction(t *testing.T) {
 	expected, _ := hex.DecodeString("122064e752669b24739d5a68c49d86c86ee8371eacbb9e61a46741f62f2f9d4ab4f4")
 
 	assert.NoError(t, err, "HashHeader()")
-	assert.Equal(t, expected, tx, "HashHeader()")
+	assert.Equal(t, expected, []byte(tx), "HashHeader()")
 }
 
 func Test_TransactionRoot(t *testing.T) {

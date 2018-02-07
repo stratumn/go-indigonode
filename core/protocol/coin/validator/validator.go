@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
+	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -68,6 +69,12 @@ var (
 
 	// ErrInvalidMerkleRoot is returned when the merkle root doesn't represent the block transactions.
 	ErrInvalidMerkleRoot = errors.New("invalid merkle root")
+
+	// ErrInvalidCoinbase is returned when the block coinbase transaction is invalid.
+	ErrInvalidCoinbase = errors.New("coinbase transaction is invalid")
+
+	// ErrMultipleCoinbase is returned when more than one coinbase transaction was included in a block.
+	ErrMultipleCoinbase = errors.New("only one coinbase transaction is allowed per block")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -87,12 +94,14 @@ type Validator interface {
 // It verifies that transactions are well-formed and signed,
 // and that users don't spend more coins than they have.
 type BalanceValidator struct {
+	engine        engine.PoW
 	maxTxPerBlock int
 }
 
 // NewBalanceValidator creates a BalanceValidator.
-func NewBalanceValidator(maxTxPerBlock int) Validator {
+func NewBalanceValidator(maxTxPerBlock int, engine engine.PoW) Validator {
 	return &BalanceValidator{
+		engine:        engine,
 		maxTxPerBlock: maxTxPerBlock,
 	}
 }
@@ -235,7 +244,22 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 		return err
 	}
 
+	coinbaseChecked := false
 	for _, tx := range block.Transactions {
+		// One coinbase Tx is allowed
+		if tx.From == nil {
+			if coinbaseChecked {
+				return ErrMultipleCoinbase
+			}
+
+			coinbaseChecked = true
+			if v.engine.Reward() < tx.Value {
+				return ErrInvalidCoinbase
+			}
+
+			continue
+		}
+
 		// Validate everything else than balance.
 		err := v.ValidateTx(tx, nil)
 		if err != nil {
@@ -246,6 +270,10 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 	// Aggregate transactions from the same sender and verify balance.
 	txs := make(map[peer.ID]*pb.Account)
 	for _, tx := range block.Transactions {
+		if tx.From == nil {
+			continue
+		}
+
 		// We need to validate each Tx individually as well so that balance
 		// cannot wrap around because of int overflow.
 		// Later we could use a more efficient implementation taking into

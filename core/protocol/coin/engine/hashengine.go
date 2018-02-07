@@ -31,16 +31,18 @@ import (
 // a given number of 0.
 type HashEngine struct {
 	difficulty uint64
+	reward     uint64
 
-	privKey *coinutil.PrivateKey
+	pubKey *coinutil.PublicKey
 }
 
 // NewHashEngine creates a PoW engine with an initial difficulty.
 // The miner should specify its public key to receive block rewards.
-func NewHashEngine(privKey *coinutil.PrivateKey, difficulty uint64) PoW {
+func NewHashEngine(pubKey *coinutil.PublicKey, difficulty, reward uint64) PoW {
 	return &HashEngine{
 		difficulty: difficulty,
-		privKey:    privKey,
+		reward:     reward,
+		pubKey:     pubKey,
 	}
 }
 
@@ -131,6 +133,12 @@ func (e *HashEngine) Difficulty() uint64 {
 	return e.difficulty
 }
 
+// Reward returns the reward a miner will receive when producing
+// a new valid block.
+func (e *HashEngine) Reward() uint64 {
+	return e.reward
+}
+
 // verifyPow verifies if the proof-of-work is valid.
 func (e *HashEngine) verifyPow(header *pb.Header) error {
 	headerHash, err := coinutil.HashHeader(header)
@@ -169,7 +177,7 @@ func (e *HashEngine) pow(ctx context.Context, block *pb.Block) error {
 
 // createReward creates a reward for the miner finalizing the block.
 func (e *HashEngine) createReward() (*pb.Transaction, error) {
-	to, err := e.privKey.GetPublicKey().Bytes()
+	to, err := e.pubKey.Bytes()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -177,22 +185,6 @@ func (e *HashEngine) createReward() (*pb.Transaction, error) {
 	reward := &pb.Transaction{
 		To:    to,
 		Value: 5,
-	}
-
-	txBytes, err := reward.Marshal()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	sig, err := e.privKey.Sign(txBytes)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	reward.Signature = &pb.Signature{
-		KeyType:   pb.KeyType_Ed25519,
-		PublicKey: to,
-		Signature: sig,
 	}
 
 	return reward, nil

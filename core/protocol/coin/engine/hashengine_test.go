@@ -30,11 +30,16 @@ import (
 )
 
 func TestHashEngine_Difficulty(t *testing.T) {
-	e := engine.NewHashEngine(nil, 42)
+	e := engine.NewHashEngine(nil, 42, 5)
 	assert.Equal(t, uint64(42), e.Difficulty(), "e.Difficulty()")
 
-	e = engine.NewHashEngine(nil, 0)
+	e = engine.NewHashEngine(nil, 0, 5)
 	assert.Equal(t, uint64(0), e.Difficulty(), "e.Difficulty()")
+}
+
+func TestHashEngine_Reward(t *testing.T) {
+	e := engine.NewHashEngine(nil, 3, 42)
+	assert.Equal(t, uint64(42), e.Reward(), "e.Reward()")
 }
 
 func TestHashEngine_VerifyHeader(t *testing.T) {
@@ -110,7 +115,7 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(nil, tt.difficulty)
+			e := engine.NewHashEngine(nil, tt.difficulty, 5)
 			tt.run(t, e)
 		})
 	}
@@ -164,7 +169,7 @@ func TestHashEngine_Prepare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(nil, 42)
+			e := engine.NewHashEngine(nil, 42, 5)
 			tt.run(t, e)
 		})
 	}
@@ -185,10 +190,8 @@ func TestHashEngine_Finalize(t *testing.T) {
 	}
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 
-	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
+	_, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
 	require.NoError(t, err, "ic.GenerateKeyPair()")
-
-	privKey := coinutil.NewPrivateKey(sk, pb.KeyType_Ed25519)
 	pubKey := coinutil.NewPublicKey(pk, pb.KeyType_Ed25519)
 
 	tests := []struct {
@@ -234,7 +237,12 @@ func TestHashEngine_Finalize(t *testing.T) {
 				}
 			}
 
-			validateReward(t, blockReward, pubKey)
+			assert.NotNil(t, blockReward, "blockReward")
+			assert.Nil(t, blockReward.Signature, "blockReward.Signature")
+
+			to, err := pubKey.Bytes()
+			assert.NoError(t, err, "pubKey.Bytes()")
+			assert.EqualValues(t, to, blockReward.To, "blockReward.To")
 		},
 	}, {
 		"block-nonce-pow",
@@ -264,30 +272,8 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(privKey, tt.difficulty)
+			e := engine.NewHashEngine(pubKey, tt.difficulty, 5)
 			tt.run(t, e)
 		})
 	}
-}
-
-func validateReward(t *testing.T, tx *pb.Transaction, pubKey *coinutil.PublicKey) {
-	assert.NotNil(t, tx, "tx")
-	assert.NotNil(t, tx.Signature, "tx.Signature")
-
-	to, err := pubKey.Bytes()
-	assert.NoError(t, err, "pubKey.Bytes()")
-	assert.EqualValues(t, to, tx.To, "tx.To")
-	assert.EqualValues(t, to, tx.Signature.PublicKey, "tx.Signature.PublicKey")
-
-	payload := &pb.Transaction{
-		To:    tx.To,
-		Value: tx.Value,
-		Nonce: tx.Nonce,
-	}
-	b, err := payload.Marshal()
-	assert.NoError(t, err, "payload.Marshal()")
-
-	valid, err := pubKey.Verify(b, tx.Signature.Signature)
-	assert.NoError(t, err, "pubKey.Verify()")
-	assert.True(t, valid, "pubKey.Verify")
 }

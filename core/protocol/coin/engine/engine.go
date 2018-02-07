@@ -84,4 +84,8 @@ type PoW interface {
 	// Difficulty returns the difficulty of the proof-of-work.
 	// Blocks that don't conform to the current difficulty will be rejected.
 	Difficulty() uint64
+
+	// Reward returns the reward that the miner will receive in a coinbase
+	// transaction when producing a new valid block.
+	Reward() uint64
 }

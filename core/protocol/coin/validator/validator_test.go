@@ -133,7 +133,10 @@ func TestValidateTx(t *testing.T) {
 		nil,
 	}}
 
-	validator := validator.NewBalanceValidator(validator.DefaultMaxTxPerBlock)
+	validator := validator.NewBalanceValidator(
+		validator.DefaultMaxTxPerBlock,
+		testutil.NewDummyPoW(&testutil.DummyEngine{}, 2, 5),
+	)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -222,10 +225,29 @@ func TestValidateBlock(t *testing.T) {
 		},
 		func() state.State { return nil },
 		validator.ErrInvalidMerkleRoot,
+	}, {"multiple-coinbase",
+		func() *pb.Block {
+			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewCoinbaseTransaction(t, 3),
+				testutil.NewCoinbaseTransaction(t, 4),
+			})
+		},
+		func() state.State { return nil },
+		validator.ErrMultipleCoinbase,
+	}, {
+		"invalid-coinbase",
+		func() *pb.Block {
+			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewCoinbaseTransaction(t, 42000),
+			})
+		},
+		func() state.State { return nil },
+		validator.ErrInvalidCoinbase,
 	}, {
 		"valid-block",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
+				testutil.NewCoinbaseTransaction(t, 1),
 				testutil.NewTransaction(t, 3, 5),
 				testutil.NewTransaction(t, 7, 8),
 			})
@@ -242,7 +264,10 @@ func TestValidateBlock(t *testing.T) {
 		nil,
 	}}
 
-	validator := validator.NewBalanceValidator(3)
+	validator := validator.NewBalanceValidator(
+		3,
+		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, 5),
+	)
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {

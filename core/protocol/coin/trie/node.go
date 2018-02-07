@@ -111,7 +111,7 @@ const (
 //
 // Multihash
 //
-//	!001111         1110101               1010101011...
+//	1001111         1110101               1010101011...
 //	algo (uvarint)  digest len (uvarint)  digest
 type Node interface {
 	Marshal() ([]byte, error)

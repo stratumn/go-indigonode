@@ -22,32 +22,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInMemoryMempool(t *testing.T) {
+func TestInMemoryTxPool(t *testing.T) {
 	tests := []struct {
 		name string
-		test func(*testing.T, state.Mempool)
+		test func(*testing.T, state.TxPool)
 	}{{
 		"empty-pool",
-		func(t *testing.T, m state.Mempool) {
-			assert.Nil(t, m.PopTransaction(), "m.PopTransaction()")
+		func(t *testing.T, txp state.TxPool) {
+			assert.Nil(t, txp.PopTransaction(), "txp.PopTransaction()")
 		},
 	}, {
 		"highest-fee",
-		func(t *testing.T, m state.Mempool) {
-			m.AddTransaction(testutil.NewTransaction(t, 5, 1, 1))
-			m.AddTransaction(testutil.NewTransaction(t, 5, 3, 1))
-			m.AddTransaction(testutil.NewTransaction(t, 5, 2, 1))
+		func(t *testing.T, txp state.TxPool) {
+			txp.AddTransaction(testutil.NewTransaction(t, 5, 1, 1))
+			txp.AddTransaction(testutil.NewTransaction(t, 5, 3, 1))
+			txp.AddTransaction(testutil.NewTransaction(t, 5, 2, 1))
 
-			tx := m.PopTransaction()
-			assert.NotNil(t, tx, "m.PopTransaction()")
+			tx := txp.PopTransaction()
+			assert.NotNil(t, tx, "txp.PopTransaction()")
 			assert.Equal(t, uint64(3), tx.Fee, "tx.Fee")
 		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &state.GreedyInMemoryMempool{}
-			tt.test(t, m)
+			txp := &state.GreedyInMemoryTxPool{}
+			tt.test(t, txp)
 		})
 	}
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockstate -destination mockstate/mockmempool.go github.com/stratumn/alice/core/protocol/coin/state Mempool
+//go:generate mockgen -package mockstate -destination mockstate/mocktxpool.go github.com/stratumn/alice/core/protocol/coin/state txpool
 
 package state
 
@@ -22,30 +22,30 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// Mempool stores transactions that need to be processed.
-type Mempool interface {
-	// AddTransaction adds a transaction to the mempool.
+// TxPool stores transactions that need to be processed.
+type TxPool interface {
+	// AddTransaction adds a transaction to the pool.
 	// It assumes that the transaction has been validated.
 	AddTransaction(tx *pb.Transaction) error
 
 	// PopTransaction pops the transaction with the highest score
-	// from the mempool.
+	// from the txpool.
 	// The score can be computed from various sources: transaction
-	// fees, time in the mempool, priority, etc.
-	// The mempool implementations can chose to prioritize fairness,
+	// fees, time in the txpool, priority, etc.
+	// The txpool implementations can chose to prioritize fairness,
 	// miner rewards, or anything else they come up with.
 	PopTransaction() *pb.Transaction
 }
 
-// GreedyInMemoryMempool is a very simple mempool that stores queued transactions
+// GreedyInMemoryTxPool is a very simple txpool that stores queued transactions
 // in memory.
-type GreedyInMemoryMempool struct {
+type GreedyInMemoryTxPool struct {
 	mu  sync.RWMutex
 	txs []*pb.Transaction
 }
 
 // AddTransaction adds a transaction in memory.
-func (m *GreedyInMemoryMempool) AddTransaction(tx *pb.Transaction) error {
+func (m *GreedyInMemoryTxPool) AddTransaction(tx *pb.Transaction) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -54,7 +54,7 @@ func (m *GreedyInMemoryMempool) AddTransaction(tx *pb.Transaction) error {
 }
 
 // PopTransaction pops the transaction with the highest fee from the pool.
-func (m *GreedyInMemoryMempool) PopTransaction() *pb.Transaction {
+func (m *GreedyInMemoryTxPool) PopTransaction() *pb.Transaction {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

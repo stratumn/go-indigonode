@@ -41,7 +41,7 @@ var log = logging.Logger("coin")
 
 // Protocol describes the interface exposed to other nodes in the network.
 type Protocol interface {
-	// AddTransaction validates a transaction and adds it to the mempool.
+	// AddTransaction validates a transaction and adds it to the transaction pool.
 	AddTransaction(tx *pb.Transaction) error
 
 	// AppendBlock validates the incoming block and adds it at the end of
@@ -60,7 +60,7 @@ type Coin struct {
 	engine    engine.Engine
 	state     state.State
 	chain     chain.Chain
-	mempool   state.Mempool
+	txpool    state.TxPool
 	processor processor.Processor
 	validator validator.Validator
 
@@ -69,20 +69,20 @@ type Coin struct {
 
 // NewCoin creates a new Coin.
 func NewCoin(
-	m state.Mempool,
+	txp state.TxPool,
 	e engine.Engine,
 	s state.State,
 	c chain.Chain,
 	v validator.Validator,
 	p processor.Processor) *Coin {
 
-	miner := miner.NewMiner(m, e, s, c, v, p)
+	miner := miner.NewMiner(txp, e, s, c, v, p)
 
 	return &Coin{
 		engine:    e,
 		state:     s,
 		chain:     c,
-		mempool:   m,
+		txpool:    txp,
 		processor: p,
 		validator: v,
 		miner:     miner,
@@ -137,14 +137,14 @@ func (c *Coin) State() state.Reader {
 }
 
 // AddTransaction validates incoming transactions against the latest state
-// and adds them to the mempool.
+// and adds them to the pool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
 	err := c.validator.ValidateTx(tx, nil)
 	if err != nil {
 		return err
 	}
 
-	return c.mempool.AddTransaction(tx)
+	return c.txpool.AddTransaction(tx)
 }
 
 // AppendBlock validates the incoming block and adds it at the end of

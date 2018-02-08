@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	// ErrMempoolConfig is returned when the miner's mempool is misconfigured.
-	ErrMempoolConfig = errors.New("mempool is misconfigured: cannot start miner")
+	// ErrTxPoolConfig is returned when the miner's txpool is misconfigured.
+	ErrTxPoolConfig = errors.New("txpool is misconfigured: cannot start miner")
 )
 
 // log is the logger for the miner.
@@ -46,7 +46,7 @@ type Miner struct {
 
 	chain     chain.Chain
 	engine    engine.Engine
-	mempool   state.Mempool
+	txpool    state.TxPool
 	processor processor.Processor
 	state     state.State
 	validator validator.Validator
@@ -57,7 +57,7 @@ type Miner struct {
 // NewMiner creates a new miner that will start mining on the given chain.
 // To stop the miner, you should cancel the input context.
 func NewMiner(
-	m state.Mempool,
+	txp state.TxPool,
 	e engine.Engine,
 	s state.State,
 	c chain.Chain,
@@ -67,7 +67,7 @@ func NewMiner(
 	miner := &Miner{
 		chain:     c,
 		engine:    e,
-		mempool:   m,
+		txpool:    txp,
 		processor: p,
 		state:     s,
 		validator: v,
@@ -129,16 +129,16 @@ miningLoop:
 }
 
 // startTxLoop starts the transaction selection process.
-// It queries the mempool for transactions and chooses
+// It queries the txpool for transactions and chooses
 // a batch of transactions to use for a new block.
 func (m *Miner) startTxLoop(ctx context.Context) error {
-	if m.mempool == nil {
-		log.Event(ctx, "NilMempool")
-		return ErrMempoolConfig
+	if m.txpool == nil {
+		log.Event(ctx, "NilTxPool")
+		return ErrTxPoolConfig
 	}
 
 	// For now we simply pop as many transactions as possible from
-	// the mempool, ordered by their score.
+	// the txpool, ordered by their score.
 	// It's a simple way to get good transaction fees.
 	for {
 		select {
@@ -151,7 +151,7 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 					break
 				}
 
-				tx := m.mempool.PopTransaction()
+				tx := m.txpool.PopTransaction()
 				if tx == nil {
 					break
 				}
@@ -174,7 +174,7 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) {
 	defer func() {
 		if err != nil {
-			m.putBackInMempool(txs)
+			m.putBackInTxPool(txs)
 		}
 	}()
 
@@ -201,14 +201,14 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 	return
 }
 
-// putBackInMempool puts back transactions into the mempool.
+// putBackInTxPool puts back transactions into the txpool.
 // It discards invalid transactions.
-func (m *Miner) putBackInMempool(txs []*pb.Transaction) {
+func (m *Miner) putBackInTxPool(txs []*pb.Transaction) {
 	for _, tx := range txs {
 		if err := m.validator.ValidateTx(tx, m.state); err == nil {
-			err := m.mempool.AddTransaction(tx)
+			err := m.txpool.AddTransaction(tx)
 			if err != nil {
-				log.Debugf("couldn't add tx to mempool: %s", err.Error())
+				log.Debugf("couldn't add tx to txpool: %s", err.Error())
 			}
 		}
 	}

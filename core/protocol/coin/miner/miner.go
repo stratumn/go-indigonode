@@ -165,10 +165,11 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		}
 	}()
 
-	block := &pb.Block{Transactions: txs}
-	if err = m.validator.ValidateBlock(block, m.state); err != nil {
+	if err = m.validator.ValidateTransactions(txs, m.state); err != nil {
 		return
 	}
+
+	block := &pb.Block{Transactions: txs}
 
 	header := &pb.Header{}
 	if err = m.engine.Prepare(m.chain, header); err != nil {

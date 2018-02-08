@@ -88,6 +88,8 @@ type Validator interface {
 	ValidateTx(tx *pb.Transaction, state state.Reader) error
 	// ValidateBlock validates the contents of a block.
 	ValidateBlock(block *pb.Block, state state.Reader) error
+	// ValidateTransactions validates a list of transactions.
+	ValidateTransactions(blotransactions []*pb.Transaction, state state.Reader) error
 }
 
 // BalanceValidator validates coin transactions.
@@ -244,8 +246,14 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 		return err
 	}
 
+	return v.ValidateTransactions(block.Transactions, s)
+}
+
+// ValidateTransactions validates the transactions contained in a block.
+func (v *BalanceValidator) ValidateTransactions(transactions []*pb.Transaction, s state.Reader) error {
+
 	coinbaseChecked := false
-	for _, tx := range block.Transactions {
+	for _, tx := range transactions {
 		// One coinbase Tx is allowed
 		if tx.From == nil {
 			if coinbaseChecked {
@@ -269,7 +277,7 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 
 	// Aggregate transactions from the same sender and verify balance.
 	txs := make(map[peer.ID]*pb.Account)
-	for _, tx := range block.Transactions {
+	for _, tx := range transactions {
 		if tx.From == nil {
 			continue
 		}

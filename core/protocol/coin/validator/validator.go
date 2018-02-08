@@ -82,6 +82,9 @@ var (
 // It is only responsible for validating the block contents, as the header
 // validation is done by the specific consensus engines.
 type Validator interface {
+	// MaxTxPerBlock returns the maximum number of transactions
+	// allowed in a block.
+	MaxTxPerBlock() int
 	// ValidateTx validates a transaction.
 	// If state is nil, ValidateTx only validates that the
 	// transaction is well-formed and properly signed.
@@ -104,6 +107,12 @@ func NewBalanceValidator(maxTxPerBlock int, engine engine.PoW) Validator {
 		engine:        engine,
 		maxTxPerBlock: maxTxPerBlock,
 	}
+}
+
+// MaxTxPerBlock returns the maximum number of transactions
+// allowed in a block.
+func (v *BalanceValidator) MaxTxPerBlock() int {
+	return v.maxTxPerBlock
 }
 
 // ValidateTx validates a transaction.

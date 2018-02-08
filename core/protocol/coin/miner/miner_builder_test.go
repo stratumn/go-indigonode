@@ -28,7 +28,7 @@ import (
 type MinerBuilder struct {
 	chain     chain.Chain
 	engine    engine.Engine
-	mempool   state.Mempool
+	txpool    state.TxPool
 	processor processor.Processor
 	state     state.State
 	validator validator.Validator
@@ -39,7 +39,7 @@ type MinerBuilder struct {
 func NewMinerBuilder() *MinerBuilder {
 	return &MinerBuilder{
 		engine:    &testutil.DummyEngine{},
-		mempool:   &testutil.InMemoryMempool{},
+		txpool:    &testutil.InMemoryTxPool{},
 		processor: &testutil.DummyProcessor{},
 		validator: &testutil.DummyValidator{},
 	}
@@ -51,9 +51,9 @@ func (m *MinerBuilder) WithEngine(engine engine.Engine) *MinerBuilder {
 	return m
 }
 
-// WithMempool configures the builder to use the given mempool.
-func (m *MinerBuilder) WithMempool(mempool state.Mempool) *MinerBuilder {
-	m.mempool = mempool
+// WithTxPool configures the builder to use the given txpool.
+func (m *MinerBuilder) WithTxPool(txpool state.TxPool) *MinerBuilder {
+	m.txpool = txpool
 	return m
 }
 
@@ -73,7 +73,7 @@ func (m *MinerBuilder) WithValidator(validator validator.Validator) *MinerBuilde
 // It's now ready to use in your tests.
 func (m *MinerBuilder) Build() *Miner {
 	return NewMiner(
-		m.mempool,
+		m.txpool,
 		m.engine,
 		m.state,
 		m.chain,

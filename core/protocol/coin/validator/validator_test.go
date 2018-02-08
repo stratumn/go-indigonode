@@ -41,7 +41,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"empty-value",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 0, 42)
+			tx := testutil.NewTransaction(t, 0, 0, 42)
 			return tx
 		},
 		func() state.State { return nil },
@@ -49,7 +49,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-to",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			tx.To = nil
 			return tx
 		},
@@ -58,7 +58,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-from",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			tx.From = nil
 			return tx
 		},
@@ -67,7 +67,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"send-to-self",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			tx.From = tx.To
 			return tx
 		},
@@ -76,7 +76,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-signature",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			tx.Signature = nil
 			return tx
 		},
@@ -85,7 +85,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"invalid-signature",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			tx.Signature.Signature[3] ^= 1
 			return tx
 		},
@@ -94,15 +94,31 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"invalid-balance",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 0, 42)
 			return tx
 		},
 		func() state.State { return testutil.NewSimpleState(t) },
 		validator.ErrInsufficientBalance,
 	}, {
+		"invalid-balance-fee",
+		func() *pb.Transaction {
+			tx := testutil.NewTransaction(t, 40, 5, 3)
+			return tx
+		},
+		func() state.State {
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				&pb.Account{Balance: 41, Nonce: 1},
+			)
+			assert.NoError(t, err)
+			return s
+		},
+		validator.ErrInsufficientBalance,
+	}, {
 		"invalid-nonce",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 3, 42)
 			return tx
 		},
 		func() state.State {
@@ -118,7 +134,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"valid-tx",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 42)
+			tx := testutil.NewTransaction(t, 42, 3, 42)
 			return tx
 		},
 		func() state.State {
@@ -151,6 +167,8 @@ func TestValidateTx(t *testing.T) {
 }
 
 func TestValidateBlock(t *testing.T) {
+	testReward := uint64(5)
+
 	type validateBlockTxTestCase struct {
 		name  string
 		block func() *pb.Block
@@ -167,10 +185,10 @@ func TestValidateBlock(t *testing.T) {
 		"too-many-txs",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 1, 1),
-				testutil.NewTransaction(t, 2, 2),
-				testutil.NewTransaction(t, 1, 3),
-				testutil.NewTransaction(t, 3, 4),
+				testutil.NewTransaction(t, 1, 0, 1),
+				testutil.NewTransaction(t, 2, 0, 2),
+				testutil.NewTransaction(t, 1, 0, 3),
+				testutil.NewTransaction(t, 3, 0, 4),
 			})
 		},
 		func() state.State { return nil },
@@ -179,8 +197,8 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-signature",
 		func() *pb.Block {
 			block := testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 5),
-				testutil.NewTransaction(t, 7, 1),
+				testutil.NewTransaction(t, 3, 1, 5),
+				testutil.NewTransaction(t, 7, 2, 1),
 			})
 
 			block.Transactions[1].Signature.Signature[5] ^= block.Transactions[1].Signature.Signature[5]
@@ -197,8 +215,8 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-balance",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 5),
-				testutil.NewTransaction(t, 7, 6),
+				testutil.NewTransaction(t, 3, 2, 5),
+				testutil.NewTransaction(t, 3, 1, 6),
 			})
 		},
 		func() state.State {
@@ -215,8 +233,8 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-merkle-root",
 		func() *pb.Block {
 			block := testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 5),
-				testutil.NewTransaction(t, 7, 6),
+				testutil.NewTransaction(t, 3, 1, 5),
+				testutil.NewTransaction(t, 7, 1, 6),
 			})
 
 			block.Header.MerkleRoot = []byte("does not look valid")
@@ -225,38 +243,39 @@ func TestValidateBlock(t *testing.T) {
 		},
 		func() state.State { return nil },
 		validator.ErrInvalidMerkleRoot,
-	}, {"multiple-coinbase",
+	}, {"multiple-rewards",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 3),
-				testutil.NewCoinbaseTransaction(t, 4),
+				testutil.NewRewardTransaction(t, 3),
+				testutil.NewRewardTransaction(t, 4),
 			})
 		},
 		func() state.State { return nil },
-		validator.ErrMultipleCoinbase,
+		validator.ErrMultipleMinerRewards,
 	}, {
-		"invalid-coinbase",
+		"invalid-reward",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 42000),
+				testutil.NewTransaction(t, 1, 5, 1),
+				testutil.NewRewardTransaction(t, 5+testReward+1),
 			})
 		},
 		func() state.State { return nil },
-		validator.ErrInvalidCoinbase,
+		validator.ErrInvalidMinerReward,
 	}, {
 		"valid-block",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 1),
-				testutil.NewTransaction(t, 3, 5),
-				testutil.NewTransaction(t, 7, 8),
+				testutil.NewTransaction(t, 3, 1, 5),
+				testutil.NewTransaction(t, 7, 1, 8),
+				testutil.NewRewardTransaction(t, testReward+1+1),
 			})
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
 				[]byte(testutil.TxSenderPID),
-				&pb.Account{Balance: 10, Nonce: 3},
+				&pb.Account{Balance: 15, Nonce: 3},
 			)
 			assert.NoError(t, err)
 			return s
@@ -266,7 +285,7 @@ func TestValidateBlock(t *testing.T) {
 
 	validator := validator.NewBalanceValidator(
 		3,
-		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, 5),
+		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, testReward),
 	)
 
 	for _, tt := range testCases {

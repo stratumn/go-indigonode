@@ -46,11 +46,15 @@ message Transaction {
         (stratumn.alice.grpc.ext.field_desc) = "Value to send",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
-    uint64 nonce = 4 [
+    uint64 fee = 4 [
+        (stratumn.alice.grpc.ext.field_desc) = "Transaction fee (for the miner)",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    uint64 nonce = 5 [
         (stratumn.alice.grpc.ext.field_desc) = "Nonce to prevent replay attacks",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
-    Signature signature = 5 [
+    Signature signature = 6 [
         (stratumn.alice.grpc.ext.field_desc) = "Signature of the transaction proving ownership of the coins",
         (stratumn.alice.grpc.ext.field_required) = true
     ];

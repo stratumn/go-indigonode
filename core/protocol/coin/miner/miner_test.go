@@ -44,74 +44,74 @@ func TestMiner_StartStop(t *testing.T) {
 	assert.False(t, m.IsRunning(), "m.IsRunning()")
 }
 
-func TestMiner_Mempool(t *testing.T) {
+func TestMiner_TxPool(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	t.Run("Pops transactions from mempool", func(t *testing.T) {
-		mempool := &testutil.InMemoryMempool{}
-		m := NewMinerBuilder().WithMempool(mempool).Build()
+	t.Run("Pops transactions from txpool", func(t *testing.T) {
+		txpool := &testutil.InMemoryTxPool{}
+		m := NewMinerBuilder().WithTxPool(txpool).Build()
 		go m.Start(ctx)
 
-		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
+		assert.Equal(t, 0, txpool.TxCount(), "txpool.TxCount()")
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 2))
+		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
+		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 2))
 
 		testutil.WaitUntil(
 			t,
-			func() bool { return mempool.TxCount() == 0 },
-			"mempool.TxCount() == 0",
+			func() bool { return txpool.TxCount() == 0 },
+			"txpool.TxCount() == 0",
 		)
 
 		assert.True(t, m.IsRunning(), "m.IsRunning()")
 	})
 
-	t.Run("Puts transactions back into mempool if block production failed", func(t *testing.T) {
-		mempool := &testutil.InMemoryMempool{}
+	t.Run("Puts transactions back into txpool if block production failed", func(t *testing.T) {
+		txpool := &testutil.InMemoryTxPool{}
 		m := NewMinerBuilder().
-			WithMempool(mempool).
+			WithTxPool(txpool).
 			WithEngine(&testutil.FaultyEngine{}).
 			Build()
 		go m.Start(ctx)
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
 		testutil.WaitUntil(
 			t,
-			func() bool { return mempool.PopCount() >= 1 },
-			"mempool.PopCount() >= 1",
+			func() bool { return txpool.PopCount() >= 1 },
+			"txpool.PopCount() >= 1",
 		)
 
-		// Transaction should be put back in the mempool after the engine error.
+		// Transaction should be put back in the txpool after the engine error.
 		testutil.WaitUntil(
 			t,
-			func() bool { return mempool.TxCount() == 1 },
-			"mempool.TxCount() == 1",
+			func() bool { return txpool.TxCount() == 1 },
+			"txpool.TxCount() == 1",
 		)
 
 		assert.True(t, m.IsRunning(), "m.IsRunning()")
 	})
 
-	t.Run("Removes invalid transactions from mempool definitively", func(t *testing.T) {
-		mempool := &testutil.InMemoryMempool{}
+	t.Run("Removes invalid transactions from txpool definitively", func(t *testing.T) {
+		txpool := &testutil.InMemoryTxPool{}
 		m := NewMinerBuilder().
-			WithMempool(mempool).
+			WithTxPool(txpool).
 			WithValidator(&testutil.Rejector{}).
 			Build()
 		go m.Start(ctx)
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
 		testutil.WaitUntil(
 			t,
-			func() bool { return mempool.PopCount() >= 1 },
-			"mempool.PopCount() == 1",
+			func() bool { return txpool.PopCount() >= 1 },
+			"txpool.PopCount() == 1",
 		)
 
 		// Wait a bit before verifying that the transaction
-		// was not put back in the mempool.
+		// was not put back in the txpool.
 		<-time.After(10 * time.Millisecond)
 
-		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
+		assert.Equal(t, 0, txpool.TxCount(), "txpool.TxCount()")
 		assert.True(t, m.IsRunning(), "m.IsRunning()")
 	})
 }
@@ -120,19 +120,19 @@ func TestMiner_Produce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start a miner with a mempool containing a valid transaction.
-	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryMempool {
-		mempool := &testutil.InMemoryMempool{}
-		mempool.AddTransaction(testutil.NewTransaction(t, 3, 5))
+	// Start a miner with a txpool containing a valid transaction.
+	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryTxPool {
+		txpool := &testutil.InMemoryTxPool{}
+		txpool.AddTransaction(testutil.NewTransaction(t, 3, 1, 5))
 
 		m := NewMinerBuilder().
 			WithEngine(e).
-			WithMempool(mempool).
+			WithTxPool(txpool).
 			WithProcessor(p).
 			Build()
 		go m.Start(ctx)
 
-		return mempool
+		return txpool
 	}
 
 	t.Run("Sends new valid block to processor", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestMiner_Produce(t *testing.T) {
 
 	t.Run("Aborts block if processor returns an error", func(t *testing.T) {
 		processor := testutil.NewInstrumentedProcessor(&testutil.FaultyProcessor{})
-		mempool := startMiner(processor, &testutil.DummyEngine{})
+		txpool := startMiner(processor, &testutil.DummyEngine{})
 
 		testutil.WaitUntil(
 			t,
@@ -170,12 +170,12 @@ func TestMiner_Produce(t *testing.T) {
 			"processor.ProcessedCount() > 0",
 		)
 
-		// If the transaction goes back to the mempool it means the block
+		// If the transaction goes back to the txpool it means the block
 		// was correctly aborted.
 		testutil.WaitUntil(
 			t,
-			func() bool { return mempool.TxCount() > 0 },
-			"mempool.TxCount() > 0",
+			func() bool { return txpool.TxCount() > 0 },
+			"txpool.TxCount() > 0",
 		)
 	})
 }

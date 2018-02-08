@@ -21,17 +21,17 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// InMemoryMempool is a basic mempool implementation that stores
+// InMemoryTxPool is a basic txpool implementation that stores
 // transactions in RAM.
-type InMemoryMempool struct {
+type InMemoryTxPool struct {
 	mu  sync.RWMutex
 	txs []*pb.Transaction
 
 	popCount uint32
 }
 
-// AddTransaction adds transaction to the mempool.
-func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
+// AddTransaction adds transaction to the txpool.
+func (m *InMemoryTxPool) AddTransaction(tx *pb.Transaction) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -39,8 +39,8 @@ func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
 	return nil
 }
 
-// Contains returns true if the mempool contains the given transaction.
-func (m *InMemoryMempool) Contains(tx *pb.Transaction) bool {
+// Contains returns true if the txpool contains the given transaction.
+func (m *InMemoryTxPool) Contains(tx *pb.Transaction) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -54,16 +54,16 @@ func (m *InMemoryMempool) Contains(tx *pb.Transaction) bool {
 	return false
 }
 
-// TxCount returns the number of transactions in the mempool.
-func (m *InMemoryMempool) TxCount() int {
+// TxCount returns the number of transactions in the txpool.
+func (m *InMemoryTxPool) TxCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	return len(m.txs)
 }
 
-// PopTransaction pops the oldest transaction from the mempool.
-func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
+// PopTransaction pops the oldest transaction from the txpool.
+func (m *InMemoryTxPool) PopTransaction() *pb.Transaction {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -80,6 +80,6 @@ func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
 }
 
 // PopCount returns the number of times PopTransaction was called.
-func (m *InMemoryMempool) PopCount() uint32 {
+func (m *InMemoryTxPool) PopCount() uint32 {
 	return m.popCount
 }

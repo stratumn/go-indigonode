@@ -75,6 +75,7 @@ type stateDB struct {
 	db     db.DB
 	diff   *db.Diff
 	prefix []byte
+	miner  []byte
 }
 
 // Opt is an option for state.
@@ -159,7 +160,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {
-		// Substract amount for sender, except for coinbase transaction.
+		// Substract amount for sender, except for reward transaction.
 		if tx.From != nil {
 			from, err := s.doGetAccount(s.diff, tx.From)
 			if err != nil {
@@ -169,7 +170,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 			binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
 			// Subtract amount from sender and update nonce.
-			from.Balance -= tx.Value
+			from.Balance -= tx.Value + tx.Fee
 			from.Nonce = tx.Nonce
 
 			err = s.doUpdateAccount(s.diff, tx.From, from)
@@ -190,7 +191,6 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 		if err != nil {
 			return err
 		}
-
 	}
 
 	if err := s.diff.Put(s.prevNoncesKey(stateID), nonces); err != nil {
@@ -223,7 +223,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 			return nil
 		}
 
-		from.Balance += tx.Value
+		from.Balance += tx.Value + tx.Fee
 		from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
 
 		err = s.doUpdateAccount(s.diff, tx.From, from)

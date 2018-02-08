@@ -103,7 +103,7 @@ func (e *HashEngine) Finalize(ctx context.Context, chain chain.Reader, header *p
 		return nil, ErrInvalidBlockNumber
 	}
 
-	reward, err := e.createReward()
+	reward, err := e.createReward(txs)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (e *HashEngine) pow(ctx context.Context, block *pb.Block) error {
 }
 
 // createReward creates a reward for the miner finalizing the block.
-func (e *HashEngine) createReward() (*pb.Transaction, error) {
+func (e *HashEngine) createReward(txs []*pb.Transaction) (*pb.Transaction, error) {
 	to, err := e.pubKey.Bytes()
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -190,7 +190,7 @@ func (e *HashEngine) createReward() (*pb.Transaction, error) {
 
 	reward := &pb.Transaction{
 		To:    to,
-		Value: e.reward,
+		Value: e.reward + coinutil.GetBlockFees(&pb.Block{Transactions: txs}),
 	}
 
 	return reward, nil

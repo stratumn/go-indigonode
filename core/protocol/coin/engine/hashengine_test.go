@@ -190,7 +190,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 	firstBlock := &pb.Block{
 		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
-		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 2)},
+		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 1, 2)},
 	}
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 	require.NoError(t, chain.SetHead(firstBlock), "chain.SetHead()")

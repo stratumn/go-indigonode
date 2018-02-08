@@ -55,8 +55,8 @@ func TestMiner_Mempool(t *testing.T) {
 
 		assert.Equal(t, 0, mempool.TxCount(), "mempool.TxCount()")
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 2))
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1, 2))
 
 		testutil.WaitUntil(
 			t,
@@ -75,7 +75,7 @@ func TestMiner_Mempool(t *testing.T) {
 			Build()
 		go m.Start(ctx)
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
 		testutil.WaitUntil(
 			t,
 			func() bool { return mempool.PopCount() >= 1 },
@@ -100,7 +100,7 @@ func TestMiner_Mempool(t *testing.T) {
 			Build()
 		go m.Start(ctx)
 
-		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1))
+		mempool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
 		testutil.WaitUntil(
 			t,
 			func() bool { return mempool.PopCount() >= 1 },
@@ -123,7 +123,7 @@ func TestMiner_Produce(t *testing.T) {
 	// Start a miner with a mempool containing a valid transaction.
 	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryMempool {
 		mempool := &testutil.InMemoryMempool{}
-		mempool.AddTransaction(testutil.NewTransaction(t, 3, 5))
+		mempool.AddTransaction(testutil.NewTransaction(t, 3, 1, 5))
 
 		m := NewMinerBuilder().
 			WithEngine(e).

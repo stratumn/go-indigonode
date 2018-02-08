@@ -28,7 +28,12 @@ type Mempool interface {
 	// It assumes that the transaction has been validated.
 	AddTransaction(tx *pb.Transaction) error
 
-	// PopTransaction pops the oldest transaction from the mempool.
+	// PopTransaction pops the transaction with the highest score
+	// from the mempool.
+	// The score can be computed from various sources: transaction
+	// fees, time in the mempool, priority, etc.
+	// The mempool implementations can chose to prioritize fairness,
+	// miner rewards, or anything else they come up with.
 	PopTransaction() *pb.Transaction
 }
 

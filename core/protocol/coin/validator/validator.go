@@ -166,6 +166,7 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 		From:  tx.From,
 		To:    tx.To,
 		Value: tx.Value,
+		Fee:   tx.Fee,
 		Nonce: tx.Nonce,
 	}
 
@@ -227,7 +228,7 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, s state.Reader) e
 		return ErrInvalidTxNonce
 	}
 
-	if account.Balance < tx.Value {
+	if account.Balance < tx.Value+tx.Fee {
 		return ErrInsufficientBalance
 	}
 
@@ -294,7 +295,7 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 
 		account := txs[senderID]
 		txs[senderID] = &pb.Account{
-			Balance: account.Balance + tx.Value,
+			Balance: account.Balance + tx.Value + tx.Fee,
 			Nonce:   tx.Nonce,
 		}
 	}

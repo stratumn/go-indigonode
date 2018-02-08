@@ -17,10 +17,12 @@ package coin
 import (
 	"context"
 	"fmt"
+	"gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	"io"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/miner"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -64,7 +66,8 @@ type Coin struct {
 	processor processor.Processor
 	validator validator.Validator
 
-	miner *miner.Miner
+	gossip *gossip.Gossip
+	miner  *miner.Miner
 }
 
 // NewCoin creates a new Coin.
@@ -74,9 +77,12 @@ func NewCoin(
 	s state.State,
 	c chain.Chain,
 	v validator.Validator,
-	p processor.Processor) *Coin {
+	p processor.Processor,
+	ps floodsub.PubSub,
+) *Coin {
 
 	miner := miner.NewMiner(m, e, s, c, v, p)
+	gossip := gossip.NewGossip(ps, s, v)
 
 	return &Coin{
 		engine:    e,
@@ -85,6 +91,7 @@ func NewCoin(
 		mempool:   m,
 		processor: p,
 		validator: v,
+		gossip:    gossip,
 		miner:     miner,
 	}
 }
@@ -136,6 +143,15 @@ func (c *Coin) State() state.Reader {
 	return c.state
 }
 
+// PublishTransaction publishes transaction received via grpc.
+func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
+	if err := c.gossip.PublishTX(tx); err != nil {
+		return err
+	}
+
+	return c.AddTransaction(tx)
+}
+
 // AddTransaction validates incoming transactions against the latest state
 // and adds them to the mempool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
@@ -170,4 +186,9 @@ func (c *Coin) AppendBlock(block *pb.Block) error {
 // StartMining starts the underlying miner.
 func (c *Coin) StartMining(ctx context.Context) error {
 	return c.miner.Start(ctx)
+}
+
+// StartGossip starts gossiping transactions and blocks.
+func (c *Coin) StartGossip() error {
+	return c.gossip.Subscribe()
 }

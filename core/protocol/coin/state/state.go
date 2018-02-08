@@ -75,6 +75,7 @@ type stateDB struct {
 	db     db.DB
 	diff   *db.Diff
 	prefix []byte
+	miner  []byte
 }
 
 // Opt is an option for state.
@@ -84,6 +85,14 @@ type Opt func(*stateDB)
 var OptPrefix = func(prefix []byte) Opt {
 	return func(s *stateDB) {
 		s.prefix = prefix
+	}
+}
+
+// OptMiner sets the address of the miner.
+// Transaction fees will be sent to this address.
+var OptMiner = func(miner []byte) Opt {
+	return func(s *stateDB) {
+		s.miner = miner
 	}
 }
 
@@ -169,7 +178,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 			binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
 			// Subtract amount from sender and update nonce.
-			from.Balance -= tx.Value
+			from.Balance -= tx.Value + tx.Fee
 			from.Nonce = tx.Nonce
 
 			err = s.doUpdateAccount(s.diff, tx.From, from)
@@ -191,6 +200,18 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 			return err
 		}
 
+		// Add transaction fee to miner.
+		miner, err := s.doGetAccount(s.diff, s.miner)
+		if err != nil {
+			return err
+		}
+
+		miner.Balance += tx.Fee
+
+		err = s.doUpdateAccount(s.diff, s.miner, miner)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := s.diff.Put(s.prevNoncesKey(stateID), nonces); err != nil {
@@ -223,7 +244,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 			return nil
 		}
 
-		from.Balance += tx.Value
+		from.Balance += tx.Value + tx.Fee
 		from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
 
 		err = s.doUpdateAccount(s.diff, tx.From, from)
@@ -240,6 +261,19 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		to.Balance -= tx.Value
 
 		err = s.doUpdateAccount(s.diff, tx.To, to)
+		if err != nil {
+			return err
+		}
+
+		// Subtract transactions fee from miner.
+		miner, err := s.doGetAccount(s.diff, s.miner)
+		if err != nil {
+			return nil
+		}
+
+		miner.Balance -= tx.Fee
+
+		err = s.doUpdateAccount(s.diff, s.miner, miner)
 		if err != nil {
 			return err
 		}

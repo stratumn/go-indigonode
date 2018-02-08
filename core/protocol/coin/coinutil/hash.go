@@ -15,8 +15,7 @@
 package coinutil
 
 import (
-	"crypto/sha256"
-
+	multihash "github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stratumn/sdk/merkle"
@@ -24,25 +23,27 @@ import (
 )
 
 // HashHeader computes the hash of a given header.
-func HashHeader(header *pb.Header) ([]byte, error) {
+func HashHeader(header *pb.Header) (multihash.Multihash, error) {
 	b, err := header.Marshal()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	headerHash := sha256.Sum256(b)
-	return headerHash[:], nil
+	// TODO: make hash algo configurable
+	headerHash, err := multihash.Sum(b, multihash.SHA2_256, -1)
+	return headerHash[:], err
 }
 
 // HashTransaction computes the hash of a given transaction.
-func HashTransaction(tx *pb.Transaction) ([]byte, error) {
+func HashTransaction(tx *pb.Transaction) (multihash.Multihash, error) {
 	b, err := tx.Marshal()
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	txHash := sha256.Sum256(b)
-	return txHash[:], nil
+	// TODO: make hash algo configurable
+	txHash, err := multihash.Sum(b, multihash.SHA2_256, -1)
+	return txHash[:], err
 }
 
 // TransactionRoot computes the merkle root of a set of transactions.

@@ -17,7 +17,6 @@ package chain
 import (
 	"encoding/binary"
 	"encoding/json"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -40,7 +39,6 @@ We store 3 types of values for now (see prefixes):
 	- last block
 */
 type chainDB struct {
-	mu     sync.RWMutex
 	db     db.DB
 	prefix []byte
 }
@@ -87,11 +85,13 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	return block, nil
 }
 
+// CurrentBlock retrieves the current block from the local chain.
+func (c *chainDB) CurrentBlock() (*pb.Block, error) {
+	return c.dbGetBlock(lastBlockKey)
+}
+
 // CurrentHeader retrieves the current header from the local chain.
 func (c *chainDB) CurrentHeader() (*pb.Header, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
 	block, err := c.dbGetBlock(lastBlockKey)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 
 // AddBlock adds a block to the chain.
 // It assumes that the block has been validated.
-// We still check that previous hash points to the block before this one
+// We still check that previous hash points to the block before this one.
 func (c *chainDB) AddBlock(block *pb.Block) error {
 
 	// Check previous block
@@ -178,7 +178,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 	return nil
 }
 
-// doAddBlock actually prepares the transaction to add a block
+// doAddBlock actually prepares the transaction to add a block.
 func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	b, err := block.Marshal()
 	if err != nil {
@@ -191,7 +191,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	}
 
 	// Add block to the chain
-	if err = tx.Put(c.blockKey(h[:]), b); err != nil {
+	if err = tx.Put(c.blockKey(h), b); err != nil {
 		return err
 	}
 
@@ -204,7 +204,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	hashes = append(hashes, h[:])
+	hashes = append(hashes, h)
 	hs, err := serializeHashes(hashes)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	}
 
 	// Check that block is in the chain
-	_, err = c.db.Get(c.blockKey(h[:]))
+	_, err = c.db.Get(c.blockKey(h))
 	if errors.Cause(err) == db.ErrNotFound {
 		return ErrBlockHashNotFound
 	}
@@ -240,9 +240,6 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	}
 
 	// Update LastBlock
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	return c.db.Put(lastBlockKey, b)
 }
 

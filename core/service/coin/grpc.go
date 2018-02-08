@@ -55,7 +55,7 @@ func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (respo
 	}
 
 	txResponse := &rpcpb.TransactionResp{
-		TxHash: txHash[:],
+		TxHash: txHash,
 	}
 
 	return txResponse, nil

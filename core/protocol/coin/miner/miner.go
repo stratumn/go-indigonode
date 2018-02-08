@@ -137,19 +137,32 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 		return ErrMempoolConfig
 	}
 
-	// For now we simply pop the oldest transaction in the queue.
-	// Miners should implement a more sophisticated scheme to be
-	// profitable.
+	// For now we simply pop as many transactions as possible from
+	// the mempool, ordered by their score.
+	// It's a simple way to get good transaction fees.
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			tx := m.mempool.PopTransaction()
-			if tx == nil {
+			var txs []*pb.Transaction
+			for {
+				if len(txs) == m.validator.MaxTxPerBlock() {
+					break
+				}
+
+				tx := m.mempool.PopTransaction()
+				if tx == nil {
+					break
+				}
+
+				txs = append(txs, tx)
+			}
+
+			if len(txs) == 0 {
 				<-time.After(10 * time.Millisecond)
 			} else {
-				m.txsChan <- []*pb.Transaction{tx}
+				m.txsChan <- txs
 			}
 		}
 	}

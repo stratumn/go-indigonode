@@ -37,15 +37,15 @@ type Mempool interface {
 	PopTransaction() *pb.Transaction
 }
 
-// InMemoryMempool is a very simple mempool that stores queued transactions
+// GreedyInMemoryMempool is a very simple mempool that stores queued transactions
 // in memory.
-type InMemoryMempool struct {
+type GreedyInMemoryMempool struct {
 	mu  sync.RWMutex
 	txs []*pb.Transaction
 }
 
 // AddTransaction adds a transaction in memory.
-func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
+func (m *GreedyInMemoryMempool) AddTransaction(tx *pb.Transaction) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -53,8 +53,8 @@ func (m *InMemoryMempool) AddTransaction(tx *pb.Transaction) error {
 	return nil
 }
 
-// PopTransaction pops the oldest transaction from the mempool.
-func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
+// PopTransaction pops the transaction with the highest fee from the pool.
+func (m *GreedyInMemoryMempool) PopTransaction() *pb.Transaction {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -62,7 +62,16 @@ func (m *InMemoryMempool) PopTransaction() *pb.Transaction {
 		return nil
 	}
 
-	tx := m.txs[len(m.txs)-1]
+	highestFee := m.txs[0]
+	highestFeeIndex := 0
+	for i, tx := range m.txs {
+		if highestFee.Fee < tx.Fee {
+			highestFee = tx
+			highestFeeIndex = i
+		}
+	}
+
+	m.txs[highestFeeIndex] = m.txs[len(m.txs)-1]
 	m.txs = m.txs[:len(m.txs)-1]
-	return tx
+	return highestFee
 }

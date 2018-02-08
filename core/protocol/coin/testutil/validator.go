@@ -29,6 +29,7 @@ type InstrumentedValidator struct {
 
 	mu     sync.RWMutex
 	txs    []*pb.Transaction
+	txss   [][]*pb.Transaction
 	blocks []*pb.Block
 }
 
@@ -53,6 +54,15 @@ func (r *InstrumentedValidator) ValidateBlock(block *pb.Block, state state.Reade
 
 	r.blocks = append(r.blocks, block)
 	return r.validator.ValidateBlock(block, state)
+}
+
+// ValidateTransactions records the incoming block.
+func (r *InstrumentedValidator) ValidateTransactions(transactions []*pb.Transaction, state state.Reader) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.txss = append(r.txss, transactions)
+	return r.validator.ValidateTransactions(transactions, state)
 }
 
 // ValidatedTx returns true if the validator saw the given transaction.
@@ -85,6 +95,32 @@ func (r *InstrumentedValidator) ValidatedBlock(block *pb.Block) bool {
 	return false
 }
 
+// ValidatedTransactions returns true if the validator saw the given block.
+func (r *InstrumentedValidator) ValidatedTransactions(transactions []*pb.Transaction) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	matchers := make([]TxMatcher, len(transactions))
+	for i, tx := range transactions {
+		matchers[i] = NewTxMatcher(tx)
+	}
+
+Loop:
+	for _, txs := range r.txss {
+		if len(txs) != len(transactions) {
+			continue
+		}
+		for i, tx := range txs {
+			if !matchers[i].Matches(tx) {
+				continue Loop
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
 var (
 	// ErrRejected is the error returns by Rejector.
 	ErrRejected = errors.New("rejected")
@@ -104,6 +140,11 @@ func (r *Rejector) ValidateBlock(block *pb.Block, _ state.Reader) error {
 	return ErrRejected
 }
 
+// ValidateTransactions records the incoming block and rejects it.
+func (r *Rejector) ValidateTransactions(transactions []*pb.Transaction, _ state.Reader) error {
+	return ErrRejected
+}
+
 // DummyValidator is a validator that always returns nil (valid).
 type DummyValidator struct{}
 
@@ -114,5 +155,10 @@ func (v *DummyValidator) ValidateTx(tx *pb.Transaction, state state.Reader) erro
 
 // ValidateBlock always returns nil (valid block).
 func (v *DummyValidator) ValidateBlock(block *pb.Block, _ state.Reader) error {
+	return nil
+}
+
+// ValidateTransactions always returns nil (valid block).
+func (v *DummyValidator) ValidateTransactions(transactions []*pb.Transaction, _ state.Reader) error {
 	return nil
 }

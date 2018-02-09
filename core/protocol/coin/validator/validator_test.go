@@ -134,7 +134,7 @@ func TestValidateTx(t *testing.T) {
 	}}
 
 	validator := validator.NewBalanceValidator(
-		validator.DefaultMaxTxPerBlock,
+		100,
 		testutil.NewDummyPoW(&testutil.DummyEngine{}, 2, 5),
 	)
 

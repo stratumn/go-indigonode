@@ -47,6 +47,6 @@ message AccountReq {
 // The response to a request to do a coin transaction.
 message TransactionResp {
     bytes tx_hash = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction. Can be used to reference the transaction's UTXO."
+        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction."
     ];
 }

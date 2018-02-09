@@ -17,6 +17,7 @@ package state
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,16 @@ import (
 )
 
 func TestState(t *testing.T) {
+	computeTxHashes := func(txs []*pb.Transaction) [][]byte {
+		txHashes := make([][]byte, len(txs))
+		for i, tx := range txs {
+			txHash, err := coinutil.HashTransaction(tx)
+			assert.NoError(t, err, "coinutil.HashTransaction()")
+			txHashes[i] = txHash
+		}
+		return txHashes
+	}
+
 	alice := []byte("alice")
 	bob := []byte("bob")
 	charlie := []byte("charlie")
@@ -76,20 +87,22 @@ func TestState(t *testing.T) {
 				Nonce: 3,
 			}}
 
+			txHashes := computeTxHashes(txs)
+
 			err = s.ProcessTransactions([]byte("state1"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1, TransactionHashes: [][]byte{txHashes[0], txHashes[2]}}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2, TransactionHashes: [][]byte{txHashes[0], txHashes[1]}}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3, TransactionHashes: [][]byte{txHashes[1], txHashes[2]}}, v, "s.GetAccount(charlie)")
 		},
 	}, {
 		"process-coinbase-transaction",
@@ -107,12 +120,14 @@ func TestState(t *testing.T) {
 				Value: 5,
 			}}
 
+			txHashes := computeTxHashes(txs)
+
 			err = s.ProcessTransactions([]byte("coinbase-state"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 5, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 5, Nonce: 1, TransactionHashes: txHashes}, v, "s.GetAccount(alice)")
 		},
 	}, {
 		"rollback-transactions",
@@ -138,6 +153,7 @@ func TestState(t *testing.T) {
 				Value: 2,
 				Nonce: 3,
 			}}
+			txs1Hashes := computeTxHashes(txs1)
 
 			txs2 := []*pb.Transaction{{
 				From:  bob,
@@ -164,15 +180,15 @@ func TestState(t *testing.T) {
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1, TransactionHashes: [][]byte{txs1Hashes[0], txs1Hashes[2]}}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2, TransactionHashes: [][]byte{txs1Hashes[0], txs1Hashes[1]}}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3, TransactionHashes: [][]byte{txs1Hashes[1], txs1Hashes[2]}}, v, "s.GetAccount(charlie)")
 
 			// Rollback state1.
 

@@ -15,10 +15,12 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
@@ -159,6 +161,10 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {
+		txHash, err := coinutil.HashTransaction(tx)
+		if err != nil {
+			return err
+		}
 		// Substract amount for sender, except for coinbase transaction.
 		if tx.From != nil {
 			from, err := s.doGetAccount(s.diff, tx.From)
@@ -171,6 +177,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 			// Subtract amount from sender and update nonce.
 			from.Balance -= tx.Value
 			from.Nonce = tx.Nonce
+			from.TransactionHashes = append(from.TransactionHashes, txHash)
 
 			err = s.doUpdateAccount(s.diff, tx.From, from)
 			if err != nil {
@@ -185,6 +192,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 		}
 
 		to.Balance += tx.Value
+		to.TransactionHashes = append(to.TransactionHashes, txHash)
 
 		err = s.doUpdateAccount(s.diff, tx.To, to)
 		if err != nil {
@@ -216,6 +224,10 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 
 	for i := len(txs) - 1; i >= 0; i-- {
 		tx := txs[i]
+		txHash, err := coinutil.HashTransaction(tx)
+		if err != nil {
+			return err
+		}
 
 		// Add amount to sender and restore nonce.
 		from, err := s.doGetAccount(s.diff, tx.From)
@@ -225,6 +237,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 
 		from.Balance += tx.Value
 		from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
+		from.TransactionHashes = removeTxHash(from.TransactionHashes, txHash)
 
 		err = s.doUpdateAccount(s.diff, tx.From, from)
 		if err != nil {
@@ -238,6 +251,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		}
 
 		to.Balance -= tx.Value
+		to.TransactionHashes = removeTxHash(to.TransactionHashes, txHash)
 
 		err = s.doUpdateAccount(s.diff, tx.To, to)
 		if err != nil {
@@ -250,6 +264,17 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 	}
 
 	return s.diff.Apply()
+}
+
+func removeTxHash(history [][]byte, txHash []byte) [][]byte {
+	var index int
+	for i, h := range history {
+		if bytes.Compare(h, txHash) == 0 {
+			index = i
+			break
+		}
+	}
+	return append(history[:index], history[index+1:]...)
 }
 
 // accountKey returns the key corresponding to an account given its public key.

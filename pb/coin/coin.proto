@@ -130,4 +130,8 @@ message Account {
         (stratumn.alice.grpc.ext.field_desc) = "Nonce",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
+    repeated bytes transaction_hashes = 3 [
+        (stratumn.alice.grpc.ext.field_desc) = "Account transaction Hashes",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
 }

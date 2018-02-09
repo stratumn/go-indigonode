@@ -12,29 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package testutil
+//go:generate mockgen -package mockcoin -destination mockcoin/mockcoin.go github.com/stratumn/alice/grpc/coin Coin_AccountTransactionsServer
 
-import (
-	"testing"
-
-	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	pb "github.com/stratumn/alice/pb/coin"
-	"github.com/stretchr/testify/require"
-)
-
-// NewBlock creates a new block containing a set of transactions.
-func NewBlock(t *testing.T, txs []*pb.Transaction) *pb.Block {
-	root, err := coinutil.TransactionRoot(txs)
-	require.NoError(t, err, "coinutil.TransactionRoot()")
-
-	block := &pb.Block{
-		Header: &pb.Header{
-			Version:     1,
-			BlockNumber: 1,
-			MerkleRoot:  root,
-		},
-		Transactions: txs,
-	}
-
-	return block
-}
+package coin

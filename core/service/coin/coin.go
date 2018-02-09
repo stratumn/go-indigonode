@@ -264,19 +264,26 @@ func (s *Service) createCoin(ctx context.Context) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	rpcpb.RegisterCoinServer(gs, grpcServer{
-		func(peerID []byte) (*pb.Account, error) {
+		GetAccount: func(peerID []byte) (*pb.Account, error) {
 			if s.coin == nil {
 				return nil, ErrUnavailable
 			}
 
 			return s.coin.GetAccount(peerID)
 		},
-		func(tx *pb.Transaction) error {
+		AddTransaction: func(tx *pb.Transaction) error {
 			if s.coin == nil {
 				return ErrUnavailable
 			}
 
 			return s.coin.PublishTransaction(tx)
+		},
+		GetAccountTransactions: func(peerID []byte) ([]*pb.Transaction, error) {
+			if s.coin == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.coin.GetAccountTransactions(peerID)
 		},
 	})
 }

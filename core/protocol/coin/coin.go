@@ -152,6 +152,27 @@ func (c *Coin) GetAccount(peerID []byte) (*pb.Account, error) {
 	return c.state.GetAccount(peerID)
 }
 
+// GetAccountTransactions gets the transaction history of a user identified
+// by his public key.
+func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) {
+	txKeys, err := c.state.GetAccountTxKeys(peerID)
+	if err != nil {
+		return nil, err
+	}
+	transactions := make([]*pb.Transaction, len(txKeys))
+	for i, txKey := range txKeys {
+		blk, err := c.chain.GetBlockByHash(txKey.BlkHash)
+		if err != nil {
+			return nil, err
+		}
+		transactions[i] = blk.GetTransactions()[txKey.TxIdx]
+		if err != nil {
+			return nil, err
+		}
+	}
+	return transactions, nil
+}
+
 // PublishTransaction publishes and adds transaction received via grpc.
 func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
 	return c.gossip.PublishTx(tx)

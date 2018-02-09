@@ -28,8 +28,8 @@ import (
 // prefixes for db keys.
 var (
 	lastBlockKey    = []byte("LastBlock")
-	blockPrefix     = []byte("b") // blockPrefix + hash -> block.
-	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash.
+	blockPrefix     = []byte("b") // blockPrefix + hash -> block
+	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash
 )
 
 /*
@@ -95,7 +95,7 @@ func (c *chainDB) Config() *Config {
 // GetBlock retrieves a block from the database by header hash and number.
 func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	// Get the block from the hash
-	block, err := c.dbGetBlock(c.blockKey(hash))
+	block, err := c.GetBlockByHash(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +103,17 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	// Check that the block number is correct
 	if block.BlockNumber() != number {
 		return nil, ErrBlockNumberIncorrect
+	}
+
+	return block, nil
+}
+
+// GetBlock retrieves a block from the database by header hash and number.
+func (c *chainDB) GetBlockByHash(hash []byte) (*pb.Block, error) {
+	// Get the block from the hash
+	block, err := c.dbGetBlock(c.blockKey(hash))
+	if err != nil {
+		return nil, err
 	}
 
 	return block, nil

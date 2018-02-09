@@ -106,7 +106,7 @@ func (s *Service) Config() interface{} {
 		MaxTxPerBlock:   100,
 		MinerReward:     10,
 		BlockDifficulty: 42,
-		DbPath:          "data/db",
+		DbPath:          "data/coin/db",
 	}
 }
 

@@ -17,7 +17,6 @@ package coin
 import (
 	"context"
 	"fmt"
-	"gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	"io"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -31,6 +30,7 @@ import (
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
@@ -145,13 +145,13 @@ func (c *Coin) GetAccount(peerID []byte) (*pb.Account, error) {
 	return c.state.GetAccount(peerID)
 }
 
-// PublishTransaction publishes transaction received via grpc.
+// PublishTransaction publishes and adds transaction received via grpc.
 func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
-	if err := c.gossip.PublishTX(tx); err != nil {
+	if err := c.gossip.PublishTx(tx); err != nil {
 		return err
 	}
 
-	return c.AddTransaction(tx)
+	return c.AddValidTransaction(tx)
 }
 
 // AddTransaction validates incoming transactions against the latest state
@@ -162,6 +162,11 @@ func (c *Coin) AddTransaction(tx *pb.Transaction) error {
 		return err
 	}
 
+	return c.AddValidTransaction(tx)
+}
+
+// AddValidTransaction adds a valid transaction to the mempool.
+func (c *Coin) AddValidTransaction(tx *pb.Transaction) error {
 	return c.txpool.AddTransaction(tx)
 }
 
@@ -190,7 +195,12 @@ func (c *Coin) StartMining(ctx context.Context) error {
 	return c.miner.Start(ctx)
 }
 
-// StartGossip starts gossiping transactions and blocks.
-func (c *Coin) StartGossip() error {
-	return c.gossip.Subscribe()
+// StartTxGossip starts gossiping transactions.
+func (c *Coin) StartTxGossip(ctx context.Context, errChan chan<- error) error {
+	if err := c.gossip.SubscribeTx(); err != nil {
+		return err
+	}
+
+	c.gossip.ListenTx(ctx, c.AddValidTransaction, errChan)
+	return nil
 }

@@ -81,11 +81,7 @@ var migrations = []cfg.MigrateHandler{
 		return addServiceToGroup(tree, "event", "util")
 	},
 	func(tree *cfg.Tree) error {
-		if err := tree.Set("coin.host", "host"); err != nil {
-			return err
-		}
-
-		return tree.Set("coin.pubsub", "pubsub")
+		return tree.Set("coin.host", "host")
 	},
 	func(tree *cfg.Tree) error {
 		err := tree.Set("pubsub.host", "host")
@@ -123,6 +119,9 @@ var migrations = []cfg.MigrateHandler{
 		}
 
 		return nil
+	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("coin.pubsub", "pubsub")
 	},
 }
 

@@ -164,7 +164,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	if err := s.coin.StartGossip(); err != nil {
+	if err := s.coin.StartTxGossip(coinCtx, errChan); err != nil {
 		cancel()
 		return err
 	}
@@ -218,7 +218,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, validator, processor)
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, validator, processor, s.pubsub)
 
 	return nil
 }

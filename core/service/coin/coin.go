@@ -22,8 +22,12 @@ import (
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -56,6 +60,21 @@ type Service struct {
 type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
+
+	// Version is the version of the coin service.
+	Version int `toml:"version" comment:"The version of the coin service."`
+
+	// MaxTxPerBlock is the maximum number of transactions in a block.
+	MaxTxPerBlock int `toml:"max_tx_per_block" comment:"The maximum number of transactions in a block."`
+
+	// MinerReward is the reward miners should get when producing blocks.
+	MinerReward int `toml:"miner_reward" comment:"The reward miners should get when producing blocks."`
+
+	// BlockDifficulty is the difficulty for block production.
+	BlockDifficulty int `toml:"block_difficulty" comment:"The difficulty for block production."`
+
+	// DbPath is the path to the database used for the state and the chain..
+	DbPath string `toml:"db_path" comment:"The path to the database used for the state and the chain."`
 }
 
 // ID returns the unique identifier of the service.
@@ -82,7 +101,12 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host: "host",
+		Host:            "host",
+		Version:         1,
+		MaxTxPerBlock:   100,
+		MinerReward:     10,
+		BlockDifficulty: 42,
+		DbPath:          "data/coin/db",
 	}
 }
 
@@ -119,20 +143,11 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	// TODO: should be a file DB.
-	db, err := db.NewMemDB(nil)
-	if err != nil {
+	coinCtx, cancel := context.WithCancel(ctx)
+	if err := s.createCoin(coinCtx); err != nil {
+		cancel()
 		return err
 	}
-
-	stateDBPrefix := []byte("s")
-	chainDBPrefix := []byte("c")
-
-	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
-	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
-
-	coinCtx, cancel := context.WithCancel(ctx)
-	s.coin = protocol.NewCoin(nil, nil, state, chain, nil, nil)
 
 	errChan := make(chan error)
 	go func() {
@@ -155,7 +170,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	cancel()
 
-	err = <-errChan
+	err := <-errChan
 	s.coin = nil
 
 	if err != nil {
@@ -163,6 +178,30 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	}
 
 	return errors.WithStack(ctx.Err())
+}
+
+func (s *Service) createCoin(ctx context.Context) error {
+	db, err := db.NewFileDB(s.config.DbPath, nil)
+	if err != nil {
+		return err
+	}
+
+	stateDBPrefix := []byte("s")
+	chainDBPrefix := []byte("c")
+
+	mempool := &state.InMemoryMempool{}
+	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
+	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
+
+	minerPubKey := coinutil.NewPublicKey(s.host.ID().ExtractPublicKey(), pb.KeyType_Ed25519)
+	engine := engine.NewHashEngine(minerPubKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
+
+	processor := processor.NewProcessor()
+	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
+
+	s.coin = protocol.NewCoin(mempool, engine, state, chain, validator, processor)
+
+	return nil
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

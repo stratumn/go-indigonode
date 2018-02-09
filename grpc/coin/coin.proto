@@ -33,6 +33,11 @@ service Coin {
         option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
         option (stratumn.alice.grpc.ext.method_no_cli) = true;
     }
+
+    // Get all the past transactions of an account
+    rpc AccountTransactions (AccountTransactionsReq) returns (stream stratumn.alice.pb.coin.Transaction) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Get the transaction history of an account";
+    }
 }
 
 // The request to get an account.
@@ -47,6 +52,15 @@ message AccountReq {
 // The response to a request to do a coin transaction.
 message TransactionResp {
     bytes tx_hash = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction. Can be used to reference the transaction's UTXO."
+        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction."
+    ];
+}
+
+// The request to get an account transaction history.
+message AccountTransactionsReq {
+    bytes peer_id = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
+      (stratumn.alice.grpc.ext.field_required) = true,
+      (stratumn.alice.grpc.ext.field_base58) = true
     ];
 }

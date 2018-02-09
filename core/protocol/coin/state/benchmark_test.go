@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	db "github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -132,11 +133,12 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 			Value: 1,
 		}
 	}
+	blk := blocktest.NewBlock(b, txs)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
+		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -165,9 +167,10 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 			Value: 1,
 		}
 	}
+	blk := blocktest.NewBlock(b, txs)
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
+		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -176,7 +179,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := b.N - 1; i >= 0; i-- {
-		err := s.RollbackTransactions([]byte(fmt.Sprintf("state-%10d", i)), txs)
+		err := s.RollbackTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
 		if err != nil {
 			b.Fatal(err)
 		}

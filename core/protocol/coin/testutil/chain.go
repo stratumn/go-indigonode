@@ -105,12 +105,17 @@ func (c *SimpleChain) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	return b.Header, nil
 }
 
-// GetBlock returns the first block with the given header hash.
-func (c *SimpleChain) GetBlock(hash []byte, _ uint64) (*pb.Block, error) {
+// GetBlockByHash returns the first block with the given header hash.
+func (c *SimpleChain) GetBlockByHash(hash []byte) (*pb.Block, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	return c.getBlock(hash)
+}
+
+// GetBlock returns the first block with the given header hash.
+func (c *SimpleChain) GetBlock(hash []byte, _ uint64) (*pb.Block, error) {
+	return c.GetBlockByHash(hash)
 }
 
 func (c *SimpleChain) getBlock(hash []byte) (*pb.Block, error) {

@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -199,7 +200,7 @@ func TestValidateBlock(t *testing.T) {
 				txs = append(txs, testutil.NewTransaction(t, 1, 1, uint64(i)))
 			}
 
-			return testutil.NewBlock(t, txs)
+			return blocktest.NewBlock(t, txs)
 		},
 		func() state.State { return nil },
 		validator.ErrTooManyTxs,
@@ -214,7 +215,7 @@ func TestValidateBlock(t *testing.T) {
 			}
 
 			txs = append(txs, testutil.NewRewardTransaction(t, 1))
-			return testutil.NewBlock(t, txs)
+			return blocktest.NewBlock(t, txs)
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
@@ -229,7 +230,7 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"invalid-signature",
 		func() *pb.Block {
-			block := testutil.NewBlock(t, []*pb.Transaction{
+			block := blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewTransaction(t, 3, 1, 5),
 				testutil.NewTransaction(t, 7, 2, 1),
 			})
@@ -247,7 +248,7 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"invalid-balance",
 		func() *pb.Block {
-			return testutil.NewBlock(t, []*pb.Transaction{
+			return blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewTransaction(t, 3, 2, 5),
 				testutil.NewTransaction(t, 3, 1, 6),
 			})
@@ -265,7 +266,7 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"invalid-merkle-root",
 		func() *pb.Block {
-			block := testutil.NewBlock(t, []*pb.Transaction{
+			block := blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewTransaction(t, 3, 1, 5),
 				testutil.NewTransaction(t, 7, 1, 6),
 			})
@@ -278,7 +279,7 @@ func TestValidateBlock(t *testing.T) {
 		validator.ErrInvalidMerkleRoot,
 	}, {"multiple-rewards",
 		func() *pb.Block {
-			return testutil.NewBlock(t, []*pb.Transaction{
+			return blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewRewardTransaction(t, 3),
 				testutil.NewRewardTransaction(t, 4),
 			})
@@ -288,7 +289,7 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"invalid-reward",
 		func() *pb.Block {
-			return testutil.NewBlock(t, []*pb.Transaction{
+			return blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewTransaction(t, 1, 5, 1),
 				testutil.NewRewardTransaction(t, 5+testReward+1),
 			})
@@ -298,7 +299,7 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"valid-block",
 		func() *pb.Block {
-			return testutil.NewBlock(t, []*pb.Transaction{
+			return blocktest.NewBlock(t, []*pb.Transaction{
 				testutil.NewTransaction(t, 3, 1, 5),
 				testutil.NewTransaction(t, 7, 1, 8),
 				testutil.NewRewardTransaction(t, testReward+1+1),

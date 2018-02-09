@@ -66,6 +66,9 @@ type Reader interface {
 
 	// GetBlock retrieves a block from the database by header hash and number.
 	GetBlock(hash []byte, number uint64) (*pb.Block, error)
+
+	// GetBlockByHash retrieves a block from the database by header hash.
+	GetBlockByHash(hash []byte) (*pb.Block, error)
 }
 
 // Writer defines methods needed to write to the local blockchain.

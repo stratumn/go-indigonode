@@ -195,7 +195,7 @@ func (t *Trie) Put(key, value []byte) error {
 		return err
 	}
 
-	_, err = t.update(root, nil, NewNibs(key, false).Expand(), value)
+	_, err = t.update(root, nil, NewNibsWithoutCopy(key, false).Expand(), value)
 
 	return err
 }
@@ -208,7 +208,7 @@ func (t *Trie) Delete(key []byte) error {
 		return err
 	}
 
-	_, err = t.remove(root, nil, NewNibs(key, false).Expand())
+	_, err = t.remove(root, nil, NewNibsWithoutCopy(key, false).Expand())
 
 	return err
 }
@@ -231,7 +231,7 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 		return nil, err
 	}
 
-	nodes, found, err := t.collect(root, nil, NewNibs(key, false).Expand())
+	nodes, found, err := t.collect(root, nil, NewNibsWithoutCopy(key, false).Expand())
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +423,7 @@ func (t *Trie) update(node Node, prefix, key []uint8, value []byte) (Node, error
 
 // insert inserts a node in the database given its key.
 func (t *Trie) insert(key []uint8, node Node) error {
-	k, err := Path(NewNibsFromNibs(key)).MarshalBinary()
+	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -541,7 +541,7 @@ func (t *Trie) remove(node Node, prefix, key []uint8) (Node, error) {
 
 // remove removes a node from the database given its key.
 func (t *Trie) rem(key []uint8) error {
-	k, err := Path(NewNibsFromNibs(key)).MarshalBinary()
+	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -551,7 +551,7 @@ func (t *Trie) rem(key []uint8) error {
 
 // nodeKey returns the key of a node given its key in the trie.
 func (t *Trie) nodeKey(key []uint8) ([]byte, error) {
-	k, err := Path(NewNibsFromNibs(key)).MarshalBinary()
+	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
 	if err != nil {
 		return nil, err
 	}

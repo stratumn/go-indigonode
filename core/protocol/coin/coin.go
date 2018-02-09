@@ -131,9 +131,11 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	}
 }
 
-// State returns the read-only state.
-func (c *Coin) State() state.Reader {
-	return c.state
+// GetAccount gets the account details of a user identified
+// by his public key. It returns &pb.Account{} if the account is not
+// found.
+func (c *Coin) GetAccount(peerID []byte) (*pb.Account, error) {
+	return c.state.GetAccount(peerID)
 }
 
 // AddTransaction validates incoming transactions against the latest state

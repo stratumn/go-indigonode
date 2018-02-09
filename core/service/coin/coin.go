@@ -173,7 +173,7 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 				return nil, ErrUnavailable
 			}
 
-			return s.coin.State().GetAccount(peerID)
+			return s.coin.GetAccount(peerID)
 		},
 		func(tx *pb.Transaction) error {
 			if s.coin == nil {

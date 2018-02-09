@@ -23,15 +23,14 @@
 // or removed.
 //
 // In the context of a blockchain, it is useful for light clients. By keeping
-// all the information about the state (for example a hash of every account) in
-// a Patricia Merkle Trie, the Merkle Root of the trie uniquely describes the
-// current state of the application. Extracting a proof (the nodes leading to
-// a value) gives you cryptographic evidence that the value is part of the
-// current state. By adding a Merkle Root of the state to block headers, you
-// only need the last block header and a Merkle Proof to prove the balance of
-// an account. It makes it very easy for a light node to easily sync up the
-// balance of the accounts it is tracking. Without it it would need much more
-// data to know without a doubt the balance of an account.
+// all the information about the state in a Patricia Merkle Trie, the Merkle
+// Root of the trie uniquely describes the current state of the application.
+// Extracting a proof (the nodes leading to a value) gives you cryptographic
+// evidence that the value is part of the current state. By adding a Merkle
+// Root of the state to block headers, you only need the last block header and
+// a Merkle Proof to prove the value of an account. It makes it very easy for a
+// light node to easily sync up the  accounts it is tracking. Without it it
+// would need much more data to know without a doubt the value of an account.
 //
 // It works similarly to a Radix trie:
 //
@@ -45,12 +44,12 @@
 //	   /     \
 //	  e       n
 //
-// As opposed to a tree, in a trie a value gives you its position the tree. So
-// a value will always have the same position in the trie. You can think of a
-// value as a path in the trie. For instance, the path of the left leaf in the
-// example is [A l i c e], giving you the value "Alice". This property of tries
-// make them deterministic -- a trie containing the same values will always
-// be the same.
+// As opposed to a tree, in a trie a value gives you its position the tree, and
+// vice-versa. So a value will always have the same position in the trie. You
+// can think of a value as a path in the trie. For instance, the path of the
+// left leaf in the example is [A l i c e], giving you the value "Alice". This
+// property of tries make them canonical -- a trie containing the same values
+// will always be the same.
 //
 // In this example we are using strings, so each branch can have as many
 // children as the number of allowed characters. This number is said to be
@@ -79,7 +78,7 @@
 // previously), and the data it stores the Value, so it becomes more similar to
 // a key-value database. In the previous example you could set an arbitrary
 // value for the key 0x3e20f. More concretely, you could use the ID of an
-// account as its key and the serialized account as its value, so in in the
+// account as its key and the serialized account as its value, so in the
 // previous example you could store the account whose ID is 0x3e02f in the left
 // leaf.
 //
@@ -105,8 +104,9 @@
 // A Patricia Merkle Trie is a modified Radix trie that makes it
 // cryptographically secure. A branch contains the hash of each of its child
 // nodes (so one hash per child node, as opposed to one hash for all the
-// child nodes like a Merkle Tree). By having all the nodes leading to the
-// desired value, you have cryptographic proof that it belongs in the trie.
+// child nodes like a Merkle Tree). The Merkle root is the hash of the root
+// node. By having all the nodes leading to the desired value, you have
+// cryptographic proof that it belongs in the trie.
 package trie
 
 import (

@@ -101,6 +101,25 @@ var migrations = []cfg.MigrateHandler{
 		)
 		return tree.Set("bootstrap.addresses", seeds)
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("coin.version", int64(1)); err != nil {
+			return err
+		}
+		if err := tree.Set("coin.max_tx_per_block", int64(100)); err != nil {
+			return err
+		}
+		if err := tree.Set("coin.miner_reward", int64(10)); err != nil {
+			return err
+		}
+		if err := tree.Set("coin.block_difficulty", int64(42)); err != nil {
+			return err
+		}
+		if err := tree.Set("coin.db_path", "data/db"); err != nil {
+			return err
+		}
+
+		return nil
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

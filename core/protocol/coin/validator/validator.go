@@ -29,12 +29,6 @@ import (
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-const (
-	// DefaultMaxTxPerBlock is the recommended maximum number
-	// of transactions allowed in a block.
-	DefaultMaxTxPerBlock = 100
-)
-
 var (
 	// ErrEmptyTx is returned when the transaction is nil.
 	ErrEmptyTx = errors.New("tx is empty")
@@ -95,11 +89,11 @@ type Validator interface {
 // and that users don't spend more coins than they have.
 type BalanceValidator struct {
 	engine        engine.PoW
-	maxTxPerBlock int
+	maxTxPerBlock uint32
 }
 
 // NewBalanceValidator creates a BalanceValidator.
-func NewBalanceValidator(maxTxPerBlock int, engine engine.PoW) Validator {
+func NewBalanceValidator(maxTxPerBlock uint32, engine engine.PoW) Validator {
 	return &BalanceValidator{
 		engine:        engine,
 		maxTxPerBlock: maxTxPerBlock,
@@ -318,7 +312,7 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 // validateTxCount restricts the number of transactions that can be
 // included in a block.
 func (v *BalanceValidator) validateTxCount(block *pb.Block) error {
-	if v.maxTxPerBlock < len(block.Transactions) {
+	if v.maxTxPerBlock < uint32(len(block.Transactions)) {
 		return ErrTooManyTxs
 	}
 

@@ -37,6 +37,12 @@ func NewInstrumentedValidator(validator validator.Validator) *InstrumentedValida
 	return &InstrumentedValidator{validator: validator}
 }
 
+// MaxTxPerBlock returns the maximum number of transactions
+// allowed in a block.
+func (r *InstrumentedValidator) MaxTxPerBlock() uint32 {
+	return r.validator.MaxTxPerBlock()
+}
+
 // ValidateTx records the incoming tx.
 func (r *InstrumentedValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
 	r.mu.Lock()
@@ -103,6 +109,11 @@ var (
 // incoming transactions and blocks.
 type Rejector struct{}
 
+// MaxTxPerBlock always returns 1.
+func (r *Rejector) MaxTxPerBlock() uint32 {
+	return 1
+}
+
 // ValidateTx records the incoming tx and rejects it.
 func (r *Rejector) ValidateTx(tx *pb.Transaction, state state.Reader) error {
 	return ErrRejected
@@ -120,6 +131,11 @@ func (r *Rejector) ValidateTransactions(transactions []*pb.Transaction, _ state.
 
 // DummyValidator is a validator that always returns nil (valid).
 type DummyValidator struct{}
+
+// MaxTxPerBlock always returns 1.
+func (v *DummyValidator) MaxTxPerBlock() uint32 {
+	return 1
+}
 
 // ValidateTx always returns nil (valid tx).
 func (v *DummyValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {

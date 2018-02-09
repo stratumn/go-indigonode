@@ -36,7 +36,7 @@ func Test_HashTransaction(t *testing.T) {
 	transaction := &pb.Transaction{Nonce: 42}
 
 	tx, err := HashTransaction(transaction)
-	expected, _ := hex.DecodeString("122064e752669b24739d5a68c49d86c86ee8371eacbb9e61a46741f62f2f9d4ab4f4")
+	expected, _ := hex.DecodeString("1220cfa28753bfaab814b6d79c4cd95898949d6aba143d03dc5d39d567c3f3de1ee3")
 
 	assert.NoError(t, err, "HashHeader()")
 	assert.Equal(t, expected, []byte(tx), "HashHeader()")
@@ -50,8 +50,7 @@ func Test_TransactionRoot(t *testing.T) {
 	txs := []*pb.Transaction{tx1, tx2, tx3}
 
 	tr, err := TransactionRoot(txs)
-	expected, _ := hex.DecodeString("8598c431bbdfecab85e06c4d6450aeed500bbeb60e51f3035ebeaf7cd6478f83")
+	expected, _ := hex.DecodeString("e1bb422f51063ab9f4583bf25683e88d22debdd04a81e3710ac841f9706721df")
 	assert.NoError(t, err, "TransactionRoot()")
 	assert.Equal(t, expected, tr, "TransactionRoot()")
-
 }

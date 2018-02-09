@@ -63,17 +63,20 @@ func TestState(t *testing.T) {
 				From:  alice,
 				To:    bob,
 				Value: 10,
+				Fee:   2,
 				Nonce: 1,
 			}, {
 				From:  bob,
 				To:    charlie,
 				Value: 5,
-				Nonce: 2,
+				Fee:   1,
+				Nonce: 1,
 			}, {
 				From:  charlie,
 				To:    alice,
 				Value: 2,
-				Nonce: 3,
+				Fee:   1,
+				Nonce: 1,
 			}}
 
 			err = s.ProcessTransactions([]byte("state1"), txs)
@@ -81,18 +84,18 @@ func TestState(t *testing.T) {
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 - 2 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5 - 1, Nonce: 1}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 1, Nonce: 1}, v, "s.GetAccount(charlie)")
 		},
 	}, {
-		"process-coinbase-transaction",
+		"process-reward-transaction",
 		func(t *testing.T, s State) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
@@ -107,12 +110,18 @@ func TestState(t *testing.T) {
 				Value: 5,
 			}}
 
-			err = s.ProcessTransactions([]byte("coinbase-state"), txs)
+			err = s.ProcessTransactions([]byte("reward-state"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 5, Nonce: 1}, v, "s.GetAccount(alice)")
+
+			// Verify that we didn't wrongfully take into account the miner reward
+			// that has a nil sender address.
+			v, err = s.GetAccount(nil)
+			assert.NoError(t, err, "s.GetAccount(nil)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(nil)")
 		},
 	}, {
 		"rollback-transactions",
@@ -126,28 +135,33 @@ func TestState(t *testing.T) {
 				From:  alice,
 				To:    bob,
 				Value: 10,
+				Fee:   1,
 				Nonce: 1,
 			}, {
 				From:  bob,
 				To:    charlie,
 				Value: 5,
+				Fee:   2,
 				Nonce: 2,
 			}, {
 				From:  charlie,
 				To:    alice,
 				Value: 2,
+				Fee:   3,
 				Nonce: 3,
 			}}
 
 			txs2 := []*pb.Transaction{{
 				From:  bob,
 				To:    charlie,
-				Value: 4,
+				Value: 2,
+				Fee:   1,
 				Nonce: 3,
 			}, {
 				From:  alice,
 				To:    bob,
 				Value: 3,
+				Fee:   2,
 				Nonce: 4,
 			}}
 
@@ -164,15 +178,15 @@ func TestState(t *testing.T) {
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
-			assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
+			assert.Equal(t, &pb.Account{Balance: 20 - 10 - 1 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 10 - 5 - 2, Nonce: 2}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
 
 			// Rollback state1.
 
@@ -190,6 +204,12 @@ func TestState(t *testing.T) {
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
+
+			// Verify that we didn't wrongfully take into account the miner reward
+			// that has a nil sender address.
+			v, err = s.GetAccount(nil)
+			assert.NoError(t, err, "s.GetAccount(nil)")
+			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(nil)")
 		},
 	}}
 

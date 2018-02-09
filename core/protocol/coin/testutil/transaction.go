@@ -58,11 +58,12 @@ func init() {
 }
 
 // NewTransaction creates a properly signed transaction.
-func NewTransaction(t *testing.T, value, nonce uint64) *pb.Transaction {
+func NewTransaction(t *testing.T, value, fee, nonce uint64) *pb.Transaction {
 	tx := &pb.Transaction{
 		From:  []byte(TxSenderPID),
 		To:    []byte(TxRecipientPID),
 		Value: value,
+		Fee:   fee,
 		Nonce: nonce,
 	}
 
@@ -84,8 +85,8 @@ func NewTransaction(t *testing.T, value, nonce uint64) *pb.Transaction {
 	return tx
 }
 
-// NewCoinbaseTransaction creates a new coinbase transaction.
-func NewCoinbaseTransaction(t *testing.T, value uint64) *pb.Transaction {
+// NewRewardTransaction creates a new reward transaction.
+func NewRewardTransaction(t *testing.T, value uint64) *pb.Transaction {
 	return &pb.Transaction{
 		To:    []byte(TxRecipientPID),
 		Value: value,

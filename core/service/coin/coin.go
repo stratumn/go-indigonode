@@ -189,7 +189,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 	stateDBPrefix := []byte("s")
 	chainDBPrefix := []byte("c")
 
-	mempool := &state.InMemoryMempool{}
+	txpool := &state.GreedyInMemoryTxPool{}
 	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
 	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
 
@@ -199,7 +199,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 
-	s.coin = protocol.NewCoin(mempool, engine, state, chain, validator, processor)
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, validator, processor)
 
 	return nil
 }

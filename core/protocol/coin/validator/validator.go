@@ -89,7 +89,7 @@ type Validator interface {
 	// ValidateBlock validates the contents of a block.
 	ValidateBlock(block *pb.Block, state state.Reader) error
 	// ValidateTransactions validates a list of transactions.
-	ValidateTransactions(blotransactions []*pb.Transaction, state state.Reader) error
+	ValidateTransactions(transactions []*pb.Transaction, state state.Reader) error
 }
 
 // BalanceValidator validates coin transactions.

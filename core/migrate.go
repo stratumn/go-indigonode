@@ -114,7 +114,7 @@ var migrations = []cfg.MigrateHandler{
 		if err := tree.Set("coin.block_difficulty", int64(42)); err != nil {
 			return err
 		}
-		if err := tree.Set("coin.db_path", "data/db"); err != nil {
+		if err := tree.Set("coin.db_path", "data/coin/db"); err != nil {
 			return err
 		}
 

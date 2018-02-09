@@ -29,7 +29,6 @@ type InstrumentedValidator struct {
 
 	mu     sync.RWMutex
 	txs    []*pb.Transaction
-	txss   [][]*pb.Transaction
 	blocks []*pb.Block
 }
 
@@ -61,7 +60,7 @@ func (r *InstrumentedValidator) ValidateTransactions(transactions []*pb.Transact
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.txss = append(r.txss, transactions)
+	r.txs = append(r.txs, transactions...)
 	return r.validator.ValidateTransactions(transactions, state)
 }
 
@@ -90,32 +89,6 @@ func (r *InstrumentedValidator) ValidatedBlock(block *pb.Block) bool {
 		if matcher.Matches(b.Header) {
 			return true
 		}
-	}
-
-	return false
-}
-
-// ValidatedTransactions returns true if the validator saw the given block.
-func (r *InstrumentedValidator) ValidatedTransactions(transactions []*pb.Transaction) bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	matchers := make([]TxMatcher, len(transactions))
-	for i, tx := range transactions {
-		matchers[i] = NewTxMatcher(tx)
-	}
-
-Loop:
-	for _, txs := range r.txss {
-		if len(txs) != len(transactions) {
-			continue
-		}
-		for i, tx := range txs {
-			if !matchers[i].Matches(tx) {
-				continue Loop
-			}
-		}
-		return true
 	}
 
 	return false

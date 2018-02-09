@@ -18,6 +18,9 @@ import (
 	"encoding/hex"
 )
 
+// Nib represents a nibble (four bits).
+type Nib uint8
+
 // Nibs deals with nibbles (four bits) in a buffer.
 type Nibs struct {
 	buf []byte
@@ -43,7 +46,7 @@ func NewNibsWithoutCopy(buf []byte, odd bool) Nibs {
 }
 
 // NewNibsFromNibs creates a Nibs from a slice of nibbles.
-func NewNibsFromNibs(nibs []uint8) Nibs {
+func NewNibsFromNibs(nibs ...uint8) Nibs {
 	buf := make([]byte, (len(nibs)+1)/2)
 	n := NewNibsWithoutCopy(buf, len(nibs)%2 == 1)
 
@@ -116,7 +119,7 @@ func (n Nibs) Append(nibs ...Nibs) Nibs {
 		l += nib.Len()
 	}
 
-	appended := NewNibs(make([]byte, (l+1)/2), l%2 == 1)
+	appended := NewNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
 	n.CopyToBuf(appended.buf)
 	i := n.Len()
 
@@ -134,7 +137,7 @@ func (n Nibs) Append(nibs ...Nibs) Nibs {
 // of nibbles.
 func (n Nibs) Substr(from, to int) Nibs {
 	l := to - from
-	sub := NewNibs(make([]byte, (l+1)/2), l%2 == 1)
+	sub := NewNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
 
 	for i, j := 0, from; j < to; i, j = i+1, j+1 {
 		sub.Put(i, n.At(j))

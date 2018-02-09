@@ -70,11 +70,11 @@ var (
 	// ErrInvalidMerkleRoot is returned when the merkle root doesn't represent the block transactions.
 	ErrInvalidMerkleRoot = errors.New("invalid merkle root")
 
-	// ErrInvalidCoinbase is returned when the block coinbase transaction is invalid.
-	ErrInvalidCoinbase = errors.New("coinbase transaction is invalid")
+	// ErrMultipleMinerRewards is returned when a block contains multiple miner rewards.
+	ErrMultipleMinerRewards = errors.New("only one miner reward transaction is allowed per block")
 
-	// ErrMultipleCoinbase is returned when more than one coinbase transaction was included in a block.
-	ErrMultipleCoinbase = errors.New("only one coinbase transaction is allowed per block")
+	// ErrInvalidMinerReward is returned when the miner reward is invalid.
+	ErrInvalidMinerReward = errors.New("miner reward is invalid")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -254,26 +254,17 @@ func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error 
 		return err
 	}
 
-	coinbaseChecked := false
+	if err := v.validateMinerReward(block); err != nil {
+		return err
+	}
+
 	for _, tx := range block.Transactions {
-		// One coinbase Tx is allowed
-		if tx.From == nil {
-			if coinbaseChecked {
-				return ErrMultipleCoinbase
+		if tx.From != nil {
+			// Validate everything else than balance.
+			err := v.ValidateTx(tx, nil)
+			if err != nil {
+				return err
 			}
-
-			coinbaseChecked = true
-			if v.engine.Reward() < tx.Value {
-				return ErrInvalidCoinbase
-			}
-
-			continue
-		}
-
-		// Validate everything else than balance.
-		err := v.ValidateTx(tx, nil)
-		if err != nil {
-			return err
 		}
 	}
 
@@ -349,6 +340,27 @@ func (v *BalanceValidator) validateMerkleRoot(block *pb.Block) error {
 
 	if !bytes.Equal(expected, block.Header.MerkleRoot) {
 		return ErrInvalidMerkleRoot
+	}
+
+	return nil
+}
+
+// validateMinerReward verifies that the miner reward (if included) is valid.
+func (v *BalanceValidator) validateMinerReward(block *pb.Block) error {
+	minerReward, err := coinutil.GetMinerReward(block)
+	if err != nil {
+		if err == coinutil.ErrMultipleMinerRewards {
+			return ErrMultipleMinerRewards
+		}
+
+		return err
+	}
+
+	if minerReward != nil {
+		totalFees := coinutil.GetBlockFees(block)
+		if totalFees+v.engine.Reward() < minerReward.Value {
+			return ErrInvalidMinerReward
+		}
 	}
 
 	return nil

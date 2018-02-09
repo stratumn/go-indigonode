@@ -167,6 +167,8 @@ func TestValidateTx(t *testing.T) {
 }
 
 func TestValidateBlock(t *testing.T) {
+	testReward := uint64(5)
+
 	type validateBlockTxTestCase struct {
 		name  string
 		block func() *pb.Block
@@ -241,31 +243,32 @@ func TestValidateBlock(t *testing.T) {
 		},
 		func() state.State { return nil },
 		validator.ErrInvalidMerkleRoot,
-	}, {"multiple-coinbase",
+	}, {"multiple-rewards",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 3),
-				testutil.NewCoinbaseTransaction(t, 4),
+				testutil.NewRewardTransaction(t, 3),
+				testutil.NewRewardTransaction(t, 4),
 			})
 		},
 		func() state.State { return nil },
-		validator.ErrMultipleCoinbase,
+		validator.ErrMultipleMinerRewards,
 	}, {
-		"invalid-coinbase",
+		"invalid-reward",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 42000),
+				testutil.NewTransaction(t, 1, 5, 1),
+				testutil.NewRewardTransaction(t, 5+testReward+1),
 			})
 		},
 		func() state.State { return nil },
-		validator.ErrInvalidCoinbase,
+		validator.ErrInvalidMinerReward,
 	}, {
 		"valid-block",
 		func() *pb.Block {
 			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewCoinbaseTransaction(t, 1),
 				testutil.NewTransaction(t, 3, 1, 5),
 				testutil.NewTransaction(t, 7, 1, 8),
+				testutil.NewRewardTransaction(t, testReward+1+1),
 			})
 		},
 		func() state.State {
@@ -282,7 +285,7 @@ func TestValidateBlock(t *testing.T) {
 
 	validator := validator.NewBalanceValidator(
 		3,
-		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, 5),
+		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, testReward),
 	)
 
 	for _, tt := range testCases {

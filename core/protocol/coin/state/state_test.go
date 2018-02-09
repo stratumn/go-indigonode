@@ -27,7 +27,6 @@ func TestState(t *testing.T) {
 	alice := []byte("alice")
 	bob := []byte("bob")
 	charlie := []byte("charlie")
-	mallory := []byte("mallory")
 
 	tests := []struct {
 		name string
@@ -94,13 +93,9 @@ func TestState(t *testing.T) {
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 1, Nonce: 1}, v, "s.GetAccount(charlie)")
-
-			v, err = s.GetAccount(mallory)
-			assert.NoError(t, err, "s.GetAccount(mallory)")
-			assert.Equal(t, &pb.Account{Balance: 2 + 1 + 1}, v, "s.GetAccount(mallory)")
 		},
 	}, {
-		"process-coinbase-transaction",
+		"process-reward-transaction",
 		func(t *testing.T, s State) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
@@ -115,7 +110,7 @@ func TestState(t *testing.T) {
 				Value: 5,
 			}}
 
-			err = s.ProcessTransactions([]byte("coinbase-state"), txs)
+			err = s.ProcessTransactions([]byte("reward-state"), txs)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -187,10 +182,6 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
 
-			v, err = s.GetAccount(mallory)
-			assert.NoError(t, err, "s.GetAccount(mallory)")
-			assert.Equal(t, &pb.Account{Balance: 1 + 2 + 3}, v, "s.GetAccount(mallory)")
-
 			// Rollback state1.
 
 			err = s.RollbackTransactions([]byte("state1"), txs1)
@@ -207,10 +198,6 @@ func TestState(t *testing.T) {
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
-
-			v, err = s.GetAccount(mallory)
-			assert.NoError(t, err, "s.GetAccount(mallory)")
-			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(mallory)")
 		},
 	}}
 
@@ -220,7 +207,7 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, OptPrefix([]byte("test-")), OptMiner(mallory)))
+			tt.run(t, NewState(memdb, OptPrefix([]byte("test-"))))
 		})
 	}
 }

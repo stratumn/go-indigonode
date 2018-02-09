@@ -199,6 +199,9 @@ func TestHashEngine_Finalize(t *testing.T) {
 	require.NoError(t, err, "ic.GenerateKeyPair()")
 	pubKey := coinutil.NewPublicKey(pk, pb.KeyType_Ed25519)
 
+	// Static reward to miner in reward transaction.
+	testReward := uint64(5)
+
 	tests := []struct {
 		name       string
 		difficulty uint64
@@ -242,7 +245,13 @@ func TestHashEngine_Finalize(t *testing.T) {
 				}
 			}
 
+			txFees := uint64(0)
+			for _, tx := range firstBlock.Transactions {
+				txFees += tx.Fee
+			}
+
 			assert.NotNil(t, blockReward, "blockReward")
+			assert.Equal(t, testReward+txFees, blockReward.Value, "blockReward.Value")
 			assert.Nil(t, blockReward.Signature, "blockReward.Signature")
 
 			to, err := pubKey.Bytes()
@@ -277,7 +286,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(pubKey, tt.difficulty, 5)
+			e := engine.NewHashEngine(pubKey, tt.difficulty, testReward)
 			tt.run(t, e)
 		})
 	}

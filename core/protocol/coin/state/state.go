@@ -88,14 +88,6 @@ var OptPrefix = func(prefix []byte) Opt {
 	}
 }
 
-// OptMiner sets the address of the miner.
-// Transaction fees will be sent to this address.
-var OptMiner = func(miner []byte) Opt {
-	return func(s *stateDB) {
-		s.miner = miner
-	}
-}
-
 // NewState creates a new state from a DB instance.
 //
 // Prefix is used to prefix keys in the database.
@@ -168,7 +160,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	nonces := make([]byte, len(txs)*8)
 
 	for i, tx := range txs {
-		// Substract amount for sender, except for coinbase transaction.
+		// Substract amount for sender, except for reward transaction.
 		if tx.From != nil {
 			from, err := s.doGetAccount(s.diff, tx.From)
 			if err != nil {
@@ -196,19 +188,6 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 		to.Balance += tx.Value
 
 		err = s.doUpdateAccount(s.diff, tx.To, to)
-		if err != nil {
-			return err
-		}
-
-		// Add transaction fee to miner.
-		miner, err := s.doGetAccount(s.diff, s.miner)
-		if err != nil {
-			return err
-		}
-
-		miner.Balance += tx.Fee
-
-		err = s.doUpdateAccount(s.diff, s.miner, miner)
 		if err != nil {
 			return err
 		}
@@ -261,19 +240,6 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		to.Balance -= tx.Value
 
 		err = s.doUpdateAccount(s.diff, tx.To, to)
-		if err != nil {
-			return err
-		}
-
-		// Subtract transactions fee from miner.
-		miner, err := s.doGetAccount(s.diff, s.miner)
-		if err != nil {
-			return nil
-		}
-
-		miner.Balance -= tx.Fee
-
-		err = s.doUpdateAccount(s.diff, s.miner, miner)
 		if err != nil {
 			return err
 		}

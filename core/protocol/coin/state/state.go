@@ -75,7 +75,6 @@ type stateDB struct {
 	db     db.DB
 	diff   *db.Diff
 	prefix []byte
-	miner  []byte
 }
 
 // Opt is an option for state.

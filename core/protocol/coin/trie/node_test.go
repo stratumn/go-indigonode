@@ -68,6 +68,11 @@ func TestNode_Encoding(t *testing.T) {
 		nil,
 		nil,
 	}, {
+		"skip",
+		&Skip{Path: []uint8{0x0, 0x7, 0xf}},
+		nil,
+		nil,
+	}, {
 		"branch",
 		&Branch{
 			Value: []byte("Alice"),
@@ -168,9 +173,9 @@ func TestNode_String(t *testing.T) {
 	}
 
 	expect := "<branch> 416c696365 [<null> <null> <null> <hash> " +
-		"QmX4zTUJa1vDXjw3mTxwXBdCd9gThbggaHFGhA1QpnKdK6x " +
+		"QmX4zTUJa1vDXjw3mTxwXBdCd9gThbggaHFGhA1QpnKdK6 " +
 		"<null> <null> <null> <null> <null> <null> <null> <hash> " +
-		"QmarC75CYs3HLzgSXfUdZqJatFZb6Pmj4QVJmbBwX3R1K9x " +
+		"QmarC75CYs3HLzgSXfUdZqJatFZb6Pmj4QVJmbBwX3R1K9 " +
 		"<null> <null> <null> <null>]"
 
 	assert.EqualValues(t, expect, n.String())

@@ -29,7 +29,7 @@ func BenchmarkNode_MarshalBinary(b *testing.B) {
 		"leaf",
 		&Leaf{Value: []byte("Alice")},
 	}, {
-		"hash",
+		"edge",
 		&Edge{Hash: testHash1},
 	}, {
 		"parent",
@@ -73,7 +73,7 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 		"leaf",
 		&Leaf{Value: []byte("Alice")},
 	}, {
-		"hash",
+		"edge",
 		&Edge{Hash: testHash1},
 	}, {
 		"parent",
@@ -130,6 +130,30 @@ func BenchmarkNibs_Append(b *testing.B) {
 	}
 }
 
+func BenchmarkTrie_Put_Map(b *testing.B) {
+	trie := New()
+	key := make([]byte, 64*b.N)
+	value := make([]byte, 128*b.N)
+
+	if _, err := rand.Read(key); err != nil {
+		b.Error(err)
+		return
+	}
+
+	if _, err := rand.Read(value); err != nil {
+		b.Error(err)
+		return
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		if err := trie.Put(key[i*64:(i+1)*64], value[i*128:(i+1)*128]); err != nil {
+			b.Error(err)
+		}
+	}
+}
+
 func BenchmarkTrie_Put_MemDB(b *testing.B) {
 	database, err := db.NewMemDB(nil)
 	if err != nil {
@@ -137,7 +161,7 @@ func BenchmarkTrie_Put_MemDB(b *testing.B) {
 		return
 	}
 
-	trie := New(database)
+	trie := New(OptDB(database))
 	key := make([]byte, 64*b.N)
 	value := make([]byte, 128*b.N)
 
@@ -168,7 +192,7 @@ func BenchmarkTrie_Put_MemDB_Diff(b *testing.B) {
 	}
 
 	diff := db.NewDiff(database)
-	trie := New(diff)
+	trie := New(OptDB(diff))
 	key := make([]byte, 64*b.N)
 	value := make([]byte, 128*b.N)
 
@@ -185,14 +209,14 @@ func BenchmarkTrie_Put_MemDB_Diff(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		diff.Reset()
 
 		if err := trie.Put(key[i*64:(i+1)*64], value[i*128:(i+1)*128]); err != nil {
 			b.Error(err)
 		}
 
-		if err := diff.Apply(); err != nil {
-			b.Error(err)
-		}
+	}
+
+	if err := diff.Apply(); err != nil {
+		b.Error(err)
 	}
 }

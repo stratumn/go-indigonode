@@ -40,7 +40,7 @@ const (
 	NodeTypeBranch
 	NodeTypeLeaf
 	NodeTypeHash
-	NodeTypePath
+	NodeTypeSkip
 )
 
 // String returns a string representation of a node type.
@@ -54,8 +54,8 @@ func (n NodeType) String() string {
 		return "<leaf>"
 	case NodeTypeHash:
 		return "<hash>"
-	case NodeTypePath:
-		return "<path>"
+	case NodeTypeSkip:
+		return "<skip>"
 	}
 
 	return "<invalid>"
@@ -87,7 +87,7 @@ func (n NodeType) String() string {
 //	00000011  11001101 ...
 //	type      multihash
 //
-//	Path node (TODO)
+//	Skip node
 //	---------
 //	00000100  11001101...
 //	type      path (see Path for encoding)
@@ -195,7 +195,31 @@ func (n *Hash) MarshalBinary() ([]byte, error) {
 
 // String returns a string representation of the node.
 func (n *Hash) String() string {
-	return fmt.Sprintf("%v %sx", NodeTypeHash, n.Hash.B58String())
+	return fmt.Sprintf("%v %s", NodeTypeHash, n.Hash.B58String())
+}
+
+// Skip contains a partial path to another node.
+type Skip struct {
+	Path []uint8
+}
+
+// MarshalBinary marshals the node.
+func (n *Skip) MarshalBinary() ([]byte, error) {
+	path := NewNibsFromNibs(n.Path...)
+	buf := make([]byte, path.ByteLen()+binary.MaxVarintLen32)
+	buf[0] = byte(NodeTypeSkip)
+
+	written, err := Path(path).MarshalInto(buf[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	return buf[:1+written], nil
+}
+
+// String returns a string representation of the node.
+func (n *Skip) String() string {
+	return fmt.Sprintf("%v %v", NodeTypeSkip, NewNibsFromNibs(n.Path...))
 }
 
 // UnmarshalNode unmarshals a node. It returns a node and the number of bytes
@@ -214,9 +238,9 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 	buf = buf[1:]
 	read := 1
 
-	// Hash type is a little different.
-	if typ == NodeTypeHash {
-		// It is simply followed by the multihash.
+	switch typ {
+	case NodeTypeHash:
+		// Hash type is simply followed by the multihash.
 		hashLen := MultihashLen(buf)
 		if hashLen <= 0 || len(buf) < hashLen {
 			return nil, 0, errors.WithStack(ErrInvalidNodeLen)
@@ -227,9 +251,18 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 		copy(hash, buf[:hashLen])
 
 		return &Hash{Hash: hash}, read + hashLen, nil
+
+	case NodeTypeSkip:
+		// Skip type is simply followed by the partial path to skip.
+		path, r, err := UnmarshalPath(buf)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return &Skip{Path: Nibs(path).Expand()}, read + r, nil
 	}
 
-	// Get value/hash part.
+	// Get value part.
 	valLen, valRead := binary.Uvarint(buf)
 	if read <= 0 || len(buf) < int(valLen)+valRead {
 		return nil, 0, errors.WithStack(ErrInvalidNodeLen)

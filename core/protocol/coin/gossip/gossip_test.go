@@ -15,11 +15,11 @@
 package gossip
 
 import (
-	"bytes"
 	"context"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -31,26 +31,13 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
+	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
 var (
-	g1, g2 *Gossip
+	mockValidator *mockvalidator.MockValidator
 )
-
-type val struct{}
-
-func (v *val) ValidateTx(tx *pb.Transaction, state state.Reader) error {
-	if bytes.Equal(tx.GetFrom(), []byte("invalid")) {
-		return validator.ErrInvalidTxSender
-	}
-
-	return nil
-}
-
-func (v *val) ValidateBlock(block *pb.Block, state state.Reader) error {
-	return nil
-}
 
 func newHost(ctx context.Context, t *testing.T) host.Host {
 	ntw := netutil.GenSwarmNetwork(t, ctx)
@@ -70,12 +57,17 @@ func newGossip(ctx context.Context, t *testing.T, h host.Host) (*Gossip, error) 
 
 	s := state.NewState(db)
 
-	return NewGossip(*p, s, &val{}), nil
+	return NewGossip(*p, s, mockValidator), nil
 }
 
 func TestGossip(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockValidator = mockvalidator.NewMockValidator(mockCtrl)
 
 	h1 := newHost(ctx, t)
 	h2 := newHost(ctx, t)
@@ -119,9 +111,9 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("PublishTx", func(t *testing.T) {
-		tx := &pb.Transaction{
-			From: []byte("valid"),
-		}
+		tx := &pb.Transaction{}
+		mockValidator.EXPECT().ValidateTx(tx, gomock.Any()).Return(nil).Times(2)
+
 		err = g1.PublishTx(tx)
 
 		assert.NoError(t, err)
@@ -131,9 +123,9 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("PublishInvalidTx", func(t *testing.T) {
-		tx := &pb.Transaction{
-			From: []byte("invalid"),
-		}
+		tx := &pb.Transaction{}
+		mockValidator.EXPECT().ValidateTx(tx, gomock.Any()).Return(validator.ErrEmptyTx)
+
 		err = g1.PublishTx(tx)
 
 		assert.NoError(t, err)

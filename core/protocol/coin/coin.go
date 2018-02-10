@@ -30,7 +30,6 @@ import (
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
-	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
@@ -76,13 +75,12 @@ func NewCoin(
 	e engine.Engine,
 	s state.State,
 	c chain.Chain,
+	g *gossip.Gossip,
 	v validator.Validator,
 	p processor.Processor,
-	ps floodsub.PubSub,
 ) *Coin {
 
 	miner := miner.NewMiner(txp, e, s, c, v, p)
-	gossip := gossip.NewGossip(ps, s, v)
 
 	return &Coin{
 		engine:    e,
@@ -91,7 +89,7 @@ func NewCoin(
 		txpool:    txp,
 		processor: p,
 		validator: v,
-		gossip:    gossip,
+		gossip:    g,
 		miner:     miner,
 	}
 }
@@ -147,11 +145,7 @@ func (c *Coin) GetAccount(peerID []byte) (*pb.Account, error) {
 
 // PublishTransaction publishes and adds transaction received via grpc.
 func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
-	if err := c.gossip.PublishTx(tx); err != nil {
-		return err
-	}
-
-	return c.AddValidTransaction(tx)
+	return c.gossip.PublishTx(tx)
 }
 
 // AddTransaction validates incoming transactions against the latest state

@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
@@ -218,7 +219,9 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, validator, processor, s.pubsub)
+	gossip := gossip.NewGossip(s.pubsub, state, validator)
+
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, validator, processor)
 
 	return nil
 }

@@ -86,7 +86,9 @@ func (g *Gossip) ListenTx(ctx context.Context, callback func(*pb.Transaction) er
 		msg, errIncoming := g.txSubscription.Next(ctx)
 		for errIncoming == nil {
 			tx := &pb.Transaction{}
-			tx.Unmarshal(msg.GetData())
+			if err := tx.Unmarshal(msg.GetData()); err != nil {
+				log.Event(ctx, "InvalidTxFormat", logging.Metadata{"error": err})
+			}
 			if err := callback(tx); err != nil {
 				log.Event(ctx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
 			}

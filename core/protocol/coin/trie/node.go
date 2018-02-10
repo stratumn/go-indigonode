@@ -39,8 +39,7 @@ const (
 	NodeTypeNull NodeType = iota
 	NodeTypeBranch
 	NodeTypeLeaf
-	NodeTypeHash
-	NodeTypeSkip
+	NodeTypeEdge
 )
 
 // String returns a string representation of a node type.
@@ -52,10 +51,8 @@ func (n NodeType) String() string {
 		return "<branch>"
 	case NodeTypeLeaf:
 		return "<leaf>"
-	case NodeTypeHash:
-		return "<hash>"
-	case NodeTypeSkip:
-		return "<skip>"
+	case NodeTypeEdge:
+		return "<edge>"
 	}
 
 	return "<invalid>"
@@ -74,23 +71,18 @@ func (n NodeType) String() string {
 //	Branch node
 //	-----------
 //	00000001  10100100               1001010010 ...  0100110101...
-//	type      value len (uvarint64)  value           16 embedded nodes
-//	                                                 of type hash or null
+//	type      value len (uvarint64)  value           16 embedded nodes of
+//	                                                 type Edge
 //
 //	Leaf node
 //	---------
 //	00000010  10100100               1001010010 ...
 //	type      value len (uvarint64)  value
 //
-//	Hash node
+//	Edge node
 //	---------
-//	00000011  11001101 ...
-//	type      multihash
-//
-//	Skip node
-//	---------
-//	00000100  11001101...
-//	type      path (see Path for encoding)
+//	00000011  11001101 ...  11001101 ...
+//	type      multihash     path (see Path for encoding)
 //
 // Multihash
 //
@@ -140,8 +132,8 @@ func (n *Branch) MarshalBinary() ([]byte, error) {
 		switch v := e.(type) {
 		case Null:
 			headroom++
-		case *Hash:
-			headroom += 1 + len(v.Hash)
+		case *Edge:
+			headroom += 1 + len(v.Hash) + binary.MaxVarintLen32 + (len(v.Path)+1)/2
 		}
 	}
 
@@ -179,47 +171,38 @@ func (n *Leaf) String() string {
 	return fmt.Sprintf("%v %x", NodeTypeLeaf, n.Value)
 }
 
-// Hash contains the hash of another node.
-type Hash struct {
+// Edge contains a partial path to another node and the hash of the target
+// node.
+type Edge struct {
+	Path []uint8
 	Hash multihash.Multihash
 }
 
 // MarshalBinary marshals the node.
-func (n *Hash) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, len(n.Hash)+1)
-	buf[0] = byte(NodeTypeHash)
-	copy(buf[1:], n.Hash)
-
-	return buf, nil
-}
-
-// String returns a string representation of the node.
-func (n *Hash) String() string {
-	return fmt.Sprintf("%v %s", NodeTypeHash, n.Hash.B58String())
-}
-
-// Skip contains a partial path to another node.
-type Skip struct {
-	Path []uint8
-}
-
-// MarshalBinary marshals the node.
-func (n *Skip) MarshalBinary() ([]byte, error) {
+func (n *Edge) MarshalBinary() ([]byte, error) {
 	path := NewNibsFromNibs(n.Path...)
-	buf := make([]byte, path.ByteLen()+binary.MaxVarintLen32)
-	buf[0] = byte(NodeTypeSkip)
 
-	written, err := Path(path).MarshalInto(buf[1:])
+	buf := make([]byte, 1+binary.MaxVarintLen32+path.ByteLen()+len(n.Hash))
+	buf[0] = byte(NodeTypeEdge)
+
+	pathLen, err := Path(path).MarshalInto(buf[1:])
 	if err != nil {
 		return nil, err
 	}
 
-	return buf[:1+written], nil
+	copy(buf[1+pathLen:], n.Hash)
+
+	return buf[:1+pathLen+len(n.Hash)], nil
 }
 
 // String returns a string representation of the node.
-func (n *Skip) String() string {
-	return fmt.Sprintf("%v %v", NodeTypeSkip, NewNibsFromNibs(n.Path...))
+func (n *Edge) String() string {
+	return fmt.Sprintf(
+		"%v %v %s",
+		NodeTypeEdge,
+		NewNibsFromNibs(n.Path...),
+		n.Hash.B58String(),
+	)
 }
 
 // UnmarshalNode unmarshals a node. It returns a node and the number of bytes
@@ -238,9 +221,16 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 	buf = buf[1:]
 	read := 1
 
-	switch typ {
-	case NodeTypeHash:
-		// Hash type is simply followed by the multihash.
+	if typ == NodeTypeEdge {
+		// Edge type is followed by a path and a multihash.
+		path, pathLen, err := UnmarshalPath(buf)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		buf = buf[pathLen:]
+		read += pathLen
+
 		hashLen := MultihashLen(buf)
 		if hashLen <= 0 || len(buf) < hashLen {
 			return nil, 0, errors.WithStack(ErrInvalidNodeLen)
@@ -250,16 +240,10 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 		hash := make(multihash.Multihash, hashLen)
 		copy(hash, buf[:hashLen])
 
-		return &Hash{Hash: hash}, read + hashLen, nil
-
-	case NodeTypeSkip:
-		// Skip type is simply followed by the partial path to skip.
-		path, r, err := UnmarshalPath(buf)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		return &Skip{Path: Nibs(path).Expand()}, read + r, nil
+		return &Edge{
+			Path: Nibs(path).Expand(),
+			Hash: hash,
+		}, read + hashLen, nil
 	}
 
 	// Get value part.
@@ -284,9 +268,9 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 				return nil, 0, err
 			}
 
-			// They can only be null or hash.
+			// They can only be null or edge.
 			switch child.(type) {
-			case Null, *Hash:
+			case Null, *Edge:
 			default:
 				return nil, 0, errors.WithStack(ErrInvalidNodeType)
 			}

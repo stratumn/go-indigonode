@@ -56,7 +56,8 @@ func UnmarshalPath(buf []byte) (Path, int, error) {
 		return Path{}, 0, errors.WithStack(ErrInvalidPathLen)
 	}
 
-	nibs := NewNibs(buf[read:], depth%2 == 1)
+	buf = buf[read : read+(int(depth)+1)/2]
+	nibs := NewNibs(buf, depth%2 == 1)
 
 	return Path(nibs), read + nibs.ByteLen(), nil
 }
@@ -76,6 +77,10 @@ func (p Path) MarshalBinary() ([]byte, error) {
 // MarshalInto marshals the path into an existing buffer. It returns the number
 // of bytes written.
 func (p Path) MarshalInto(buf []byte) (int, error) {
+	if len(buf) < binary.MaxVarintLen32 {
+		return 0, errors.WithStack(ErrBufferToShort)
+	}
+
 	written := binary.PutUvarint(buf, uint64(Nibs(p).Len()))
 
 	if len(buf) < written+Nibs(p).ByteLen() {

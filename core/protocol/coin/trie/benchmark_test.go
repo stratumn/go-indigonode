@@ -30,7 +30,7 @@ func BenchmarkNode_MarshalBinary(b *testing.B) {
 		&Leaf{Value: []byte("Alice")},
 	}, {
 		"hash",
-		&Hash{Hash: testHash1},
+		&Edge{Hash: testHash1},
 	}, {
 		"parent",
 		&Branch{
@@ -39,7 +39,7 @@ func BenchmarkNode_MarshalBinary(b *testing.B) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash1},
+				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 				Null{},
 				Null{},
 				Null{},
@@ -47,7 +47,7 @@ func BenchmarkNode_MarshalBinary(b *testing.B) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash2},
+				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
 				Null{},
 				Null{},
 				Null{},
@@ -74,7 +74,7 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 		&Leaf{Value: []byte("Alice")},
 	}, {
 		"hash",
-		&Hash{Hash: testHash1},
+		&Edge{Hash: testHash1},
 	}, {
 		"parent",
 		&Branch{
@@ -83,7 +83,7 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash1},
+				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 				Null{},
 				Null{},
 				Null{},
@@ -91,7 +91,7 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash2},
+				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
 				Null{},
 				Null{},
 				Null{},

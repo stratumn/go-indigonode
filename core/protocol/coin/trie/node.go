@@ -242,7 +242,7 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 
 		return &Edge{
 			Path: Nibs(path).Expand(),
-			Hash: hash,
+			Hash: buf[:hashLen],
 		}, read + hashLen, nil
 	}
 

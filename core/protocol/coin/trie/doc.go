@@ -85,7 +85,7 @@
 // In practice with arbitrary data you would end up with long series of
 // branches having a single child, which is inefficient. So, like Ethereum,
 // we introduce another type of node which contains a partial path that can be
-// used to skip such nodes [TODO]. For instance:
+// used to skip such nodes. For instance:
 //
 //	  3
 //	   \
@@ -97,9 +97,10 @@
 //	         \
 //	          c
 //
-// Can be represented by a single node:
+// Can be represented by a single node of type edge containing the path between
+// the two nodes:
 //
-//	  3 [Path: 0xe0cb]
+//	  3 [Edge: e0bc]
 //
 // A Patricia Merkle Trie is a modified Radix trie that makes it
 // cryptographically secure. A branch contains the hash of each of its child
@@ -107,4 +108,10 @@
 // child nodes like a Merkle Tree). The Merkle root is the hash of the root
 // node. By having all the nodes leading to the desired value, you have
 // cryptographic proof that it belongs in the trie.
+//
+// Put, Delete, and Proof are O(k), where k is the length of the key. In
+// pratice they are faster because they will be fewer edges.
+//
+// In this implementation, Get is O(1) because a key directly maps to its
+// value in the database.
 package trie

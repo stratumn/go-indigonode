@@ -137,7 +137,7 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
 func (t *Trie) recProof(node Node, prefix, key []uint8) ([]Node, bool, error) {
-	if _, ok := node.(*Hash); ok {
+	if _, ok := node.(*Edge); ok {
 		// If the node is a hash, load the actual node from the prefix,
 		// but also collect the hash node.
 		n, err := t.dbGet(prefix)
@@ -170,7 +170,7 @@ func (t *Trie) recProof(node Node, prefix, key []uint8) ([]Node, bool, error) {
 		switch child.(type) {
 		case Null:
 			return []Node{node}, false, nil
-		case *Hash:
+		case *Edge:
 			nodes, found, err := t.recProof(child,
 				append(prefix, key[0]),
 				key[1:],
@@ -212,7 +212,7 @@ func (t *Trie) Put(key, value []byte) error {
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
 func (t *Trie) recPut(node Node, prefix, key []uint8, value []byte) (Node, error) {
-	if _, ok := node.(*Hash); ok {
+	if _, ok := node.(*Edge); ok {
 		// If the node is a hash, load the actual node from the prefix.
 		var err error
 		node, err = t.dbGet(prefix)
@@ -293,7 +293,7 @@ func (t *Trie) putChildValue(node Node, prefix, key []uint8, value []byte) (Node
 		return nil, err
 	}
 
-	branch.EmbeddedNodes[key[0]] = &Hash{hash}
+	branch.EmbeddedNodes[key[0]] = &Edge{Hash: hash}
 
 	// Save the node to the database.
 	if err := t.dbPut(prefix, branch); err != nil {
@@ -327,7 +327,7 @@ func (t *Trie) recDelete(node Node, prefix, key []uint8) (Node, error) {
 	case Null:
 		// NOP.
 		return Null{}, nil
-	case *Hash:
+	case *Edge:
 		// If the node is a hash, load the actual node from the prefix.
 		var err error
 		node, err = t.dbGet(prefix)
@@ -391,7 +391,7 @@ func (t *Trie) deleteChildVal(node Node, prefix, key []uint8) (Node, error) {
 				return nil, err
 			}
 
-			v.EmbeddedNodes[key[0]] = &Hash{hash}
+			v.EmbeddedNodes[key[0]] = &Edge{Hash: hash}
 		}
 
 		// Convert to leaf if needed.

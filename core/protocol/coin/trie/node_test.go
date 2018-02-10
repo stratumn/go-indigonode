@@ -63,13 +63,8 @@ func TestNode_Encoding(t *testing.T) {
 		nil,
 		nil,
 	}, {
-		"hash",
-		&Hash{Hash: testHash1},
-		nil,
-		nil,
-	}, {
-		"skip",
-		&Skip{Path: []uint8{0x0, 0x7, 0xf}},
+		"edge",
+		&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 		nil,
 		nil,
 	}, {
@@ -80,7 +75,7 @@ func TestNode_Encoding(t *testing.T) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash1},
+				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 				Null{},
 				Null{},
 				Null{},
@@ -88,7 +83,7 @@ func TestNode_Encoding(t *testing.T) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash2},
+				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
 				Null{},
 				Null{},
 				Null{},
@@ -105,7 +100,7 @@ func TestNode_Encoding(t *testing.T) {
 				Null{},
 				Null{},
 				Null{},
-				&Hash{Hash: testHash1},
+				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 				Null{},
 				Null{},
 				Null{},
@@ -156,7 +151,7 @@ func TestNode_String(t *testing.T) {
 			Null{},
 			Null{},
 			Null{},
-			&Hash{Hash: testHash1},
+			&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 			Null{},
 			Null{},
 			Null{},
@@ -164,7 +159,7 @@ func TestNode_String(t *testing.T) {
 			Null{},
 			Null{},
 			Null{},
-			&Hash{Hash: testHash2},
+			&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
 			Null{},
 			Null{},
 			Null{},
@@ -172,9 +167,9 @@ func TestNode_String(t *testing.T) {
 		},
 	}
 
-	expect := "<branch> 416c696365 [<null> <null> <null> <hash> " +
+	expect := "<branch> 416c696365 [<null> <null> <null> <edge> 123 " +
 		"QmX4zTUJa1vDXjw3mTxwXBdCd9gThbggaHFGhA1QpnKdK6 " +
-		"<null> <null> <null> <null> <null> <null> <null> <hash> " +
+		"<null> <null> <null> <null> <null> <null> <null> <edge> abc " +
 		"QmarC75CYs3HLzgSXfUdZqJatFZb6Pmj4QVJmbBwX3R1K9 " +
 		"<null> <null> <null> <null>]"
 

@@ -27,7 +27,7 @@ func TestNibs_String(t *testing.T) {
 		expected string
 	}{{
 		"even",
-		NewNibs([]byte{0x12, 0x34}, false),
+		NewNibsFromNibs(1, 2, 3, 4),
 		"1234",
 	}, {
 		"odd",
@@ -205,6 +205,28 @@ func TestNibs_Substr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.n.Substr(tt.from, tt.to).String())
+		})
+	}
+}
+
+func TestNibs_Expand(t *testing.T) {
+	tests := []struct {
+		name     string
+		n        Nibs
+		expected []uint8
+	}{{
+		"even",
+		NewNibs([]byte{0x12, 0x34}, false),
+		[]uint8{1, 2, 3, 4},
+	}, {
+		"odd",
+		NewNibs([]byte{0xab, 0xcd}, true),
+		[]uint8{0xa, 0xb, 0xc},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, tt.n.Expand())
 		})
 	}
 }

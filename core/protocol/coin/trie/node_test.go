@@ -140,6 +140,7 @@ func TestNode_Encoding(t *testing.T) {
 			require.NoError(t, err, "UnmarshalNode()")
 			assert.Equal(t, len(buf), read, "UnmarshalNode().read")
 			assert.Equal(t, tt.node, node, "UnmarshalNode().node")
+			assert.Equal(t, tt.node, tt.node.Clone(), "tt.node.Clone()")
 		})
 	}
 }

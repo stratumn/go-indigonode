@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Watch out for identation within strings, tabs must be two spaces.
+// Watch out for indentation within strings, tabs must be two spaces.
 // Technically these are whitebox tests, they make sure the trees are properly
-// created.
+// structured.
 
 func TestTrie_Put(t *testing.T) {
 	tests := []struct {
@@ -267,6 +267,8 @@ branch
 				}
 			}
 
+			require.NoError(t, trie.Commit(), "trie.Commit()")
+
 			got, err := trie.Dump()
 			require.NoError(t, err, "trie.dump()")
 			assert.Equal(t, strings.TrimSpace(tt.want), strings.TrimSpace(got))
@@ -459,6 +461,8 @@ branch
 				require.NoError(t, err, "hex.DecodeString(key)")
 				require.NoErrorf(t, trie.Delete(key), "trie.Delete(%x)", key)
 			}
+
+			require.NoError(t, trie.Commit(), "trie.Commit()")
 
 			got, err := trie.Dump()
 			require.NoError(t, err, "trie.dump()")

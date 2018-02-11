@@ -16,6 +16,7 @@ package trie
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
@@ -49,8 +50,13 @@ var OptHashCode = func(code uint64) Opt {
 }
 
 // Trie represents a Patricia Merkle Trie.
+//
+// The underlying database is not modified until Commit() is called.
 type Trie struct {
-	dbrw db.ReadWriter
+	mu          sync.RWMutex
+	dbrw        db.ReadWriter
+	cache       *cache
+	atomicCache *cache // atomicCache is used to make operations atomic.
 
 	prefix   []byte
 	hashCode uint64
@@ -67,11 +73,46 @@ func New(opts ...Opt) *Trie {
 		o(t)
 	}
 
+	t.cache = newCache(t.doGetNode, t.doPutNode, t.doDeleteNode, t.hash)
+
+	put := func(key []uint8, node Node, _ []byte) error {
+		return t.cache.Put(key, node)
+	}
+
+	t.atomicCache = newCache(t.cache.Get, put, t.cache.Delete, nil)
+
 	return t
+}
+
+// Commit applies all the changes to the database since the last call to
+// Commit() or Reset().
+func (t *Trie) Commit() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if err := t.cache.Commit(); err != nil {
+		return err
+	}
+
+	t.cache.Reset()
+
+	return nil
+}
+
+// Reset resets all the uncommited changes.
+func (t *Trie) Reset() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.cache.Reset()
 }
 
 // Get gets the value of the given key.
 func (t *Trie) Get(key []byte) ([]byte, error) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	defer t.atomicCache.Reset()
+
 	node, err := t.getNode(NewNibs(key, false).Expand())
 	if err != nil {
 		return nil, err
@@ -102,22 +143,29 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 // MerkleRoot returns the hash of the root node. If there an no entries, the
 // hash of Null{} is returned.
 func (t *Trie) MerkleRoot() (multihash.Multihash, error) {
-	root, err := t.rootNode()
-	if err != nil {
-		return nil, err
-	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	return t.hashNode(root)
+	return t.cache.Hash(nil)
 }
 
 // Proof returns a proof of the value for the given key.
 func (t *Trie) Proof(key []byte) (Proof, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	defer t.atomicCache.Reset()
+
+	key = NewNibsWithoutCopy(key, false).Expand()
+
+	// Compute hashes if needed.
+	if _, err := t.cache.Hash(nil); err != nil {
+		return nil, err
+	}
+
 	root, err := t.rootNode()
 	if err != nil {
 		return nil, err
 	}
-
-	key = NewNibsWithoutCopy(key, false).Expand()
 
 	nodes, found, err := t.recProof(root, nil, key)
 	if err != nil {
@@ -200,6 +248,10 @@ func (t *Trie) Put(key, value []byte) error {
 		return t.Delete(key)
 	}
 
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	defer t.atomicCache.Reset()
+
 	root, err := t.rootNode()
 	if err != nil {
 		return err
@@ -209,7 +261,12 @@ func (t *Trie) Put(key, value []byte) error {
 
 	_, _, err = t.recPut(root, nil, key, value)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Commit the atomic cache (an error should never occur).
+	return t.atomicCache.Commit()
 }
 
 // recPut recursively puts a value in the trie, creating new nodes if
@@ -316,23 +373,17 @@ func (t *Trie) putChildValue(node Node, prefix, key []uint8, value []byte) (Node
 	// The embedded node will be an edge node if a child already exists,
 	// null otherwise.
 	edge := branch.EmbeddedNodes[key[0]]
-
 	if _, null := edge.(Null); null {
 		edge = &Edge{Path: key}
 	}
 
-	node, path, err := t.recPut(edge, prefix, key, value)
+	_, path, err := t.recPut(edge, prefix, key, value)
 	if err != nil {
 		return Null{}, nil, err
 	}
 
-	// Store the new hash of the child.
-	hash, err := t.hashNode(node)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	branch.EmbeddedNodes[key[0]] = &Edge{Path: path[len(prefix):], Hash: hash}
+	// Hash will be lazily computed.
+	branch.EmbeddedNodes[key[0]] = &Edge{Path: path[len(prefix):]}
 
 	if err := t.putNode(prefix, branch); err != nil {
 		return Null{}, nil, err
@@ -341,7 +392,7 @@ func (t *Trie) putChildValue(node Node, prefix, key []uint8, value []byte) (Node
 	return branch, prefix, nil
 }
 
-// fork splits forks an edge.
+// fork forks an edge, creating two new nodes.
 func (t *Trie) fork(edge *Edge, prefix, key []uint8, value []byte, i int) (Node, []uint8, error) {
 	branch := NewEmptyBranch()
 
@@ -352,7 +403,7 @@ func (t *Trie) fork(edge *Edge, prefix, key []uint8, value []byte, i int) (Node,
 	}
 
 	// New node.
-	child, _, err := t.putNodeValue(
+	_, _, err := t.putNodeValue(
 		Null{},
 		append(prefix, key...),
 		nil,
@@ -362,15 +413,8 @@ func (t *Trie) fork(edge *Edge, prefix, key []uint8, value []byte, i int) (Node,
 		return Null{}, nil, err
 	}
 
-	hash, err := t.hashNode(child)
-	if err != nil {
-		return Null{}, nil, err
-	}
-
-	branch.EmbeddedNodes[key[i]] = &Edge{
-		Path: key[i:],
-		Hash: hash,
-	}
+	// Hash will be lazily computed.
+	branch.EmbeddedNodes[key[i]] = &Edge{Path: key[i:]}
 
 	// Save forking branch.
 	path := append(prefix, key[:i]...)
@@ -402,6 +446,10 @@ func (t *Trie) split(edge *Edge, prefix, key []uint8, value []byte, i int) (Node
 // Delete removes the value for the given key. Deleting a non-existing key is
 // a NOP.
 func (t *Trie) Delete(key []byte) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	defer t.atomicCache.Reset()
+
 	root, err := t.rootNode()
 	if err != nil {
 		return err
@@ -411,7 +459,12 @@ func (t *Trie) Delete(key []byte) error {
 
 	_, _, _, err = t.recDelete(root, nil, key)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Commit the atomic cache (an error should never occur).
+	return t.atomicCache.Commit()
 }
 
 // recDelete recursively removes a value in the trie, deleting nodes if
@@ -535,30 +588,20 @@ func (t *Trie) deleteChildVal(node Node, prefix, key []uint8) (Node, []uint8, bo
 			}
 
 			// Recompute edges and hash children.
-			switch child := child.(type) {
+			switch child.(type) {
 			case Null:
 				node.EmbeddedNodes[key[0]] = Null{}
 
 			case *Branch:
-				hash, err := t.hashNode(child)
-				if err != nil {
-					return nil, nil, false, err
-				}
-
+				// Hash will be lazily computed.
 				node.EmbeddedNodes[key[0]] = &Edge{
 					Path: childPrefix[len(prefix):],
-					Hash: hash,
 				}
 
 			case *Leaf:
-				hash, err := t.hashNode(child)
-				if err != nil {
-					return nil, nil, false, err
-				}
-
+				// Hash will be lazily computed.
 				node.EmbeddedNodes[key[0]] = &Edge{
 					Path: childPrefix[len(prefix):],
-					Hash: hash,
 				}
 
 			default:
@@ -572,7 +615,7 @@ func (t *Trie) deleteChildVal(node Node, prefix, key []uint8) (Node, []uint8, bo
 	return Null{}, nil, false, errors.WithStack(ErrInvalidNodeType)
 }
 
-// restrucutreBranch restructures a branch after on of its child node was
+// restructureBranch restructures a branch after one of its child node was
 // deleted.
 func (t *Trie) restructureBranch(branch *Branch, prefix, key []uint8) (Node, []uint8, bool, error) {
 	var lastEdge *Edge
@@ -645,8 +688,33 @@ func (t *Trie) rootNode() (Node, error) {
 	return t.getNode(nil)
 }
 
-// getNode gets a node from its key.
+// dbKey returns the key of a node given its key in the trie.
+func (t *Trie) dbKey(key []uint8) ([]byte, error) {
+	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return append(t.prefix, k...), nil
+}
+
+// getNode gets a node from its key from the cache.
 func (t *Trie) getNode(key []uint8) (Node, error) {
+	return t.atomicCache.Get(key)
+}
+
+// putNode inserts the node with the given key in the cache.
+func (t *Trie) putNode(key []uint8, node Node) error {
+	return t.atomicCache.Put(key, node)
+}
+
+// deleteNode removes the node with the given key from the cache.
+func (t *Trie) deleteNode(key []uint8) error {
+	return t.atomicCache.Delete(key)
+}
+
+// doGetNode gets a node from its key from the database.
+func (t *Trie) doGetNode(key []uint8) (Node, error) {
 	k, err := t.dbKey(key)
 	if err != nil {
 		return Null{}, err
@@ -666,14 +734,9 @@ func (t *Trie) getNode(key []uint8) (Node, error) {
 	return n, err
 }
 
-// putNode inserts the node with the given key.
-func (t *Trie) putNode(key []uint8, node Node) error {
+// doPutNode inserts the node with the given key in the database.
+func (t *Trie) doPutNode(key []uint8, _ Node, buf []byte) error {
 	k, err := t.dbKey(key)
-	if err != nil {
-		return err
-	}
-
-	buf, err := node.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -681,8 +744,8 @@ func (t *Trie) putNode(key []uint8, node Node) error {
 	return t.dbrw.Put(k, buf)
 }
 
-// deleteNode removes the node with the given key.
-func (t *Trie) deleteNode(key []uint8) error {
+// doDeleteNode removes the node with the given key from the database.
+func (t *Trie) doDeleteNode(key []uint8) error {
 	k, err := t.dbKey(key)
 	if err != nil {
 		return err
@@ -691,24 +754,9 @@ func (t *Trie) deleteNode(key []uint8) error {
 	return t.dbrw.Delete(k)
 }
 
-// dbKey returns the key of a node given its key in the trie.
-func (t *Trie) dbKey(key []uint8) ([]byte, error) {
-	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	return append(t.prefix, k...), nil
-}
-
-// hashNode hashes a node.
-func (t *Trie) hashNode(node Node) (multihash.Multihash, error) {
-	buf, err := node.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := multihash.Sum(buf, t.hashCode, -1)
+// hash computes a hash.
+func (t *Trie) hash(data []byte) (multihash.Multihash, error) {
+	hash, err := multihash.Sum(data, t.hashCode, -1)
 
 	return hash, errors.WithStack(err)
 }

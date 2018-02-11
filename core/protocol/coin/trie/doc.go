@@ -110,7 +110,7 @@
 // cryptographic proof that it belongs in the trie.
 //
 // Put, Delete, and Proof are O(k), where k is the length of the key. In
-// pratice they are faster because they will be fewer edges.
+// practice they are faster because there will be fewer edges.
 //
 // In this implementation, Get is O(1) because a key directly maps to its
 // value in the database.

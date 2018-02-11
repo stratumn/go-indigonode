@@ -90,6 +90,7 @@ func (n NodeType) String() string {
 //	algo (uvarint64)  digest len (uvarint64)  digest
 type Node interface {
 	MarshalBinary() ([]byte, error)
+	Clone() Node
 	String() string
 }
 
@@ -99,6 +100,11 @@ type Null struct{}
 // MarshalBinary marshals the node.
 func (n Null) MarshalBinary() ([]byte, error) {
 	return []byte{byte(NodeTypeNull) << 4}, nil
+}
+
+// Clone deep-copies the node.
+func (n Null) Clone() Node {
+	return Null{}
 }
 
 // String returns a string representation of the node.
@@ -151,6 +157,21 @@ func (n *Branch) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
+// Clone deep-copies the node.
+func (n *Branch) Clone() Node {
+	clone := &Branch{
+		Value: make([]byte, len(n.Value)),
+	}
+
+	copy(clone.Value, n.Value)
+
+	for i, node := range n.EmbeddedNodes {
+		clone.EmbeddedNodes[i] = node.Clone()
+	}
+
+	return clone
+}
+
 // String returns a string representation of the node.
 func (n *Branch) String() string {
 	return fmt.Sprintf("%v %x %v", NodeTypeBranch, n.Value, n.EmbeddedNodes)
@@ -164,6 +185,17 @@ type Leaf struct {
 // MarshalBinary marshals the node.
 func (n *Leaf) MarshalBinary() ([]byte, error) {
 	return marshalValueNode(NodeTypeLeaf, n.Value, 0), nil
+}
+
+// Clone deep-copies the node.
+func (n *Leaf) Clone() Node {
+	clone := &Leaf{
+		Value: make([]byte, len(n.Value)),
+	}
+
+	copy(clone.Value, n.Value)
+
+	return clone
 }
 
 // String returns a string representation of the node.
@@ -193,6 +225,19 @@ func (n *Edge) MarshalBinary() ([]byte, error) {
 	copy(buf[1+pathLen:], n.Hash)
 
 	return buf[:1+pathLen+len(n.Hash)], nil
+}
+
+// Clone deep-copies the node.
+func (n *Edge) Clone() Node {
+	clone := &Edge{
+		Path: make([]byte, len(n.Path)),
+		Hash: make([]byte, len(n.Hash)),
+	}
+
+	copy(clone.Path, n.Path)
+	copy(clone.Hash, n.Hash)
+
+	return clone
 }
 
 // String returns a string representation of the node.
@@ -242,7 +287,7 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 
 		return &Edge{
 			Path: Nibs(path).Expand(),
-			Hash: buf[:hashLen],
+			Hash: hash,
 		}, read + hashLen, nil
 	}
 

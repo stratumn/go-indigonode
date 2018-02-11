@@ -48,9 +48,10 @@ func TestTrie_Random(t *testing.T) {
 
 		val, err := trie.Get(k)
 		assert.NoError(t, err, "trie.Get()")
-
 		assert.Equal(t, v, val, "trie.Get()")
 	}
+
+	require.NoError(t, trie.Commit(), "trie.Commit()")
 
 	// Save the Merkle root and a proof.
 	root1, err := trie.MerkleRoot()
@@ -67,9 +68,10 @@ func TestTrie_Random(t *testing.T) {
 
 		val, err := trie.Get(k)
 		assert.NoError(t, err, "trie.Get()")
-
 		assert.Equal(t, v, val, "trie.Get()")
 	}
+
+	require.NoError(t, trie.Commit(), "trie.Commit()")
 
 	// Delete half of the values.
 	for i := times / 2; i < times; i++ {
@@ -81,6 +83,8 @@ func TestTrie_Random(t *testing.T) {
 		assert.EqualError(t, err, db.ErrNotFound.Error(), "trie.Get()")
 	}
 
+	require.NoError(t, trie.Commit(), "trie.Commit()")
+
 	// Check other half still exists.
 	for i := 0; i < times/2; i++ {
 		k := key[i*16 : (i+1)*16]
@@ -88,7 +92,6 @@ func TestTrie_Random(t *testing.T) {
 
 		val, err := trie.Get(k)
 		assert.NoError(t, err, "trie.Get()")
-
 		assert.Equal(t, v, val, "trie.Get()")
 	}
 

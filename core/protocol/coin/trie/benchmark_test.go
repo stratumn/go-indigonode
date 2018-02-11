@@ -16,6 +16,8 @@ package trie
 
 import (
 	"crypto/rand"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -136,13 +138,11 @@ func BenchmarkTrie_Put_Map(b *testing.B) {
 	value := make([]byte, 128*b.N)
 
 	if _, err := rand.Read(key); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	if _, err := rand.Read(value); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	b.ResetTimer()
@@ -152,13 +152,16 @@ func BenchmarkTrie_Put_Map(b *testing.B) {
 			b.Error(err)
 		}
 	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
+	}
 }
 
 func BenchmarkTrie_Put_MemDB(b *testing.B) {
 	database, err := db.NewMemDB(nil)
 	if err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	trie := New(OptDB(database))
@@ -166,13 +169,11 @@ func BenchmarkTrie_Put_MemDB(b *testing.B) {
 	value := make([]byte, 128*b.N)
 
 	if _, err := rand.Read(key); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	if _, err := rand.Read(value); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	b.ResetTimer()
@@ -182,13 +183,16 @@ func BenchmarkTrie_Put_MemDB(b *testing.B) {
 			b.Error(err)
 		}
 	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
+	}
 }
 
 func BenchmarkTrie_Put_MemDB_Diff(b *testing.B) {
 	database, err := db.NewMemDB(nil)
 	if err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	diff := db.NewDiff(database)
@@ -197,13 +201,11 @@ func BenchmarkTrie_Put_MemDB_Diff(b *testing.B) {
 	value := make([]byte, 128*b.N)
 
 	if _, err := rand.Read(key); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	if _, err := rand.Read(value); err != nil {
-		b.Error(err)
-		return
+		b.Fatal(err)
 	}
 
 	b.ResetTimer()
@@ -214,6 +216,93 @@ func BenchmarkTrie_Put_MemDB_Diff(b *testing.B) {
 			b.Error(err)
 		}
 
+	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
+	}
+
+	if err := diff.Apply(); err != nil {
+		b.Error(err)
+	}
+}
+
+func BenchmarkTrie_Put_FileDB(b *testing.B) {
+	filename, err := ioutil.TempDir("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(filename)
+
+	database, err := db.NewFileDB(filename, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer database.Close()
+
+	trie := New(OptDB(database))
+	key := make([]byte, 64*b.N)
+	value := make([]byte, 128*b.N)
+
+	if _, err := rand.Read(key); err != nil {
+		b.Fatal(err)
+	}
+
+	if _, err := rand.Read(value); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		if err := trie.Put(key[i*64:(i+1)*64], value[i*128:(i+1)*128]); err != nil {
+			b.Error(err)
+		}
+	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
+	}
+}
+
+func BenchmarkTrie_Put_FileDB_Diff(b *testing.B) {
+	filename, err := ioutil.TempDir("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(filename)
+
+	database, err := db.NewFileDB(filename, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer database.Close()
+
+	diff := db.NewDiff(database)
+	trie := New(OptDB(diff))
+	key := make([]byte, 64*b.N)
+	value := make([]byte, 128*b.N)
+
+	if _, err := rand.Read(key); err != nil {
+		b.Fatal(err)
+	}
+
+	if _, err := rand.Read(value); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+
+		if err := trie.Put(key[i*64:(i+1)*64], value[i*128:(i+1)*128]); err != nil {
+			b.Error(err)
+		}
+
+	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
 	}
 
 	if err := diff.Apply(); err != nil {

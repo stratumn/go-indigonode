@@ -58,7 +58,7 @@ func newGossip(ctx context.Context, t *testing.T, h host.Host) (*Gossip, error) 
 
 	s := state.NewState(db)
 
-	return NewGossip(context.Background(), *p, s, mockValidator), nil
+	return NewGossip(*p, s, mockValidator), nil
 }
 
 func TestGossip(t *testing.T) {
@@ -86,7 +86,7 @@ func TestGossip(t *testing.T) {
 	c2 := make(chan *pb.Transaction)
 
 	t.Run("ListenBeforeSubscribe", func(t *testing.T) {
-		err := g1.ListenTx(func(tx *pb.Transaction) error { return nil })
+		err := g1.ListenTx(context.Background(), func(tx *pb.Transaction) error { return nil })
 		assert.Error(t, err)
 	})
 
@@ -103,13 +103,13 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("ListenTx", func(t *testing.T) {
-		err := g1.ListenTx(func(tx *pb.Transaction) error {
+		err := g1.ListenTx(context.Background(), func(tx *pb.Transaction) error {
 			c1 <- tx
 			return nil
 		})
 		assert.NoError(t, err)
 
-		g2.ListenTx(func(tx *pb.Transaction) error {
+		g2.ListenTx(context.Background(), func(tx *pb.Transaction) error {
 			c2 <- tx
 			return nil
 		})

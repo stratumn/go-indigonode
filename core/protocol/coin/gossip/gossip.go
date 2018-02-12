@@ -40,14 +40,12 @@ type Gossip struct {
 	pubsub    floodsub.PubSub
 	state     state.Reader
 	validator validator.Validator
-	coinCtx   context.Context
 
 	txSubscription *floodsub.Subscription
 }
 
 // NewGossip returns gossip.
 func NewGossip(
-	coinCtx context.Context,
 	p floodsub.PubSub,
 	s state.Reader,
 	v validator.Validator,
@@ -56,7 +54,6 @@ func NewGossip(
 		pubsub:    p,
 		state:     s,
 		validator: v,
-		coinCtx:   coinCtx,
 	}
 }
 
@@ -88,23 +85,23 @@ func (g *Gossip) SubscribeTx() error {
 }
 
 // ListenTx listens to incoming transactions.
-func (g *Gossip) ListenTx(callback func(*pb.Transaction) error) error {
+func (g *Gossip) ListenTx(ctx context.Context, callback func(*pb.Transaction) error) error {
 	if !g.isSubscribed(TxTopicName) {
 		return errors.New("subscribe to tx topic first")
 	}
 
 	go func() {
-		msg, errIncoming := g.txSubscription.Next(g.coinCtx)
+		msg, errIncoming := g.txSubscription.Next(ctx)
 		for errIncoming == nil {
 			tx := &pb.Transaction{}
 			if err := tx.Unmarshal(msg.GetData()); err != nil {
-				log.Event(g.coinCtx, "InvalidTxFormat", logging.Metadata{"error": err})
+				log.Event(ctx, "InvalidTxFormat", logging.Metadata{"error": err})
 			}
 			if err := callback(tx); err != nil {
-				log.Event(g.coinCtx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
+				log.Event(ctx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
 			}
 
-			msg, errIncoming = g.txSubscription.Next(g.coinCtx)
+			msg, errIncoming = g.txSubscription.Next(ctx)
 		}
 
 		log.Errorf("stopped listening to transactions: %v", errIncoming.Error())

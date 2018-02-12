@@ -57,7 +57,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chai
 
 	// If the block is not higher than the current head,
 	// do not update state, end processing.
-	if head != nil && head.Header.BlockNumber > block.Header.BlockNumber {
+	if head != nil && head.BlockNumber() > block.BlockNumber() {
 		return nil
 	}
 
@@ -72,7 +72,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chai
 		if err != nil {
 			return err
 		}
-		if !bytes.Equal(hash, block.Header.PreviousHash) {
+		if !bytes.Equal(hash, block.PreviousHash()) {
 			return p.reorg(head, block, state, chain)
 		}
 	}
@@ -91,14 +91,14 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 	forward := []*stateTransition{}
 
 	mainBlock := newHead
-	mainNumber := mainBlock.Header.BlockNumber
+	mainNumber := mainBlock.BlockNumber()
 	mainHash, err := coinutil.HashHeader(mainBlock.Header)
 	if err != nil {
 		return err
 	}
 
 	forkBlock := prevHead
-	forkNumber := forkBlock.Header.BlockNumber
+	forkNumber := forkBlock.BlockNumber()
 	forkHash, err := coinutil.HashHeader(forkBlock.Header)
 	if err != nil {
 		return err
@@ -109,8 +109,8 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 	for !bytes.Equal(mainHash, forkHash) {
 		if mainNumber >= forkNumber {
 			forward = append(forward, &stateTransition{stateID: mainHash, transactions: mainBlock.Transactions})
-			mainHash = mainBlock.Header.PreviousHash
-			mainBlock, err = chain.GetBlock(mainBlock.Header.PreviousHash, mainBlock.Header.BlockNumber-1)
+			mainHash = mainBlock.PreviousHash()
+			mainBlock, err = chain.GetBlock(mainBlock.PreviousHash(), mainBlock.BlockNumber()-1)
 			if err != nil {
 				return err
 			}
@@ -122,14 +122,14 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 				[]*stateTransition{&stateTransition{stateID: forkHash, transactions: forkBlock.Transactions}},
 				backward...,
 			)
-			forkHash = forkBlock.Header.PreviousHash
-			forkBlock, err = chain.GetBlock(forkBlock.Header.PreviousHash, forkBlock.Header.BlockNumber-1)
+			forkHash = forkBlock.PreviousHash()
+			forkBlock, err = chain.GetBlock(forkBlock.PreviousHash(), forkBlock.BlockNumber()-1)
 			if err != nil {
 				return err
 			}
 		}
-		mainNumber = mainBlock.Header.BlockNumber
-		forkNumber = forkBlock.Header.BlockNumber
+		mainNumber = mainBlock.BlockNumber()
+		forkNumber = forkBlock.BlockNumber()
 	}
 
 	for _, st := range backward {

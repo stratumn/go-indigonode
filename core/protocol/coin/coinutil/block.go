@@ -44,6 +44,21 @@ func GetMinerReward(block *pb.Block) (*pb.Transaction, error) {
 	return reward, nil
 }
 
+// GetTxCount returns the number of user transactions in a block.
+// It skips the miner rewards.
+func GetTxCount(block *pb.Block) uint32 {
+	txCount := uint32(0)
+	for _, tx := range block.Transactions {
+		if tx.From == nil {
+			continue
+		}
+
+		txCount++
+	}
+
+	return txCount
+}
+
 // GetBlockFees sums the fees from all transactions in a block.
 func GetBlockFees(block *pb.Block) uint64 {
 	fees := uint64(0)

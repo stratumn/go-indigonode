@@ -320,7 +320,7 @@ func (v *BalanceValidator) ValidateTransactions(transactions []*pb.Transaction, 
 // validateTxCount restricts the number of transactions that can be
 // included in a block.
 func (v *BalanceValidator) validateTxCount(block *pb.Block) error {
-	if v.maxTxPerBlock < uint32(len(block.Transactions)) {
+	if v.maxTxPerBlock < coinutil.GetTxCount(block) {
 		return ErrTooManyTxs
 	}
 

@@ -94,6 +94,11 @@ func NewCoin(
 	}
 }
 
+// Run starts the coin.
+func (c *Coin) Run() error {
+	return c.StartTxGossip()
+}
+
 // StreamHandler handles incoming messages from peers.
 func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	log.Event(ctx, "beginStream", logging.Metadata{
@@ -190,11 +195,10 @@ func (c *Coin) StartMining(ctx context.Context) error {
 }
 
 // StartTxGossip starts gossiping transactions.
-func (c *Coin) StartTxGossip(ctx context.Context, errChan chan<- error) error {
+func (c *Coin) StartTxGossip() error {
 	if err := c.gossip.SubscribeTx(); err != nil {
 		return err
 	}
 
-	c.gossip.ListenTx(ctx, c.AddValidTransaction, errChan)
-	return nil
+	return c.gossip.ListenTx(c.AddValidTransaction)
 }

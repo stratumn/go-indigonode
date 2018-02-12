@@ -16,6 +16,7 @@ package gossip
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -57,7 +58,7 @@ func newGossip(ctx context.Context, t *testing.T, h host.Host) (*Gossip, error) 
 
 	s := state.NewState(db)
 
-	return NewGossip(*p, s, mockValidator), nil
+	return NewGossip(context.Background(), *p, s, mockValidator), nil
 }
 
 func TestGossip(t *testing.T) {
@@ -84,6 +85,11 @@ func TestGossip(t *testing.T) {
 	c1 := make(chan *pb.Transaction)
 	c2 := make(chan *pb.Transaction)
 
+	t.Run("ListenBeforeSubscribe", func(t *testing.T) {
+		err := g1.ListenTx(func(tx *pb.Transaction) error { return nil })
+		assert.Error(t, err)
+	})
+
 	t.Run("Subscribe", func(t *testing.T) {
 		err = g1.SubscribeTx()
 		assert.NoError(t, err)
@@ -97,17 +103,19 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("ListenTx", func(t *testing.T) {
-		g1.ListenTx(context.Background(), func(tx *pb.Transaction) error {
+		err := g1.ListenTx(func(tx *pb.Transaction) error {
 			c1 <- tx
 			return nil
-		}, make(chan error))
+		})
+		assert.NoError(t, err)
 
-		g2.ListenTx(context.Background(), func(tx *pb.Transaction) error {
+		g2.ListenTx(func(tx *pb.Transaction) error {
 			c2 <- tx
 			return nil
-		}, make(chan error))
+		})
+		assert.NoError(t, err)
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(50 * time.Millisecond)
 	})
 
 	t.Run("PublishTx", func(t *testing.T) {
@@ -133,13 +141,29 @@ func TestGossip(t *testing.T) {
 		assertNotReceive(t, c1)
 		assertNotReceive(t, c2)
 	})
+
+	t.Run("PublishMalformedTx", func(t *testing.T) {
+		tx := struct {
+			From []byte
+		}{
+			From: []byte("from"),
+		}
+
+		txBytes, _ := json.Marshal(tx)
+
+		err := g1.pubsub.Publish(TxTopicName, txBytes)
+		assert.NoError(t, err)
+
+		assertNotReceive(t, c1)
+		assertNotReceive(t, c2)
+	})
 }
 
 func assertReceive(t *testing.T, c chan *pb.Transaction, want *pb.Transaction) {
 	select {
 	case got := <-c:
 		assert.Equal(t, want, got)
-	case <-time.After(time.Second * 2):
+	case <-time.After(time.Millisecond * 50):
 		t.Fatalf("timed out waiting for transaction: %+v", want)
 	}
 }
@@ -148,7 +172,7 @@ func assertNotReceive(t *testing.T, c chan *pb.Transaction) {
 	select {
 	case got := <-c:
 		t.Fatalf("received unexpected transaction: %+v", got)
-	case <-time.After(time.Second * 2):
+	case <-time.After(time.Millisecond * 50):
 		return
 	}
 }

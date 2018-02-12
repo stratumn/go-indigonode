@@ -17,6 +17,8 @@ package gossip
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -38,12 +40,14 @@ type Gossip struct {
 	pubsub    floodsub.PubSub
 	state     state.Reader
 	validator validator.Validator
+	coinCtx   context.Context
 
 	txSubscription *floodsub.Subscription
 }
 
 // NewGossip returns gossip.
 func NewGossip(
+	coinCtx context.Context,
 	p floodsub.PubSub,
 	s state.Reader,
 	v validator.Validator,
@@ -52,6 +56,7 @@ func NewGossip(
 		pubsub:    p,
 		state:     s,
 		validator: v,
+		coinCtx:   coinCtx,
 	}
 }
 
@@ -64,7 +69,7 @@ func (g *Gossip) SubscribeTx() error {
 
 	g.txSubscription = sub
 
-	return g.pubsub.RegisterTopicValidator(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
+	err = g.pubsub.RegisterTopicValidator(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
 		tx := &pb.Transaction{}
 		if err := tx.Unmarshal(m.GetData()); err != nil {
 			log.Infof("invalid transaction format: %v", err.Error())
@@ -78,27 +83,34 @@ func (g *Gossip) SubscribeTx() error {
 
 		return true
 	})
+
+	return errors.WithStack(err)
 }
 
 // ListenTx listens to incoming transactions.
-func (g *Gossip) ListenTx(ctx context.Context, callback func(*pb.Transaction) error, errChan chan<- error) {
+func (g *Gossip) ListenTx(callback func(*pb.Transaction) error) error {
+	if !g.isSubscribed(TxTopicName) {
+		return errors.New("subscribe to tx topic first")
+	}
+
 	go func() {
-		msg, errIncoming := g.txSubscription.Next(ctx)
+		msg, errIncoming := g.txSubscription.Next(g.coinCtx)
 		for errIncoming == nil {
 			tx := &pb.Transaction{}
 			if err := tx.Unmarshal(msg.GetData()); err != nil {
-				log.Event(ctx, "InvalidTxFormat", logging.Metadata{"error": err})
+				log.Event(g.coinCtx, "InvalidTxFormat", logging.Metadata{"error": err})
 			}
 			if err := callback(tx); err != nil {
-				log.Event(ctx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
+				log.Event(g.coinCtx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
 			}
 
-			msg, errIncoming = g.txSubscription.Next(ctx)
+			msg, errIncoming = g.txSubscription.Next(g.coinCtx)
 		}
 
-		errChan <- errIncoming
-		log.Warningf("stopped listening to transactions: %v", errIncoming.Error())
+		log.Errorf("stopped listening to transactions: %v", errIncoming.Error())
 	}()
+
+	return nil
 }
 
 // PublishTx publishes a transaction message.
@@ -109,4 +121,18 @@ func (g *Gossip) PublishTx(tx *pb.Transaction) error {
 	}
 
 	return g.pubsub.Publish(TxTopicName, txData)
+}
+
+func (g *Gossip) isSubscribed(topic string) bool {
+	isSubscribed := false
+	topics := g.pubsub.GetTopics()
+
+	for _, t := range topics {
+		if t == topic {
+			isSubscribed = true
+			break
+		}
+	}
+
+	return isSubscribed
 }

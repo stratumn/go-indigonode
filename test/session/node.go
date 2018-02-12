@@ -65,7 +65,7 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	privKey, _, err := crypto.GenerateKeyPair(crypto.RSA, 1024)
+	privKey, _, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

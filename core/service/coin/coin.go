@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
@@ -34,12 +35,16 @@ import (
 	"google.golang.org/grpc"
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
+	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
 var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
+
+	// ErrNotPubSub is returned when the connected service is not a pubsub.
+	ErrNotPubSub = errors.New("connected service is not a pubsub")
 
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
@@ -54,6 +59,7 @@ type Service struct {
 	config *Config
 	host   Host
 	coin   *protocol.Coin
+	pubsub floodsub.PubSub
 }
 
 // Config contains configuration options for the Coin service.
@@ -75,6 +81,8 @@ type Config struct {
 
 	// DbPath is the path to the database used for the state and the chain..
 	DbPath string `toml:"db_path" comment:"The path to the database used for the state and the chain."`
+	// PubSub is the name of the pubsub service.
+	PubSub string `toml:"pubsub" comment:"The name of the pubsub service."`
 }
 
 // ID returns the unique identifier of the service.
@@ -107,6 +115,7 @@ func (s *Service) Config() interface{} {
 		MinerReward:     10,
 		BlockDifficulty: 42,
 		DbPath:          "data/coin/db",
+		PubSub:          "pubsub",
 	}
 }
 
@@ -121,6 +130,7 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
+	needs[s.config.PubSub] = struct{}{}
 
 	return needs
 }
@@ -131,6 +141,10 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
+	}
+
+	if s.pubsub, ok = exposed[s.config.PubSub].(floodsub.PubSub); !ok {
+		return errors.Wrap(ErrNotPubSub, s.config.PubSub)
 	}
 
 	return nil
@@ -144,12 +158,18 @@ func (s *Service) Expose() interface{} {
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	coinCtx, cancel := context.WithCancel(ctx)
+	errChan := make(chan error)
+
 	if err := s.createCoin(coinCtx); err != nil {
 		cancel()
 		return err
 	}
 
-	errChan := make(chan error)
+	if err := s.coin.Run(coinCtx); err != nil {
+		cancel()
+		return err
+	}
+
 	go func() {
 		errChan <- s.coin.StartMining(coinCtx)
 	}()
@@ -199,7 +219,9 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, validator, processor)
+	gossip := gossip.NewGossip(s.pubsub, state, validator)
+
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, validator, processor)
 
 	return nil
 }
@@ -219,7 +241,7 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 				return ErrUnavailable
 			}
 
-			return s.coin.AddTransaction(tx)
+			return s.coin.PublishTransaction(tx)
 		},
 	})
 }

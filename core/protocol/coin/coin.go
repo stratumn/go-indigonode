@@ -21,6 +21,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/miner"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -64,7 +65,8 @@ type Coin struct {
 	processor processor.Processor
 	validator validator.Validator
 
-	miner *miner.Miner
+	gossip *gossip.Gossip
+	miner  *miner.Miner
 }
 
 // NewCoin creates a new Coin.
@@ -73,8 +75,10 @@ func NewCoin(
 	e engine.Engine,
 	s state.State,
 	c chain.Chain,
+	g *gossip.Gossip,
 	v validator.Validator,
-	p processor.Processor) *Coin {
+	p processor.Processor,
+) *Coin {
 
 	miner := miner.NewMiner(txp, e, s, c, v, p)
 
@@ -85,8 +89,14 @@ func NewCoin(
 		txpool:    txp,
 		processor: p,
 		validator: v,
+		gossip:    g,
 		miner:     miner,
 	}
+}
+
+// Run starts the coin.
+func (c *Coin) Run(ctx context.Context) error {
+	return c.StartTxGossip(ctx)
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -138,6 +148,11 @@ func (c *Coin) GetAccount(peerID []byte) (*pb.Account, error) {
 	return c.state.GetAccount(peerID)
 }
 
+// PublishTransaction publishes and adds transaction received via grpc.
+func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
+	return c.gossip.PublishTx(tx)
+}
+
 // AddTransaction validates incoming transactions against the latest state
 // and adds them to the pool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
@@ -146,6 +161,11 @@ func (c *Coin) AddTransaction(tx *pb.Transaction) error {
 		return err
 	}
 
+	return c.AddValidTransaction(tx)
+}
+
+// AddValidTransaction adds a valid transaction to the mempool.
+func (c *Coin) AddValidTransaction(tx *pb.Transaction) error {
 	return c.txpool.AddTransaction(tx)
 }
 
@@ -172,4 +192,13 @@ func (c *Coin) AppendBlock(block *pb.Block) error {
 // StartMining starts the underlying miner.
 func (c *Coin) StartMining(ctx context.Context) error {
 	return c.miner.Start(ctx)
+}
+
+// StartTxGossip starts gossiping transactions.
+func (c *Coin) StartTxGossip(ctx context.Context) error {
+	if err := c.gossip.SubscribeTx(); err != nil {
+		return err
+	}
+
+	return c.gossip.ListenTx(ctx, c.AddValidTransaction)
 }

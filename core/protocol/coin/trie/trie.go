@@ -15,6 +15,8 @@
 package trie
 
 import (
+	"bytes"
+
 	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -22,6 +24,13 @@ import (
 
 // Opt is an option for a Patricia Merkle Trie.
 type Opt func(*Trie)
+
+// OptDB sets the database. By default it uses an in-memory map.
+var OptDB = func(db db.ReadWriter) Opt {
+	return func(t *Trie) {
+		t.dbrw = db
+	}
+}
 
 // OptPrefix sets a prefix for all the database keys.
 var OptPrefix = func(prefix []byte) Opt {
@@ -48,9 +57,9 @@ type Trie struct {
 }
 
 // New create a new Patricia Merkle Trie.
-func New(dbrw db.ReadWriter, opts ...Opt) *Trie {
+func New(opts ...Opt) *Trie {
 	t := &Trie{
-		dbrw:     dbrw,
+		dbrw:     newMapDB(),
 		hashCode: multihash.SHA2_256,
 	}
 
@@ -63,26 +72,28 @@ func New(dbrw db.ReadWriter, opts ...Opt) *Trie {
 
 // Get gets the value of the given key.
 func (t *Trie) Get(key []byte) ([]byte, error) {
-	node, err := t.dbGet(NewNibs(key, false).Expand())
+	node, err := t.getNode(NewNibs(key, false).Expand())
 	if err != nil {
 		return nil, err
 	}
 
-	switch v := node.(type) {
+	switch node := node.(type) {
 	case Null:
 		return nil, errors.WithStack(db.ErrNotFound)
+
 	case *Branch:
-		if len(v.Value) < 1 {
+		if len(node.Value) < 1 {
 			return nil, errors.WithStack(db.ErrNotFound)
 		}
 
-		return v.Value, nil
+		return node.Value, nil
+
 	case *Leaf:
-		if len(v.Value) < 1 {
+		if len(node.Value) < 1 {
 			return nil, errors.WithStack(db.ErrNotFound)
 		}
 
-		return v.Value, nil
+		return node.Value, nil
 	}
 
 	return nil, errors.WithStack(ErrInvalidNodeType)
@@ -91,34 +102,24 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 // MerkleRoot returns the hash of the root node. If there an no entries, the
 // hash of Null{} is returned.
 func (t *Trie) MerkleRoot() (multihash.Multihash, error) {
-	root, err := t.dbRoot()
+	root, err := t.rootNode()
 	if err != nil {
 		return nil, err
 	}
 
-	return t.HashNode(root)
-}
-
-// HashNode hashes a node.
-func (t *Trie) HashNode(node Node) (multihash.Multihash, error) {
-	buf, err := node.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := multihash.Sum(buf, t.hashCode, -1)
-
-	return hash, errors.WithStack(err)
+	return t.hashNode(root)
 }
 
 // Proof returns a proof of the value for the given key.
 func (t *Trie) Proof(key []byte) (Proof, error) {
-	root, err := t.dbRoot()
+	root, err := t.rootNode()
 	if err != nil {
 		return nil, err
 	}
 
-	nodes, found, err := t.recProof(root, nil, NewNibsWithoutCopy(key, false).Expand())
+	key = NewNibsWithoutCopy(key, false).Expand()
+
+	nodes, found, err := t.recProof(root, nil, key)
 	if err != nil {
 		return nil, err
 	}
@@ -137,10 +138,17 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
 func (t *Trie) recProof(node Node, prefix, key []uint8) ([]Node, bool, error) {
-	if _, ok := node.(*Edge); ok {
-		// If the node is a hash, load the actual node from the prefix,
-		// but also collect the hash node.
-		n, err := t.dbGet(prefix)
+	if edge, ok := node.(*Edge); ok {
+		// If the node is an edge, load the actual node from the prefix
+		// and the path but also collect the edge node.
+		if !bytes.HasPrefix(key, edge.Path) {
+			return nil, false, nil
+		}
+
+		key = key[len(edge.Path):]
+		prefix = append(prefix, edge.Path...)
+
+		n, err := t.getNode(prefix)
 		if err != nil {
 			return nil, false, err
 		}
@@ -159,22 +167,19 @@ func (t *Trie) recProof(node Node, prefix, key []uint8) ([]Node, bool, error) {
 		return []Node{node}, true, nil
 	}
 
-	switch v := node.(type) {
+	switch node := node.(type) {
 	case Null:
 		return nil, false, nil
 	case *Branch:
-		// The embedded node will be a hash node if a child already
+		// The embedded node will be an edge node if a child already
 		// exists, null otherwise.
-		child := v.EmbeddedNodes[key[0]]
+		edge := node.EmbeddedNodes[key[0]]
 
-		switch child.(type) {
+		switch edge.(type) {
 		case Null:
 			return []Node{node}, false, nil
 		case *Edge:
-			nodes, found, err := t.recProof(child,
-				append(prefix, key[0]),
-				key[1:],
-			)
+			nodes, found, err := t.recProof(edge, prefix, key)
 			if err != nil {
 				return nil, false, err
 			}
@@ -195,12 +200,14 @@ func (t *Trie) Put(key, value []byte) error {
 		return t.Delete(key)
 	}
 
-	root, err := t.dbRoot()
+	root, err := t.rootNode()
 	if err != nil {
 		return err
 	}
 
-	_, err = t.recPut(root, nil, NewNibsWithoutCopy(key, false).Expand(), value)
+	key = NewNibsWithoutCopy(key, false).Expand()
+
+	_, _, err = t.recPut(root, nil, key, value)
 
 	return err
 }
@@ -211,13 +218,47 @@ func (t *Trie) Put(key, value []byte) error {
 //	- prefix is the part of the key visited so far
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
-func (t *Trie) recPut(node Node, prefix, key []uint8, value []byte) (Node, error) {
-	if _, ok := node.(*Edge); ok {
-		// If the node is a hash, load the actual node from the prefix.
+//
+// It returns the updated node and its key.
+func (t *Trie) recPut(node Node, prefix, key []uint8, value []byte) (Node, []uint8, error) {
+	if edge, ok := node.(*Edge); ok {
+		// Handle edge cases.
+		i := 0
+		for ; i < len(key) && i < len(edge.Path); i++ {
+			if key[i] != edge.Path[i] {
+				break
+			}
+		}
+
+		if i < len(key) && i < len(edge.Path) {
+			// Fork.
+			//
+			// \        \
+			//  \        C
+			//   \      / \
+			//    A    A   B
+			return t.fork(edge, prefix, key, value, i)
+		}
+
+		if i < len(edge.Path) {
+			// Split.
+			//
+			// \       \
+			//  \       B
+			//   \       \
+			//    A       A
+			return t.split(edge, prefix, key, value, i)
+		}
+
+		// Other cases can be handles normally.
+		prefix = append(prefix, edge.Path...)
+		key = key[len(edge.Path):]
+
 		var err error
-		node, err = t.dbGet(prefix)
+
+		node, err = t.getNode(prefix)
 		if err != nil {
-			return Null{}, err
+			return Null{}, nil, err
 		}
 	}
 
@@ -233,85 +274,142 @@ func (t *Trie) recPut(node Node, prefix, key []uint8, value []byte) (Node, error
 }
 
 // putNodeValue sets the value of a node.
-func (t *Trie) putNodeValue(node Node, prefix, key []uint8, value []byte) (Node, error) {
-	switch v := node.(type) {
+func (t *Trie) putNodeValue(node Node, prefix, key []uint8, value []byte) (Node, []uint8, error) {
+	switch n := node.(type) {
 	case Null:
 		node = &Leaf{Value: value}
 	case *Branch:
-		v.Value = value
-		node = v
+		n.Value = value
+		node = n
 	case *Leaf:
-		v.Value = value
-		node = v
+		n.Value = value
+		node = n
 	default:
-		return Null{}, errors.WithStack(ErrInvalidNodeType)
+		return Null{}, nil, errors.WithStack(ErrInvalidNodeType)
 	}
 
-	// Save the node to the database.
-	if err := t.dbPut(prefix, node); err != nil {
-		return Null{}, err
+	if err := t.putNode(prefix, node); err != nil {
+		return Null{}, nil, err
 	}
 
-	return node, nil
+	return node, prefix, nil
 }
 
-// putChildValue upgrade a node to a branch if needed and sets the value a
+// putChildValue upgrades a node to a branch if needed and sets the value a
 // child.
-func (t *Trie) putChildValue(node Node, prefix, key []uint8, value []byte) (Node, error) {
+func (t *Trie) putChildValue(node Node, prefix, key []uint8, value []byte) (Node, []uint8, error) {
 	var branch *Branch
 
-	switch v := node.(type) {
+	switch node := node.(type) {
 	case Null:
 		branch = NewEmptyBranch()
 	case *Branch:
-		branch = v
+		branch = node
 	case *Leaf:
 		// Upgrade leaf to a branch.
 		branch = NewEmptyBranch()
-		branch.Value = v.Value
+		branch.Value = node.Value
 	default:
-		return Null{}, errors.WithStack(ErrInvalidNodeType)
+		return Null{}, nil, errors.WithStack(ErrInvalidNodeType)
 	}
 
-	// The embedded node will be a hash node if a child already
-	// exists, null otherwise.
-	child := branch.EmbeddedNodes[key[0]]
+	// The embedded node will be an edge node if a child already exists,
+	// null otherwise.
+	edge := branch.EmbeddedNodes[key[0]]
 
-	child, err := t.recPut(
-		child,
-		append(prefix, key[0]),
-		key[1:],
-		value,
-	)
+	if _, null := edge.(Null); null {
+		edge = &Edge{Path: key}
+	}
+
+	node, path, err := t.recPut(edge, prefix, key, value)
 	if err != nil {
-		return Null{}, err
+		return Null{}, nil, err
 	}
 
 	// Store the new hash of the child.
-	hash, err := t.HashNode(child)
+	hash, err := t.hashNode(node)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	branch.EmbeddedNodes[key[0]] = &Edge{Hash: hash}
+	branch.EmbeddedNodes[key[0]] = &Edge{Path: path[len(prefix):], Hash: hash}
 
-	// Save the node to the database.
-	if err := t.dbPut(prefix, branch); err != nil {
-		return Null{}, err
+	if err := t.putNode(prefix, branch); err != nil {
+		return Null{}, nil, err
 	}
 
-	return branch, nil
+	return branch, prefix, nil
+}
+
+// fork splits forks an edge.
+func (t *Trie) fork(edge *Edge, prefix, key []uint8, value []byte, i int) (Node, []uint8, error) {
+	branch := NewEmptyBranch()
+
+	// Existing node.
+	branch.EmbeddedNodes[edge.Path[i]] = &Edge{
+		Path: edge.Path[i:],
+		Hash: edge.Hash,
+	}
+
+	// New node.
+	child, _, err := t.putNodeValue(
+		Null{},
+		append(prefix, key...),
+		nil,
+		value,
+	)
+	if err != nil {
+		return Null{}, nil, err
+	}
+
+	hash, err := t.hashNode(child)
+	if err != nil {
+		return Null{}, nil, err
+	}
+
+	branch.EmbeddedNodes[key[i]] = &Edge{
+		Path: key[i:],
+		Hash: hash,
+	}
+
+	// Save forking branch.
+	path := append(prefix, key[:i]...)
+	if err := t.putNode(path, branch); err != nil {
+		return Null{}, nil, err
+	}
+
+	return branch, path, nil
+}
+
+// split splits an edge in two.
+func (t *Trie) split(edge *Edge, prefix, key []uint8, value []byte, i int) (Node, []uint8, error) {
+	branch := NewEmptyBranch()
+	branch.Value = value
+
+	branch.EmbeddedNodes[edge.Path[i]] = &Edge{
+		Path: edge.Path[i:],
+		Hash: edge.Hash,
+	}
+
+	path := append(prefix, key[:i]...)
+	if err := t.putNode(path, branch); err != nil {
+		return Null{}, nil, err
+	}
+
+	return branch, path, nil
 }
 
 // Delete removes the value for the given key. Deleting a non-existing key is
 // a NOP.
 func (t *Trie) Delete(key []byte) error {
-	root, err := t.dbRoot()
+	root, err := t.rootNode()
 	if err != nil {
 		return err
 	}
 
-	_, err = t.recDelete(root, nil, NewNibsWithoutCopy(key, false).Expand())
+	key = NewNibsWithoutCopy(key, false).Expand()
+
+	_, _, _, err = t.recDelete(root, nil, key)
 
 	return err
 }
@@ -322,17 +420,18 @@ func (t *Trie) Delete(key []byte) error {
 //	- prefix is the part of the key visited so far
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
-func (t *Trie) recDelete(node Node, prefix, key []uint8) (Node, error) {
-	switch node.(type) {
-	case Null:
-		// NOP.
-		return Null{}, nil
-	case *Edge:
-		// If the node is a hash, load the actual node from the prefix.
-		var err error
-		node, err = t.dbGet(prefix)
+//
+// It returns the updated node, its path, and whether the key was found.
+func (t *Trie) recDelete(node Node, prefix, key []uint8) (Node, []uint8, bool, error) {
+	var err error
+
+	if edge, ok := node.(*Edge); ok {
+		key = key[len(edge.Path):]
+		prefix = append(prefix, edge.Path...)
+
+		node, err = t.getNode(prefix)
 		if err != nil {
-			return Null{}, err
+			return Null{}, nil, false, err
 		}
 	}
 
@@ -344,97 +443,210 @@ func (t *Trie) recDelete(node Node, prefix, key []uint8) (Node, error) {
 	return t.deleteChildVal(node, prefix, key)
 }
 
-// deleteNodeVal deletes a value from a node, which may delete the node.
-func (t *Trie) deleteNodeVal(node Node, prefix, key []uint8) (Node, error) {
-	switch v := node.(type) {
+// deleteNodeVal deletes a value from a node, which may delete nodes along the
+// ways.
+func (t *Trie) deleteNodeVal(node Node, prefix, key []uint8) (Node, []uint8, bool, error) {
+	switch node := node.(type) {
+	case Null:
+		// NOP.
+		return Null{}, nil, false, nil
+
 	case *Branch:
-		v.Value = nil
-		if err := t.dbPut(prefix, v); err != nil {
-			return Null{}, err
-		}
+		if len(prefix) > 0 {
+			var lastEdge *Edge
+			numEdges := 0
 
-		return Null{}, nil
-	case *Leaf:
-		if err := t.dbDelete(prefix); err != nil {
-			return Null{}, err
-		}
-
-		return Null{}, nil
-	}
-
-	return Null{}, errors.WithStack(ErrInvalidNodeType)
-}
-
-// deleteChildVal removes a value from a child node, delete node if needed.
-func (t *Trie) deleteChildVal(node Node, prefix, key []uint8) (Node, error) {
-	switch v := node.(type) {
-	case *Branch:
-		// The embedded node will be a hash node if a child already
-		// exists, null otherwise.
-		child := v.EmbeddedNodes[key[0]]
-
-		child, err := t.recDelete(
-			child,
-			append(prefix, key[0]),
-			key[1:],
-		)
-		if err != nil {
-			return Null{}, err
-		}
-
-		switch child.(type) {
-		case Null:
-			v.EmbeddedNodes[key[0]] = Null{}
-		default:
-			hash, err := t.HashNode(child)
-			if err != nil {
-				return nil, err
+			for _, n := range node.EmbeddedNodes {
+				if edge, ok := n.(*Edge); ok {
+					lastEdge = edge
+					numEdges++
+				}
 			}
 
-			v.EmbeddedNodes[key[0]] = &Edge{Hash: hash}
-		}
-
-		// Convert to leaf if needed.
-		stillBranch := false
-		for _, child := range v.EmbeddedNodes {
-			if _, null := child.(Null); !null {
-				stillBranch = true
-			}
-		}
-
-		if stillBranch {
-			node = v
-		} else {
-			if len(v.Value) < 1 {
-				if err := t.dbDelete(prefix); err != nil {
-					return nil, err
+			if numEdges == 1 {
+				// Join edges.
+				//
+				// \      \
+				// [x]     \
+				//   \      \
+				//    A      A
+				if err := t.deleteNode(prefix); err != nil {
+					return Null{}, nil, false, err
 				}
 
-				return Null{}, nil
+				childPrefix := append(prefix, lastEdge.Path...)
+
+				child, err := t.getNode(childPrefix)
+				if err != nil {
+					return Null{}, nil, false, err
+				}
+
+				return child, childPrefix, true, nil
 			}
-
-			node = &Leaf{Value: v.Value}
 		}
 
-		if err := t.dbPut(prefix, node); err != nil {
-			return nil, err
+		node.Value = nil
+		if err := t.putNode(prefix, node); err != nil {
+			return Null{}, nil, false, err
 		}
 
-		return node, nil
+		return node, prefix, true, nil
+
 	case *Leaf:
-		return Null{}, nil
+		if err := t.deleteNode(prefix); err != nil {
+			return Null{}, nil, false, err
+		}
+
+		return Null{}, nil, true, nil
 	}
 
-	return Null{}, errors.WithStack(ErrInvalidNodeType)
+	return Null{}, nil, false, errors.WithStack(ErrInvalidNodeType)
 }
 
-// dbRoot returns the dbRoot node from the database.
-func (t *Trie) dbRoot() (Node, error) {
-	return t.dbGet(nil)
+// deleteChildVal removes a value from a child node.
+func (t *Trie) deleteChildVal(node Node, prefix, key []uint8) (Node, []uint8, bool, error) {
+	switch node := node.(type) {
+	case Null, *Leaf:
+		// NOP.
+		return Null{}, nil, false, nil
+
+	case *Branch:
+		edge := node.EmbeddedNodes[key[0]]
+
+		switch edge := edge.(type) {
+		case Null:
+			// NOP.
+			return Null{}, nil, false, nil
+
+		case *Edge:
+			if !bytes.HasPrefix(key, edge.Path) {
+				// NOP.
+				return Null{}, nil, false, nil
+			}
+
+			child, childPrefix, found, err := t.recDelete(edge, prefix, key)
+			if err != nil {
+				return Null{}, nil, false, err
+			}
+
+			if !found {
+				// NOP.
+				return Null{}, nil, false, nil
+			}
+
+			// Recompute edges and hash children.
+			switch child := child.(type) {
+			case Null:
+				node.EmbeddedNodes[key[0]] = Null{}
+
+			case *Branch:
+				hash, err := t.hashNode(child)
+				if err != nil {
+					return nil, nil, false, err
+				}
+
+				node.EmbeddedNodes[key[0]] = &Edge{
+					Path: childPrefix[len(prefix):],
+					Hash: hash,
+				}
+
+			case *Leaf:
+				hash, err := t.hashNode(child)
+				if err != nil {
+					return nil, nil, false, err
+				}
+
+				node.EmbeddedNodes[key[0]] = &Edge{
+					Path: childPrefix[len(prefix):],
+					Hash: hash,
+				}
+
+			default:
+				return Null{}, nil, false, errors.WithStack(ErrInvalidNodeType)
+			}
+
+			return t.restructureBranch(node, prefix, key)
+		}
+	}
+
+	return Null{}, nil, false, errors.WithStack(ErrInvalidNodeType)
 }
 
-// dbGet gets a node in the database from its key.
-func (t *Trie) dbGet(key []uint8) (Node, error) {
+// restrucutreBranch restructures a branch after on of its child node was
+// deleted.
+func (t *Trie) restructureBranch(branch *Branch, prefix, key []uint8) (Node, []uint8, bool, error) {
+	var lastEdge *Edge
+	numEdges := 0
+
+	for _, n := range branch.EmbeddedNodes {
+		if edge, ok := n.(*Edge); ok {
+			lastEdge = edge
+			numEdges++
+		}
+	}
+
+	if numEdges == 0 {
+		// No more children.
+
+		if len(branch.Value) > 0 {
+			// The node has a value, so we can't delete it but we
+			// can downgrade it to a leaf.
+			leaf := &Leaf{Value: branch.Value}
+
+			if err := t.putNode(prefix, leaf); err != nil {
+				return Null{}, nil, false, err
+			}
+
+			return leaf, prefix, true, nil
+		}
+
+		// No value stored so we can delete the node.
+		if err := t.deleteNode(prefix); err != nil {
+			return Null{}, nil, false, err
+		}
+
+		return Null{}, nil, true, nil
+	}
+
+	if numEdges == 1 && len(branch.Value) <= 0 && len(prefix) > 0 {
+		// One child and no value so we can delete the
+		// node.
+		//
+		// \      \
+		// [x]     \
+		//   \      \
+		//    B      B
+		//
+		// Note that we can't collapse the root node, which is why we
+		// checked the length of the prefix.
+		if err := t.deleteNode(prefix); err != nil {
+			return Null{}, nil, false, err
+		}
+
+		childPrefix := append(prefix, lastEdge.Path...)
+
+		child, err := t.getNode(childPrefix)
+		if err != nil {
+			return Null{}, nil, false, err
+		}
+
+		return child, childPrefix, true, nil
+	}
+
+	if err := t.putNode(prefix, branch); err != nil {
+		return Null{}, nil, false, err
+	}
+
+	return branch, prefix, true, nil
+}
+
+// rootNode returns the root node.
+func (t *Trie) rootNode() (Node, error) {
+	return t.getNode(nil)
+}
+
+// getNode gets a node from its key.
+func (t *Trie) getNode(key []uint8) (Node, error) {
 	k, err := t.dbKey(key)
 	if err != nil {
 		return Null{}, err
@@ -454,9 +666,9 @@ func (t *Trie) dbGet(key []uint8) (Node, error) {
 	return n, err
 }
 
-// dbPut inserts a node in the database given its key.
-func (t *Trie) dbPut(key []uint8, node Node) error {
-	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
+// putNode inserts the node with the given key.
+func (t *Trie) putNode(key []uint8, node Node) error {
+	k, err := t.dbKey(key)
 	if err != nil {
 		return err
 	}
@@ -469,9 +681,9 @@ func (t *Trie) dbPut(key []uint8, node Node) error {
 	return t.dbrw.Put(k, buf)
 }
 
-// dbDelete removes a node from the database given its key.
-func (t *Trie) dbDelete(key []uint8) error {
-	k, err := Path(NewNibsFromNibs(key...)).MarshalBinary()
+// deleteNode removes the node with the given key.
+func (t *Trie) deleteNode(key []uint8) error {
+	k, err := t.dbKey(key)
 	if err != nil {
 		return err
 	}
@@ -487,4 +699,16 @@ func (t *Trie) dbKey(key []uint8) ([]byte, error) {
 	}
 
 	return append(t.prefix, k...), nil
+}
+
+// hashNode hashes a node.
+func (t *Trie) hashNode(node Node) (multihash.Multihash, error) {
+	buf, err := node.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := multihash.Sum(buf, t.hashCode, -1)
+
+	return hash, errors.WithStack(err)
 }

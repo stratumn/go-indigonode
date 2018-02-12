@@ -219,7 +219,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		// Add amount to sender and restore nonce.
 		from, err := s.doGetAccount(s.diff, tx.From)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		from.Balance += tx.Value + tx.Fee
@@ -233,7 +233,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		// Subtract amount from received.
 		to, err := s.doGetAccount(s.diff, tx.To)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		to.Balance -= tx.Value

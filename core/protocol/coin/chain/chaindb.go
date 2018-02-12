@@ -78,7 +78,7 @@ func (c *chainDB) GetBlock(hash []byte, number uint64) (*pb.Block, error) {
 	}
 
 	// Check that the block number is correct
-	if block.Header.BlockNumber != number {
+	if block.BlockNumber() != number {
 		return nil, ErrBlockNumberIncorrect
 	}
 
@@ -171,7 +171,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 	if err != nil {
 		return err
 	}
-	if prevBlock.Header.BlockNumber != h.BlockNumber-1 {
+	if prevBlock.BlockNumber() != h.BlockNumber-1 {
 		return ErrInvalidPreviousBlock
 	}
 
@@ -196,7 +196,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	}
 
 	// Add header hash to the mapping
-	n := block.Header.BlockNumber
+	n := block.BlockNumber()
 	hashes, err := c.dbGetHashes(n)
 	if errors.Cause(err) == ErrBlockNumberNotFound {
 		hashes = make([][]byte, 0)

@@ -62,7 +62,7 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 
 	var res []*pb.Header
 	for _, b := range c.blocks {
-		if b.Header.BlockNumber == number {
+		if b.BlockNumber() == number {
 			res = append(res, b.Header)
 		}
 	}

@@ -168,6 +168,7 @@ func TestValidateTx(t *testing.T) {
 
 func TestValidateBlock(t *testing.T) {
 	testReward := uint64(5)
+	testMaxTxCount := uint32(3)
 
 	type validateBlockTxTestCase struct {
 		name  string
@@ -184,15 +185,38 @@ func TestValidateBlock(t *testing.T) {
 	}, {
 		"too-many-txs",
 		func() *pb.Block {
-			return testutil.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 1, 0, 1),
-				testutil.NewTransaction(t, 2, 0, 2),
-				testutil.NewTransaction(t, 1, 0, 3),
-				testutil.NewTransaction(t, 3, 0, 4),
-			})
+			var txs []*pb.Transaction
+			for i := uint32(0); i < testMaxTxCount+1; i++ {
+				txs = append(txs, testutil.NewTransaction(t, 1, 1, uint64(i)))
+			}
+
+			return testutil.NewBlock(t, txs)
 		},
 		func() state.State { return nil },
 		validator.ErrTooManyTxs,
+	}, {
+		"miner-reward-tx-count",
+		// The miner reward shouldn't be taken into account
+		// when validating the number of transactions per block.
+		func() *pb.Block {
+			var txs []*pb.Transaction
+			for i := uint32(0); i < testMaxTxCount; i++ {
+				txs = append(txs, testutil.NewTransaction(t, 1, 1, uint64(i+1)))
+			}
+
+			txs = append(txs, testutil.NewRewardTransaction(t, 1))
+			return testutil.NewBlock(t, txs)
+		},
+		func() state.State {
+			s := testutil.NewSimpleState(t)
+			err := s.UpdateAccount(
+				[]byte(testutil.TxSenderPID),
+				&pb.Account{Balance: 80, Nonce: 0},
+			)
+			assert.NoError(t, err)
+			return s
+		},
+		nil,
 	}, {
 		"invalid-signature",
 		func() *pb.Block {
@@ -284,7 +308,7 @@ func TestValidateBlock(t *testing.T) {
 	}}
 
 	validator := validator.NewBalanceValidator(
-		3,
+		testMaxTxCount,
 		testutil.NewDummyPoW(&testutil.DummyEngine{}, 1, testReward),
 	)
 

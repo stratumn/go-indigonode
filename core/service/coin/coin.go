@@ -36,6 +36,7 @@ import (
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -49,6 +50,10 @@ var (
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
+
+	// ErrMissingMinerPublicKey is returned when the miner's public key is missing
+	// from the configuration file.
+	ErrMissingMinerPublicKey = errors.New("the miner's public key should be configured")
 )
 
 // Host represents an Alice host.
@@ -81,8 +86,33 @@ type Config struct {
 
 	// DbPath is the path to the database used for the state and the chain..
 	DbPath string `toml:"db_path" comment:"The path to the database used for the state and the chain."`
+
 	// PubSub is the name of the pubsub service.
 	PubSub string `toml:"pubsub" comment:"The name of the pubsub service."`
+
+	// MinerPublicKey is the base64-encoded public key of the miner.
+	// Block rewards will be sent to this address.
+	MinerPublicKey string `toml:"miner_public_key" comment:"The public key of the miner."`
+}
+
+// GetMinerPublicKey decodes the miner's public key from the configuration.
+func (c *Config) GetMinerPublicKey() (*coinutil.PublicKey, error) {
+	publicKeyBytes, err := ic.ConfigDecodeKey(c.MinerPublicKey)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	if len(publicKeyBytes) == 0 {
+		return nil, ErrMissingMinerPublicKey
+	}
+
+	// Note: we need to skip the multi-hash header, hence the 4:
+	minerPublicKey, err := ic.UnmarshalEd25519PublicKey(publicKeyBytes[4:])
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return coinutil.NewPublicKey(minerPublicKey, pb.KeyType_Ed25519), nil
 }
 
 // ID returns the unique identifier of the service.
@@ -213,8 +243,12 @@ func (s *Service) createCoin(ctx context.Context) error {
 	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
 	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
 
-	minerPubKey := coinutil.NewPublicKey(s.host.ID().ExtractPublicKey(), pb.KeyType_Ed25519)
-	engine := engine.NewHashEngine(minerPubKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
+	minerPublicKey, err := s.config.GetMinerPublicKey()
+	if err != nil {
+		return err
+	}
+
+	engine := engine.NewHashEngine(minerPublicKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
 
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)

@@ -59,7 +59,7 @@ func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 		return ErrInvalidPreviousBlock
 	}
 
-	if previousBlock.Header.BlockNumber+1 != header.BlockNumber {
+	if previousBlock.BlockNumber()+1 != header.BlockNumber {
 		return ErrInvalidBlockNumber
 	}
 

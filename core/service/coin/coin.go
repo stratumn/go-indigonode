@@ -173,9 +173,12 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
-	if s.pubsub, ok = exposed[s.config.PubSub].(floodsub.PubSub); !ok {
+	pubsub, ok := exposed[s.config.PubSub].(*floodsub.PubSub)
+	if !ok {
 		return errors.Wrap(ErrNotPubSub, s.config.PubSub)
 	}
+
+	s.pubsub = *pubsub
 
 	return nil
 }

@@ -111,7 +111,7 @@ func (s *Service) Config() interface{} {
 		return *s.config
 	}
 
-	privKey, pubKey, err := crypto.GenerateKeyPair(crypto.RSA, 2048)
+	privKey, pubKey, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	if err != nil {
 		panic(errors.WithStack(err))
 	}

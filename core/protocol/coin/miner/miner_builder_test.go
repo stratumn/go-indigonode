@@ -17,6 +17,7 @@ package miner
 import (
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
@@ -28,6 +29,7 @@ import (
 type MinerBuilder struct {
 	chain     chain.Chain
 	engine    engine.Engine
+	gossip    gossip.Gossip
 	txpool    state.TxPool
 	processor processor.Processor
 	state     state.State
@@ -69,6 +71,12 @@ func (m *MinerBuilder) WithValidator(validator validator.Validator) *MinerBuilde
 	return m
 }
 
+// WithGossip configures the builder to use the given gossip.
+func (m *MinerBuilder) WithGossip(gossip gossip.Gossip) *MinerBuilder {
+	m.gossip = gossip
+	return m
+}
+
 // Build builds the underlying miner and returns it.
 // It's now ready to use in your tests.
 func (m *MinerBuilder) Build() *Miner {
@@ -79,5 +87,6 @@ func (m *MinerBuilder) Build() *Miner {
 		m.chain,
 		m.validator,
 		m.processor,
+		m.gossip,
 	)
 }

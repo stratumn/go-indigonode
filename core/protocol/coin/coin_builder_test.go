@@ -36,7 +36,7 @@ import (
 type CoinBuilder struct {
 	chain     chain.Chain
 	engine    engine.PoW
-	gossip    *gossip.Gossip
+	gossip    gossip.Gossip
 	processor processor.Processor
 	state     state.State
 	txpool    state.TxPool
@@ -113,7 +113,7 @@ func (c *CoinBuilder) WithEngine(engine engine.PoW) *CoinBuilder {
 }
 
 // WithGossip configures the builder to use the given gossip.
-func (c *CoinBuilder) WithGossip(gossip *gossip.Gossip) *CoinBuilder {
+func (c *CoinBuilder) WithGossip(gossip gossip.Gossip) *CoinBuilder {
 	c.gossip = gossip
 	return c
 }

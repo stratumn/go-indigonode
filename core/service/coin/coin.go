@@ -64,7 +64,7 @@ type Service struct {
 	config *Config
 	host   Host
 	coin   *protocol.Coin
-	pubsub floodsub.PubSub
+	pubsub *floodsub.PubSub
 }
 
 // Config contains configuration options for the Coin service.
@@ -173,7 +173,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
-	if s.pubsub, ok = exposed[s.config.PubSub].(floodsub.PubSub); !ok {
+	if s.pubsub, ok = exposed[s.config.PubSub].(*floodsub.PubSub); !ok {
 		return errors.Wrap(ErrNotPubSub, s.config.PubSub)
 	}
 
@@ -253,7 +253,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor()
 	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 
-	gossip := gossip.NewGossip(s.pubsub, state, validator)
+	gossip := gossip.NewGossip(s.host, s.pubsub, state, validator)
 
 	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, validator, processor)
 

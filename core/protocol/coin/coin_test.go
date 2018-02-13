@@ -20,6 +20,7 @@ import (
 
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
@@ -165,61 +166,35 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		assert.EqualError(t, err, validator.ErrInsufficientBalance.Error(), "c.AddTransaction()")
 	})
 
-	t.Run("produce-blocks", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		db, err := db.NewMemDB(nil)
-		require.NoError(t, err, "db.NewMemDB()")
-
-		s := state.NewState(db, state.OptPrefix([]byte("test")))
-		err = s.UpdateAccount([]byte(ctestutil.TxSenderPID), &pb.Account{Balance: 80, Nonce: 2})
-		assert.NoError(t, err, "s.UpdateAccount()")
-
-		genesisBlock := ctestutil.NewBlock(t, []*pb.Transaction{
-			&pb.Transaction{Value: 80, To: []byte(ctestutil.TxSenderPID)},
-		})
-		genesisBlock.Header.BlockNumber = 0
-		chain := chain.NewChainDB(db, chain.OptGenesisBlock(genesisBlock))
-
-		minerReward := uint64(3)
-
-		c := NewCoinBuilder(t).
-			WithChain(chain).
-			WithMaxTxPerBlock(2).
-			WithPublicKey(minerPubKey).
-			WithReward(minerReward).
-			WithState(s).
-			Build(t)
-
-		err = c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 1))
-		assert.EqualError(t, err, validator.ErrInvalidTxNonce.Error(), "c.AddTransaction()")
-
-		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 3)), "c.AddTransaction()")
-		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 10, 4, 4)), "c.AddTransaction()")
-		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 5, 3, 5)), "c.AddTransaction()")
-
-		go c.StartMining(ctx)
-
-		// Wait until all transactions are processed.
-		tassert.WaitUntil(
+	t.Run("produce-blocks-from-old-txs", func(t *testing.T) {
+		c := mineAllTransactions(
 			t,
-			func() bool {
-				senderAccount, err := c.GetAccount([]byte(ctestutil.TxSenderPID))
-				assert.NoError(t, err, "c.GetAccount()")
-				return senderAccount.Nonce == 5
+			&MiningTestConfig{
+				initialBalance: 80,
+				maxTxPerBlock:  2,
+				minerPubKey:    minerPubKey,
+				reward:         3,
+				pendingTxs: []*pb.Transaction{
+					ctestutil.NewTransaction(t, 20, 5, 3),
+					ctestutil.NewTransaction(t, 10, 4, 4),
+					ctestutil.NewTransaction(t, 5, 3, 5),
+				},
+				stopCond: func(c *Coin) bool {
+					h, err := c.chain.CurrentHeader()
+					assert.NoError(t, err, "chain.CurrentHeader()")
+					return h.BlockNumber == 2
+				},
 			},
-			"all transactions processed",
 		)
 
 		t.Run("adds-blocks-to-chain", func(t *testing.T) {
-			h, err := chain.CurrentHeader()
+			h, err := c.chain.CurrentHeader()
 			assert.NoError(t, err, "chain.CurrentHeader()")
 			assert.Equal(t, uint64(2), h.BlockNumber, "h.BlockNumber")
 		})
 
 		t.Run("updates-miner-account", func(t *testing.T) {
-			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*minerReward + 5 + 4 + 3})
+			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*3 + 5 + 4 + 3})
 		})
 
 		t.Run("updates-sender-account", func(t *testing.T) {
@@ -232,6 +207,78 @@ func TestCoinMining_SingleNode(t *testing.T) {
 				&pb.Account{Balance: 20 + 10 + 5})
 		})
 	})
+}
+
+// MiningTestConfig contains the configuration of a coin miner run.
+// For simplicity we only have one sender and one recipient (since
+// the miner doesn't care about the transaction addresses, we don't
+// lose test coverage with that assumpion).
+type MiningTestConfig struct {
+	initialBalance uint64              // Initial balance of the sender's account.
+	maxTxPerBlock  uint32              // Max number of txs to include per block.
+	minerPubKey    *coinutil.PublicKey // Public key of the miner.
+	reward         uint64              // Miner reward for producing blocks.
+
+	pendingTxs []*pb.Transaction // Transactions in the pool before mining starts.
+	liveTxs    []*pb.Transaction // Transactions that will be received during mining.
+
+	stopCond func(c *Coin) bool // Should return true when all valid txs have been included.
+}
+
+// mineAllTransactions creates a new chain and starts mining with the
+// given configuration.
+// It stops when all transactions have been included in blocks.
+// You can then assert on the resulting state of different components.
+func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	db, err := db.NewMemDB(nil)
+	require.NoError(t, err, "db.NewMemDB()")
+
+	s := state.NewState(db, state.OptPrefix([]byte("test")))
+	err = s.UpdateAccount(
+		[]byte(ctestutil.TxSenderPID),
+		&pb.Account{Balance: config.initialBalance},
+	)
+	assert.NoError(t, err, "s.UpdateAccount()")
+
+	genesisBlock := ctestutil.NewBlock(
+		t,
+		[]*pb.Transaction{&pb.Transaction{
+			Value: config.initialBalance,
+			To:    []byte(ctestutil.TxSenderPID),
+		},
+		})
+	genesisBlock.Header.BlockNumber = 0
+	chain := chain.NewChainDB(db, chain.OptGenesisBlock(genesisBlock))
+
+	c := NewCoinBuilder(t).
+		WithChain(chain).
+		WithMaxTxPerBlock(config.maxTxPerBlock).
+		WithPublicKey(config.minerPubKey).
+		WithReward(config.reward).
+		WithState(s).
+		Build(t)
+
+	for _, tx := range config.pendingTxs {
+		assert.NoError(t, c.AddTransaction(tx), "c.AddTransaction()")
+	}
+
+	go c.StartMining(ctx)
+
+	for _, tx := range config.liveTxs {
+		assert.NoError(t, c.AddTransaction(tx), "c.AddTransaction()")
+	}
+
+	// Wait until all required transactions are processed.
+	tassert.WaitUntil(
+		t,
+		func() bool { return config.stopCond(c) },
+		"all transactions processed",
+	)
+
+	return c
 }
 
 func verifyAccount(t *testing.T, c *Coin, address []byte, expected *pb.Account) {

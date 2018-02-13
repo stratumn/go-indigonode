@@ -197,10 +197,9 @@ func TestCoinMining_SingleNode(t *testing.T) {
 
 		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 3)), "c.AddTransaction()")
 		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 10, 4, 4)), "c.AddTransaction()")
+		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 5, 3, 5)), "c.AddTransaction()")
 
 		go c.StartMining(ctx)
-
-		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 5, 3, 5)), "c.AddTransaction()")
 
 		// Wait until all transactions are processed.
 		tassert.WaitUntil(
@@ -226,6 +225,11 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		t.Run("updates-sender-account", func(t *testing.T) {
 			verifyAccount(t, c, []byte(ctestutil.TxSenderPID),
 				&pb.Account{Balance: 80 - 20 - 5 - 10 - 4 - 5 - 3, Nonce: 5})
+		})
+
+		t.Run("updates-receiver-account", func(t *testing.T) {
+			verifyAccount(t, c, []byte(ctestutil.TxRecipientPID),
+				&pb.Account{Balance: 20 + 10 + 5})
 		})
 	})
 }

@@ -19,7 +19,11 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -127,4 +131,106 @@ func TestCoinProtocolHandler(t *testing.T) {
 			return v1.ValidatedTx(tx1.GetTx()) && v0.ValidatedTx(tx2.GetTx())
 		}, "validator.ValidatedTx")
 	})
+}
+
+func TestCoinMining_SingleNode(t *testing.T) {
+	minerPubKey := NewCoinBuilder(t).PublicKey()
+	minerAddress, err := minerPubKey.Bytes()
+	require.NoError(t, err, "minerPubKey.Bytes()")
+
+	t.Run("start-stop-mining", func(t *testing.T) {
+		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build()
+		verifyAccount(t, c, minerAddress, &pb.Account{})
+
+		ctx, cancel := context.WithCancel(context.Background())
+		errChan := make(chan error)
+		go func() {
+			errChan <- c.StartMining(ctx)
+		}()
+
+		cancel()
+		err = <-errChan
+		assert.EqualError(t, err, context.Canceled.Error(), "<-errChan")
+
+		verifyAccount(t, c, minerAddress, &pb.Account{})
+	})
+
+	t.Run("reject-invalid-txs", func(t *testing.T) {
+		c := NewCoinBuilder(t).Build()
+		err := c.AddTransaction(ctestutil.NewTransaction(t, 0, 1, 1))
+		assert.EqualError(t, err, validator.ErrInvalidTxValue.Error(), "c.AddTransaction()")
+
+		err = c.AddTransaction(ctestutil.NewTransaction(t, 42, 1, 3))
+		assert.EqualError(t, err, validator.ErrInsufficientBalance.Error(), "c.AddTransaction()")
+	})
+
+	t.Run("produce-blocks", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		db, err := db.NewMemDB(nil)
+		require.NoError(t, err, "db.NewMemDB()")
+
+		s := state.NewState(db, state.OptPrefix([]byte("test")))
+		err = s.UpdateAccount([]byte(ctestutil.TxSenderPID), &pb.Account{Balance: 80, Nonce: 2})
+		assert.NoError(t, err, "s.UpdateAccount()")
+
+		genesisBlock := ctestutil.NewBlock(t, []*pb.Transaction{
+			&pb.Transaction{Value: 80, To: []byte(ctestutil.TxSenderPID)},
+		})
+		genesisBlock.Header.BlockNumber = 0
+		chain := chain.NewChainDB(db, chain.OptGenesisBlock(genesisBlock))
+
+		minerReward := uint64(3)
+
+		c := NewCoinBuilder(t).
+			WithChain(chain).
+			WithMaxTxPerBlock(2).
+			WithPublicKey(minerPubKey).
+			WithReward(minerReward).
+			WithState(s).
+			Build()
+
+		err = c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 1))
+		assert.EqualError(t, err, validator.ErrInvalidTxNonce.Error(), "c.AddTransaction()")
+
+		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 3)), "c.AddTransaction()")
+		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 10, 4, 4)), "c.AddTransaction()")
+
+		go c.StartMining(ctx)
+
+		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 5, 3, 5)), "c.AddTransaction()")
+
+		// Wait until all transactions are processed.
+		ctestutil.WaitUntil(
+			t,
+			func() bool {
+				senderAccount, err := c.GetAccount([]byte(ctestutil.TxSenderPID))
+				assert.NoError(t, err, "c.GetAccount()")
+				return senderAccount.Nonce == 5
+			},
+			"all transactions processed",
+		)
+
+		t.Run("adds-blocks-to-chain", func(t *testing.T) {
+			h, err := chain.CurrentHeader()
+			assert.NoError(t, err, "chain.CurrentHeader()")
+			assert.Equal(t, uint64(2), h.BlockNumber, "h.BlockNumber")
+		})
+
+		t.Run("updates-miner-account", func(t *testing.T) {
+			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*minerReward + 5 + 4 + 3})
+		})
+
+		t.Run("updates-sender-account", func(t *testing.T) {
+			verifyAccount(t, c, []byte(ctestutil.TxSenderPID),
+				&pb.Account{Balance: 80 - 20 - 5 - 10 - 4 - 5 - 3, Nonce: 5})
+		})
+	})
+}
+
+func verifyAccount(t *testing.T, c *Coin, address []byte, expected *pb.Account) {
+	account, err := c.GetAccount(address)
+	assert.NoError(t, err, "c.GetAccount()")
+	assert.Equal(t, expected, account, "account")
 }

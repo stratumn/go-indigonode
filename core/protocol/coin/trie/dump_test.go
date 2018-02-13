@@ -37,6 +37,11 @@ func (t *Trie) dumpRec(node Node, prefix []uint8, ident string) (string, error) 
 	switch v := node.(type) {
 	case *Edge:
 		s = ident + fmt.Sprintf("edge %v", NewNibsFromNibs(v.Path...))
+
+		if len(v.Hash) > 0 {
+			s += " " + v.Hash.B58String()
+		}
+
 		path := append(prefix, v.Path...)
 
 		target, err := t.getNode(path)

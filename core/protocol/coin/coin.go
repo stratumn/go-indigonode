@@ -156,7 +156,7 @@ func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
 // AddTransaction validates incoming transactions against the latest state
 // and adds them to the pool.
 func (c *Coin) AddTransaction(tx *pb.Transaction) error {
-	err := c.validator.ValidateTx(tx, nil)
+	err := c.validator.ValidateTx(tx, c.state)
 	if err != nil {
 		return err
 	}

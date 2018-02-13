@@ -53,6 +53,23 @@ var OptPrefix = func(prefix []byte) Opt {
 	}
 }
 
+// OptGenesisBlock sets the genesis block for the chain.
+var OptGenesisBlock = func(genesis *pb.Block) Opt {
+	if genesis.BlockNumber() != 0 {
+		panic("Genesis block should have number 0")
+	}
+
+	return func(c *chainDB) {
+		if err := c.AddBlock(genesis); err != nil {
+			panic(err)
+		}
+
+		if err := c.SetHead(genesis); err != nil {
+			panic(err)
+		}
+	}
+}
+
 // NewChainDB returns a new blockchain using a given DB instance.
 func NewChainDB(db db.DB, opts ...Opt) Chain {
 	c := &chainDB{db: db}

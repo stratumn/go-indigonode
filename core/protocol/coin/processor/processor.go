@@ -19,17 +19,22 @@ package processor
 import (
 	"bytes"
 
-	"github.com/stratumn/alice/core/protocol/coin/chain"
+	ch "github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
+
+// log is the logger for the processor.
+var log = logging.Logger("processor")
 
 // Processor is an interface for processing blocks using a given initial state.
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state state.State, chain chain.Chain) error
+	Process(block *pb.Block, state state.State, chain ch.Chain) error
 }
 
 type processor struct{}
@@ -44,7 +49,20 @@ type stateTransition struct {
 	transactions []*pb.Transaction
 }
 
-func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chain) error {
+func (p *processor) Process(block *pb.Block, state state.State, chain ch.Chain) error {
+	mh, err := coinutil.HashHeader(block.Header)
+	if err != nil {
+		return err
+	}
+
+	// Check block has already been processed.
+	if _, err := chain.GetBlock(mh, block.BlockNumber()); err != nil && err != ch.ErrBlockHashNotFound {
+		return err
+	} else if err == nil {
+		log.Infof("Block with hash %v at height %v has already been processed.", mh.String(), block.BlockNumber())
+		return nil
+	}
+
 	// Update chain.
 	if err := chain.AddBlock(block); err != nil {
 		return err
@@ -86,7 +104,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chai
 }
 
 // Update the state to follow the new main branch.
-func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.State, chain chain.Chain) error {
+func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.State, chain ch.Chain) error {
 	backward := []*stateTransition{}
 	forward := []*stateTransition{}
 

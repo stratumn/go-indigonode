@@ -50,6 +50,10 @@ type Reader interface {
 
 // Ranger can iterate over ranges.
 type Ranger interface {
+	// IterateRange creates an iterator that iterates from the given start
+	// key (inclusive) up to the given stop key (exclusive).
+	IterateRange(start, from []byte) Iterator
+
 	// IteratePrefix creates an iterator that iterates over all the keys
 	// that begin with the given prefix. Remember to call Release() on the
 	// iterator.

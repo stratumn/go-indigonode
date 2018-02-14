@@ -68,6 +68,26 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 			assert.NoError(t, err, "db.Delete(A)")
 		},
 	}, {
+		"iterate-range",
+		func(t *testing.T, db DB) {
+			assert.NoError(t, db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
+			assert.NoError(t, db.Put([]byte("keyBA"), []byte("valBA")), "db.Put(BA)")
+			assert.NoError(t, db.Put([]byte("keyBB"), []byte("valBB")), "db.Put(BB)")
+			assert.NoError(t, db.Put([]byte("keyC"), []byte("valC")), "db.Put(C)")
+
+			iter := db.IterateRange([]byte("keyBA"), []byte("keyC"))
+
+			assert.True(t, iter.Next(), "iter.Next()#1")
+			assert.EqualValues(t, "keyBA", iter.Key(), "iter.Key()#1")
+			assert.EqualValues(t, "valBA", iter.Value(), "iter.Value()#1")
+
+			assert.True(t, iter.Next(), "iter.Next()#2")
+			assert.EqualValues(t, "keyBB", iter.Key(), "iter.Key()#2")
+			assert.EqualValues(t, "valBB", iter.Value(), "iter.Value()#2")
+
+			assert.False(t, iter.Next(), "iter.Next()#3")
+		},
+	}, {
 		"iterate-prefix",
 		func(t *testing.T, db DB) {
 			assert.NoError(t, db.Put([]byte("keyA"), []byte("valA")), "db.Put(A)")
@@ -156,6 +176,30 @@ func testImplementation(t *testing.T, create func(*testing.T) DB) {
 
 			_, err = db.Get([]byte("keyB"))
 			assert.EqualError(t, err, ErrNotFound.Error(), "db.Get(B)")
+		},
+	}, {
+		"transaction-iterate-range",
+		func(t *testing.T, db DB) {
+			tx, err := db.Transaction()
+			assert.NoError(t, err, "db.Transaction()")
+			defer tx.Discard()
+
+			assert.NoError(t, tx.Put([]byte("keyA"), []byte("valA")), "tx.Put(A)")
+			assert.NoError(t, tx.Put([]byte("keyBA"), []byte("valBA")), "tx.Put(BA)")
+			assert.NoError(t, tx.Put([]byte("keyBB"), []byte("valBB")), "tx.Put(BB)")
+			assert.NoError(t, tx.Put([]byte("keyC"), []byte("valC")), "tx.Put(C)")
+
+			iter := tx.IterateRange([]byte("keyB"), []byte("keyC"))
+
+			assert.True(t, iter.Next(), "iter.Next()#1")
+			assert.EqualValues(t, "keyBA", iter.Key(), "iter.Key()#1")
+			assert.EqualValues(t, "valBA", iter.Value(), "iter.Value()#1")
+
+			assert.True(t, iter.Next(), "iter.Next()#2")
+			assert.EqualValues(t, "keyBB", iter.Key(), "iter.Key()#2")
+			assert.EqualValues(t, "valBB", iter.Value(), "iter.Value()#2")
+
+			assert.False(t, iter.Next(), "iter.Next()#3")
 		},
 	}, {
 		"transaction-iterate-prefix",

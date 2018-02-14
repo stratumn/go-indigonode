@@ -79,6 +79,10 @@ func (db levelDB) Get(key []byte) ([]byte, error) {
 	return v, ldbErr(err)
 }
 
+func (db levelDB) IterateRange(start, stop []byte) Iterator {
+	return db.ldb.NewIterator(&util.Range{Start: start, Limit: stop}, nil)
+}
+
 func (db levelDB) IteratePrefix(prefix []byte) Iterator {
 	return db.ldb.NewIterator(util.BytesPrefix(prefix), nil)
 }
@@ -124,6 +128,10 @@ func (tx levelDBTx) Get(key []byte) ([]byte, error) {
 	v, err := tx.ldbtx.Get(key, nil)
 
 	return v, ldbErr(err)
+}
+
+func (tx levelDBTx) IterateRange(start, stop []byte) Iterator {
+	return tx.ldbtx.NewIterator(&util.Range{Start: start, Limit: stop}, nil)
 }
 
 func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {

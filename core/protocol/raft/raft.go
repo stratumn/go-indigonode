@@ -16,32 +16,45 @@ import (
 
 var log = logging.Logger("raft")
 
-type raftProcess struct {
-	nodeID       uint64
-	node         raft.Node
-	storage      *raft.MemoryStorage
-	peers        map[uint64][]byte
-	committed    [][]byte
-	ccID         uint64
-	localPeer    []byte
-	ticker       *time.Ticker
-	tickerC      <-chan time.Time
-	raftC        <-chan raft.Ready
-	msgStartC    <-chan MessageStart
-	msgStopC     chan MessageStop
-	msgStatusC   <-chan MessageStatus
-	msgPeersC    <-chan MessagePeers
-	msgDiscoverC chan<- MessageDiscover
-	msgInviteC   <-chan MessageInvite
-	msgJoinC     <-chan MessageJoin
-	msgExpelC    <-chan MessageExpel
-	msgProposeC  <-chan MessagePropose
-	msgLogC      <-chan MessageLog
-	msgFromNetC  <-chan MessageRaft
-	msgToNetC    chan<- MessageRaft
+type Runner interface {
+	Run(ctx context.Context) error
 }
 
-func NewRaftProcess(localPeer []byte,
+type raftProcess struct {
+	nodeID          uint64
+	node            raft.Node
+	storage         *raft.MemoryStorage
+	peers           map[uint64][]byte
+	committed       [][]byte
+	configChangeID  uint64
+	localPeer       []byte
+	electionTick    int
+	heartbeatTick   int
+	maxSizePerMsg   uint64
+	maxInflightMsgs int
+	ticker          *time.Ticker
+	tickerC         <-chan time.Time
+	raftC           <-chan raft.Ready
+	msgStartC       <-chan MessageStart
+	msgStopC        chan MessageStop
+	msgStatusC      <-chan MessageStatus
+	msgPeersC       <-chan MessagePeers
+	msgDiscoverC    chan<- MessageDiscover
+	msgInviteC      <-chan MessageInvite
+	msgJoinC        <-chan MessageJoin
+	msgExpelC       <-chan MessageExpel
+	msgProposeC     <-chan MessagePropose
+	msgLogC         <-chan MessageLog
+	msgFromNetC     <-chan MessageRaft
+	msgToNetC       chan<- MessageRaft
+}
+
+func NewRaftProcess(
+	localPeer []byte,
+	electionTick int,
+	heartbeatTick int,
+	maxSizePerMsg uint64,
+	maxInflightMsgs int,
 	msgStartC <-chan MessageStart,
 	msgStopC chan MessageStop,
 	msgStatusC <-chan MessageStatus,
@@ -54,26 +67,30 @@ func NewRaftProcess(localPeer []byte,
 	msgLogC <-chan MessageLog,
 	msgFromNetC <-chan MessageRaft,
 	msgToNetC chan<- MessageRaft,
-) *raftProcess {
+) Runner {
 	return &raftProcess{
-		localPeer:    localPeer,
-		msgStartC:    msgStartC,
-		msgStopC:     msgStopC,
-		msgStatusC:   msgStatusC,
-		msgPeersC:    msgPeersC,
-		msgDiscoverC: msgDiscoverC,
-		msgInviteC:   msgInviteC,
-		msgJoinC:     msgJoinC,
-		msgExpelC:    msgExpelC,
-		msgProposeC:  msgProposeC,
-		msgLogC:      msgLogC,
-		msgFromNetC:  msgFromNetC,
-		msgToNetC:    msgToNetC,
+		localPeer:       localPeer,
+		electionTick:    electionTick,
+		heartbeatTick:   heartbeatTick,
+		maxSizePerMsg:   maxSizePerMsg,
+		maxInflightMsgs: maxInflightMsgs,
+		msgStartC:       msgStartC,
+		msgStopC:        msgStopC,
+		msgStatusC:      msgStatusC,
+		msgPeersC:       msgPeersC,
+		msgDiscoverC:    msgDiscoverC,
+		msgInviteC:      msgInviteC,
+		msgJoinC:        msgJoinC,
+		msgExpelC:       msgExpelC,
+		msgProposeC:     msgProposeC,
+		msgLogC:         msgLogC,
+		msgFromNetC:     msgFromNetC,
+		msgToNetC:       msgToNetC,
 	}
 
 }
 
-func (r *raftProcess) Run(ctx context.Context) {
+func (r *raftProcess) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-r.msgStartC:
@@ -102,7 +119,7 @@ func (r *raftProcess) Run(ctx context.Context) {
 			r.eventStep(ctx, msg)
 		case <-ctx.Done():
 			r.eventDone(ctx)
-			return
+			return nil
 		}
 	}
 }
@@ -222,9 +239,9 @@ func (r *raftProcess) eventInvite(ctx context.Context, msg MessageInvite) {
 	}
 
 	cc := raftpb.ConfChange{
-		ID:      r.ccID + 1,
+		ID:      r.configChangeID + 1,
 		Type:    raftpb.ConfChangeAddNode,
-		NodeID:  r.ccID + 2,
+		NodeID:  r.configChangeID + 2,
 		Context: msg.PeerID.Address,
 	}
 	r.node.ProposeConfChange(ctx, cc)
@@ -254,9 +271,9 @@ func (r *raftProcess) eventExpel(ctx context.Context, msg MessageExpel) {
 		return
 	}
 
-	r.ccID += 1
+	r.configChangeID += 1
 	cc := raftpb.ConfChange{
-		ID:     r.ccID,
+		ID:     r.configChangeID,
 		Type:   raftpb.ConfChangeRemoveNode,
 		NodeID: expelID,
 	}
@@ -311,7 +328,7 @@ func (r *raftProcess) eventRaft(ctx context.Context, rd raft.Ready) {
 				"to":    rmsg.To,
 				"peers": r.peers,
 			})
-			return
+			continue
 		}
 		message := MessageRaft{
 			PeerID:  pb.PeerID{Address: address},
@@ -323,7 +340,7 @@ func (r *raftProcess) eventRaft(ctx context.Context, rd raft.Ready) {
 	for _, entry := range rd.CommittedEntries {
 		switch entry.Type {
 		case raftpb.EntryConfChange:
-			r.ccID += 1
+			r.configChangeID += 1
 
 			var cc raftpb.ConfChange
 			cc.Unmarshal(entry.Data)
@@ -382,7 +399,7 @@ func (r *raftProcess) stop() {
 	r.tickerC = nil
 	r.raftC = nil
 	r.nodeID = 0
-	r.ccID = 0
+	r.configChangeID = 0
 	r.peers = nil
 	r.committed = nil
 }
@@ -397,11 +414,11 @@ func (r *raftProcess) start(nodeID uint64, peers []raft.Peer) {
 
 	c := &raft.Config{
 		ID:              nodeID,
-		ElectionTick:    10,
-		HeartbeatTick:   1,
+		ElectionTick:    r.electionTick,
+		HeartbeatTick:   r.heartbeatTick,
 		Storage:         r.storage,
-		MaxSizePerMsg:   1024 * 1024,
-		MaxInflightMsgs: 256,
+		MaxSizePerMsg:   r.maxSizePerMsg,
+		MaxInflightMsgs: r.maxInflightMsgs,
 	}
 
 	r.ticker = time.NewTicker(100 * time.Millisecond)

@@ -16,7 +16,6 @@ package system
 
 import (
 	"context"
-	// "sync"
 	"testing"
 	"time"
 
@@ -26,8 +25,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-const numNodes = 4               // please change thoughtfully
-const waitTime = 2 * time.Second // increase if test stucks
+const numNodes = 4                        // please change thoughtfully
+const startTime = 1500 * time.Millisecond // increase if test stucks
+const stepTime = 1500 * time.Millisecond  // increase if test stucks
 
 // TestRaft executes a standart raft test scenario.
 
@@ -81,15 +81,17 @@ func assertNodes(t *testing.T, ctx context.Context,
 
 }
 
-// Before running the test reduce Maximum segment lifetime
-// On OSX: sudo sysctl net.inet.tcp.msl=500 will set MSL to 500ms
 func TestRaft(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxDuration)
 	defer cancel()
 
-	err := session.Run(ctx, SessionDir, numNodes, session.SystemCfg(),
+	sessionConf := session.WithServices(session.SystemCfg(), "boot", "raft")
+
+	err := session.Run(ctx, SessionDir, numNodes, sessionConf,
 		func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 			assert.Equal(t, numNodes, 4, "numNodes should be changed thoughtfully")
+
+			var err error
 
 			n1 := raft.NewRaftClient(conns[0])
 			n2 := raft.NewRaftClient(conns[1])
@@ -104,8 +106,6 @@ func TestRaft(t *testing.T) {
 			e1 := []byte("\xBA\xDD\xCA\xFE")
 			e2 := []byte("\xDE\xAD\xBE\xEF")
 			e3 := []byte("\xFE\xED\xFA\xCE")
-
-			var err error
 
 			nn := []raft.RaftClient{n1, n2, n3, n4}
 			assertNodes(t, ctx, nn,
@@ -131,7 +131,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n1.Start(ctx, &raft.Empty{})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -158,7 +158,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n1.Invite(ctx, &raft.PeerID{Address: a2})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -186,7 +186,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n2.Join(ctx, &raft.PeerID{Address: a1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -217,7 +217,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n2.Invite(ctx, &raft.PeerID{Address: a3})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -250,7 +250,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n3.Join(ctx, &raft.PeerID{Address: a1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -287,10 +287,10 @@ func TestRaft(t *testing.T) {
 
 			_, err = n2.Propose(ctx, &raft.Proposal{Data: e1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime) // Make sure e1 is added before e2
+			time.Sleep(stepTime) // Make sure e1 is added before e2
 			_, err = n3.Propose(ctx, &raft.Proposal{Data: e2})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -336,11 +336,11 @@ func TestRaft(t *testing.T) {
 
 			_, err = n3.Invite(ctx, &raft.PeerID{Address: a4})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n4.Join(ctx, &raft.PeerID{Address: a2})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -397,7 +397,7 @@ func TestRaft(t *testing.T) {
 
 			_, err = n2.Expel(ctx, &raft.PeerID{Address: a1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -461,15 +461,15 @@ func TestRaft(t *testing.T) {
 
 			_, err = n2.Propose(ctx, &raft.Proposal{Data: e3})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n4.Invite(ctx, &raft.PeerID{Address: a1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n1.Join(ctx, &raft.PeerID{Address: a2})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{
@@ -530,19 +530,19 @@ func TestRaft(t *testing.T) {
 
 			_, err = n3.Stop(ctx, &raft.Empty{})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n2.Expel(ctx, &raft.PeerID{Address: a3})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n4.Invite(ctx, &raft.PeerID{Address: a3})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(stepTime)
 
 			_, err = n3.Join(ctx, &raft.PeerID{Address: a1})
 			assert.NoError(t, err)
-			time.Sleep(waitTime)
+			time.Sleep(startTime)
 
 			assertNodes(t, ctx, nn,
 				[]raft.StatusInfo{

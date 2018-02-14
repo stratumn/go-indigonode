@@ -8,6 +8,7 @@ import (
 	pb "github.com/stratumn/alice/grpc/raft"
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
+	// protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
@@ -33,7 +34,7 @@ func NewNetProcess(host Host,
 	msgPeersC chan<- MessagePeers,
 	msgFromNetC chan<- MessageRaft,
 	msgToNetC <-chan MessageRaft,
-) *netProcess {
+) Runner {
 
 	n := netProcess{
 		Host:         host,
@@ -51,7 +52,7 @@ func NewNetProcess(host Host,
 	return &n
 }
 
-func (n *netProcess) Run(ctx context.Context) {
+func (n *netProcess) Run(ctx context.Context) error {
 
 	for {
 		select {
@@ -64,8 +65,8 @@ func (n *netProcess) Run(ctx context.Context) {
 		case msg := <-n.msgToNetC:
 			go n.raftClient(ctx, msg)
 		case <-ctx.Done():
-			// TODO: close all streams
-			return
+			// TODO: close all streams?
+			return nil
 		}
 	}
 }
@@ -74,6 +75,7 @@ func (n *netProcess) Run(ctx context.Context) {
 func (n *netProcess) discoverHandler(stream inet.Stream) {
 	defer stream.Close()
 
+	// enc := protobuf.Multicodec(nil).Encoder(stream)
 	enc := gob.NewEncoder(stream)
 
 	peersC := make(chan pb.Peer)
@@ -112,6 +114,7 @@ func (n *netProcess) discoverClient(ctx context.Context, msgDiscover MessageDisc
 	}
 	defer stream.Close()
 
+	// dec := protobuf.Multicodec(nil).Decoder(stream)
 	dec := gob.NewDecoder(stream)
 
 	var peers []pb.Peer
@@ -131,6 +134,7 @@ func (n *netProcess) discoverClient(ctx context.Context, msgDiscover MessageDisc
 func (n *netProcess) raftHandler(stream inet.Stream) {
 
 	defer stream.Close()
+	// dec := protobuf.Multicodec(nil).Decoder(stream)
 	dec := gob.NewDecoder(stream)
 
 	var message MessageRaft
@@ -161,6 +165,7 @@ func (n *netProcess) raftClient(ctx context.Context, msgRaft MessageRaft) {
 	}
 	defer stream.Close()
 
+	// enc := protobuf.Multicodec(nil).Encoder(stream)
 	enc := gob.NewEncoder(stream)
 	if err != nil {
 		n.errorC <- errors.WithStack(err)

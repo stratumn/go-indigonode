@@ -73,6 +73,7 @@ func TestProcessor_Process(t *testing.T) {
 
 	assert.NoError(t, p.Process(block1, s, c))
 	assert.NoError(t, p.Process(block2, s, c))
+	assert.NoError(t, p.Process(block2, s, c))
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)
@@ -86,6 +87,10 @@ func TestProcessor_Process(t *testing.T) {
 	header, err := c.CurrentHeader()
 	assert.NoError(t, err, "CurrentHeader()")
 	assert.Equal(t, block2.Header, header, "CurrentHeader()")
+
+	headers, err := c.GetHeaderByNumber(1)
+	assert.NoError(t, err, "GetHeaderByNumber()")
+	assert.Len(t, headers, 1, "GetHeaderByNumber()")
 
 	// Check state
 	v, err := s.GetAccount(alice)

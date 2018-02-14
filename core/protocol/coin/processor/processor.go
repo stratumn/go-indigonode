@@ -18,18 +18,24 @@ package processor
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
+
+// log is the logger for the processor.
+var log = logging.Logger("processor")
 
 // Processor is an interface for processing blocks using a given initial state.
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state state.State, chain chain.Chain) error
+	Process(block *pb.Block, state state.State, ch chain.Chain) error
 }
 
 type processor struct{}
@@ -44,13 +50,26 @@ type stateTransition struct {
 	transactions []*pb.Transaction
 }
 
-func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chain) error {
-	// Update chain.
-	if err := chain.AddBlock(block); err != nil {
+func (p *processor) Process(block *pb.Block, state state.State, ch chain.Chain) error {
+	mh, err := coinutil.HashHeader(block.Header)
+	if err != nil {
 		return err
 	}
 
-	head, err := chain.CurrentBlock()
+	// Check block has already been processed.
+	if _, err := ch.GetBlock(mh, block.BlockNumber()); err != nil && err != chain.ErrBlockHashNotFound {
+		return err
+	} else if err == nil {
+		log.Event(context.Background(), "blockAlreadyProcessed", logging.Metadata{"hash": mh.String(), "height": block.BlockNumber()})
+		return nil
+	}
+
+	// Update chain.
+	if err := ch.AddBlock(block); err != nil {
+		return err
+	}
+
+	head, err := ch.CurrentBlock()
 	if err != nil {
 		return err
 	}
@@ -62,7 +81,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chai
 	}
 
 	// Set the new head.
-	if err := chain.SetHead(block); err != nil {
+	if err := ch.SetHead(block); err != nil {
 		return err
 	}
 
@@ -73,7 +92,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain chain.Chai
 			return err
 		}
 		if !bytes.Equal(hash, block.PreviousHash()) {
-			return p.reorg(head, block, state, chain)
+			return p.reorg(head, block, state, ch)
 		}
 	}
 

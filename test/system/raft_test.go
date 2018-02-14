@@ -26,8 +26,8 @@ import (
 )
 
 const numNodes = 4                        // please change thoughtfully
-const startTime = 1500 * time.Millisecond // increase if test stucks
-const stepTime = 1500 * time.Millisecond  // increase if test stucks
+const startTime = 2000 * time.Millisecond // increase if test stucks
+const stepTime = 2000 * time.Millisecond  // increase if test stucks
 
 // TestRaft executes a standart raft test scenario.
 

@@ -22,6 +22,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
@@ -46,6 +47,7 @@ type Miner struct {
 
 	chain     chain.Chain
 	engine    engine.Engine
+	gossip    gossip.Gossip
 	txpool    state.TxPool
 	processor processor.Processor
 	state     state.State
@@ -62,11 +64,13 @@ func NewMiner(
 	s state.State,
 	c chain.Chain,
 	v validator.Validator,
-	p processor.Processor) *Miner {
+	p processor.Processor,
+	g gossip.Gossip) *Miner {
 
 	miner := &Miner{
 		chain:     c,
 		engine:    e,
+		gossip:    g,
 		txpool:    txp,
 		processor: p,
 		state:     s,
@@ -192,6 +196,10 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 	block, err = m.engine.Finalize(ctx, m.chain, header, m.state, txs)
 	if err != nil {
 		return
+	}
+
+	if err := m.gossip.PublishBlock(block); err != nil {
+		log.Warningf("Unable to publish mined block: %v", err.Error())
 	}
 
 	err = m.processor.Process(block, m.state, m.chain)

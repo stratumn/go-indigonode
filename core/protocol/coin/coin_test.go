@@ -23,6 +23,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
+	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		v0 := coins[0].validator.(*ctestutil.InstrumentedValidator)
 		v1 := coins[1].validator.(*ctestutil.InstrumentedValidator)
 
-		ctestutil.WaitUntil(t, func() bool {
+		tassert.WaitUntil(t, func() bool {
 			return v0.ValidatedBlock(block2.GetBlock()) &&
 				v1.ValidatedBlock(block1.GetBlock()) &&
 				v1.ValidatedTx(tx.GetTx())
@@ -127,7 +128,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 		v0 := coins[0].validator.(*ctestutil.InstrumentedValidator)
 		v1 := coins[1].validator.(*ctestutil.InstrumentedValidator)
 
-		ctestutil.WaitUntil(t, func() bool {
+		tassert.WaitUntil(t, func() bool {
 			return v1.ValidatedTx(tx1.GetTx()) && v0.ValidatedTx(tx2.GetTx())
 		}, "validator.ValidatedTx")
 	})
@@ -139,7 +140,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 	require.NoError(t, err, "minerPubKey.Bytes()")
 
 	t.Run("start-stop-mining", func(t *testing.T) {
-		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build()
+		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build(t)
 		verifyAccount(t, c, minerAddress, &pb.Account{})
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -156,7 +157,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 	})
 
 	t.Run("reject-invalid-txs", func(t *testing.T) {
-		c := NewCoinBuilder(t).Build()
+		c := NewCoinBuilder(t).Build(t)
 		err := c.AddTransaction(ctestutil.NewTransaction(t, 0, 1, 1))
 		assert.EqualError(t, err, validator.ErrInvalidTxValue.Error(), "c.AddTransaction()")
 
@@ -189,7 +190,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			WithPublicKey(minerPubKey).
 			WithReward(minerReward).
 			WithState(s).
-			Build()
+			Build(t)
 
 		err = c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 1))
 		assert.EqualError(t, err, validator.ErrInvalidTxNonce.Error(), "c.AddTransaction()")
@@ -202,7 +203,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		assert.NoError(t, c.AddTransaction(ctestutil.NewTransaction(t, 5, 3, 5)), "c.AddTransaction()")
 
 		// Wait until all transactions are processed.
-		ctestutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool {
 				senderAccount, err := c.GetAccount([]byte(ctestutil.TxSenderPID))

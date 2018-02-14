@@ -25,48 +25,113 @@ import (
 
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
 const (
 	// TxTopicName is the topic name for transactions.
 	TxTopicName = "coin.tx"
+
+	// BlockTopicName is the topic name for blocks.
+	BlockTopicName = "coin.block"
 )
 
 // log is the logger for the coin gossip.
 var log = logging.Logger("coin.gossip")
 
+// Gossip is an interface used to gossip transactions and blocks.
+type Gossip interface {
+	// ListenTx passes incoming transactions to a callback.
+	// Only valid transactions will be passed to the callback.
+	ListenTx(ctx context.Context, processTx func(*pb.Transaction) error) error
+	// ListenBlock passes incoming blocks to a callback.
+	// Only valid blocks will be passed to the callback.
+	ListenBlock(ctx context.Context, processBlock func(*pb.Block) error) error
+	// PublishTx sends a new transaction to the gossip.
+	PublishTx(tx *pb.Transaction) error
+	// PublishBlock sends a new block to the gossip.
+	PublishBlock(block *pb.Block) error
+}
+
 // Gossip handles the gossiping of blocks and transactions.
-type Gossip struct {
-	pubsub    floodsub.PubSub
+type gossip struct {
+	host      host.Host
+	pubsub    *floodsub.PubSub
 	state     state.Reader
 	validator validator.Validator
 
-	txSubscription *floodsub.Subscription
+	subs map[string]*floodsub.Subscription
 }
 
 // NewGossip returns gossip.
 func NewGossip(
-	p floodsub.PubSub,
+	h host.Host,
+	p *floodsub.PubSub,
 	s state.Reader,
 	v validator.Validator,
-) *Gossip {
-	return &Gossip{
+) Gossip {
+	return &gossip{
+		host:      h,
 		pubsub:    p,
 		state:     s,
 		validator: v,
+		subs:      make(map[string]*floodsub.Subscription),
 	}
 }
 
-// SubscribeTx subscribes to the transaction topic.
-func (g *Gossip) SubscribeTx() error {
-	sub, err := g.pubsub.Subscribe(TxTopicName)
+// ListenTx subscribes to transaction topic and listens to incoming transactions.
+func (g *gossip) ListenTx(ctx context.Context, processTx func(*pb.Transaction) error) error {
+	if err := g.subscribeTx(); err != nil {
+		return err
+	}
+
+	return g.listen(ctx, TxTopicName, func(msg *floodsub.Message) error {
+		tx := &pb.Transaction{}
+		if err := tx.Unmarshal(msg.GetData()); err != nil {
+			return err
+		}
+		return processTx(tx)
+	})
+}
+
+// ListenBlock subscribes to block topic and listens to incoming blocks.
+func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) error) error {
+	if err := g.subscribeBlock(); err != nil {
+		return err
+	}
+
+	return g.listen(ctx, BlockTopicName, func(msg *floodsub.Message) error {
+		block := &pb.Block{}
+		if err := block.Unmarshal(msg.GetData()); err != nil {
+			return err
+		}
+		return processBlock(block)
+	})
+}
+
+// PublishTx publishes a transaction message.
+func (g *gossip) PublishTx(tx *pb.Transaction) error {
+	txData, err := tx.Marshal()
 	if err != nil {
 		return err
 	}
 
-	g.txSubscription = sub
+	return g.publish(TxTopicName, txData)
+}
 
-	err = g.pubsub.RegisterTopicValidator(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
+// PublishBlock publishes a block message.
+func (g *gossip) PublishBlock(block *pb.Block) error {
+	blockData, err := block.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return g.publish(BlockTopicName, blockData)
+}
+
+// subscribeTx subscribes to the transaction topic.
+func (g *gossip) subscribeTx() error {
+	return g.subscribe(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
 		tx := &pb.Transaction{}
 		if err := tx.Unmarshal(m.GetData()); err != nil {
 			log.Infof("invalid transaction format: %v", err.Error())
@@ -80,47 +145,75 @@ func (g *Gossip) SubscribeTx() error {
 
 		return true
 	})
+}
 
+// subscribeBlock subscribes to the block topic.
+func (g *gossip) subscribeBlock() error {
+	return g.subscribe(BlockTopicName, func(ctx context.Context, m *floodsub.Message) bool {
+		block := &pb.Block{}
+		if err := block.Unmarshal(m.GetData()); err != nil {
+			log.Infof("invalid block format: %v", err.Error())
+			return false
+		}
+
+		if err := g.validator.ValidateBlock(block, g.state); err != nil {
+			log.Infof("invalid block: %v", err.Error())
+			return false
+		}
+
+		return true
+	})
+}
+
+func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
+	if g.isSubscribed(topic) {
+		return nil
+	}
+
+	sub, err := g.pubsub.Subscribe(topic)
+	if err != nil {
+		return err
+	}
+
+	g.subs[topic] = sub
+
+	err = g.pubsub.RegisterTopicValidator(topic, validator)
 	return errors.WithStack(err)
 }
 
-// ListenTx listens to incoming transactions.
-func (g *Gossip) ListenTx(ctx context.Context, callback func(*pb.Transaction) error) error {
-	if !g.isSubscribed(TxTopicName) {
-		return errors.New("subscribe to tx topic first")
+func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *floodsub.Message) error) error {
+	if !g.isSubscribed(topic) {
+		return errors.Errorf("not subscribed to %v topic", topic)
 	}
 
+	sub := g.subs[topic]
+
 	go func() {
-		msg, errIncoming := g.txSubscription.Next(ctx)
+		msg, errIncoming := sub.Next(ctx)
 		for errIncoming == nil {
-			tx := &pb.Transaction{}
-			if err := tx.Unmarshal(msg.GetData()); err != nil {
-				log.Event(ctx, "InvalidTxFormat", logging.Metadata{"error": err})
-			}
-			if err := callback(tx); err != nil {
-				log.Event(ctx, "ProcessIncomingTxFailed", logging.Metadata{"error": err})
+			if g.host.ID() != msg.GetFrom() {
+				if err := callback(msg); err != nil {
+					log.Warningf("unable to process incoming message for topic %v: %v", topic, err.Error())
+				}
 			}
 
-			msg, errIncoming = g.txSubscription.Next(ctx)
+			msg, errIncoming = sub.Next(ctx)
 		}
-
-		log.Errorf("stopped listening to transactions: %v", errIncoming.Error())
 	}()
 
 	return nil
 }
 
-// PublishTx publishes a transaction message.
-func (g *Gossip) PublishTx(tx *pb.Transaction) error {
-	txData, err := tx.Marshal()
+func (g *gossip) publish(topic string, data []byte) error {
+	err := g.pubsub.Publish(topic, data)
 	if err != nil {
-		return err
+		log.Warningf("unable to publish data to %v topic: %v", topic, err.Error())
 	}
 
-	return g.pubsub.Publish(TxTopicName, txData)
+	return err
 }
 
-func (g *Gossip) isSubscribed(topic string) bool {
+func (g *gossip) isSubscribed(topic string) bool {
 	isSubscribed := false
 	topics := g.pubsub.GetTopics()
 

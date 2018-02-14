@@ -61,12 +61,12 @@ type Coin struct {
 	engine    engine.Engine
 	state     state.State
 	chain     chain.Chain
+	gossip    gossip.Gossip
 	txpool    state.TxPool
 	processor processor.Processor
 	validator validator.Validator
 
-	gossip *gossip.Gossip
-	miner  *miner.Miner
+	miner *miner.Miner
 }
 
 // NewCoin creates a new Coin.
@@ -75,12 +75,12 @@ func NewCoin(
 	e engine.Engine,
 	s state.State,
 	c chain.Chain,
-	g *gossip.Gossip,
+	g gossip.Gossip,
 	v validator.Validator,
 	p processor.Processor,
 ) *Coin {
 
-	miner := miner.NewMiner(txp, e, s, c, v, p)
+	miner := miner.NewMiner(txp, e, s, c, v, p, g)
 
 	return &Coin{
 		engine:    e,
@@ -96,7 +96,11 @@ func NewCoin(
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
-	return c.StartTxGossip(ctx)
+	if err := c.StartTxGossip(ctx); err != nil {
+		return err
+	}
+
+	return c.StartBlockGossip(ctx)
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -196,9 +200,12 @@ func (c *Coin) StartMining(ctx context.Context) error {
 
 // StartTxGossip starts gossiping transactions.
 func (c *Coin) StartTxGossip(ctx context.Context) error {
-	if err := c.gossip.SubscribeTx(); err != nil {
-		return err
-	}
-
 	return c.gossip.ListenTx(ctx, c.AddValidTransaction)
+}
+
+// StartBlockGossip starts gossiping blocks.
+func (c *Coin) StartBlockGossip(ctx context.Context) error {
+	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
+		return c.processor.Process(block, c.state, c.chain)
+	})
 }

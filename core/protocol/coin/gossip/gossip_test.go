@@ -31,6 +31,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -40,12 +41,17 @@ var (
 	mockValidator *mockvalidator.MockValidator
 )
 
+type msg struct {
+	topic string
+	data  interface{}
+}
+
 func newHost(ctx context.Context, t *testing.T) host.Host {
 	ntw := netutil.GenSwarmNetwork(t, ctx)
 	return bhost.NewBlankHost(ntw)
 }
 
-func newGossip(ctx context.Context, t *testing.T, h host.Host) (*Gossip, error) {
+func newGossip(ctx context.Context, t *testing.T, h host.Host) (Gossip, error) {
 	p, err := floodsub.NewFloodSub(ctx, h)
 	if err != nil {
 		return nil, err
@@ -58,7 +64,7 @@ func newGossip(ctx context.Context, t *testing.T, h host.Host) (*Gossip, error) 
 
 	s := state.NewState(db)
 
-	return NewGossip(*p, s, mockValidator), nil
+	return NewGossip(h, p, s, mockValidator), nil
 }
 
 func TestGossip(t *testing.T) {
@@ -82,40 +88,89 @@ func TestGossip(t *testing.T) {
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
 
-	c1 := make(chan *pb.Transaction)
-	c2 := make(chan *pb.Transaction)
+	c1 := make(chan msg)
+	c2 := make(chan msg)
 
-	t.Run("ListenBeforeSubscribe", func(t *testing.T) {
-		err := g1.ListenTx(context.Background(), func(tx *pb.Transaction) error { return nil })
+	t.Run("SubscribeListen", func(t *testing.T) {
+		topic := "coin.test"
+
+		gg1 := g1.(*gossip)
+		gg2 := g2.(*gossip)
+
+		ctx := context.Background()
+
+		// listen before subscribe
+		err := gg1.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
 		assert.Error(t, err)
-	})
 
-	t.Run("Subscribe", func(t *testing.T) {
-		err = g1.SubscribeTx()
-		assert.NoError(t, err)
-		require.Len(t, g1.pubsub.GetTopics(), 1)
-		assert.Contains(t, g1.pubsub.GetTopics(), TxTopicName)
+		err = gg1.subscribe(topic, func(ctx context.Context, m *floodsub.Message) bool { return true })
+		require.NoError(t, err)
+		assert.Len(t, gg1.pubsub.GetTopics(), 1)
+		assert.True(t, gg1.isSubscribed(topic))
 
-		err = g2.SubscribeTx()
-		assert.NoError(t, err)
-		require.Len(t, g2.pubsub.GetTopics(), 1)
-		assert.Contains(t, g2.pubsub.GetTopics(), TxTopicName)
+		err = gg1.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
+		require.NoError(t, err)
+
+		err = gg2.subscribe(topic, func(ctx context.Context, m *floodsub.Message) bool { return true })
+		require.NoError(t, err)
+
+		err = gg2.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
+		require.NoError(t, err)
+
+		tassert.WaitUntil(t, func() bool {
+			return len(gg2.pubsub.ListPeers(topic)) == 1
+		}, "ListPeers(topic) should have length of 1")
+		assert.Contains(t, gg2.pubsub.ListPeers(topic), gg1.host.ID())
+		assert.Len(t, gg1.pubsub.ListPeers(topic), 1)
+		assert.Contains(t, gg1.pubsub.ListPeers(topic), gg2.host.ID())
 	})
 
 	t.Run("ListenTx", func(t *testing.T) {
 		err := g1.ListenTx(context.Background(), func(tx *pb.Transaction) error {
-			c1 <- tx
+			c1 <- msg{
+				topic: TxTopicName,
+				data:  tx,
+			}
 			return nil
 		})
 		assert.NoError(t, err)
 
-		g2.ListenTx(context.Background(), func(tx *pb.Transaction) error {
-			c2 <- tx
+		err = g2.ListenTx(context.Background(), func(tx *pb.Transaction) error {
+			c2 <- msg{
+				topic: TxTopicName,
+				data:  tx,
+			}
 			return nil
 		})
 		assert.NoError(t, err)
 
-		time.Sleep(50 * time.Millisecond)
+		tassert.WaitUntil(t, func() bool {
+			return len(g2.(*gossip).pubsub.ListPeers(TxTopicName)) == 1
+		}, "ListPeers(topic) should have length of 1")
+	})
+
+	t.Run("ListenBlock", func(t *testing.T) {
+		err := g1.ListenBlock(context.Background(), func(b *pb.Block) error {
+			c1 <- msg{
+				topic: BlockTopicName,
+				data:  b,
+			}
+			return nil
+		})
+		assert.NoError(t, err)
+
+		err = g2.ListenBlock(context.Background(), func(b *pb.Block) error {
+			c2 <- msg{
+				topic: BlockTopicName,
+				data:  b,
+			}
+			return nil
+		})
+		assert.NoError(t, err)
+
+		tassert.WaitUntil(t, func() bool {
+			return len(g2.(*gossip).pubsub.ListPeers(BlockTopicName)) == 1
+		}, "ListPeers(topic) should have length of 1")
 	})
 
 	t.Run("PublishTx", func(t *testing.T) {
@@ -126,7 +181,7 @@ func TestGossip(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		assertReceive(t, c1, tx)
+		assertNotReceive(t, c1)
 		assertReceive(t, c2, tx)
 	})
 
@@ -151,7 +206,49 @@ func TestGossip(t *testing.T) {
 
 		txBytes, _ := json.Marshal(tx)
 
-		err := g1.pubsub.Publish(TxTopicName, txBytes)
+		g := g1.(*gossip)
+		err := g.pubsub.Publish(TxTopicName, txBytes)
+		assert.NoError(t, err)
+
+		assertNotReceive(t, c1)
+		assertNotReceive(t, c2)
+	})
+
+	t.Run("PublishBlock", func(t *testing.T) {
+		b := &pb.Block{}
+		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
+
+		err = g2.PublishBlock(b)
+
+		assert.NoError(t, err)
+
+		assertReceive(t, c1, b)
+		assertNotReceive(t, c2)
+	})
+
+	t.Run("PublishInvalidBlock", func(t *testing.T) {
+		b := &pb.Block{}
+		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(validator.ErrTooManyTxs)
+
+		err = g1.PublishBlock(b)
+
+		assert.NoError(t, err)
+
+		assertNotReceive(t, c1)
+		assertNotReceive(t, c2)
+	})
+
+	t.Run("PublishMalformedBlock", func(t *testing.T) {
+		b := struct {
+			Header []byte
+		}{
+			Header: []byte("header"),
+		}
+
+		bBytes, _ := json.Marshal(b)
+
+		g := g1.(*gossip)
+		err := g.pubsub.Publish(BlockTopicName, bBytes)
 		assert.NoError(t, err)
 
 		assertNotReceive(t, c1)
@@ -159,19 +256,24 @@ func TestGossip(t *testing.T) {
 	})
 }
 
-func assertReceive(t *testing.T, c chan *pb.Transaction, want *pb.Transaction) {
+func assertReceive(t *testing.T, c chan msg, want interface{}) {
 	select {
-	case got := <-c:
-		assert.Equal(t, want, got)
+	case m := <-c:
+		switch m.topic {
+		case TxTopicName:
+			assert.Equal(t, want, m.data.(*pb.Transaction))
+		case BlockTopicName:
+			assert.Equal(t, want, m.data.(*pb.Block))
+		}
 	case <-time.After(time.Millisecond * 50):
 		t.Fatalf("timed out waiting for transaction: %+v", want)
 	}
 }
 
-func assertNotReceive(t *testing.T, c chan *pb.Transaction) {
+func assertNotReceive(t *testing.T, c chan msg) {
 	select {
-	case got := <-c:
-		t.Fatalf("received unexpected transaction: %+v", got)
+	case m := <-c:
+		t.Fatalf("received unexpected message: %+v", m)
 	case <-time.After(time.Millisecond * 50):
 		return
 	}

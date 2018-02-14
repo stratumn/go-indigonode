@@ -23,12 +23,13 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMiner_StartStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	m := NewMinerBuilder().Build()
+	m := NewMinerBuilder(t).Build()
 
 	assert.False(t, m.IsRunning(), "m.IsRunning()")
 
@@ -37,7 +38,7 @@ func TestMiner_StartStop(t *testing.T) {
 		errChan <- m.Start(ctx)
 	}()
 
-	testutil.WaitUntil(t, m.IsRunning, "m.IsRunning()")
+	tassert.WaitUntil(t, m.IsRunning, "m.IsRunning()")
 
 	cancel()
 	assert.EqualError(t, <-errChan, context.Canceled.Error(), "m.Start(ctx)")
@@ -50,7 +51,7 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Pops transactions from txpool", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().WithTxPool(txpool).Build()
+		m := NewMinerBuilder(t).WithTxPool(txpool).Build()
 		go m.Start(ctx)
 
 		assert.Equal(t, 0, txpool.TxCount(), "txpool.TxCount()")
@@ -58,7 +59,7 @@ func TestMiner_TxPool(t *testing.T) {
 		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
 		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 2))
 
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.TxCount() == 0 },
 			"txpool.TxCount() == 0",
@@ -69,21 +70,21 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Puts transactions back into txpool if block production failed", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithTxPool(txpool).
 			WithEngine(&testutil.FaultyEngine{}).
 			Build()
 		go m.Start(ctx)
 
 		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.PopCount() >= 1 },
 			"txpool.PopCount() >= 1",
 		)
 
 		// Transaction should be put back in the txpool after the engine error.
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.TxCount() == 1 },
 			"txpool.TxCount() == 1",
@@ -94,14 +95,14 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Removes invalid transactions from txpool definitively", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithTxPool(txpool).
 			WithValidator(&testutil.Rejector{}).
 			Build()
 		go m.Start(ctx)
 
 		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.PopCount() >= 1 },
 			"txpool.PopCount() == 1",
@@ -125,7 +126,7 @@ func TestMiner_Produce(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
 		txpool.AddTransaction(testutil.NewTransaction(t, 3, 1, 5))
 
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithEngine(e).
 			WithTxPool(txpool).
 			WithProcessor(p).
@@ -139,7 +140,7 @@ func TestMiner_Produce(t *testing.T) {
 		processor := testutil.NewInstrumentedProcessor(&testutil.DummyProcessor{})
 		startMiner(processor, &testutil.DummyEngine{})
 
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return processor.ProcessedCount() > 0 },
 			"p.ProcessedCount() > 0",
@@ -151,7 +152,7 @@ func TestMiner_Produce(t *testing.T) {
 		engine := testutil.NewInstrumentedEngine(&testutil.FaultyEngine{})
 		startMiner(processor, engine)
 
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return engine.PrepareCount() > 0 },
 			"engine.PrepareCount() > 0",
@@ -164,7 +165,7 @@ func TestMiner_Produce(t *testing.T) {
 		processor := testutil.NewInstrumentedProcessor(&testutil.FaultyProcessor{})
 		txpool := startMiner(processor, &testutil.DummyEngine{})
 
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return processor.ProcessedCount() > 0 },
 			"processor.ProcessedCount() > 0",
@@ -172,7 +173,7 @@ func TestMiner_Produce(t *testing.T) {
 
 		// If the transaction goes back to the txpool it means the block
 		// was correctly aborted.
-		testutil.WaitUntil(
+		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.TxCount() > 0 },
 			"txpool.TxCount() > 0",

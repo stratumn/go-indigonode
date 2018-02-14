@@ -16,7 +16,11 @@ package testutil
 
 import (
 	"math/rand"
+	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/coin/gossip"
+	"github.com/stratumn/alice/core/protocol/coin/gossip/mockgossip"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -46,4 +50,17 @@ func RandomGossipBlock() *pb.Gossip {
 			},
 		},
 	}
+}
+
+// NewDummyGossip returns a gossip mock that does nothing.
+func NewDummyGossip(t *testing.T) gossip.Gossip {
+	mockCtrl := gomock.NewController(t)
+	mockGossip := mockgossip.NewMockGossip(mockCtrl)
+
+	mockGossip.EXPECT().ListenTx(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockGossip.EXPECT().ListenBlock(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockGossip.EXPECT().PublishTx(gomock.Any()).AnyTimes().Return(nil)
+	mockGossip.EXPECT().PublishBlock(gomock.Any()).AnyTimes().Return(nil)
+
+	return mockGossip
 }

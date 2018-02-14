@@ -179,6 +179,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 					ctestutil.NewTransaction(t, 10, 4, 4),
 					ctestutil.NewTransaction(t, 5, 3, 5),
 				},
+				validTxsOnly: true,
 				stopCond: func(c *Coin) bool {
 					h, err := c.chain.CurrentHeader()
 					assert.NoError(t, err, "chain.CurrentHeader()")
@@ -191,6 +192,11 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			h, err := c.chain.CurrentHeader()
 			assert.NoError(t, err, "chain.CurrentHeader()")
 			assert.Equal(t, uint64(2), h.BlockNumber, "h.BlockNumber")
+
+			hs, err := c.chain.GetHeaderByNumber(2)
+			assert.NoError(t, err, "chain.GetHeaderByNumber()")
+			assert.Len(t, hs, 1, "chain.GetHeaderByNumber()")
+			assert.Equal(t, h, hs[0], "chain.GetHeaderByNumber()")
 		})
 
 		t.Run("updates-miner-account", func(t *testing.T) {
@@ -207,6 +213,68 @@ func TestCoinMining_SingleNode(t *testing.T) {
 				&pb.Account{Balance: 20 + 10 + 5})
 		})
 	})
+
+	t.Run("produce-blocks-live-txs", func(t *testing.T) {
+		c := mineAllTransactions(
+			t,
+			&MiningTestConfig{
+				initialBalance: 200,
+				maxTxPerBlock:  3,
+				minerPubKey:    minerPubKey,
+				reward:         5,
+				pendingTxs: []*pb.Transaction{
+					// These three txs should be included in the same block,
+					// so their order (nonce) should not matter.
+					ctestutil.NewTransaction(t, 5, 2, 1),
+					ctestutil.NewTransaction(t, 10, 3, 3),
+					ctestutil.NewTransaction(t, 7, 10, 4),
+				},
+				liveTxs: []*pb.Transaction{
+					// This tx should be rejected because of its nonce and low fee.
+					ctestutil.NewTransaction(t, 5, 1, 3),
+					ctestutil.NewTransaction(t, 5, 2, 6),
+					ctestutil.NewTransaction(t, 5, 1, 7),
+				},
+				validTxsOnly: false,
+				stopCond: func(c *Coin) bool {
+					h, err := c.chain.CurrentHeader()
+					assert.NoError(t, err, "chain.CurrentHeader()")
+					return h.BlockNumber == 2
+				},
+			},
+		)
+
+		t.Run("adds-blocks-to-chain", func(t *testing.T) {
+			h, err := c.chain.CurrentHeader()
+			assert.NoError(t, err, "chain.CurrentHeader()")
+			assert.Equal(t, uint64(2), h.BlockNumber, "h.BlockNumber")
+
+			mh, err := coinutil.HashHeader(h)
+			assert.NoError(t, err, "coinutil.HashHeader()")
+
+			block, err := c.chain.GetBlock(mh, 2)
+			assert.NoError(t, err, "chain.GetBlock()")
+			verifyBlockTxs(t, block, []uint64{6, 7})
+
+			block, err = c.chain.GetBlock(block.PreviousHash(), 1)
+			assert.NoError(t, err, "chain.GetBlock()")
+			verifyBlockTxs(t, block, []uint64{1, 3, 4})
+		})
+
+		t.Run("updates-miner-account", func(t *testing.T) {
+			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*5 + 2 + 3 + 10 + 2 + 1})
+		})
+
+		t.Run("updates-sender-account", func(t *testing.T) {
+			verifyAccount(t, c, []byte(ctestutil.TxSenderPID),
+				&pb.Account{Balance: 200 - 5 - 2 - 10 - 3 - 7 - 10 - 5 - 2 - 5 - 1, Nonce: 7})
+		})
+
+		t.Run("updates-receiver-account", func(t *testing.T) {
+			verifyAccount(t, c, []byte(ctestutil.TxRecipientPID),
+				&pb.Account{Balance: 5 + 10 + 7 + 5 + 5})
+		})
+	})
 }
 
 // MiningTestConfig contains the configuration of a coin miner run.
@@ -219,8 +287,9 @@ type MiningTestConfig struct {
 	minerPubKey    *coinutil.PublicKey // Public key of the miner.
 	reward         uint64              // Miner reward for producing blocks.
 
-	pendingTxs []*pb.Transaction // Transactions in the pool before mining starts.
-	liveTxs    []*pb.Transaction // Transactions that will be received during mining.
+	validTxsOnly bool              // Should the test fail if transactions are rejected
+	pendingTxs   []*pb.Transaction // Transactions in the pool before mining starts.
+	liveTxs      []*pb.Transaction // Transactions that will be received during mining.
 
 	stopCond func(c *Coin) bool // Should return true when all valid txs have been included.
 }
@@ -262,13 +331,20 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 		Build(t)
 
 	for _, tx := range config.pendingTxs {
-		assert.NoError(t, c.AddTransaction(tx), "c.AddTransaction()")
+		err := c.AddTransaction(tx)
+		if config.validTxsOnly {
+			assert.NoError(t, err, "c.AddTransaction()")
+		}
 	}
 
 	go c.StartMining(ctx)
+	ctestutil.WaitUntil(t, c.miner.IsRunning, "c.miner.IsRunning")
 
 	for _, tx := range config.liveTxs {
-		assert.NoError(t, c.AddTransaction(tx), "c.AddTransaction()")
+		err := c.AddTransaction(tx)
+		if config.validTxsOnly {
+			assert.NoError(t, err, "c.AddTransaction()")
+		}
 	}
 
 	// Wait until all required transactions are processed.
@@ -285,4 +361,18 @@ func verifyAccount(t *testing.T, c *Coin, address []byte, expected *pb.Account) 
 	account, err := c.GetAccount(address)
 	assert.NoError(t, err, "c.GetAccount()")
 	assert.Equal(t, expected, account, "account")
+}
+
+func verifyBlockTxs(t *testing.T, block *pb.Block, expectedTxsNonces []uint64) {
+	var blockTxNonces []uint64
+	for _, tx := range block.Transactions {
+		if tx.From != nil {
+			blockTxNonces = append(blockTxNonces, tx.Nonce)
+		}
+	}
+
+	assert.Equalf(t, len(expectedTxsNonces), len(blockTxNonces),
+		"len(block.Transactions): %v", blockTxNonces)
+
+	assert.ElementsMatch(t, expectedTxsNonces, blockTxNonces)
 }

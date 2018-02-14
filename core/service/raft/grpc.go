@@ -12,55 +12,53 @@ var (
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
-
-	ErrInvalidCall = errors.New("invalid / unknown grpc call")
 )
 
 type grpcReceiver struct {
-	msgStartC    chan<- protocol.MessageStart
-	msgStopC     chan<- protocol.MessageStop
-	msgStatusC   chan<- protocol.MessageStatus
-	msgPeersC    chan<- protocol.MessagePeers
-	msgDiscoverC chan<- protocol.MessageDiscover
-	msgInviteC   chan<- protocol.MessageInvite
-	msgJoinC     chan<- protocol.MessageJoin
-	msgExpelC    chan<- protocol.MessageExpel
-	msgProposeC  chan<- protocol.MessagePropose
-	msgLogC      chan<- protocol.MessageLog
+	msgStartChan    chan<- protocol.MessageStart
+	msgStopChan     chan<- protocol.MessageStop
+	msgStatusChan   chan<- protocol.MessageStatus
+	msgPeersChan    chan<- protocol.MessagePeers
+	msgDiscoverChan chan<- protocol.MessageDiscover
+	msgInviteChan   chan<- protocol.MessageInvite
+	msgJoinChan     chan<- protocol.MessageJoin
+	msgExpelChan    chan<- protocol.MessageExpel
+	msgProposeChan  chan<- protocol.MessagePropose
+	msgLogChan      chan<- protocol.MessageLog
 }
 
 func (r *grpcReceiver) Init(
-	msgStartC chan<- protocol.MessageStart,
-	msgStopC chan<- protocol.MessageStop,
-	msgStatusC chan<- protocol.MessageStatus,
-	msgPeersC chan<- protocol.MessagePeers,
-	msgDiscoverC chan<- protocol.MessageDiscover,
-	msgInviteC chan<- protocol.MessageInvite,
-	msgJoinC chan<- protocol.MessageJoin,
-	msgExpelC chan<- protocol.MessageExpel,
-	msgProposeC chan<- protocol.MessagePropose,
-	msgLogC chan<- protocol.MessageLog,
+	msgStartChan chan<- protocol.MessageStart,
+	msgStopChan chan<- protocol.MessageStop,
+	msgStatusChan chan<- protocol.MessageStatus,
+	msgPeersChan chan<- protocol.MessagePeers,
+	msgDiscoverChan chan<- protocol.MessageDiscover,
+	msgInviteChan chan<- protocol.MessageInvite,
+	msgJoinChan chan<- protocol.MessageJoin,
+	msgExpelChan chan<- protocol.MessageExpel,
+	msgProposeChan chan<- protocol.MessagePropose,
+	msgLogChan chan<- protocol.MessageLog,
 ) {
 
-	r.msgStartC = msgStartC
-	r.msgStopC = msgStopC
-	r.msgStatusC = msgStatusC
-	r.msgPeersC = msgPeersC
-	r.msgDiscoverC = msgDiscoverC
-	r.msgInviteC = msgInviteC
-	r.msgJoinC = msgJoinC
-	r.msgExpelC = msgExpelC
-	r.msgProposeC = msgProposeC
-	r.msgLogC = msgLogC
+	r.msgStartChan = msgStartChan
+	r.msgStopChan = msgStopChan
+	r.msgStatusChan = msgStatusChan
+	r.msgPeersChan = msgPeersChan
+	r.msgDiscoverChan = msgDiscoverChan
+	r.msgInviteChan = msgInviteChan
+	r.msgJoinChan = msgJoinChan
+	r.msgExpelChan = msgExpelChan
+	r.msgProposeChan = msgProposeChan
+	r.msgLogChan = msgLogChan
 }
 
 func (r *grpcReceiver) Start(_ context.Context, _ *pb.Empty) (*pb.Empty, error) {
 
-	if r.msgStartC == nil {
+	if r.msgStartChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgStartC <- protocol.MessageStart{}
+	r.msgStartChan <- protocol.MessageStart{}
 
 	return &pb.Empty{}, nil
 
@@ -68,27 +66,27 @@ func (r *grpcReceiver) Start(_ context.Context, _ *pb.Empty) (*pb.Empty, error) 
 
 func (r *grpcReceiver) Stop(_ context.Context, _ *pb.Empty) (*pb.Empty, error) {
 
-	if r.msgStopC == nil {
+	if r.msgStopChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgStopC <- protocol.MessageStop{}
+	r.msgStopChan <- protocol.MessageStop{}
 
 	return &pb.Empty{}, nil
 }
 
 func (r *grpcReceiver) Status(ctx context.Context, _ *pb.Empty) (*pb.StatusInfo, error) {
-	if r.msgStatusC == nil {
+	if r.msgStatusChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	statusInfoC := make(chan pb.StatusInfo)
-	r.msgStatusC <- protocol.MessageStatus{
-		StatusInfoC: statusInfoC,
+	statusInfoChan := make(chan pb.StatusInfo)
+	r.msgStatusChan <- protocol.MessageStatus{
+		StatusInfoChan: statusInfoChan,
 	}
 
 	select {
-	case statusInfo := <-statusInfoC:
+	case statusInfo := <-statusInfoChan:
 		return &statusInfo, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -98,16 +96,16 @@ func (r *grpcReceiver) Status(ctx context.Context, _ *pb.Empty) (*pb.StatusInfo,
 
 func (r *grpcReceiver) Peers(_ *pb.Empty, ss pb.Raft_PeersServer) error {
 
-	if r.msgPeersC == nil {
+	if r.msgPeersChan == nil {
 		return ErrUnavailable
 	}
 
-	peersC := make(chan pb.Peer)
-	r.msgPeersC <- protocol.MessagePeers{
-		PeersC: peersC,
+	peersChan := make(chan pb.Peer)
+	r.msgPeersChan <- protocol.MessagePeers{
+		PeersChan: peersChan,
 	}
 
-	for peer := range peersC {
+	for peer := range peersChan {
 		if err := ss.Send(&peer); err != nil {
 			return err
 		}
@@ -118,17 +116,17 @@ func (r *grpcReceiver) Peers(_ *pb.Empty, ss pb.Raft_PeersServer) error {
 
 func (r *grpcReceiver) Discover(peerID *pb.PeerID, ss pb.Raft_DiscoverServer) error {
 
-	if r.msgDiscoverC == nil {
+	if r.msgDiscoverChan == nil {
 		return ErrUnavailable
 	}
 
-	peersC := make(chan pb.Peer)
-	r.msgDiscoverC <- protocol.MessageDiscover{
-		PeerID: *peerID,
-		PeersC: peersC,
+	peersChan := make(chan pb.Peer)
+	r.msgDiscoverChan <- protocol.MessageDiscover{
+		PeerID:    *peerID,
+		PeersChan: peersChan,
 	}
 
-	for peer := range peersC {
+	for peer := range peersChan {
 		if err := ss.Send(&peer); err != nil {
 			return err
 		}
@@ -139,11 +137,11 @@ func (r *grpcReceiver) Discover(peerID *pb.PeerID, ss pb.Raft_DiscoverServer) er
 }
 
 func (r *grpcReceiver) Invite(_ context.Context, peerID *pb.PeerID) (*pb.Empty, error) {
-	if r.msgInviteC == nil {
+	if r.msgInviteChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgInviteC <- protocol.MessageInvite{
+	r.msgInviteChan <- protocol.MessageInvite{
 		PeerID: *peerID,
 	}
 
@@ -152,11 +150,11 @@ func (r *grpcReceiver) Invite(_ context.Context, peerID *pb.PeerID) (*pb.Empty, 
 }
 
 func (r *grpcReceiver) Join(_ context.Context, peerID *pb.PeerID) (*pb.Empty, error) {
-	if r.msgJoinC == nil {
+	if r.msgJoinChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgJoinC <- protocol.MessageJoin{
+	r.msgJoinChan <- protocol.MessageJoin{
 		PeerID: *peerID,
 	}
 
@@ -165,11 +163,11 @@ func (r *grpcReceiver) Join(_ context.Context, peerID *pb.PeerID) (*pb.Empty, er
 }
 
 func (r *grpcReceiver) Expel(_ context.Context, peerID *pb.PeerID) (*pb.Empty, error) {
-	if r.msgExpelC == nil {
+	if r.msgExpelChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgExpelC <- protocol.MessageExpel{
+	r.msgExpelChan <- protocol.MessageExpel{
 		PeerID: *peerID,
 	}
 
@@ -178,11 +176,11 @@ func (r *grpcReceiver) Expel(_ context.Context, peerID *pb.PeerID) (*pb.Empty, e
 }
 
 func (r *grpcReceiver) Propose(_ context.Context, proposal *pb.Proposal) (*pb.Empty, error) {
-	if r.msgProposeC == nil {
+	if r.msgProposeChan == nil {
 		return nil, ErrUnavailable
 	}
 
-	r.msgProposeC <- protocol.MessagePropose{
+	r.msgProposeChan <- protocol.MessagePropose{
 		Proposal: *proposal,
 	}
 
@@ -192,16 +190,16 @@ func (r *grpcReceiver) Propose(_ context.Context, proposal *pb.Proposal) (*pb.Em
 
 func (r *grpcReceiver) Log(_ *pb.Empty, ss pb.Raft_LogServer) error {
 
-	if r.msgLogC == nil {
+	if r.msgLogChan == nil {
 		return ErrUnavailable
 	}
 
-	entriesC := make(chan pb.Entry)
-	r.msgLogC <- protocol.MessageLog{
-		EntriesC: entriesC,
+	entriesChan := make(chan pb.Entry)
+	r.msgLogChan <- protocol.MessageLog{
+		EntriesChan: entriesChan,
 	}
 
-	for entry := range entriesC {
+	for entry := range entriesChan {
 		if err := ss.Send(&entry); err != nil {
 			return err
 		}

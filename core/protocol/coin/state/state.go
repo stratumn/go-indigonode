@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	db "github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/trie"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -71,10 +72,17 @@ const (
 )
 
 type stateDB struct {
-	mu     sync.RWMutex
-	db     db.DB
-	diff   *db.Diff
-	prefix []byte
+	// The general pattern for updating accounts is:
+	//
+	//	1. Modify the accountsTrie
+	//	2. Apply accountsTrie changes to diff
+	//	3. Do other modifications to diff (like saving nonces)
+	//	4. Atomically apply changes from diff to underlying DB
+	//	5. Reset accountsTrie and diff changes in case an error occured
+	mu           sync.RWMutex
+	diff         *db.Diff
+	accountsTrie *trie.Trie
+	prefix       []byte
 }
 
 // Opt is an option for state.
@@ -93,27 +101,30 @@ var OptPrefix = func(prefix []byte) Opt {
 //
 // VERY IMPORTANT NOTE: ALL THE DIFFERENT MODULES THAT SHARE THE SAME INSTANCE
 // OF THE DATABASE MUST USE A UNIQUE PREFIX OF THE SAME BYTESIZE.
-func NewState(database db.DB, opts ...Opt) State {
-	s := &stateDB{
-		db:   database,
-		diff: db.NewDiff(database),
-	}
+func NewState(database db.ReadWriteBatcher, opts ...Opt) State {
+	diff := db.NewDiff(database)
+
+	s := &stateDB{diff: db.NewDiff(database)}
 
 	for _, o := range opts {
 		o(s)
 	}
 
+	s.accountsTrie = trie.New(
+		trie.OptDB(diff),
+		trie.OptPrefix(append(s.prefix, accountPrefix)),
+	)
+
 	return s
 }
 
 func (s *stateDB) GetAccount(pubKey []byte) (*pb.Account, error) {
-	return s.doGetAccount(s.db, pubKey)
+	return s.doGetAccount(pubKey)
 }
 
-// doGetAccount is able to get an account using anything that implements the
-// db.Reader interface.
-func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (*pb.Account, error) {
-	buf, err := dbr.Get(s.accountKey(pubKey))
+// doGetAccount returns an account.
+func (s *stateDB) doGetAccount(pubKey []byte) (*pb.Account, error) {
+	buf, err := s.accountsTrie.Get(pubKey)
 	if errors.Cause(err) == db.ErrNotFound {
 		return &pb.Account{}, nil
 	}
@@ -130,15 +141,28 @@ func (s *stateDB) doGetAccount(dbr db.Reader, pubKey []byte) (*pb.Account, error
 func (s *stateDB) UpdateAccount(pubKey []byte, account *pb.Account) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer s.diff.Reset()
+	defer s.accountsTrie.Reset()
 
-	return s.doUpdateAccount(s.db, pubKey, account)
+	err := s.doUpdateAccount(pubKey, account)
+	if err != nil {
+		s.accountsTrie.Reset()
+	}
+
+	// Commit trie changes to diff.
+	if err := s.accountsTrie.Commit(); err != nil {
+		return err
+	}
+
+	// Commit diff changes to database.
+	return s.diff.Apply()
 }
 
-// doGetAccount updates an account using anything that implements db.Writer.
-func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Account) error {
+// doGetAccount updates an account.
+func (s *stateDB) doUpdateAccount(pubKey []byte, account *pb.Account) error {
 	// Delete empty accounts to save space.
 	if account.Balance == 0 && account.Nonce == 0 {
-		return dbw.Delete(s.accountKey(pubKey))
+		return s.accountsTrie.Delete(pubKey)
 	}
 
 	buf, err := account.Marshal()
@@ -146,14 +170,14 @@ func (s *stateDB) doUpdateAccount(dbw db.Writer, pubKey []byte, account *pb.Acco
 		return errors.WithStack(err)
 	}
 
-	return dbw.Put(s.accountKey(pubKey), buf)
+	return s.accountsTrie.Put(pubKey, buf)
 }
 
 func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	s.diff.Reset()
+	defer s.diff.Reset()
+	defer s.accountsTrie.Reset()
 
 	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
@@ -161,11 +185,12 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	for i, tx := range txs {
 		// Substract amount for sender, except for reward transaction.
 		if tx.From != nil {
-			from, err := s.doGetAccount(s.diff, tx.From)
+			from, err := s.doGetAccount(tx.From)
 			if err != nil {
 				return err
 			}
 
+			// Save current nonce.
 			binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
 			// Subtract amount from sender.
@@ -178,30 +203,38 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 				from.Nonce = tx.Nonce
 			}
 
-			err = s.doUpdateAccount(s.diff, tx.From, from)
+			err = s.doUpdateAccount(tx.From, from)
 			if err != nil {
 				return err
 			}
 		}
 
 		// Add amount to receiver.
-		to, err := s.doGetAccount(s.diff, tx.To)
+		to, err := s.doGetAccount(tx.To)
 		if err != nil {
 			return err
 		}
 
 		to.Balance += tx.Value
 
-		err = s.doUpdateAccount(s.diff, tx.To, to)
+		err = s.doUpdateAccount(tx.To, to)
 		if err != nil {
 			return err
 		}
 	}
 
+	// We do not put nonces in the trie since they are implementation
+	// specific and should not affect the Merkle Root.
 	if err := s.diff.Put(s.prevNoncesKey(stateID), nonces); err != nil {
 		return err
 	}
 
+	// Commit trie changes to diff.
+	if err := s.accountsTrie.Commit(); err != nil {
+		return err
+	}
+
+	// Commit diff changes to database.
 	return s.diff.Apply()
 }
 
@@ -209,8 +242,10 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
+	defer s.accountsTrie.Reset()
 
-	nonces, err := s.db.Get(s.prevNoncesKey(stateID))
+	// Nonces are in the database, not the trie.
+	nonces, err := s.diff.Get(s.prevNoncesKey(stateID))
 	if err != nil {
 		return err
 	}
@@ -222,44 +257,50 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 	for i := len(txs) - 1; i >= 0; i-- {
 		tx := txs[i]
 
-		// Add amount to sender and restore nonce.
-		from, err := s.doGetAccount(s.diff, tx.From)
-		if err != nil {
-			return err
-		}
+		// Add amount to sender, except for reward transaction.
+		if tx.From != nil {
+			from, err := s.doGetAccount(tx.From)
+			if err != nil {
+				return err
+			}
 
-		from.Balance += tx.Value + tx.Fee
-		from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
+			from.Balance += tx.Value + tx.Fee
 
-		err = s.doUpdateAccount(s.diff, tx.From, from)
-		if err != nil {
-			return err
+			// Restore nonce.
+			from.Nonce = binary.LittleEndian.Uint64(nonces[i*8:])
+
+			err = s.doUpdateAccount(tx.From, from)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Subtract amount from received.
-		to, err := s.doGetAccount(s.diff, tx.To)
+		to, err := s.doGetAccount(tx.To)
 		if err != nil {
 			return err
 		}
 
 		to.Balance -= tx.Value
 
-		err = s.doUpdateAccount(s.diff, tx.To, to)
+		err = s.doUpdateAccount(tx.To, to)
 		if err != nil {
 			return err
 		}
 	}
 
+	// Don't need nonces anymore.
 	if err := s.diff.Delete(s.prevNoncesKey(stateID)); err != nil {
 		return err
 	}
 
-	return s.diff.Apply()
-}
+	// Commit trie changes to diff.
+	if err := s.accountsTrie.Commit(); err != nil {
+		return err
+	}
 
-// accountKey returns the key corresponding to an account given its public key.
-func (s *stateDB) accountKey(pubKey []byte) []byte {
-	return append(append(s.prefix, accountPrefix), pubKey...)
+	// Commit diff changes to database.
+	return s.diff.Apply()
 }
 
 // prevNoncesKey returns the previous nonces key for the given state ID.

@@ -14,8 +14,7 @@
 
 //go:generate mockgen -package mockraft -destination mockraft/mockraft.go github.com/stratumn/alice/core/service/raft Host
 
-// Package raft is a simple service that sends the local time to a peer every
-// time it receives a byte from that peer.
+// Package raft wraps coreos/raft library
 //
 // It is meant to illustrate how to create network services.
 package raft
@@ -49,13 +48,22 @@ var log = logging.Logger("raft")
 // Service is the Raft service.
 type Service struct {
 	host         Host
+	config       *Config
 	swarm        *swarm.Swarm
 	grpcReceiver grpcReceiver
 }
 
-// Config returns the current service configuration or creates one with
-// good default values.
-type Config struct{}
+// Config contains configuration options for the Raft service.
+type Config struct {
+	// ElectionTick is the number of Node.Tick invocations that must pass between elections
+	ElectionTick int `toml:"election_tick" comment:"the number of Node.Tick invocations that must pass between elections"`
+	// HeartbeatTick is the number of Node.Tick invocations that must pass between heartbeats
+	HeartbeatTick int `toml:"heartbeat_tick" comment:"the number of Node.Tick invocations that must pass between heartbeats"`
+	// MaxSizePerMsg limits the max size of each append message
+	MaxSizePerMsg uint64 `toml:"max_size_per_msg" comment:"limits the max size of each append message"`
+	// MaxInflightMsgs limits the max number of in-flight append messages during optimistic replication phase
+	MaxInflightMsgs int `toml:"max_inflight_msgs" comment:"limits the max number of in-flight append messages during optimistic replication phase"`
+}
 
 // ID returns the unique identifier of the service.
 func (s *Service) ID() string {
@@ -75,11 +83,23 @@ func (s *Service) Desc() string {
 // Config returns the current service configuration or creates one with
 // good default values.
 func (s *Service) Config() interface{} {
-	return Config{}
+	if s.config != nil {
+		return *s.config
+	}
+
+	return Config{
+		ElectionTick:    10,
+		HeartbeatTick:   1,
+		MaxSizePerMsg:   1024 * 1024,
+		MaxInflightMsgs: 256,
+	}
+
 }
 
 // SetConfig configures the service.
 func (s *Service) SetConfig(config interface{}) error {
+	conf := config.(Config)
+	s.config = &conf
 	return nil
 }
 
@@ -143,6 +163,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	raftProcess := protocol.NewRaftProcess(
 		[]byte(s.swarm.LocalPeer()),
+		s.config.ElectionTick,
+		s.config.HeartbeatTick,
+		s.config.MaxSizePerMsg,
+		s.config.MaxInflightMsgs,
 		msgStartC,
 		msgStopC,
 		msgStatusC,
@@ -165,18 +189,27 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		msgToNetC,
 	)
 
-	// ctx = logging.ContextWithLoggable(ctx, logging.Metadata{
-	// 	"origin": "xxxx",
-	// })
+	raftErrChan := make(chan error)
+	netErrChan := make(chan error)
 
-	go raftProcess.Run(ctx)
-	go netProcess.Run(ctx)
+	go func() {
+		raftErrChan <- raftProcess.Run(ctx)
+	}()
+
+	go func() {
+		netErrChan <- netProcess.Run(ctx)
+	}()
 
 	running()
 	<-ctx.Done()
 	stopping()
 
-	// TODO: wait
+	if err := <-raftErrChan; err != nil {
+		return errors.WithStack(err)
+	}
+	if err := <-netErrChan; err != nil {
+		return errors.WithStack(err)
+	}
 
 	return nil
 

@@ -51,9 +51,12 @@ type Reader interface {
 	// CurrentHeader retrieves the current header from the local chain.
 	CurrentHeader() (*pb.Header, error)
 
-	// GetHeaderByNumber retrieves block headers from the database by number.
-	// In case of forks there might be multiple headers with the same number.
-	GetHeaderByNumber(number uint64) ([]*pb.Header, error)
+	// GetHeadersByNumber retrieves block headers from the database by number.
+	// In case of forks there might be multiple headers with the same number,
+	GetHeadersByNumber(number uint64) ([]*pb.Header, error)
+
+	// GetHeaderByNumber retrieves a header from the main branch by number.
+	GetHeaderByNumber(number uint64) (*pb.Header, error)
 
 	// GetHeaderByHash retrieves a block header from the database by its hash.
 	GetHeaderByHash(hash []byte) (*pb.Header, error)
@@ -71,7 +74,7 @@ type Writer interface {
 	// It assumes that the block has been validated.
 	AddBlock(block *pb.Block) error
 
-	// SetHead sets the head of the chain
+	// SetHead sets the head of the chain.
 	SetHead(block *pb.Block) error
 }
 

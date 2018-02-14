@@ -88,9 +88,9 @@ func TestProcessor_Process(t *testing.T) {
 	assert.NoError(t, err, "CurrentHeader()")
 	assert.Equal(t, block2.Header, header, "CurrentHeader()")
 
-	headers, err := c.GetHeaderByNumber(1)
-	assert.NoError(t, err, "GetHeaderByNumber()")
-	assert.Len(t, headers, 1, "GetHeaderByNumber()")
+	headers, err := c.GetHeadersByNumber(1)
+	assert.NoError(t, err, "GetHeadersByNumber()")
+	assert.Len(t, headers, 1, "GetHeadersByNumber()")
 
 	// Check state
 	v, err := s.GetAccount(alice)

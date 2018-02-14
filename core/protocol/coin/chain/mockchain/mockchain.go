@@ -4,10 +4,11 @@
 package mockchain
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	coin "github.com/stratumn/alice/pb/coin"
-	reflect "reflect"
 )
 
 // MockChain is a mock of Chain interface
@@ -93,14 +94,14 @@ func (_mr *MockChainMockRecorder) GetHeaderByHash(arg0 interface{}) *gomock.Call
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetHeaderByHash", reflect.TypeOf((*MockChain)(nil).GetHeaderByHash), arg0)
 }
 
-// GetHeaderByNumber mocks base method
-func (_m *MockChain) GetHeaderByNumber(_param0 uint64) []*coin.Header {
-	ret := _m.ctrl.Call(_m, "GetHeaderByNumber", _param0)
+// GetHeadersByNumber mocks base method
+func (_m *MockChain) GetHeadersByNumber(_param0 uint64) []*coin.Header {
+	ret := _m.ctrl.Call(_m, "GetHeadersByNumber", _param0)
 	ret0, _ := ret[0].([]*coin.Header)
 	return ret0
 }
 
-// GetHeaderByNumber indicates an expected call of GetHeaderByNumber
-func (_mr *MockChainMockRecorder) GetHeaderByNumber(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetHeaderByNumber", reflect.TypeOf((*MockChain)(nil).GetHeaderByNumber), arg0)
+// GetHeadersByNumber indicates an expected call of GetHeadersByNumber
+func (_mr *MockChainMockRecorder) GetHeadersByNumber(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetHeadersByNumber", reflect.TypeOf((*MockChain)(nil).GetHeadersByNumber), arg0)
 }

@@ -29,7 +29,6 @@ import (
 	protocol "github.com/stratumn/alice/core/protocol/raft"
 
 	swarm "gx/ipfs/QmSD9fajyipwNQw3Hza2k2ifcBfbhGoC1ZHHgQBy4yqU8d/go-libp2p-swarm"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -40,14 +39,11 @@ var (
 	ErrNotSwarm = errors.New("connected service is not a swarm")
 )
 
-type Host = ihost.Host
-
-// log is the logger for the service.
-var log = logging.Logger("raft")
+type host = ihost.Host
 
 // Service is the Raft service.
 type Service struct {
-	host         Host
+	host         host
 	config       *Config
 	swarm        *swarm.Swarm
 	grpcReceiver grpcReceiver
@@ -116,7 +112,7 @@ func (s *Service) Needs() map[string]struct{} {
 func (s *Service) Plug(exposed map[string]interface{}) error {
 	var ok bool
 
-	if s.host, ok = exposed["host"].(Host); !ok {
+	if s.host, ok = exposed["host"].(host); !ok {
 		return errors.Wrap(ErrNotHost, "host")
 	}
 
@@ -135,30 +131,30 @@ func (s *Service) Expose() interface{} {
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
-	msgStartC := make(chan protocol.MessageStart)
-	msgStopC := make(chan protocol.MessageStop)
-	msgStatusC := make(chan protocol.MessageStatus)
-	msgPeersC := make(chan protocol.MessagePeers)
-	msgDiscoverC := make(chan protocol.MessageDiscover)
-	msgInviteC := make(chan protocol.MessageInvite)
-	msgJoinC := make(chan protocol.MessageJoin)
-	msgExpelC := make(chan protocol.MessageExpel)
-	msgProposeC := make(chan protocol.MessagePropose)
-	msgLogC := make(chan protocol.MessageLog)
-	msgFromNetC := make(chan protocol.MessageRaft)
-	msgToNetC := make(chan protocol.MessageRaft)
+	msgStartChan := make(chan protocol.MessageStart)
+	msgStopChan := make(chan protocol.MessageStop)
+	msgStatusChan := make(chan protocol.MessageStatus)
+	msgPeersChan := make(chan protocol.MessagePeers)
+	msgDiscoverChan := make(chan protocol.MessageDiscover)
+	msgInviteChan := make(chan protocol.MessageInvite)
+	msgJoinChan := make(chan protocol.MessageJoin)
+	msgExpelChan := make(chan protocol.MessageExpel)
+	msgProposeChan := make(chan protocol.MessagePropose)
+	msgLogChan := make(chan protocol.MessageLog)
+	msgFromNetChan := make(chan protocol.MessageRaft)
+	msgToNetChan := make(chan protocol.MessageRaft)
 
 	s.grpcReceiver.Init(
-		msgStartC,
-		msgStopC,
-		msgStatusC,
-		msgPeersC,
-		msgDiscoverC,
-		msgInviteC,
-		msgJoinC,
-		msgExpelC,
-		msgProposeC,
-		msgLogC,
+		msgStartChan,
+		msgStopChan,
+		msgStatusChan,
+		msgPeersChan,
+		msgDiscoverChan,
+		msgInviteChan,
+		msgJoinChan,
+		msgExpelChan,
+		msgProposeChan,
+		msgLogChan,
 	)
 
 	raftProcess := protocol.NewRaftProcess(
@@ -167,26 +163,26 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		s.config.HeartbeatTick,
 		s.config.MaxSizePerMsg,
 		s.config.MaxInflightMsgs,
-		msgStartC,
-		msgStopC,
-		msgStatusC,
-		msgPeersC,
-		msgDiscoverC,
-		msgInviteC,
-		msgJoinC,
-		msgExpelC,
-		msgProposeC,
-		msgLogC,
-		msgFromNetC,
-		msgToNetC,
+		msgStartChan,
+		msgStopChan,
+		msgStatusChan,
+		msgPeersChan,
+		msgDiscoverChan,
+		msgInviteChan,
+		msgJoinChan,
+		msgExpelChan,
+		msgProposeChan,
+		msgLogChan,
+		msgFromNetChan,
+		msgToNetChan,
 	)
 
 	netProcess := protocol.NewNetProcess(
 		s.host,
-		msgDiscoverC,
-		msgPeersC,
-		msgFromNetC,
-		msgToNetC,
+		msgDiscoverChan,
+		msgPeersChan,
+		msgFromNetChan,
+		msgToNetChan,
 	)
 
 	raftErrChan := make(chan error)

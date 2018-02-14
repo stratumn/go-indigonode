@@ -16,6 +16,7 @@ import (
 
 var log = logging.Logger("raft")
 
+// Runner mainly used to abstract away raftProcess and netProcess
 type Runner interface {
 	Run(ctx context.Context) error
 }
@@ -33,40 +34,41 @@ type raftProcess struct {
 	maxSizePerMsg   uint64
 	maxInflightMsgs int
 	ticker          *time.Ticker
-	tickerC         <-chan time.Time
-	raftC           <-chan raft.Ready
-	msgStartC       <-chan MessageStart
-	msgStopC        chan MessageStop
-	msgStatusC      <-chan MessageStatus
-	msgPeersC       <-chan MessagePeers
-	msgDiscoverC    chan<- MessageDiscover
-	msgInviteC      <-chan MessageInvite
-	msgJoinC        <-chan MessageJoin
-	msgExpelC       <-chan MessageExpel
-	msgProposeC     <-chan MessagePropose
-	msgLogC         <-chan MessageLog
-	msgFromNetC     <-chan MessageRaft
-	msgToNetC       chan<- MessageRaft
+	tickerChan      <-chan time.Time
+	raftChan        <-chan raft.Ready
+	msgStartChan    <-chan MessageStart
+	msgStopChan     chan MessageStop
+	msgStatusChan   <-chan MessageStatus
+	msgPeersChan    <-chan MessagePeers
+	msgDiscoverChan chan<- MessageDiscover
+	msgInviteChan   <-chan MessageInvite
+	msgJoinChan     <-chan MessageJoin
+	msgExpelChan    <-chan MessageExpel
+	msgProposeChan  <-chan MessagePropose
+	msgLogChan      <-chan MessageLog
+	msgFromNetChan  <-chan MessageRaft
+	msgToNetChan    chan<- MessageRaft
 }
 
+// NewRaftProcess creates an instance of raftProcess
 func NewRaftProcess(
 	localPeer []byte,
 	electionTick int,
 	heartbeatTick int,
 	maxSizePerMsg uint64,
 	maxInflightMsgs int,
-	msgStartC <-chan MessageStart,
-	msgStopC chan MessageStop,
-	msgStatusC <-chan MessageStatus,
-	msgPeersC <-chan MessagePeers,
-	msgDiscoverC chan<- MessageDiscover,
-	msgInviteC <-chan MessageInvite,
-	msgJoinC <-chan MessageJoin,
-	msgExpelC <-chan MessageExpel,
-	msgProposeC <-chan MessagePropose,
-	msgLogC <-chan MessageLog,
-	msgFromNetC <-chan MessageRaft,
-	msgToNetC chan<- MessageRaft,
+	msgStartChan <-chan MessageStart,
+	msgStopChan chan MessageStop,
+	msgStatusChan <-chan MessageStatus,
+	msgPeersChan <-chan MessagePeers,
+	msgDiscoverChan chan<- MessageDiscover,
+	msgInviteChan <-chan MessageInvite,
+	msgJoinChan <-chan MessageJoin,
+	msgExpelChan <-chan MessageExpel,
+	msgProposeChan <-chan MessagePropose,
+	msgLogChan <-chan MessageLog,
+	msgFromNetChan <-chan MessageRaft,
+	msgToNetChan chan<- MessageRaft,
 ) Runner {
 	return &raftProcess{
 		localPeer:       localPeer,
@@ -74,18 +76,18 @@ func NewRaftProcess(
 		heartbeatTick:   heartbeatTick,
 		maxSizePerMsg:   maxSizePerMsg,
 		maxInflightMsgs: maxInflightMsgs,
-		msgStartC:       msgStartC,
-		msgStopC:        msgStopC,
-		msgStatusC:      msgStatusC,
-		msgPeersC:       msgPeersC,
-		msgDiscoverC:    msgDiscoverC,
-		msgInviteC:      msgInviteC,
-		msgJoinC:        msgJoinC,
-		msgExpelC:       msgExpelC,
-		msgProposeC:     msgProposeC,
-		msgLogC:         msgLogC,
-		msgFromNetC:     msgFromNetC,
-		msgToNetC:       msgToNetC,
+		msgStartChan:    msgStartChan,
+		msgStopChan:     msgStopChan,
+		msgStatusChan:   msgStatusChan,
+		msgPeersChan:    msgPeersChan,
+		msgDiscoverChan: msgDiscoverChan,
+		msgInviteChan:   msgInviteChan,
+		msgJoinChan:     msgJoinChan,
+		msgExpelChan:    msgExpelChan,
+		msgProposeChan:  msgProposeChan,
+		msgLogChan:      msgLogChan,
+		msgFromNetChan:  msgFromNetChan,
+		msgToNetChan:    msgToNetChan,
 	}
 
 }
@@ -93,29 +95,29 @@ func NewRaftProcess(
 func (r *raftProcess) Run(ctx context.Context) error {
 	for {
 		select {
-		case <-r.msgStartC:
+		case <-r.msgStartChan:
 			r.eventStart(ctx)
-		case msg := <-r.msgJoinC:
+		case msg := <-r.msgJoinChan:
 			r.eventJoin(ctx, msg)
-		case <-r.msgStopC:
+		case <-r.msgStopChan:
 			r.eventStop(ctx)
-		case msg := <-r.msgStatusC:
+		case msg := <-r.msgStatusChan:
 			r.eventStatus(ctx, msg)
-		case msg := <-r.msgPeersC:
+		case msg := <-r.msgPeersChan:
 			r.eventPeers(ctx, msg)
-		case msg := <-r.msgInviteC:
+		case msg := <-r.msgInviteChan:
 			r.eventInvite(ctx, msg)
-		case msg := <-r.msgExpelC:
+		case msg := <-r.msgExpelChan:
 			r.eventExpel(ctx, msg)
-		case msg := <-r.msgProposeC:
+		case msg := <-r.msgProposeChan:
 			r.eventPropose(ctx, msg)
-		case msg := <-r.msgLogC:
+		case msg := <-r.msgLogChan:
 			r.eventLog(ctx, msg)
-		case <-r.tickerC:
+		case <-r.tickerChan:
 			r.eventTick(ctx)
-		case rd := <-r.raftC:
+		case rd := <-r.raftChan:
 			r.eventRaft(ctx, rd)
-		case msg := <-r.msgFromNetC:
+		case msg := <-r.msgFromNetChan:
 			r.eventStep(ctx, msg)
 		case <-ctx.Done():
 			r.eventDone(ctx)
@@ -154,18 +156,18 @@ func (r *raftProcess) eventJoin(ctx context.Context, msg MessageJoin) {
 		return
 	}
 
-	peersC := make(chan pb.Peer)
-	r.msgDiscoverC <- MessageDiscover{
-		PeerID: msg.PeerID,
-		PeersC: peersC,
+	peersChan := make(chan pb.Peer)
+	r.msgDiscoverChan <- MessageDiscover{
+		PeerID:    msg.PeerID,
+		PeersChan: peersChan,
 	}
 
 	peers := map[uint64][]byte{}
 	var nodeID uint64
-	// TODO: don't block
-	for peer := range peersC {
+
+	for peer := range peersChan {
 		peers[peer.Id] = peer.Address
-		if bytes.Compare(peer.Address, r.localPeer) == 0 {
+		if bytes.Equal(peer.Address, r.localPeer) {
 			nodeID = peer.Id
 		}
 	}
@@ -197,24 +199,24 @@ func (r *raftProcess) eventStop(ctx context.Context) {
 
 func (r *raftProcess) eventStatus(ctx context.Context, msg MessageStatus) {
 	log.Event(ctx, "raftStatus")
-	msg.StatusInfoC <- pb.StatusInfo{Running: (r.node != nil), Id: r.nodeID}
+	msg.StatusInfoChan <- pb.StatusInfo{Running: (r.node != nil), Id: r.nodeID}
 }
 
 func (r *raftProcess) eventPeers(ctx context.Context, msg MessagePeers) {
 	log.Event(ctx, "raftPeers")
 
-	defer close(msg.PeersC)
+	defer close(msg.PeersChan)
 
 	keys := make([]uint64, len(r.peers))
 	i := 0
 	for k := range r.peers {
 		keys[i] = k
-		i += 1
+		i++
 	}
 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 
 	for _, k := range keys {
-		msg.PeersC <- pb.Peer{Id: k, Address: r.peers[k]}
+		msg.PeersChan <- pb.Peer{Id: k, Address: r.peers[k]}
 	}
 }
 
@@ -228,7 +230,7 @@ func (r *raftProcess) eventInvite(ctx context.Context, msg MessageInvite) {
 	}
 
 	for _, address := range r.peers {
-		if bytes.Compare(address, msg.PeerID.Address) == 0 {
+		if bytes.Equal(address, msg.PeerID.Address) {
 			log.Event(ctx, "errorInvite", logging.Metadata{
 				"error":   "peer already invited",
 				"peers":   r.peers,
@@ -244,7 +246,12 @@ func (r *raftProcess) eventInvite(ctx context.Context, msg MessageInvite) {
 		NodeID:  r.configChangeID + 2,
 		Context: msg.PeerID.Address,
 	}
-	r.node.ProposeConfChange(ctx, cc)
+	err := r.node.ProposeConfChange(ctx, cc)
+	if err != nil {
+		log.Event(ctx, "errorInvite", logging.Metadata{
+			"error": err,
+		})
+	}
 }
 
 func (r *raftProcess) eventExpel(ctx context.Context, msg MessageExpel) {
@@ -258,7 +265,7 @@ func (r *raftProcess) eventExpel(ctx context.Context, msg MessageExpel) {
 
 	var expelID uint64
 	for id, address := range r.peers {
-		if bytes.Compare(address, msg.PeerID.Address) == 0 {
+		if bytes.Equal(address, msg.PeerID.Address) {
 			expelID = id
 			break
 		}
@@ -271,7 +278,7 @@ func (r *raftProcess) eventExpel(ctx context.Context, msg MessageExpel) {
 		return
 	}
 
-	r.configChangeID += 1
+	r.configChangeID++
 	cc := raftpb.ConfChange{
 		ID:     r.configChangeID,
 		Type:   raftpb.ConfChangeRemoveNode,
@@ -293,16 +300,21 @@ func (r *raftProcess) eventPropose(ctx context.Context, msg MessagePropose) {
 		})
 		return
 	}
-	r.node.Propose(ctx, msg.Proposal.Data)
+	err := r.node.Propose(ctx, msg.Proposal.Data)
+	if err != nil {
+		log.Event(ctx, "errorPropose", logging.Metadata{
+			"error": err,
+		})
+	}
 }
 
 func (r *raftProcess) eventLog(ctx context.Context, msg MessageLog) {
 	log.Event(ctx, "raftLog")
 
-	defer close(msg.EntriesC)
+	defer close(msg.EntriesChan)
 
 	for i := range r.committed {
-		msg.EntriesC <- pb.Entry{Index: uint64(i), Data: r.committed[i]}
+		msg.EntriesChan <- pb.Entry{Index: uint64(i), Data: r.committed[i]}
 	}
 }
 
@@ -334,16 +346,27 @@ func (r *raftProcess) eventRaft(ctx context.Context, rd raft.Ready) {
 			PeerID:  pb.PeerID{Address: address},
 			Message: rmsg,
 		}
-		r.msgToNetC <- message
+		r.msgToNetChan <- message
 	}
-	r.storage.Append(rd.Entries)
+	err := r.storage.Append(rd.Entries)
+	if err != nil {
+		log.Event(ctx, "errorStorageAppend", logging.Metadata{
+			"error": err,
+		})
+	}
 	for _, entry := range rd.CommittedEntries {
 		switch entry.Type {
 		case raftpb.EntryConfChange:
-			r.configChangeID += 1
+			r.configChangeID++
 
 			var cc raftpb.ConfChange
-			cc.Unmarshal(entry.Data)
+			err = cc.Unmarshal(entry.Data)
+			if err != nil {
+				log.Event(ctx, "errorUnmarshal", logging.Metadata{
+					"error": err,
+				})
+				continue
+			}
 			r.node.ApplyConfChange(cc)
 			log.Event(ctx, "confChangeApply", logging.Metadata{
 				"newConfChange": cc,
@@ -353,7 +376,7 @@ func (r *raftProcess) eventRaft(ctx context.Context, rd raft.Ready) {
 			case raftpb.ConfChangeAddNode:
 				r.peers[cc.NodeID] = cc.Context
 			case raftpb.ConfChangeRemoveNode:
-				if bytes.Compare(r.peers[cc.NodeID], r.localPeer) == 0 && cc.NodeID == r.nodeID {
+				if bytes.Equal(r.peers[cc.NodeID], r.localPeer) && cc.NodeID == r.nodeID {
 					log.Event(ctx, "stopDueToExpel")
 					r.stop()
 					return
@@ -379,7 +402,12 @@ func (r *raftProcess) eventStep(ctx context.Context, msg MessageRaft) {
 		})
 		return
 	}
-	r.node.Step(ctx, msg.Message)
+	err := r.node.Step(ctx, msg.Message)
+	if err != nil {
+		log.Event(ctx, "errorStep", logging.Metadata{
+			"error": err,
+		})
+	}
 }
 
 func (r *raftProcess) eventDone(ctx context.Context) {
@@ -396,8 +424,8 @@ func (r *raftProcess) stop() {
 	r.node = nil
 	r.storage = nil
 	r.ticker = nil
-	r.tickerC = nil
-	r.raftC = nil
+	r.tickerChan = nil
+	r.raftChan = nil
 	r.nodeID = 0
 	r.configChangeID = 0
 	r.peers = nil
@@ -422,8 +450,8 @@ func (r *raftProcess) start(nodeID uint64, peers []raft.Peer) {
 	}
 
 	r.ticker = time.NewTicker(100 * time.Millisecond)
-	r.tickerC = r.ticker.C
+	r.tickerChan = r.ticker.C
 
 	r.node = raft.StartNode(c, peers)
-	r.raftC = r.node.Ready()
+	r.raftChan = r.node.Ready()
 }

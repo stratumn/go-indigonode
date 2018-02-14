@@ -211,6 +211,69 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(nil)")
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(nil)")
 		},
+	}, {
+		"process-transaction-nonces",
+		func(t *testing.T, s State) {
+			err := s.UpdateAccount(alice, &pb.Account{Balance: 42000})
+			assert.NoError(t, err, "s.UpdateAccount()")
+
+			txs1 := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Fee:   1,
+				Nonce: 2,
+			}, {
+				From:  alice,
+				To:    charlie,
+				Value: 5,
+				Fee:   1,
+				Nonce: 3,
+			}, {
+				From:  alice,
+				To:    bob,
+				Value: 2,
+				Fee:   1,
+				Nonce: 1,
+			}}
+
+			txs2 := []*pb.Transaction{{
+				From:  alice,
+				To:    charlie,
+				Value: 2,
+				Fee:   1,
+				Nonce: 6,
+			}, {
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Fee:   1,
+				Nonce: 5,
+			}}
+
+			err = s.ProcessTransactions([]byte("state1"), txs1)
+			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+
+			v, err := s.GetAccount(alice)
+			assert.NoError(t, err, "s.GetAccount(alice)")
+			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
+
+			err = s.ProcessTransactions([]byte("state2"), txs2)
+			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+
+			v, err = s.GetAccount(alice)
+			assert.NoError(t, err, "s.GetAccount(alice)")
+			assert.Equal(t, uint64(6), v.Nonce, "s.GetAccount(alice).Nonce")
+
+			// Rollback state2.
+
+			err = s.RollbackTransactions([]byte("state2"), txs2)
+			assert.NoError(t, err, "s.RollbackTransactions(state2)")
+
+			v, err = s.GetAccount(alice)
+			assert.NoError(t, err, "s.GetAccount(alice)")
+			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
+		},
 	}}
 
 	for _, tt := range tests {

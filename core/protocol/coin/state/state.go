@@ -168,9 +168,15 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 
 			binary.LittleEndian.PutUint64(nonces[i*8:], from.Nonce)
 
-			// Subtract amount from sender and update nonce.
+			// Subtract amount from sender.
 			from.Balance -= tx.Value + tx.Fee
-			from.Nonce = tx.Nonce
+
+			// Update nonce. Since transactions are batches, nonces might be
+			// out-of-order in the batch. If the batch contains Nonces [3,4,1]
+			// then the final nonce should be 4.
+			if from.Nonce < tx.Nonce {
+				from.Nonce = tx.Nonce
+			}
 
 			err = s.doUpdateAccount(s.diff, tx.From, from)
 			if err != nil {

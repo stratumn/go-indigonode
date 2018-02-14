@@ -19,7 +19,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	db "github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/trie"
 	pb "github.com/stratumn/alice/pb/coin"
 )

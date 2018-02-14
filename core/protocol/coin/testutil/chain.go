@@ -80,7 +80,9 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.mainBranch == nil {
-		c.generateMainBranch()
+		if err := c.generateMainBranch(); err != nil {
+			return nil, err
+		}
 	}
 
 	b, ok := c.mainBranch[number]

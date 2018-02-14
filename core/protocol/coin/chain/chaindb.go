@@ -147,7 +147,9 @@ func (c *chainDB) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 // GetHeaderByNumber retrieves a header from the main branch by number.
 func (c *chainDB) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 	if c.mainBranch == nil {
-		c.generateMainBranch()
+		if err := c.generateMainBranch(); err != nil {
+			return nil, err
+		}
 	}
 
 	hash, ok := c.mainBranch[number]

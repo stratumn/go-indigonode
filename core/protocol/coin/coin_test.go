@@ -338,7 +338,7 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 	}
 
 	go c.StartMining(ctx)
-	ctestutil.WaitUntil(t, c.miner.IsRunning, "c.miner.IsRunning")
+	tassert.WaitUntil(t, c.miner.IsRunning, "c.miner.IsRunning")
 
 	for _, tx := range config.liveTxs {
 		err := c.AddTransaction(tx)

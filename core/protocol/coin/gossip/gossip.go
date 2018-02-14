@@ -16,6 +16,7 @@ package gossip
 
 import (
 	"context"
+	"encoding/binary"
 
 	"github.com/pkg/errors"
 
@@ -134,12 +135,12 @@ func (g *gossip) subscribeTx() error {
 	return g.subscribe(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
 		tx := &pb.Transaction{}
 		if err := tx.Unmarshal(m.GetData()); err != nil {
-			log.Infof("invalid transaction format: %v", err.Error())
+			log.Event(ctx, "InvalidTransactionFormat", logging.Metadata{"error": err.Error()})
 			return false
 		}
 
 		if err := g.validator.ValidateTx(tx, g.state); err != nil {
-			log.Infof("invalid transaction: %v", err.Error())
+			log.Event(ctx, "InvalidTransaction", logging.Metadata{"error": err.Error()})
 			return false
 		}
 
@@ -152,12 +153,12 @@ func (g *gossip) subscribeBlock() error {
 	return g.subscribe(BlockTopicName, func(ctx context.Context, m *floodsub.Message) bool {
 		block := &pb.Block{}
 		if err := block.Unmarshal(m.GetData()); err != nil {
-			log.Infof("invalid block format: %v", err.Error())
+			log.Event(ctx, "InvalidBlockFormat", logging.Metadata{"error": err.Error()})
 			return false
 		}
 
 		if err := g.validator.ValidateBlock(block, g.state); err != nil {
-			log.Infof("invalid block: %v", err.Error())
+			log.Event(ctx, "InvalidBlock", logging.Metadata{"error": err.Error()})
 			return false
 		}
 
@@ -193,7 +194,13 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 		for errIncoming == nil {
 			if g.host.ID() != msg.GetFrom() {
 				if err := callback(msg); err != nil {
-					log.Warningf("unable to process incoming message for topic %v: %v", topic, err.Error())
+					seqno := binary.BigEndian.Uint64(msg.GetSeqno())
+					log.Event(ctx, "UnableToProcessMessage", logging.Metadata{
+						"topic": topic,
+						"from":  msg.GetFrom().Pretty(),
+						"seqno": seqno,
+						"error": err.Error(),
+					})
 				}
 			}
 
@@ -207,7 +214,7 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 func (g *gossip) publish(topic string, data []byte) error {
 	err := g.pubsub.Publish(topic, data)
 	if err != nil {
-		log.Warningf("unable to publish data to %v topic: %v", topic, err.Error())
+		log.Event(context.Background(), "UnableToPublish", logging.Metadata{"topic": topic, "error": err.Error()})
 	}
 
 	return err

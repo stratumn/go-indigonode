@@ -18,8 +18,9 @@ package processor
 
 import (
 	"bytes"
+	"context"
 
-	ch "github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -34,7 +35,7 @@ var log = logging.Logger("processor")
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state state.State, chain ch.Chain) error
+	Process(block *pb.Block, state state.State, ch chain.Chain) error
 }
 
 type processor struct{}
@@ -49,26 +50,26 @@ type stateTransition struct {
 	transactions []*pb.Transaction
 }
 
-func (p *processor) Process(block *pb.Block, state state.State, chain ch.Chain) error {
+func (p *processor) Process(block *pb.Block, state state.State, ch chain.Chain) error {
 	mh, err := coinutil.HashHeader(block.Header)
 	if err != nil {
 		return err
 	}
 
 	// Check block has already been processed.
-	if _, err := chain.GetBlock(mh, block.BlockNumber()); err != nil && err != ch.ErrBlockHashNotFound {
+	if _, err := ch.GetBlock(mh, block.BlockNumber()); err != nil && err != chain.ErrBlockHashNotFound {
 		return err
 	} else if err == nil {
-		log.Infof("Block with hash %v at height %v has already been processed.", mh.String(), block.BlockNumber())
+		log.Event(context.Background(), "blockAlreadyProcessed", logging.Metadata{"hash": mh.String(), "height": block.BlockNumber()})
 		return nil
 	}
 
 	// Update chain.
-	if err := chain.AddBlock(block); err != nil {
+	if err := ch.AddBlock(block); err != nil {
 		return err
 	}
 
-	head, err := chain.CurrentBlock()
+	head, err := ch.CurrentBlock()
 	if err != nil {
 		return err
 	}
@@ -80,7 +81,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain ch.Chain) 
 	}
 
 	// Set the new head.
-	if err := chain.SetHead(block); err != nil {
+	if err := ch.SetHead(block); err != nil {
 		return err
 	}
 
@@ -91,7 +92,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain ch.Chain) 
 			return err
 		}
 		if !bytes.Equal(hash, block.PreviousHash()) {
-			return p.reorg(head, block, state, chain)
+			return p.reorg(head, block, state, ch)
 		}
 	}
 
@@ -104,7 +105,7 @@ func (p *processor) Process(block *pb.Block, state state.State, chain ch.Chain) 
 }
 
 // Update the state to follow the new main branch.
-func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.State, chain ch.Chain) error {
+func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.State, chain chain.Chain) error {
 	backward := []*stateTransition{}
 	forward := []*stateTransition{}
 

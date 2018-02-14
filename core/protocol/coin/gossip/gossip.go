@@ -42,8 +42,10 @@ var log = logging.Logger("coin.gossip")
 // Gossip is an interface used to gossip transactions and blocks.
 type Gossip interface {
 	// ListenTx passes incoming transactions to a callback.
+	// Only valid transactions will be passed to the callback.
 	ListenTx(ctx context.Context, processTx func(*pb.Transaction) error) error
 	// ListenBlock passes incoming blocks to a callback.
+	// Only valid blocks will be passed to the callback.
 	ListenBlock(ctx context.Context, processBlock func(*pb.Block) error) error
 	// PublishTx sends a new transaction to the gossip.
 	PublishTx(tx *pb.Transaction) error

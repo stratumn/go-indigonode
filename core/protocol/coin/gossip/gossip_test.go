@@ -106,7 +106,7 @@ func TestGossip(t *testing.T) {
 		err = gg1.subscribe(topic, func(ctx context.Context, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 		assert.Len(t, gg1.pubsub.GetTopics(), 1)
-		assert.Equal(t, true, gg1.isSubscribed(topic))
+		assert.True(t, gg1.isSubscribed(topic))
 
 		err = gg1.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
 		require.NoError(t, err)

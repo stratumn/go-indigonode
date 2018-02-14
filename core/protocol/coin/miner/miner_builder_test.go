@@ -15,6 +15,8 @@
 package miner
 
 import (
+	"testing"
+
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -38,9 +40,10 @@ type MinerBuilder struct {
 
 // NewMinerBuilder creates a MinerBuilder with a context and
 // good default values to build a test Miner.
-func NewMinerBuilder() *MinerBuilder {
+func NewMinerBuilder(t *testing.T) *MinerBuilder {
 	return &MinerBuilder{
 		engine:    &testutil.DummyEngine{},
+		gossip:    testutil.NewDummyGossip(t),
 		txpool:    &testutil.InMemoryTxPool{},
 		processor: &testutil.DummyProcessor{},
 		validator: &testutil.DummyValidator{},

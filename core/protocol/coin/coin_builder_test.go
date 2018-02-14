@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/require"
@@ -144,7 +145,7 @@ func (c *CoinBuilder) WithValidator(validator validator.Validator) *CoinBuilder 
 
 // Build builds the underlying coin protocol and returns it.
 // It's now ready to use in your tests.
-func (c *CoinBuilder) Build() *Coin {
+func (c *CoinBuilder) Build(t *testing.T) *Coin {
 	// Set meaningful default for components that weren't configured
 	// by the caller.
 	if c.txpool == nil {
@@ -158,6 +159,9 @@ func (c *CoinBuilder) Build() *Coin {
 	}
 	if c.engine == nil {
 		c.engine = engine.NewHashEngine(c.pk, c.difficulty, c.reward)
+	}
+	if c.gossip == nil {
+		c.gossip = testutil.NewDummyGossip(t)
 	}
 	if c.processor == nil {
 		c.processor = processor.NewProcessor()

@@ -29,7 +29,7 @@ import (
 
 func TestMiner_StartStop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	m := NewMinerBuilder().Build()
+	m := NewMinerBuilder(t).Build()
 
 	assert.False(t, m.IsRunning(), "m.IsRunning()")
 
@@ -51,7 +51,7 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Pops transactions from txpool", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().WithTxPool(txpool).WithGossip(testutil.NewDummyGossip(t)).Build()
+		m := NewMinerBuilder(t).WithTxPool(txpool).Build()
 		go m.Start(ctx)
 
 		assert.Equal(t, 0, txpool.TxCount(), "txpool.TxCount()")
@@ -70,7 +70,7 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Puts transactions back into txpool if block production failed", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithTxPool(txpool).
 			WithEngine(&testutil.FaultyEngine{}).
 			Build()
@@ -95,7 +95,7 @@ func TestMiner_TxPool(t *testing.T) {
 
 	t.Run("Removes invalid transactions from txpool definitively", func(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithTxPool(txpool).
 			WithValidator(&testutil.Rejector{}).
 			Build()
@@ -126,11 +126,10 @@ func TestMiner_Produce(t *testing.T) {
 		txpool := &testutil.InMemoryTxPool{}
 		txpool.AddTransaction(testutil.NewTransaction(t, 3, 1, 5))
 
-		m := NewMinerBuilder().
+		m := NewMinerBuilder(t).
 			WithEngine(e).
 			WithTxPool(txpool).
 			WithProcessor(p).
-			WithGossip(testutil.NewDummyGossip(t)).
 			Build()
 		go m.Start(ctx)
 

@@ -140,7 +140,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 	require.NoError(t, err, "minerPubKey.Bytes()")
 
 	t.Run("start-stop-mining", func(t *testing.T) {
-		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build()
+		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build(t)
 		verifyAccount(t, c, minerAddress, &pb.Account{})
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -157,7 +157,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 	})
 
 	t.Run("reject-invalid-txs", func(t *testing.T) {
-		c := NewCoinBuilder(t).Build()
+		c := NewCoinBuilder(t).Build(t)
 		err := c.AddTransaction(ctestutil.NewTransaction(t, 0, 1, 1))
 		assert.EqualError(t, err, validator.ErrInvalidTxValue.Error(), "c.AddTransaction()")
 
@@ -190,8 +190,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			WithPublicKey(minerPubKey).
 			WithReward(minerReward).
 			WithState(s).
-			WithGossip(ctestutil.NewDummyGossip(t)).
-			Build()
+			Build(t)
 
 		err = c.AddTransaction(ctestutil.NewTransaction(t, 20, 5, 1))
 		assert.EqualError(t, err, validator.ErrInvalidTxNonce.Error(), "c.AddTransaction()")

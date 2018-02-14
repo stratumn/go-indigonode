@@ -124,7 +124,20 @@ var migrations = []cfg.MigrateHandler{
 		return tree.Set("coin.pubsub", "pubsub")
 	},
 	func(tree *cfg.Tree) error {
-		return addServiceToGroup(tree, "raft", "p2p")
+		if err := tree.Set("raft.election_tick", int64(10)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.heartbeat_tick", int64(1)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.max_size_per_msg", int64(1024*1024)); err != nil {
+			return err
+		}
+		if err := tree.Set("raft.max_inflight_msgs", int64(256)); err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 

@@ -1,4 +1,4 @@
 coverage:
   ignore:
     - "**/*.proto"
-    - "**/*.pg.go"
+    - "**/*.pb.go"

@@ -5,43 +5,54 @@ import (
 	pb "github.com/stratumn/alice/grpc/raft"
 )
 
+// MessageStart tells raft to start a single-node clusted
 type MessageStart struct{}
 
+// MessageStop tells raft to stop the node
 type MessageStop struct{}
 
+// MessageStatus requests raft status
 type MessageStatus struct {
-	StatusInfoC chan<- pb.StatusInfo
+	StatusInfoChan chan<- pb.StatusInfo
 }
 
+// MessagePeers requests raft peers
 type MessagePeers struct {
-	PeersC chan<- pb.Peer
+	PeersChan chan<- pb.Peer
 }
 
+// MessageDiscover returns node peers
 type MessageDiscover struct {
-	PeerID pb.PeerID
-	PeersC chan<- pb.Peer
+	PeerID    pb.PeerID
+	PeersChan chan<- pb.Peer
 }
 
+// MessageInvite adds a node to a cluster
 type MessageInvite struct {
 	PeerID pb.PeerID
 }
 
+// MessageJoin starts raft and joins the cluster
 type MessageJoin struct {
 	PeerID pb.PeerID
 }
 
+// MessageExpel removes a node from the cluster
 type MessageExpel struct {
 	PeerID pb.PeerID
 }
 
+// MessagePropose adds log entry
 type MessagePropose struct {
 	Proposal pb.Proposal
 }
 
+// MessageLog returns log entries
 type MessageLog struct {
-	EntriesC chan<- pb.Entry
+	EntriesChan chan<- pb.Entry
 }
 
+// MessageRaft used to communicate btw raft nodes
 type MessageRaft struct {
 	PeerID  pb.PeerID
 	Message raftpb.Message

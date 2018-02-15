@@ -348,7 +348,7 @@ func TestGossipValidator(t *testing.T) {
 
 	validator := validator.NewGossipValidator(testMaxTxCount, mockPoW, mockChain)
 
-	validBlock := testutil.NewBlock(t, []*pb.Transaction{
+	validBlock := blocktest.NewBlock(t, []*pb.Transaction{
 		testutil.NewTransaction(t, 3, 1, 5),
 		testutil.NewTransaction(t, 7, 1, 8),
 		testutil.NewRewardTransaction(t, testReward+1+1),

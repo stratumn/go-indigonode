@@ -26,6 +26,7 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
 // log is the logger for the processor.
@@ -38,11 +39,20 @@ type Processor interface {
 	Process(block *pb.Block, state state.State, ch chain.Chain) error
 }
 
-type processor struct{}
+// ContentProvider is an interface used to let the network know we provide a resource.
+// The resource is identified by a content ID.
+type ContentProvider interface {
+	Provide(ctx context.Context, key *cid.Cid, brdcst bool) error
+}
+
+type processor struct {
+	// provider is used to let the network know we have a block once we added it to the local chain.
+	provider ContentProvider
+}
 
 // NewProcessor creates a new processor.
-func NewProcessor() Processor {
-	return &processor{}
+func NewProcessor(provider ContentProvider) Processor {
+	return &processor{provider: provider}
 }
 
 type stateTransition struct {
@@ -67,6 +77,18 @@ func (p *processor) Process(block *pb.Block, state state.State, ch chain.Chain) 
 	// Update chain.
 	if err := ch.AddBlock(block); err != nil {
 		return err
+	}
+
+	// Tell the network we have that block.
+	if p.provider != nil {
+		ctx := context.Background()
+		contentID, err := cid.Cast(mh)
+		if err != nil {
+			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.String()})
+		}
+		if err = p.provider.Provide(ctx, contentID, true); err != nil {
+			log.Event(ctx, "failProvide", logging.Metadata{"cid": contentID.String(), "error": err.Error()})
+		}
 	}
 
 	head, err := ch.CurrentBlock()

@@ -165,6 +165,12 @@
       "hash": "QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4",
       "name": "go-libp2p-floodsub",
       "version": "0.9.9"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY",
+      "name": "go-cid",
+      "version": "0.7.20"
     }
   ],
   "gxVersion": "0.11.0",

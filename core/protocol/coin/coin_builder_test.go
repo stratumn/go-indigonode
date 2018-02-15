@@ -164,7 +164,7 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 		c.gossip = testutil.NewDummyGossip(t)
 	}
 	if c.processor == nil {
-		c.processor = processor.NewProcessor()
+		c.processor = processor.NewProcessor(nil)
 	}
 	if c.validator == nil {
 		c.validator = validator.NewBalanceValidator(c.maxTxPerBlock, c.engine)

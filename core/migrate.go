@@ -123,6 +123,9 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.pubsub", "pubsub")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("coin.kaddht", "kaddht")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

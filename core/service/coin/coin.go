@@ -37,6 +37,7 @@ import (
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	kaddht "gx/ipfs/QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL/go-libp2p-kad-dht"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -46,6 +47,9 @@ var (
 
 	// ErrNotPubSub is returned when the connected service is not a pubsub.
 	ErrNotPubSub = errors.New("connected service is not a pubsub")
+
+	// ErrNotKadDHT is returned when the connected service is not a pubsub.
+	ErrNotKadDHT = errors.New("connected service is not a kaddht")
 
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
@@ -65,6 +69,7 @@ type Service struct {
 	host   Host
 	coin   *protocol.Coin
 	pubsub *floodsub.PubSub
+	kaddht *kaddht.IpfsDHT
 }
 
 // Config contains configuration options for the Coin service.
@@ -93,6 +98,9 @@ type Config struct {
 	// MinerPublicKey is the base64-encoded public key of the miner.
 	// Block rewards will be sent to this address.
 	MinerPublicKey string `toml:"miner_public_key" comment:"The public key of the miner."`
+
+	// KadDHT is the name of the kaddht service.
+	KadDHT string `toml:"kaddht" comment:"The name of the kaddht service."`
 }
 
 // GetMinerPublicKey decodes the miner's public key from the configuration.
@@ -146,6 +154,7 @@ func (s *Service) Config() interface{} {
 		BlockDifficulty: 42,
 		DbPath:          "data/coin/db",
 		PubSub:          "pubsub",
+		KadDHT:          "kaddht",
 	}
 }
 
@@ -161,6 +170,7 @@ func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
 	needs[s.config.PubSub] = struct{}{}
+	needs[s.config.KadDHT] = struct{}{}
 
 	return needs
 }
@@ -175,6 +185,10 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.pubsub, ok = exposed[s.config.PubSub].(*floodsub.PubSub); !ok {
 		return errors.Wrap(ErrNotPubSub, s.config.PubSub)
+	}
+
+	if s.kaddht, ok = exposed[s.config.KadDHT].(*kaddht.IpfsDHT); !ok {
+		return errors.Wrap(ErrNotKadDHT, s.config.KadDHT)
 	}
 
 	return nil
@@ -250,7 +264,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 
 	engine := engine.NewHashEngine(minerPublicKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
 
-	processor := processor.NewProcessor()
+	processor := processor.NewProcessor(s.kaddht)
 	balanceValidator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 	gossipValidator := validator.NewGossipValidator(uint32(s.config.MaxTxPerBlock), engine, chain)
 

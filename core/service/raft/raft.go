@@ -15,8 +15,6 @@
 //go:generate mockgen -package mockraft -destination mockraft/mockraft.go github.com/stratumn/alice/core/service/raft Host
 
 // Package raft wraps coreos/raft library
-//
-// It is meant to illustrate how to create network services.
 package raft
 
 import (

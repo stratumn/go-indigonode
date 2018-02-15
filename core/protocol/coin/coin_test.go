@@ -193,10 +193,10 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			assert.NoError(t, err, "chain.CurrentHeader()")
 			assert.Equal(t, uint64(2), h.BlockNumber, "h.BlockNumber")
 
-			hs, err := c.chain.GetHeaderByNumber(2)
-			assert.NoError(t, err, "chain.GetHeaderByNumber()")
-			assert.Len(t, hs, 1, "chain.GetHeaderByNumber()")
-			assert.Equal(t, h, hs[0], "chain.GetHeaderByNumber()")
+			hs, err := c.chain.GetHeadersByNumber(2)
+			assert.NoError(t, err, "chain.GetHeadersByNumber()")
+			assert.Len(t, hs, 1, "chain.GetHeadersByNumber()")
+			assert.Equal(t, h, hs[0], "chain.GetHeadersByNumber()")
 		})
 
 		t.Run("updates-miner-account", func(t *testing.T) {

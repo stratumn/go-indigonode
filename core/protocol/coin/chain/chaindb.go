@@ -15,6 +15,7 @@
 package chain
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 
@@ -24,23 +25,28 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
-// prefixes for db keys
+// prefixes for db keys.
 var (
 	lastBlockKey    = []byte("LastBlock")
-	blockPrefix     = []byte("b") // blockPrefix + hash -> block
-	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash
+	blockPrefix     = []byte("b") // blockPrefix + hash -> block.
+	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash.
 )
 
 /*
 chainDB implements the Chain interface with a given DB.
 We store 3 types of values for now (see prefixes):
-	- serialized blocks indexed by hash
-	- mapping between block numbers and corresponding header hashes (1 to many)
-	- last block
+	- serialized blocks indexed by hash.
+	- mapping between block numbers and corresponding header hashes (1 to many).
+	- last block.
 */
 type chainDB struct {
 	db     db.DB
 	prefix []byte
+
+	// mainChain is a lazy loaded cache that will contain refs to main branch's blocks
+	// We generate it only once requested.
+	// If there is a reorg, we just erase it and wait for next request.
+	mainBranch map[uint64][]byte
 }
 
 // Opt is an option for Chain
@@ -117,9 +123,9 @@ func (c *chainDB) CurrentHeader() (*pb.Header, error) {
 	return block.Header, nil
 }
 
-// GetHeaderByNumber retrieves block headers from the database by number.
+// GetHeadersByNumber retrieves block headers from the database by number.
 // In case of forks there might be multiple headers with the same number.
-func (c *chainDB) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
+func (c *chainDB) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	hashes, err := c.dbGetHashes(number)
 	if err != nil {
 		return nil, err
@@ -136,6 +142,27 @@ func (c *chainDB) GetHeaderByNumber(number uint64) ([]*pb.Header, error) {
 	}
 
 	return res, nil
+}
+
+// GetHeaderByNumber retrieves a header from the main branch by number.
+func (c *chainDB) GetHeaderByNumber(number uint64) (*pb.Header, error) {
+	if c.mainBranch == nil {
+		if err := c.generateMainBranch(); err != nil {
+			return nil, err
+		}
+	}
+
+	hash, ok := c.mainBranch[number]
+	if !ok {
+		return nil, ErrBlockNumberNotFound
+	}
+
+	block, err := c.dbGetBlock(c.blockKey(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	return block.Header, nil
 }
 
 // GetHeaderByHash retrieves a block header from the database by its hash.
@@ -207,12 +234,12 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	// Add block to the chain
+	// Add block to the chain.
 	if err = tx.Put(c.blockKey(h), b); err != nil {
 		return err
 	}
 
-	// Add header hash to the mapping
+	// Add header hash to the mapping.
 	n := block.BlockNumber()
 	hashes, err := c.dbGetHashes(n)
 	if errors.Cause(err) == ErrBlockNumberNotFound {
@@ -234,7 +261,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	return nil
 }
 
-// SetHead sets the head of the chain
+// SetHead sets the head of the chain.
 func (c *chainDB) SetHead(block *pb.Block) error {
 	b, err := block.Marshal()
 	if err != nil {
@@ -246,7 +273,7 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 		return err
 	}
 
-	// Check that block is in the chain
+	// Check that block is in the chain.
 	_, err = c.db.Get(c.blockKey(h))
 	if errors.Cause(err) == db.ErrNotFound {
 		return ErrBlockHashNotFound
@@ -256,11 +283,29 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 		return err
 	}
 
-	// Update LastBlock
+	// If mainBranch is not empty and `block` is not the genesis block,
+	// check if we switched branches and update mainBranch cache accordingly.
+	if len(c.mainBranch) > 0 && block.BlockNumber() > 0 {
+		cur, err := c.CurrentHeader()
+		if err != nil {
+			return err
+		}
+		hb, err := coinutil.HashHeader(cur)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(hb, block.PreviousHash()) {
+			// If we switched branches, reset the main branch cache
+			c.mainBranch = nil
+		}
+	}
+
+	// Update LastBlock.
 	return c.db.Put(lastBlockKey, b)
 }
 
-// Get a value from the DB and deserialize it into a pb.Block
+// Get a value from the DB and deserialize it into a pb.Block.
 func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 	b, err := c.db.Get(idx)
 	if errors.Cause(err) == db.ErrNotFound {
@@ -280,7 +325,7 @@ func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 	return block, nil
 }
 
-// Get the list of block hashes for a block height
+// Get the list of block hashes for a block height.
 func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	b, err := c.db.Get(c.numToHashKey(number))
 	if errors.Cause(err) == db.ErrNotFound {
@@ -294,12 +339,41 @@ func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	return deserializeHashes(b)
 }
 
-// blockKey returns the key corresponding to a block in th DB
+// generateMainBranch creates the map that contains
+// the refs to the main branch's blocks.
+func (c *chainDB) generateMainBranch() error {
+	mainBranch := map[uint64][]byte{}
+
+	header, err := c.CurrentHeader()
+	if err != nil {
+		return err
+	}
+	hash, err := coinutil.HashHeader(header)
+	if err != nil {
+		return err
+	}
+	mainBranch[header.BlockNumber] = hash
+
+	for header.BlockNumber > 0 {
+		hash = header.PreviousHash
+		header, err = c.GetHeaderByHash(hash)
+		if err != nil {
+			return err
+		}
+		mainBranch[header.BlockNumber] = hash
+	}
+
+	c.mainBranch = mainBranch
+	return nil
+}
+
+// blockKey returns the key corresponding to a block in th DB.
 func (c *chainDB) blockKey(hash []byte) []byte {
 	return append(append(c.prefix, blockPrefix...), hash...)
 }
 
-// blockKey returns the key corresponding to a block in th DB
+// numToHashKey returns the key corresponding to
+// a number to hash mapping in the DB.
 func (c *chainDB) numToHashKey(num uint64) []byte {
 	return append(append(c.prefix, numToHashPrefix...), encodeUint64(num)...)
 }
@@ -317,7 +391,7 @@ func serializeHashes(h [][]byte) ([]byte, error) {
 	return json.Marshal(h)
 }
 
-// Desirialize a byte array into a list of hashes.
+// Deserialize a byte array into a list of hashes.
 func deserializeHashes(b []byte) ([][]byte, error) {
 	hashes := [][]byte{}
 	err := json.Unmarshal(b, &hashes)

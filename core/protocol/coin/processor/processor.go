@@ -127,7 +127,11 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 	// Then go back to first common ancestor.
 	for !bytes.Equal(mainHash, forkHash) {
 		if mainNumber >= forkNumber {
-			forward = append(forward, &stateTransition{stateID: mainHash, transactions: mainBlock.Transactions})
+			// Prepend transition to forward to be then played in good order.
+			forward = append(
+				[]*stateTransition{&stateTransition{stateID: mainHash, transactions: mainBlock.Transactions}},
+				forward...,
+			)
 			mainHash = mainBlock.PreviousHash()
 			mainBlock, err = chain.GetBlock(mainBlock.PreviousHash(), mainBlock.BlockNumber()-1)
 			if err != nil {
@@ -136,11 +140,7 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 		}
 
 		if mainNumber <= forkNumber {
-			// Prepend transition to backward to be then played in good order.
-			backward = append(
-				[]*stateTransition{&stateTransition{stateID: forkHash, transactions: forkBlock.Transactions}},
-				backward...,
-			)
+			backward = append(backward, &stateTransition{stateID: forkHash, transactions: forkBlock.Transactions})
 			forkHash = forkBlock.PreviousHash()
 			forkBlock, err = chain.GetBlock(forkBlock.PreviousHash(), forkBlock.BlockNumber()-1)
 			if err != nil {

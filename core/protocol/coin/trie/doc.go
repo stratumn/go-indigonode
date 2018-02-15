@@ -74,7 +74,7 @@
 // value.
 //
 // This implementation allows you to store arbitrary data in the nodes. To
-// avoid confusions, we call the path of a node the Key (not a value like
+// avoid confusion, we call the path of a node the Key (not a value like
 // previously), and the data it stores the Value, so it becomes more similar to
 // a key-value database. In the previous example you could set an arbitrary
 // value for the key 0x3e20f. More concretely, you could use the ID of an
@@ -114,4 +114,7 @@
 //
 // In this implementation, Get is O(1) because a key directly maps to its
 // value in the database.
+//
+// By convention, keys are defined in []byte whereas []uint8 represents a
+// slice of nibble (0-15).
 package trie

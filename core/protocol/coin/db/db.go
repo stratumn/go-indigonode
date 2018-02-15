@@ -50,6 +50,11 @@ type Reader interface {
 
 // Ranger can iterate over ranges.
 type Ranger interface {
+	// IterateRange creates an iterator that iterates from the given start
+	// key (inclusive) up to the given stop key (exclusive). Remember to
+	// call Release() on the iterator.
+	IterateRange(start, stop []byte) Iterator
+
 	// IteratePrefix creates an iterator that iterates over all the keys
 	// that begin with the given prefix. Remember to call Release() on the
 	// iterator.
@@ -92,7 +97,7 @@ type ReadWriteBatcher interface {
 // Iterator iterates over a range of keys in the key-value database.
 type Iterator interface {
 	// Next returns whether there are keys left.
-	Next() bool
+	Next() (bool, error)
 
 	// Key returns the key of the current entry.
 	Key() []byte

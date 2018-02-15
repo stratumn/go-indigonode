@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 	ldberrors "github.com/syndtr/goleveldb/leveldb/errors"
+	ldbiterator "github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -80,11 +81,15 @@ func (db levelDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db levelDB) IterateRange(start, stop []byte) Iterator {
-	return db.ldb.NewIterator(&util.Range{Start: start, Limit: stop}, nil)
+	return levelDBIter{
+		db.ldb.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
+	}
 }
 
 func (db levelDB) IteratePrefix(prefix []byte) Iterator {
-	return db.ldb.NewIterator(util.BytesPrefix(prefix), nil)
+	return levelDBIter{
+		db.ldb.NewIterator(util.BytesPrefix(prefix), nil),
+	}
 }
 
 func (db levelDB) Put(key, value []byte) error {
@@ -131,11 +136,15 @@ func (tx levelDBTx) Get(key []byte) ([]byte, error) {
 }
 
 func (tx levelDBTx) IterateRange(start, stop []byte) Iterator {
-	return tx.ldbtx.NewIterator(&util.Range{Start: start, Limit: stop}, nil)
+	return levelDBIter{
+		tx.ldbtx.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
+	}
 }
 
 func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {
-	return tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil)
+	return levelDBIter{
+		tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil),
+	}
 }
 
 func (tx levelDBTx) Put(key, value []byte) error {
@@ -165,4 +174,29 @@ func (tx levelDBTx) Commit() error {
 
 func (tx levelDBTx) Discard() {
 	tx.ldbtx.Discard()
+}
+
+// levelDBIter makes a LevelDB iterator compatible with the Iterator interface.
+type levelDBIter struct {
+	ldbiter ldbiterator.Iterator
+}
+
+// Next returns whether there are keys left.
+func (i levelDBIter) Next() (bool, error) {
+	return i.ldbiter.Next(), nil
+}
+
+// Key returns the key of the current entry.
+func (i levelDBIter) Key() []byte {
+	return i.ldbiter.Key()
+}
+
+// Value returns the value of the current entry.
+func (i levelDBIter) Value() []byte {
+	return i.ldbiter.Value()
+}
+
+// Release needs to be called to free the iterator.
+func (i levelDBIter) Release() {
+	i.ldbiter.Release()
 }

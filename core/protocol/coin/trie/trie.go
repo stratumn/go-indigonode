@@ -51,6 +51,12 @@ var OptHashCode = func(code uint64) Opt {
 
 // Trie represents a Patricia Merkle Trie.
 //
+// It implements db.ReadWriter and db.Ranger, though currently it doesn't
+// support empty values, so calling Put(key, nil) is equivalent to calling
+// Delete(key).
+//
+// TODO: this could be changed by adding a null flag to nodes.
+//
 // The underlying database is not modified until Commit() is called.
 type Trie struct {
 	mu          sync.RWMutex
@@ -138,6 +144,33 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 	}
 
 	return nil, errors.WithStack(ErrInvalidNodeType)
+}
+
+// IterateRange creates an iterator that iterates from the given start
+// key (inclusive) up to the given stop key (exclusive). Remember to call
+// Release() on the iterator.
+func (t *Trie) IterateRange(start, stop []byte) db.Iterator {
+	return newIter(t, start, stop)
+}
+
+// IteratePrefix creates an iterator that iterates over all the keys
+// that begin with the given prefix. Remember to call Release() on the
+// iterator.
+func (t *Trie) IteratePrefix(prefix []byte) db.Iterator {
+	// Taken from goleveldb.
+	var stop []byte
+
+	for i := len(prefix) - 1; i >= 0; i-- {
+		c := prefix[i]
+		if c < 0xff {
+			stop = make([]byte, i+1)
+			copy(stop, prefix)
+			stop[i] = c + 1
+			break
+		}
+	}
+
+	return newIter(t, prefix, stop)
 }
 
 // MerkleRoot returns the hash of the root node. If there an no entries, the

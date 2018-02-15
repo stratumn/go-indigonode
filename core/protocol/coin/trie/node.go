@@ -73,7 +73,6 @@ func (n nodeType) String() string {
 //	00000001  10100100               1001010010 ...  0100110101...
 //	type      value len (uvarint64)  value           16 embedded nodes of
 //	                                                 type Edge
-//
 //	Leaf node
 //	---------
 //	00000010  10100100               1001010010 ...

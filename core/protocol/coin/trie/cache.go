@@ -15,7 +15,7 @@
 package trie
 
 import (
-	multihash "github.com/multiformats/go-multihash"
+	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 )
@@ -24,25 +24,21 @@ import (
 type nodeGetter func(key []uint8) (node, error)
 
 // nodePutter puts a node in a database.
-type nodePutter func(key []uint8, n node, buffer []byte) error
+type nodePutter func(key []uint8, n node) error
 
 // nodeDeleter deletes a node from a database.
 type nodeDeleter func(key []uint8) error
-
-// hasher hashes bytes.
-type hasher func(key []byte) (multihash.Multihash, error)
 
 // cacheEntry represents an entry in the cash.
 type cacheEntry struct {
 	Node    node
 	Dirty   bool
 	Deleted bool
-	Encoded []byte
 	Hash    multihash.Multihash
 }
 
-// cache stores unencoded nodes in memory, and also handles lazy-hashing and
-// lazy-encoding of nodes.
+// cache stores unencoded nodes in memory, and also handles lazy-hashing of
+// nodes.
 type cache struct {
 	entries map[string]*cacheEntry
 
@@ -50,17 +46,18 @@ type cache struct {
 	put nodePutter
 	del nodeDeleter
 
-	hash hasher
+	hashCode uint64
 }
 
-// newCache creates a new cache.
-func newCache(get nodeGetter, put nodePutter, del nodeDeleter, hash hasher) *cache {
+// newCache creates a new cache. If hashCode is non-zero, it will update the
+// hashes of nodes when committing the nodes to the underlying database.
+func newCache(get nodeGetter, put nodePutter, del nodeDeleter, hashCode uint64) *cache {
 	return &cache{
-		entries: map[string]*cacheEntry{},
-		get:     get,
-		put:     put,
-		del:     del,
-		hash:    hash,
+		entries:  map[string]*cacheEntry{},
+		get:      get,
+		put:      put,
+		del:      del,
+		hashCode: hashCode,
 	}
 }
 
@@ -101,7 +98,7 @@ func (c *cache) Delete(key []uint8) error {
 
 // Hash retrieves the hash of a node.
 func (c *cache) Hash(key []uint8) (multihash.Multihash, error) {
-	if c.hash == nil {
+	if c.hashCode == 0 {
 		return nil, nil
 	}
 
@@ -142,17 +139,11 @@ func (c *cache) Hash(key []uint8) (multihash.Multihash, error) {
 		}
 	}
 
-	buf, err := entry.Node.MarshalBinary()
+	hash, err := nodeToProof(key, entry.Node).Hash(c.hashCode)
 	if err != nil {
 		return nil, err
 	}
 
-	hash, err := c.hash(buf)
-	if err != nil {
-		return nil, err
-	}
-
-	entry.Encoded = buf
 	entry.Hash = hash
 
 	return hash, nil
@@ -164,7 +155,7 @@ func (c *cache) Hash(key []uint8) (multihash.Multihash, error) {
 // If a hasher was given, the hashes will be updated, and the putter will
 // receive the encoded buffer of the node in addition to the node.
 func (c *cache) Commit() error {
-	if c.hash != nil {
+	if c.hashCode != 0 {
 		// Compute Merkle Root.
 		if root, ok := c.entries[string([]uint8(nil))]; ok {
 			if root.Dirty && !root.Deleted {
@@ -184,7 +175,7 @@ func (c *cache) Commit() error {
 					return err
 				}
 			} else {
-				if err := c.put(key, entry.Node, entry.Encoded); err != nil {
+				if err := c.put(key, entry.Node); err != nil {
 					return err
 				}
 			}

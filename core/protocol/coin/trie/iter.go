@@ -61,7 +61,7 @@ func (i *iter) Next() (bool, error) {
 		return false, nil
 	}
 
-	// We also need to read-lock the tree.
+	// We also need to read-lock the trie.
 	i.trie.mu.RLock()
 	defer i.trie.mu.RUnlock()
 

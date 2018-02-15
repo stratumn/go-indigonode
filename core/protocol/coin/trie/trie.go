@@ -79,13 +79,8 @@ func New(opts ...Opt) *Trie {
 		o(t)
 	}
 
-	t.cache = newCache(t.doGetNode, t.doPutNode, t.doDeleteNode, t.hash)
-
-	put := func(key []uint8, n node, _ []byte) error {
-		return t.cache.Put(key, n)
-	}
-
-	t.atomicCache = newCache(t.cache.Get, put, t.cache.Delete, nil)
+	t.cache = newCache(t.doGetNode, t.doPutNode, t.doDeleteNode, t.hashCode)
+	t.atomicCache = newCache(t.cache.Get, t.cache.Put, t.cache.Delete, 0)
 
 	return t
 }
@@ -200,7 +195,7 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 		return nil, err
 	}
 
-	nodes, found, err := t.recProof(root, nil, key)
+	proof, found, err := t.recProof(root, nil, key)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +204,7 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 		return nil, errors.WithStack(db.ErrNotFound)
 	}
 
-	return Proof(nodes), nil
+	return proof, nil
 }
 
 // recProof goes down the trie to the given key and returns all the nodes
@@ -218,10 +213,9 @@ func (t *Trie) Proof(key []byte) (Proof, error) {
 //	- prefix is the part of the key visited so far
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
-func (t *Trie) recProof(n node, prefix, key []uint8) ([]node, bool, error) {
+func (t *Trie) recProof(n node, prefix, key []uint8) ([]ProofNode, bool, error) {
 	if e, ok := n.(*edge); ok {
-		// If the node is an edge, load the actual node from the prefix
-		// and the path but also collect the edge node.
+		// Follow edge but don't include it in the proof.
 		if !bytes.HasPrefix(key, e.Path) {
 			return nil, false, nil
 		}
@@ -229,23 +223,18 @@ func (t *Trie) recProof(n node, prefix, key []uint8) ([]node, bool, error) {
 		key = key[len(e.Path):]
 		prefix = append(prefix, e.Path...)
 
-		n, err := t.getNode(prefix)
+		var err error
+
+		n, err = t.getNode(prefix)
 		if err != nil {
 			return nil, false, err
 		}
-
-		nodes, found, err := t.recProof(n, prefix, key)
-		if err != nil {
-			return nil, false, err
-		}
-
-		return append(nodes, n), found, nil
 	}
 
 	if len(key) < 1 {
 		// The end of the key was reached, so the current node is
 		// the last one.
-		return []node{n}, true, nil
+		return []ProofNode{nodeToProof(prefix, n)}, true, nil
 	}
 
 	switch n := n.(type) {
@@ -258,17 +247,18 @@ func (t *Trie) recProof(n node, prefix, key []uint8) ([]node, bool, error) {
 
 		switch e.(type) {
 		case null:
-			return []node{n}, false, nil
+			return nil, false, nil
+
 		case *edge:
 			nodes, found, err := t.recProof(e, prefix, key)
 			if err != nil {
 				return nil, false, err
 			}
 
-			return append(nodes, n), found, nil
+			return append(nodes, nodeToProof(prefix, n)), found, nil
 		}
 	case *leaf:
-		return []node{n}, false, nil
+		return nil, false, nil
 	}
 
 	return nil, false, errors.WithStack(ErrInvalidNodeType)
@@ -768,13 +758,18 @@ func (t *Trie) doGetNode(key []uint8) (node, error) {
 }
 
 // doPutNode inserts the node with the given key in the database.
-func (t *Trie) doPutNode(key []uint8, _ node, buf []byte) error {
+func (t *Trie) doPutNode(key []uint8, n node) error {
 	k, err := t.dbKey(key)
 	if err != nil {
 		return err
 	}
 
-	return t.dbrw.Put(k, buf)
+	v, err := n.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	return t.dbrw.Put(k, v)
 }
 
 // doDeleteNode removes the node with the given key from the database.
@@ -785,11 +780,4 @@ func (t *Trie) doDeleteNode(key []uint8) error {
 	}
 
 	return t.dbrw.Delete(k)
-}
-
-// hash computes a hash.
-func (t *Trie) hash(data []byte) (multihash.Multihash, error) {
-	hash, err := multihash.Sum(data, t.hashCode, -1)
-
-	return hash, errors.WithStack(err)
 }

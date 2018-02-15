@@ -73,6 +73,20 @@ func TestTrie_Random(t *testing.T) {
 
 	require.NoError(t, trie.Commit(), "trie.Commit()")
 
+	// Verify proofs.
+	root, err := trie.MerkleRoot()
+	require.NoError(t, err, "trie.MerkleRoot()")
+
+	for i := 0; i < times; i++ {
+		k := key[i*16 : (i+1)*16]
+		v := value[i*16 : (i+1)*16]
+
+		proof, err := trie.Proof(k)
+		require.NoError(t, err, "trie.Proof()")
+
+		assert.NoError(t, proof.Verify(root, k, v))
+	}
+
 	// Delete half of the values.
 	for i := times / 2; i < times; i++ {
 		k := key[i*16 : (i+1)*16]
@@ -103,4 +117,15 @@ func TestTrie_Random(t *testing.T) {
 	proof2, err := trie.Proof(key[:16])
 	require.NoError(t, err, "trie.Proof()")
 	assert.Equal(t, proof1, proof2, "trie.Proof()")
+
+	// Verify proofs.
+	for i := 0; i < times/2; i++ {
+		k := key[i*16 : (i+1)*16]
+		v := value[i*16 : (i+1)*16]
+
+		proof, err := trie.Proof(k)
+		require.NoError(t, err, "trie.Proof()")
+
+		assert.NoError(t, proof.Verify(root2, k, v))
+	}
 }

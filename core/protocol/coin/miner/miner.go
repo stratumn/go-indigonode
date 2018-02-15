@@ -202,7 +202,7 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		log.Warningf("Unable to publish mined block: %v", err.Error())
 	}
 
-	err = m.processor.Process(block, m.state, m.chain)
+	err = m.processor.Process(ctx, block, m.state, m.chain)
 	if err != nil {
 		return
 	}

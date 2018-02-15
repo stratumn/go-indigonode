@@ -89,9 +89,10 @@ func TestProcessor_Process(t *testing.T) {
 	h2, err := coinutil.HashHeader(block2.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
-	assert.NoError(t, p.Process(block1, s, c))
-	assert.NoError(t, p.Process(block2, s, c))
-	assert.NoError(t, p.Process(block2, s, c))
+	ctx := context.Background()
+	assert.NoError(t, p.Process(ctx, block1, s, c))
+	assert.NoError(t, p.Process(ctx, block2, s, c))
+	assert.NoError(t, p.Process(ctx, block2, s, c))
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)
@@ -257,12 +258,13 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	h4, err := coinutil.HashHeader(block4.Header)
 	assert.NoError(t, err, "HashHeader(block3)")
 
-	assert.NoError(t, p.Process(block1, s, c))
-	assert.NoError(t, p.Process(block21, s, c))
-	assert.NoError(t, p.Process(block31, s, c))
-	assert.NoError(t, p.Process(block22, s, c))
-	assert.NoError(t, p.Process(block32, s, c))
-	assert.NoError(t, p.Process(block4, s, c))
+	ctx := context.Background()
+	assert.NoError(t, p.Process(ctx, block1, s, c))
+	assert.NoError(t, p.Process(ctx, block21, s, c))
+	assert.NoError(t, p.Process(ctx, block31, s, c))
+	assert.NoError(t, p.Process(ctx, block22, s, c))
+	assert.NoError(t, p.Process(ctx, block32, s, c))
+	assert.NoError(t, p.Process(ctx, block4, s, c))
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)

@@ -36,7 +36,7 @@ var log = logging.Logger("processor")
 type Processor interface {
 	// Process applies the state changes from the block contents
 	// and adds the block to the chain.
-	Process(block *pb.Block, state state.State, ch chain.Chain) error
+	Process(ctx context.Context, block *pb.Block, state state.State, ch chain.Chain) error
 }
 
 // ContentProvider is an interface used to let the network know we provide a resource.
@@ -60,7 +60,7 @@ type stateTransition struct {
 	transactions []*pb.Transaction
 }
 
-func (p *processor) Process(block *pb.Block, state state.State, ch chain.Chain) error {
+func (p *processor) Process(ctx context.Context, block *pb.Block, state state.State, ch chain.Chain) error {
 	mh, err := coinutil.HashHeader(block.Header)
 	if err != nil {
 		return err
@@ -81,7 +81,6 @@ func (p *processor) Process(block *pb.Block, state state.State, ch chain.Chain) 
 
 	// Tell the network we have that block.
 	if p.provider != nil {
-		ctx := context.Background()
 		contentID, err := cid.Cast(mh)
 		if err != nil {
 			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.String()})

@@ -26,34 +26,34 @@ import (
 func BenchmarkNode_MarshalBinary(b *testing.B) {
 	tests := []struct {
 		name string
-		node Node
+		node node
 	}{{
 		"leaf",
-		&Leaf{Value: []byte("Alice")},
+		&leaf{Value: []byte("Alice")},
 	}, {
 		"edge",
-		&Edge{Hash: testHash1},
+		&edge{Hash: testHash1},
 	}, {
 		"parent",
-		&Branch{
+		&branch{
 			Value: []byte("Alice"),
-			EmbeddedNodes: [...]Node{
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
+			EmbeddedNodes: [...]node{
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
+				null{},
+				null{},
+				null{},
+				null{},
 			},
 		},
 	}}
@@ -70,34 +70,34 @@ func BenchmarkNode_MarshalBinary(b *testing.B) {
 func BenchmarkUnmarshalNode(b *testing.B) {
 	tests := []struct {
 		name string
-		node Node
+		node node
 	}{{
 		"leaf",
-		&Leaf{Value: []byte("Alice")},
+		&leaf{Value: []byte("Alice")},
 	}, {
 		"edge",
-		&Edge{Hash: testHash1},
+		&edge{Hash: testHash1},
 	}, {
 		"parent",
-		&Branch{
+		&branch{
 			Value: []byte("Alice"),
-			EmbeddedNodes: [...]Node{
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
+			EmbeddedNodes: [...]node{
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
+				null{},
+				null{},
+				null{},
+				null{},
 			},
 		},
 	}}
@@ -111,7 +111,7 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 
 		b.Run(tt.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, _, err := UnmarshalNode(buf)
+				_, _, err := unmarshalNode(buf)
 				if err != nil {
 					b.Error(err)
 				}
@@ -121,9 +121,9 @@ func BenchmarkUnmarshalNode(b *testing.B) {
 }
 
 func BenchmarkNibs_Append(b *testing.B) {
-	n1 := NewNibs([]byte{0x12, 0x33}, true)
-	n2 := NewNibs([]byte{0x45, 0x67}, false)
-	n3 := NewNibs([]byte{0x89, 0xAB}, true)
+	n1 := newNibs([]byte{0x12, 0x33}, true)
+	n2 := newNibs([]byte{0x45, 0x67}, false)
+	n3 := newNibs([]byte{0x89, 0xAB}, true)
 
 	b.ResetTimer()
 

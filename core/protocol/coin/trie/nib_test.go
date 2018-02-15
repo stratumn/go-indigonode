@@ -23,15 +23,15 @@ import (
 func TestNibs_String(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		expected string
 	}{{
 		"even",
-		NewNibsFromNibs(1, 2, 3, 4),
+		newNibsFromNibs(1, 2, 3, 4),
 		"1234",
 	}, {
 		"odd",
-		NewNibs([]byte{0xab, 0xcd}, true),
+		newNibs([]byte{0xab, 0xcd}, true),
 		"abc",
 	}}
 
@@ -45,19 +45,19 @@ func TestNibs_String(t *testing.T) {
 func TestNibs_Len(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		expected int
 	}{{
 		"nil",
-		NewNibs(nil, false),
+		newNibs(nil, false),
 		0,
 	}, {
 		"even",
-		NewNibs([]byte{0x12, 0x34}, false),
+		newNibs([]byte{0x12, 0x34}, false),
 		4,
 	}, {
 		"odd",
-		NewNibs([]byte{0xab, 0xcd}, true),
+		newNibs([]byte{0xab, 0xcd}, true),
 		3,
 	}}
 
@@ -71,15 +71,15 @@ func TestNibs_Len(t *testing.T) {
 func TestNibs_ByteLen(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		expected int
 	}{{
 		"even",
-		NewNibs([]byte{0x12, 0x34}, false),
+		newNibs([]byte{0x12, 0x34}, false),
 		2,
 	}, {
 		"odd",
-		NewNibs([]byte{0xab, 0xcd}, true),
+		newNibs([]byte{0xab, 0xcd}, true),
 		2,
 	}}
 
@@ -93,27 +93,27 @@ func TestNibs_ByteLen(t *testing.T) {
 func TestNibs_At(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		index    int
 		expected uint8
 	}{{
 		"zero",
-		NewNibs([]byte{0x12, 0xef}, false),
+		newNibs([]byte{0x12, 0xef}, false),
 		0,
 		1,
 	}, {
 		"one",
-		NewNibs([]byte{0x12, 0xef}, false),
+		newNibs([]byte{0x12, 0xef}, false),
 		1,
 		2,
 	}, {
 		"two",
-		NewNibs([]byte{0x12, 0xef}, false),
+		newNibs([]byte{0x12, 0xef}, false),
 		2,
 		14,
 	}, {
 		"three",
-		NewNibs([]byte{0x12, 0xef}, false),
+		newNibs([]byte{0x12, 0xef}, false),
 		3,
 		15,
 	}}
@@ -128,36 +128,36 @@ func TestNibs_At(t *testing.T) {
 func TestNibs_Append(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        []Nibs
+		n        []nibs
 		expected string
 	}{{
 		"even-even",
-		[]Nibs{
-			NewNibs([]byte{0x12, 0x34}, false),
-			NewNibs([]byte{0xab, 0xcd}, false),
+		[]nibs{
+			newNibs([]byte{0x12, 0x34}, false),
+			newNibs([]byte{0xab, 0xcd}, false),
 		},
 		"1234abcd",
 	}, {
 		"odd-odd",
-		[]Nibs{
-			NewNibs([]byte{0x12, 0x34}, true),
-			NewNibs([]byte{0xab, 0xcd}, true),
+		[]nibs{
+			newNibs([]byte{0x12, 0x34}, true),
+			newNibs([]byte{0xab, 0xcd}, true),
 		},
 		"123abc",
 	}, {
 		"even-odd-even",
-		[]Nibs{
-			NewNibs([]byte{0x12, 0x34}, false),
-			NewNibs([]byte{0x56, 0x78}, true),
-			NewNibs([]byte{0xab, 0xcd}, false),
+		[]nibs{
+			newNibs([]byte{0x12, 0x34}, false),
+			newNibs([]byte{0x56, 0x78}, true),
+			newNibs([]byte{0xab, 0xcd}, false),
 		},
 		"1234567abcd",
 	}, {
 		"odd-even-odd",
-		[]Nibs{
-			NewNibs([]byte{0x12, 0x34}, true),
-			NewNibs([]byte{0x56, 0x78}, false),
-			NewNibs([]byte{0xab, 0xcd}, true),
+		[]nibs{
+			newNibs([]byte{0x12, 0x34}, true),
+			newNibs([]byte{0x56, 0x78}, false),
+			newNibs([]byte{0xab, 0xcd}, true),
 		},
 		"1235678abc",
 	}}
@@ -172,31 +172,31 @@ func TestNibs_Append(t *testing.T) {
 func TestNibs_Substr(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		from     int
 		to       int
 		expected string
 	}{{
 		"even-to-even",
-		NewNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
+		newNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
 		4,
 		12,
 		"456789ab",
 	}, {
 		"odd-to-odd",
-		NewNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
+		newNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
 		7,
 		11,
 		"789a",
 	}, {
 		"even-to-odd",
-		NewNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
+		newNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
 		6,
 		11,
 		"6789a",
 	}, {
 		"odd-to-even",
-		NewNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
+		newNibs([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
 		7,
 		12,
 		"789ab",
@@ -212,15 +212,15 @@ func TestNibs_Substr(t *testing.T) {
 func TestNibs_Expand(t *testing.T) {
 	tests := []struct {
 		name     string
-		n        Nibs
+		n        nibs
 		expected []uint8
 	}{{
 		"even",
-		NewNibs([]byte{0x12, 0x34}, false),
+		newNibs([]byte{0x12, 0x34}, false),
 		[]uint8{1, 2, 3, 4},
 	}, {
 		"odd",
-		NewNibs([]byte{0xab, 0xcd}, true),
+		newNibs([]byte{0xab, 0xcd}, true),
 		[]uint8{0xa, 0xb, 0xc},
 	}}
 

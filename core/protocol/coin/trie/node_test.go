@@ -44,75 +44,75 @@ func init() {
 func TestNode_Encoding(t *testing.T) {
 	tests := []struct {
 		name         string
-		node         Node
+		node         node
 		marshalErr   error
 		unmarshalErr error
 	}{{
 		"null",
-		Null{},
+		null{},
 		nil,
 		nil,
 	}, {
 		"leaf",
-		&Leaf{Value: []byte("Alice")},
+		&leaf{Value: []byte("Alice")},
 		nil,
 		nil,
 	}, {
 		"odd-leaf",
-		&Leaf{Value: []byte("Alice")},
+		&leaf{Value: []byte("Alice")},
 		nil,
 		nil,
 	}, {
 		"edge",
-		&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+		&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
 		nil,
 		nil,
 	}, {
 		"branch",
-		&Branch{
+		&branch{
 			Value: []byte("Alice"),
-			EmbeddedNodes: [...]Node{
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
+			EmbeddedNodes: [...]node{
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
+				null{},
+				null{},
+				null{},
+				null{},
 			},
 		},
 		nil,
 		nil,
 	}, {
 		"branch-invalid-type",
-		&Branch{
+		&branch{
 			Value: []byte("Alice"),
-			EmbeddedNodes: [...]Node{
-				Null{},
-				Null{},
-				Null{},
-				&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
-				&Leaf{Value: []byte("Alice")},
-				Null{},
-				Null{},
-				Null{},
-				Null{},
+			EmbeddedNodes: [...]node{
+				null{},
+				null{},
+				null{},
+				&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				null{},
+				&leaf{Value: []byte("Alice")},
+				null{},
+				null{},
+				null{},
+				null{},
 			},
 		},
 		nil,
@@ -130,7 +130,7 @@ func TestNode_Encoding(t *testing.T) {
 
 			require.NoError(t, err, "tt.node.MarshalBinary()")
 
-			node, read, err := UnmarshalNode(buf)
+			node, read, err := unmarshalNode(buf)
 
 			if tt.unmarshalErr != nil {
 				assert.EqualError(t, err, tt.unmarshalErr.Error(), "UnmarshalNode()")
@@ -146,25 +146,25 @@ func TestNode_Encoding(t *testing.T) {
 }
 
 func TestNode_String(t *testing.T) {
-	n := Branch{
+	n := branch{
 		Value: []byte("Alice"),
-		EmbeddedNodes: [...]Node{
-			Null{},
-			Null{},
-			Null{},
-			&Edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
-			Null{},
-			Null{},
-			Null{},
-			Null{},
-			Null{},
-			Null{},
-			Null{},
-			&Edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
-			Null{},
-			Null{},
-			Null{},
-			Null{},
+		EmbeddedNodes: [...]node{
+			null{},
+			null{},
+			null{},
+			&edge{Path: []uint8{1, 2, 3}, Hash: testHash1},
+			null{},
+			null{},
+			null{},
+			null{},
+			null{},
+			null{},
+			null{},
+			&edge{Path: []uint8{10, 11, 12}, Hash: testHash2},
+			null{},
+			null{},
+			null{},
+			null{},
 		},
 	}
 

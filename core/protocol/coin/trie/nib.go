@@ -18,39 +18,36 @@ import (
 	"encoding/hex"
 )
 
-// Nib represents a nibble (four bits).
-type Nib uint8
-
-// Nibs deals with nibbles (four bits) in a buffer.
-type Nibs struct {
+// nibs deals with nibbles (four bits) in a buffer.
+type nibs struct {
 	buf []byte
 	odd bool
 }
 
-// NewNibs creates a Nibs from a buffer. If odd is true, the last nibble of the
+// newNibs creates a Nibs from a buffer. If odd is true, the last nibble of the
 // buffer is ignored.
-func NewNibs(buf []byte, odd bool) Nibs {
+func newNibs(buf []byte, odd bool) nibs {
 	b := make([]byte, len(buf))
 	copy(b, buf)
 
-	return NewNibsWithoutCopy(b, odd)
+	return newNibsWithoutCopy(b, odd)
 }
 
-// NewNibsWithoutCopy creates a Nibs from a buffer without copying the buffer.
-func NewNibsWithoutCopy(buf []byte, odd bool) Nibs {
+// newNibsWithoutCopy creates a Nibs from a buffer without copying the buffer.
+func newNibsWithoutCopy(buf []byte, odd bool) nibs {
 	if odd {
 		buf[len(buf)-1] &= 0xF0
 	}
 
-	return Nibs{buf: buf, odd: odd}
+	return nibs{buf: buf, odd: odd}
 }
 
-// NewNibsFromNibs creates a Nibs from a slice of nibbles.
-func NewNibsFromNibs(nibs ...uint8) Nibs {
-	buf := make([]byte, (len(nibs)+1)/2)
-	n := NewNibsWithoutCopy(buf, len(nibs)%2 == 1)
+// newNibsFromNibs creates a Nibs from a slice of nibbles.
+func newNibsFromNibs(nbs ...uint8) nibs {
+	buf := make([]byte, (len(nbs)+1)/2)
+	n := newNibsWithoutCopy(buf, len(nbs)%2 == 1)
 
-	for i, v := range nibs {
+	for i, v := range nbs {
 		n.Put(i, v)
 	}
 
@@ -58,12 +55,12 @@ func NewNibsFromNibs(nibs ...uint8) Nibs {
 }
 
 // String returns a string representation of the nibbles.
-func (n Nibs) String() string {
+func (n nibs) String() string {
 	return hex.EncodeToString(n.buf)[:n.Len()]
 }
 
 // Len returns the number of nibbles in the buffer.
-func (n Nibs) Len() int {
+func (n nibs) Len() int {
 	l := len(n.buf)
 	if l < 1 {
 		return 0
@@ -77,17 +74,17 @@ func (n Nibs) Len() int {
 }
 
 // ByteLen returns the number of bytes in the buffer.
-func (n Nibs) ByteLen() int {
+func (n nibs) ByteLen() int {
 	return len(n.buf)
 }
 
 // Odd returns whether the number of nibbles is odd.
-func (n Nibs) Odd() bool {
+func (n nibs) Odd() bool {
 	return n.odd
 }
 
 // At returns the nth nibble.
-func (n Nibs) At(index int) uint8 {
+func (n nibs) At(index int) uint8 {
 	b := n.buf[index/2]
 
 	if index%2 == 0 {
@@ -98,7 +95,7 @@ func (n Nibs) At(index int) uint8 {
 }
 
 // Put sets the nibble at the specified nibble index.
-func (n Nibs) Put(index int, nib uint8) {
+func (n nibs) Put(index int, nib uint8) {
 	i := index / 2
 
 	if index%2 == 0 {
@@ -112,18 +109,18 @@ func (n Nibs) Put(index int, nib uint8) {
 }
 
 // Append appends nibbles.
-func (n Nibs) Append(nibs ...Nibs) Nibs {
+func (n nibs) Append(nbs ...nibs) nibs {
 	l := n.Len()
 
-	for _, nib := range nibs {
+	for _, nib := range nbs {
 		l += nib.Len()
 	}
 
-	appended := NewNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
+	appended := newNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
 	n.CopyToBuf(appended.buf)
 	i := n.Len()
 
-	for _, nib := range nibs {
+	for _, nib := range nbs {
 		for j := 0; j < nib.Len(); j++ {
 			appended.Put(i, nib.At(j))
 			i++
@@ -135,9 +132,9 @@ func (n Nibs) Append(nibs ...Nibs) Nibs {
 
 // Substr returns a substring of the nibbles. The indexes are given in number
 // of nibbles.
-func (n Nibs) Substr(from, to int) Nibs {
+func (n nibs) Substr(from, to int) nibs {
 	l := to - from
-	sub := NewNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
+	sub := newNibsWithoutCopy(make([]byte, (l+1)/2), l%2 == 1)
 
 	for i, j := 0, from; j < to; i, j = i+1, j+1 {
 		sub.Put(i, n.At(j))
@@ -147,7 +144,7 @@ func (n Nibs) Substr(from, to int) Nibs {
 }
 
 // CopyToBuf copies the nibbles to a buffer.
-func (n Nibs) CopyToBuf(buf []byte) {
+func (n nibs) CopyToBuf(buf []byte) {
 	if n.odd && len(n.buf) > 0 {
 		copy(buf, n.buf[:len(n.buf)-1])
 		buf[len(n.buf)-1] &= 0x0F
@@ -159,7 +156,7 @@ func (n Nibs) CopyToBuf(buf []byte) {
 }
 
 // Expand returns a slice containing the individual nibbles.
-func (n Nibs) Expand() []uint8 {
+func (n nibs) Expand() []uint8 {
 	s := make([]uint8, n.Len())
 
 	for i := 0; i < n.Len(); i++ {

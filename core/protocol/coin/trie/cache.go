@@ -21,10 +21,10 @@ import (
 )
 
 // nodeGetter gets a node from a database.
-type nodeGetter func(key []uint8) (Node, error)
+type nodeGetter func(key []uint8) (node, error)
 
 // nodePutter puts a node in a database.
-type nodePutter func(key []uint8, node Node, buffer []byte) error
+type nodePutter func(key []uint8, n node, buffer []byte) error
 
 // nodeDeleter deletes a node from a database.
 type nodeDeleter func(key []uint8) error
@@ -34,7 +34,7 @@ type hasher func(key []byte) (multihash.Multihash, error)
 
 // cacheEntry represents an entry in the cash.
 type cacheEntry struct {
-	Node    Node
+	Node    node
 	Dirty   bool
 	Deleted bool
 	Encoded []byte
@@ -66,28 +66,28 @@ func newCache(get nodeGetter, put nodePutter, del nodeDeleter, hash hasher) *cac
 
 // Get gets a node from the cache. It will load the value from the database if
 // it isn't in the cache.
-func (c *cache) Get(key []uint8) (Node, error) {
+func (c *cache) Get(key []uint8) (node, error) {
 	if entry, ok := c.entries[string(key)]; ok {
 		if entry.Deleted {
-			return Null{}, nil
+			return null{}, nil
 		}
 
 		return entry.Node, nil
 	}
 
-	node, err := c.get(key)
+	n, err := c.get(key)
 	if err != nil {
-		return Null{}, err
+		return null{}, err
 	}
 
-	c.entries[string(key)] = &cacheEntry{Node: node}
+	c.entries[string(key)] = &cacheEntry{Node: n}
 
-	return node.Clone(), nil
+	return n.Clone(), nil
 }
 
 // Put sets a node in the cache.
-func (c *cache) Put(key []uint8, node Node) error {
-	c.entries[string(key)] = &cacheEntry{Node: node, Dirty: true}
+func (c *cache) Put(key []uint8, n node) error {
+	c.entries[string(key)] = &cacheEntry{Node: n, Dirty: true}
 
 	return nil
 }
@@ -119,26 +119,26 @@ func (c *cache) Hash(key []uint8) (multihash.Multihash, error) {
 		return entry.Hash, nil
 	}
 
-	if branch, ok := entry.Node.(*Branch); ok {
-		for _, edge := range branch.EmbeddedNodes {
-			edge, ok := edge.(*Edge)
+	if b, ok := entry.Node.(*branch); ok {
+		for _, e := range b.EmbeddedNodes {
+			e, ok := e.(*edge)
 			if !ok {
 				continue
 			}
 
 			// Already hashed.
-			if len(edge.Hash) > 0 {
+			if len(e.Hash) > 0 {
 				continue
 			}
 
-			path := append(key, edge.Path...)
+			path := append(key, e.Path...)
 
 			hash, err := c.Hash(path)
 			if err != nil {
 				return nil, err
 			}
 
-			edge.Hash = hash
+			e.Hash = hash
 		}
 	}
 

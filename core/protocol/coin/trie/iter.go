@@ -42,8 +42,8 @@ type iter struct {
 func newIter(trie *Trie, start, stop []byte) *iter {
 	return &iter{
 		trie:  trie,
-		start: NewNibs(start, false).Expand(),
-		stop:  NewNibs(stop, false).Expand(),
+		start: newNibs(start, false).Expand(),
+		stop:  newNibs(stop, false).Expand(),
 	}
 }
 
@@ -100,37 +100,37 @@ func (i *iter) Release() {
 }
 
 // recNext recursively finds the next pair.
-func (i *iter) recNext(node Node, prefix []uint8) (bool, error) {
-	if edge, ok := node.(*Edge); ok {
+func (i *iter) recNext(n node, prefix []uint8) (bool, error) {
+	if e, ok := n.(*edge); ok {
 		// Follow edge.
-		prefix = append(prefix, edge.Path...)
+		prefix = append(prefix, e.Path...)
 
 		var err error
-		node, err = i.trie.getNode(prefix)
+		n, err = i.trie.getNode(prefix)
 		if err != nil {
 			return false, err
 		}
 	}
 
-	switch node := node.(type) {
-	case Null:
+	switch n := n.(type) {
+	case null:
 		// Only happens if root is nil.
 		return false, nil
 
-	case *Branch:
-		if len(node.Value) > 0 && i.cmp(prefix) {
+	case *branch:
+		if len(n.Value) > 0 && i.cmp(prefix) {
 			// Branch has a value is in within range.
-			i.set(prefix, node.Value)
+			i.set(prefix, n.Value)
 
 			return true, nil
 		}
 
-		for _, edge := range node.EmbeddedNodes {
-			switch edge := edge.(type) {
-			case Null:
+		for _, e := range n.EmbeddedNodes {
+			switch e := e.(type) {
+			case null:
 				// Pass.
-			case *Edge:
-				key := append(prefix, edge.Path...)
+			case *edge:
+				key := append(prefix, e.Path...)
 
 				if len(i.stop) > 0 && bytes.Compare(key, i.stop) >= 0 {
 					// All children are after the range.
@@ -144,7 +144,7 @@ func (i *iter) recNext(node Node, prefix []uint8) (bool, error) {
 
 				if bytes.Compare(key, start) >= 0 {
 					// Children could be within range.
-					next, err := i.recNext(edge, prefix)
+					next, err := i.recNext(e, prefix)
 					if err != nil {
 						return false, err
 					}
@@ -158,12 +158,12 @@ func (i *iter) recNext(node Node, prefix []uint8) (bool, error) {
 
 		return false, nil
 
-	case *Leaf:
+	case *leaf:
 		if !i.cmp(prefix) {
 			return false, nil
 		}
 
-		i.set(prefix, node.Value)
+		i.set(prefix, n.Value)
 
 		return true, nil
 	}
@@ -176,7 +176,7 @@ func (i *iter) set(key []uint8, val []byte) {
 	// Set start to the next possible key.
 	i.start = append(key, 0)
 
-	i.key = NewNibsFromNibs(key...).buf
+	i.key = newNibsFromNibs(key...).buf
 	i.val = make([]byte, len(val))
 
 	copy(i.val, val)

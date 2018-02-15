@@ -31,38 +31,38 @@ var (
 	ErrInvalidNodeLen = errors.New("the encoded node has an invalid number of bytes")
 )
 
-// NodeType represents the type of a node.
-type NodeType byte
+// nodeType represents the type of a node.
+type nodeType byte
 
 // Node types.
 const (
-	NodeTypeNull NodeType = iota
-	NodeTypeBranch
-	NodeTypeLeaf
-	NodeTypeEdge
+	nodeTypeNull nodeType = iota
+	nodeTypeBranch
+	nodeTypeLeaf
+	nodeTypeEdge
 )
 
 // String returns a string representation of a node type.
-func (n NodeType) String() string {
+func (n nodeType) String() string {
 	switch n {
-	case NodeTypeNull:
+	case nodeTypeNull:
 		return "<null>"
-	case NodeTypeBranch:
+	case nodeTypeBranch:
 		return "<branch>"
-	case NodeTypeLeaf:
+	case nodeTypeLeaf:
 		return "<leaf>"
-	case NodeTypeEdge:
+	case nodeTypeEdge:
 		return "<edge>"
 	}
 
 	return "<invalid>"
 }
 
-// Node represents a node in a Patricia Merkle Trie.
+// node represents a node in a Patricia Merkle Trie.
 //
 // A node has a compact binary encoding.
 //
-// Node Encoding
+// node Encoding
 //
 //	Null node
 //	---------
@@ -88,62 +88,62 @@ func (n NodeType) String() string {
 //
 //	10010111          11100011                10101010 ...
 //	algo (uvarint64)  digest len (uvarint64)  digest
-type Node interface {
+type node interface {
 	MarshalBinary() ([]byte, error)
-	Clone() Node
+	Clone() node
 	String() string
 }
 
-// Null is an empty node.
-type Null struct{}
+// null is an empty node.
+type null struct{}
 
 // MarshalBinary marshals the node.
-func (n Null) MarshalBinary() ([]byte, error) {
-	return []byte{byte(NodeTypeNull) << 4}, nil
+func (n null) MarshalBinary() ([]byte, error) {
+	return []byte{byte(nodeTypeNull) << 4}, nil
 }
 
 // Clone deep-copies the node.
-func (n Null) Clone() Node {
-	return Null{}
+func (n null) Clone() node {
+	return null{}
 }
 
 // String returns a string representation of the node.
-func (n Null) String() string {
-	return NodeTypeNull.String()
+func (n null) String() string {
+	return nodeTypeNull.String()
 }
 
-// Branch is a node that has children.
-type Branch struct {
+// branch is a node that has children.
+type branch struct {
 	Value         []byte
-	EmbeddedNodes [16]Node
+	EmbeddedNodes [16]node
 }
 
-// NewEmptyBranch branch creates a new branch with all embedded nodes set to
+// newEmptyBranch branch creates a new branch with all embedded nodes set to
 // Null.
-func NewEmptyBranch() *Branch {
-	return &Branch{
-		EmbeddedNodes: [...]Node{
-			Null{}, Null{}, Null{}, Null{},
-			Null{}, Null{}, Null{}, Null{},
-			Null{}, Null{}, Null{}, Null{},
-			Null{}, Null{}, Null{}, Null{},
+func newEmptyBranch() *branch {
+	return &branch{
+		EmbeddedNodes: [...]node{
+			null{}, null{}, null{}, null{},
+			null{}, null{}, null{}, null{},
+			null{}, null{}, null{}, null{},
+			null{}, null{}, null{}, null{},
 		},
 	}
 }
 
 // MarshalBinary marshals the node.
-func (n *Branch) MarshalBinary() ([]byte, error) {
+func (n *branch) MarshalBinary() ([]byte, error) {
 	headroom := 0
 	for _, e := range n.EmbeddedNodes {
 		switch v := e.(type) {
-		case Null:
+		case null:
 			headroom++
-		case *Edge:
+		case *edge:
 			headroom += 1 + len(v.Hash) + binary.MaxVarintLen32 + (len(v.Path)+1)/2
 		}
 	}
 
-	buf := marshalValueNode(NodeTypeBranch, n.Value, headroom)
+	buf := marshalValueNode(nodeTypeBranch, n.Value, headroom)
 
 	for _, child := range n.EmbeddedNodes {
 		b, err := child.MarshalBinary()
@@ -158,38 +158,38 @@ func (n *Branch) MarshalBinary() ([]byte, error) {
 }
 
 // Clone deep-copies the node.
-func (n *Branch) Clone() Node {
-	clone := &Branch{
+func (n *branch) Clone() node {
+	clone := &branch{
 		Value: make([]byte, len(n.Value)),
 	}
 
 	copy(clone.Value, n.Value)
 
-	for i, node := range n.EmbeddedNodes {
-		clone.EmbeddedNodes[i] = node.Clone()
+	for i, n := range n.EmbeddedNodes {
+		clone.EmbeddedNodes[i] = n.Clone()
 	}
 
 	return clone
 }
 
 // String returns a string representation of the node.
-func (n *Branch) String() string {
-	return fmt.Sprintf("%v %x %v", NodeTypeBranch, n.Value, n.EmbeddedNodes)
+func (n *branch) String() string {
+	return fmt.Sprintf("%v %x %v", nodeTypeBranch, n.Value, n.EmbeddedNodes)
 }
 
-// Leaf has no children.
-type Leaf struct {
+// leaf has no children.
+type leaf struct {
 	Value []byte
 }
 
 // MarshalBinary marshals the node.
-func (n *Leaf) MarshalBinary() ([]byte, error) {
-	return marshalValueNode(NodeTypeLeaf, n.Value, 0), nil
+func (n *leaf) MarshalBinary() ([]byte, error) {
+	return marshalValueNode(nodeTypeLeaf, n.Value, 0), nil
 }
 
 // Clone deep-copies the node.
-func (n *Leaf) Clone() Node {
-	clone := &Leaf{
+func (n *leaf) Clone() node {
+	clone := &leaf{
 		Value: make([]byte, len(n.Value)),
 	}
 
@@ -199,25 +199,25 @@ func (n *Leaf) Clone() Node {
 }
 
 // String returns a string representation of the node.
-func (n *Leaf) String() string {
-	return fmt.Sprintf("%v %x", NodeTypeLeaf, n.Value)
+func (n *leaf) String() string {
+	return fmt.Sprintf("%v %x", nodeTypeLeaf, n.Value)
 }
 
-// Edge contains a partial path to another node and the hash of the target
+// edge contains a partial path to another node and the hash of the target
 // node.
-type Edge struct {
+type edge struct {
 	Path []uint8
 	Hash multihash.Multihash
 }
 
 // MarshalBinary marshals the node.
-func (n *Edge) MarshalBinary() ([]byte, error) {
-	path := NewNibsFromNibs(n.Path...)
+func (n *edge) MarshalBinary() ([]byte, error) {
+	p := newNibsFromNibs(n.Path...)
 
-	buf := make([]byte, 1+binary.MaxVarintLen32+path.ByteLen()+len(n.Hash))
-	buf[0] = byte(NodeTypeEdge)
+	buf := make([]byte, 1+binary.MaxVarintLen32+p.ByteLen()+len(n.Hash))
+	buf[0] = byte(nodeTypeEdge)
 
-	pathLen, err := Path(path).MarshalInto(buf[1:])
+	pathLen, err := path(p).MarshalInto(buf[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -228,8 +228,8 @@ func (n *Edge) MarshalBinary() ([]byte, error) {
 }
 
 // Clone deep-copies the node.
-func (n *Edge) Clone() Node {
-	clone := &Edge{
+func (n *edge) Clone() node {
+	clone := &edge{
 		Path: make([]byte, len(n.Path)),
 		Hash: make([]byte, len(n.Hash)),
 	}
@@ -241,34 +241,34 @@ func (n *Edge) Clone() Node {
 }
 
 // String returns a string representation of the node.
-func (n *Edge) String() string {
+func (n *edge) String() string {
 	return fmt.Sprintf(
 		"%v %v %s",
-		NodeTypeEdge,
-		NewNibsFromNibs(n.Path...),
+		nodeTypeEdge,
+		newNibsFromNibs(n.Path...),
 		n.Hash.B58String(),
 	)
 }
 
-// UnmarshalNode unmarshals a node. It returns a node and the number of bytes
+// unmarshalNode unmarshals a node. It returns a node and the number of bytes
 // read if no error occured.
-func UnmarshalNode(buf []byte) (Node, int, error) {
+func unmarshalNode(buf []byte) (node, int, error) {
 	if len(buf) < 1 {
 		return nil, 0, errors.WithStack(ErrInvalidNodeLen)
 	}
 
 	// Get node type (the first byte).
-	typ := NodeType(buf[0])
-	if typ == NodeTypeNull {
-		return Null{}, 1, nil
+	typ := nodeType(buf[0])
+	if typ == nodeTypeNull {
+		return null{}, 1, nil
 	}
 
 	buf = buf[1:]
 	read := 1
 
-	if typ == NodeTypeEdge {
+	if typ == nodeTypeEdge {
 		// Edge type is followed by a path and a multihash.
-		path, pathLen, err := UnmarshalPath(buf)
+		p, pathLen, err := unmarshalPath(buf)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -276,7 +276,7 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 		buf = buf[pathLen:]
 		read += pathLen
 
-		hashLen := MultihashLen(buf)
+		hashLen := multihashLen(buf)
 		if hashLen <= 0 || len(buf) < hashLen {
 			return nil, 0, errors.WithStack(ErrInvalidNodeLen)
 		}
@@ -285,8 +285,8 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 		hash := make(multihash.Multihash, hashLen)
 		copy(hash, buf[:hashLen])
 
-		return &Edge{
-			Path: Nibs(path).Expand(),
+		return &edge{
+			Path: nibs(p).Expand(),
 			Hash: hash,
 		}, read + hashLen, nil
 	}
@@ -303,19 +303,19 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 	read += valRead + int(valLen)
 
 	switch typ {
-	case NodeTypeBranch:
-		n := &Branch{Value: val}
+	case nodeTypeBranch:
+		n := &branch{Value: val}
 
 		// Get child hash nodes.
 		for i := range n.EmbeddedNodes {
-			child, childRead, err := UnmarshalNode(buf)
+			child, childRead, err := unmarshalNode(buf)
 			if err != nil {
 				return nil, 0, err
 			}
 
 			// They can only be null or edge.
 			switch child.(type) {
-			case Null, *Edge:
+			case null, *edge:
 			default:
 				return nil, 0, errors.WithStack(ErrInvalidNodeType)
 			}
@@ -327,15 +327,15 @@ func UnmarshalNode(buf []byte) (Node, int, error) {
 
 		return n, read, nil
 
-	case NodeTypeLeaf:
-		return &Leaf{Value: val}, read, nil
+	case nodeTypeLeaf:
+		return &leaf{Value: val}, read, nil
 	}
 
 	return nil, 0, errors.WithStack(ErrInvalidNodeType)
 }
 
-// MultihashLen returns the length of a multihash.
-func MultihashLen(buf []byte) int {
+// multihashLen returns the length of a multihash.
+func multihashLen(buf []byte) int {
 	_, n1 := binary.Uvarint(buf)
 	if n1 <= 0 {
 		return 0
@@ -350,7 +350,7 @@ func MultihashLen(buf []byte) int {
 }
 
 // marshalValueNode marshals a node type, flags, and a value.
-func marshalValueNode(typ NodeType, val []byte, headroom int) []byte {
+func marshalValueNode(typ nodeType, val []byte, headroom int) []byte {
 	buf := make([]byte, 1+binary.MaxVarintLen64+len(val)+headroom)
 	buf[0] = byte(typ)
 

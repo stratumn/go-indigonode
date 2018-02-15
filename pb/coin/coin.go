@@ -18,10 +18,16 @@ package coin
 
 // BlockNumber returns the number of a block.
 func (b *Block) BlockNumber() uint64 {
+	if b.Header == nil {
+		return 0
+	}
 	return b.Header.BlockNumber
 }
 
 // PreviousHash returns the hash of previous block's header
 func (b *Block) PreviousHash() []byte {
+	if b.Header == nil {
+		return []byte{}
+	}
 	return b.Header.PreviousHash
 }

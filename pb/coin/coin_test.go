@@ -22,7 +22,11 @@ import (
 )
 
 func TestBlockModel(t *testing.T) {
-	b := &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: []byte("pizza")}}
+	b := &pb.Block{}
+	assert.Equal(t, uint64(0), b.BlockNumber(), "b.BlockNumber()")
+	assert.Equal(t, []byte{}, b.PreviousHash(), "b.PreviousHash()")
+
+	b = &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: []byte("pizza")}}
 	assert.Equal(t, b.Header.BlockNumber, b.BlockNumber(), "b.BlockNumber()")
 	assert.Equal(t, b.Header.PreviousHash, b.PreviousHash(), "b.PreviousHash()")
 }

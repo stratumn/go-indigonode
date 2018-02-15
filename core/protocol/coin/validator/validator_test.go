@@ -178,8 +178,13 @@ func TestValidateBlock(t *testing.T) {
 	}
 
 	testCases := []validateBlockTxTestCase{{
+		"genesis-block",
+		func() *pb.Block { return &pb.Block{Header: &pb.Header{BlockNumber: 0}} },
+		func() state.State { return nil },
+		validator.ErrBlockHeightZero,
+	}, {
 		"empty-block",
-		func() *pb.Block { return &pb.Block{} },
+		func() *pb.Block { return &pb.Block{Header: &pb.Header{BlockNumber: 42}} },
 		func() state.State { return nil },
 		nil,
 	}, {

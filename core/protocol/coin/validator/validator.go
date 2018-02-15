@@ -69,6 +69,9 @@ var (
 
 	// ErrInvalidMinerReward is returned when the miner reward is invalid.
 	ErrInvalidMinerReward = errors.New("miner reward is invalid")
+
+	// ErrBlockHeightZero is returned we receive a block with height 0.
+	ErrBlockHeightZero = errors.New("block should have height higher than 0")
 )
 
 // Validator is an interface which defines the standard for block and
@@ -240,8 +243,13 @@ func (v *BalanceValidator) validateBalance(tx *pb.Transaction, s state.Reader) e
 	return nil
 }
 
-// ValidateBlock validates the transactions contained in a block.
+// ValidateBlock validates a block.
 func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error {
+	// Reject blocks with height 0: we do not accept another genesis block.
+	if block.BlockNumber() == 0 {
+		return ErrBlockHeightZero
+	}
+
 	if err := v.validateTxCount(block); err != nil {
 		return err
 	}

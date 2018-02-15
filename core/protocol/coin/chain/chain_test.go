@@ -137,21 +137,36 @@ func TestChain(t *testing.T) {
 	}, {
 		"update-main-branch",
 		func(t *testing.T, c Chain) {
+			// Update the head and check that the main branch references are updated.
+			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 42}}
+			h2bis, err := coinutil.HashHeader(block2bis.Header)
+			assert.NoError(t, err, "coinutil.HashHeader()")
+			block3 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h2, Nonce: 42}}
+			block3bis := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h2bis, Nonce: 43}}
+
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
 			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
+			assert.NoError(t, c.AddBlock(block3), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block3), "c.SetHead()")
 
-			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 42}}
 			assert.NoError(t, c.AddBlock(block2bis), "c.AddBlock()")
+			assert.NoError(t, c.AddBlock(block3bis), "c.AddBlock()")
 
 			h, err := c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
 			assert.Equal(t, h, block2.Header)
+			h, err = c.GetHeaderByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, h, block3.Header)
 
-			assert.NoError(t, c.SetHead(block2bis), "c.SetHead()")
+			assert.NoError(t, c.SetHead(block3bis), "c.SetHead()")
 
 			h, err = c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
 			assert.Equal(t, h, block2bis.Header)
+			h, err = c.GetHeaderByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, h, block3bis.Header)
 		},
 	}}
 

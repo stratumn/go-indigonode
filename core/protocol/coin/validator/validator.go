@@ -20,6 +20,7 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -90,6 +91,29 @@ type Validator interface {
 	ValidateBlock(block *pb.Block, state state.Reader) error
 	// ValidateTransactions validates a list of transactions.
 	ValidateTransactions(transactions []*pb.Transaction, state state.Reader) error
+}
+
+// GossipValidator validates coin transactions.
+// Compared to BalanceValidator, block validation also
+// validates block header.
+type GossipValidator struct {
+	chReader chain.Reader
+	*BalanceValidator
+}
+
+// ValidateBlock validates the transactions contained in a block and the block header.
+func (g *GossipValidator) ValidateBlock(block *pb.Block, state state.Reader) error {
+	if err := g.BalanceValidator.engine.VerifyHeader(g.chReader, block.Header); err != nil {
+		return err
+	}
+	return g.BalanceValidator.ValidateBlock(block, state)
+}
+
+// NewGossipValidator returns a GossipValidator.
+func NewGossipValidator(maxTxPerBlock uint32, engine engine.PoW, chReader chain.Reader) Validator {
+	balanceValidator := NewBalanceValidator(maxTxPerBlock, engine).(*BalanceValidator)
+
+	return &GossipValidator{chReader, balanceValidator}
 }
 
 // BalanceValidator validates coin transactions.

@@ -25,11 +25,11 @@ import (
 )
 
 func TestChain(t *testing.T) {
-	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
-	h1, err := coinutil.HashHeader(block1.Header)
+	genesisBlock := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
+	genesisHash, err := coinutil.HashHeader(genesisBlock.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
-	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1}}
+	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash}}
 	h2, err := coinutil.HashHeader(block2.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
@@ -37,6 +37,16 @@ func TestChain(t *testing.T) {
 		name string
 		run  func(*testing.T, Chain)
 	}{{
+		"empty-chain",
+		func(t *testing.T, _ Chain) {
+			memdb, err := db.NewMemDB(nil)
+			require.NoError(t, err, "db.NewMemDB()")
+			c := NewChainDB(memdb)
+			h, err := c.CurrentHeader()
+			assert.EqualError(t, err, ErrBlockHashNotFound.Error(), "c.GetBlock(block1)")
+			assert.Nil(t, h, "s.CurrentHeader()")
+		},
+	}, {
 		"add-invalid-previous-hash",
 		func(t *testing.T, c Chain) {
 			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, PreviousHash: h2}}
@@ -45,15 +55,15 @@ func TestChain(t *testing.T) {
 	}, {
 		"add-invalid-number",
 		func(t *testing.T, c Chain) {
-			block := &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: h1}}
+			block := &pb.Block{Header: &pb.Header{BlockNumber: 42, PreviousHash: genesisHash}}
 			assert.EqualError(t, c.AddBlock(block), ErrInvalidPreviousBlock.Error(), "c.AddBlock()")
 		},
 	}, {
 		"add-get",
 		func(t *testing.T, c Chain) {
-			b, err := c.GetBlock(h1, block1.Header.BlockNumber)
-			assert.NoError(t, err, "c.GetBlock(block1)")
-			assert.Equal(t, b, block1)
+			b, err := c.GetBlock(genesisHash, genesisBlock.Header.BlockNumber)
+			assert.NoError(t, err, "c.GetBlock(genesisBlock)")
+			assert.Equal(t, b, genesisBlock)
 		},
 	}, {
 		"set-head",
@@ -79,9 +89,9 @@ func TestChain(t *testing.T) {
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
 
-			h, err := c.GetHeadersByNumber(block1.Header.BlockNumber)
+			h, err := c.GetHeadersByNumber(genesisBlock.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
-			assert.Equal(t, []*pb.Header{block1.Header}, h)
+			assert.Equal(t, []*pb.Header{genesisBlock.Header}, h)
 
 			h, err = c.GetHeadersByNumber(block2.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
@@ -94,10 +104,10 @@ func TestChain(t *testing.T) {
 
 			assert.NoError(t, c.AddBlock(block), "c.AddBlock()")
 
-			headers, err := c.GetHeadersByNumber(block1.Header.BlockNumber)
+			headers, err := c.GetHeadersByNumber(genesisBlock.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
 			assert.Len(t, headers, 2, "c.GetHeadersByNumber()")
-			assert.Equal(t, []*pb.Header{block1.Header, block.Header}, headers)
+			assert.Equal(t, []*pb.Header{genesisBlock.Header, block.Header}, headers)
 		},
 	}, {
 		"get-by-bad-number",
@@ -110,9 +120,9 @@ func TestChain(t *testing.T) {
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
 
-			h, err := c.GetHeaderByHash(h1)
+			h, err := c.GetHeaderByHash(genesisHash)
 			assert.NoError(t, err, "c.GetHeaderByHash()")
-			assert.Equal(t, h, block1.Header)
+			assert.Equal(t, h, genesisBlock.Header)
 
 			h, err = c.GetHeaderByHash(h2)
 			assert.NoError(t, err, "c.GetHeaderByHash()")
@@ -130,7 +140,7 @@ func TestChain(t *testing.T) {
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
 			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
 
-			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: h1, Nonce: 42}}
+			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 42}}
 			assert.NoError(t, c.AddBlock(block2bis), "c.AddBlock()")
 
 			h, err := c.GetHeaderByNumber(1)
@@ -151,7 +161,7 @@ func TestChain(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewChainDB(memdb, OptGenesisBlock(block1)))
+			tt.run(t, NewChainDB(memdb, OptGenesisBlock(genesisBlock)))
 		})
 	}
 }

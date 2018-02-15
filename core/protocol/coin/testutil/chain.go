@@ -28,7 +28,6 @@ type SimpleChain struct {
 	mu           sync.RWMutex
 	blocks       []*pb.Block
 	currentBlock *pb.Block
-	mainBranch   map[uint64]*pb.Block
 }
 
 // Config returns nothing.
@@ -79,15 +78,18 @@ func (c *SimpleChain) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 func (c *SimpleChain) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.mainBranch == nil {
-		if err := c.generateMainBranch(); err != nil {
-			return nil, err
-		}
+
+	b := c.currentBlock
+	if b.BlockNumber() < number {
+		return nil, chain.ErrBlockNumberNotFound
 	}
 
-	b, ok := c.mainBranch[number]
-	if !ok {
-		return nil, chain.ErrBlockNumberNotFound
+	for b.BlockNumber() > number {
+		var err error
+		b, err = c.getBlock(b.PreviousHash())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b.Header, nil
@@ -142,41 +144,7 @@ func (c *SimpleChain) SetHead(block *pb.Block) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if c.currentBlock != nil {
-		curr, err := coinutil.HashHeader(c.currentBlock.Header)
-		if err != nil {
-			return err
-		}
-		hash, err := coinutil.HashHeader(block.Header)
-		if err != nil {
-			return err
-		}
-		if !bytes.Equal(hash, curr) {
-			c.mainBranch = nil
-		}
-	}
-
 	c.currentBlock = block
 
-	return nil
-}
-
-// generateMainBranch creates the map that coinaitns
-// the refs to the main branch's blocks.
-func (c *SimpleChain) generateMainBranch() error {
-	mainBranch := map[uint64]*pb.Block{}
-
-	block := c.currentBlock
-	mainBranch[block.BlockNumber()] = block
-
-	for block.BlockNumber() > 0 {
-		block, err := c.getBlock(block.PreviousHash())
-		if err != nil {
-			return err
-		}
-		mainBranch[block.BlockNumber()] = block
-	}
-
-	c.mainBranch = mainBranch
 	return nil
 }

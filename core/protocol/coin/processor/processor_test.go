@@ -206,10 +206,10 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 			Nonce:        32,
 		},
 		Transactions: []*pb.Transaction{{
-			From:  alice,
-			To:    dexter,
-			Value: 4,
-			Nonce: 2,
+			From:  dexter,
+			To:    bob,
+			Value: 1,
+			Nonce: 42,
 		}},
 	}
 	h32, err := coinutil.HashHeader(block32.Header)
@@ -222,10 +222,10 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 			Nonce:        4,
 		},
 		Transactions: []*pb.Transaction{{
-			From:  dexter,
-			To:    bob,
-			Value: 1,
-			Nonce: 42,
+			From:  alice,
+			To:    dexter,
+			Value: 4,
+			Nonce: 2,
 		}},
 	}
 	h4, err := coinutil.HashHeader(block4.Header)

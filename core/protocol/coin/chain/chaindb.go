@@ -43,7 +43,7 @@ type chainDB struct {
 	db     db.DB
 	prefix []byte
 
-	// mainChain is a lazy loaded cache tha will contain refs to main branch's blocks
+	// mainChain is a lazy loaded cache that will contain refs to main branch's blocks
 	// We generate it only once requested.
 	// If there is a reorg, we just erase it and wait for next request.
 	mainBranch map[uint64][]byte
@@ -288,11 +288,11 @@ func (c *chainDB) SetHead(block *pb.Block) error {
 	if len(c.mainBranch) > 0 && block.BlockNumber() > 0 {
 		cur, err := c.CurrentHeader()
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 		hb, err := coinutil.HashHeader(cur)
 		if err != nil {
-			return errors.WithStack(err)
+			return err
 		}
 
 		if !bytes.Equal(hb, block.PreviousHash()) {
@@ -339,7 +339,7 @@ func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	return deserializeHashes(b)
 }
 
-// generateMainBranch creates the map that coinaitns
+// generateMainBranch creates the map that contains
 // the refs to the main branch's blocks.
 func (c *chainDB) generateMainBranch() error {
 	mainBranch := map[uint64][]byte{}
@@ -391,7 +391,7 @@ func serializeHashes(h [][]byte) ([]byte, error) {
 	return json.Marshal(h)
 }
 
-// Desirialize a byte array into a list of hashes.
+// Deserialize a byte array into a list of hashes.
 func deserializeHashes(b []byte) ([][]byte, error) {
 	hashes := [][]byte{}
 	err := json.Unmarshal(b, &hashes)

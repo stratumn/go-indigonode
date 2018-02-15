@@ -17,7 +17,11 @@ package validator_test
 import (
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/coin/chain/mockchain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
+	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
@@ -327,4 +331,46 @@ func TestValidateBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGossipValidator(t *testing.T) {
+	testReward := uint64(5)
+	difficulty := uint64(1)
+	testMaxTxCount := uint32(3)
+
+	mockCtrl := gomock.NewController(t)
+	mockPoW := mockengine.NewMockPoW(mockCtrl)
+	mockChain := mockchain.NewMockChain(mockCtrl)
+
+	mockPoW.EXPECT().Difficulty().AnyTimes().Return(difficulty)
+	mockPoW.EXPECT().Reward().AnyTimes().Return(testReward)
+
+	validator := validator.NewGossipValidator(testMaxTxCount, mockPoW, mockChain)
+
+	validBlock := testutil.NewBlock(t, []*pb.Transaction{
+		testutil.NewTransaction(t, 3, 1, 5),
+		testutil.NewTransaction(t, 7, 1, 8),
+		testutil.NewRewardTransaction(t, testReward+1+1),
+	})
+
+	s := testutil.NewSimpleState(t)
+	err := s.UpdateAccount(
+		[]byte(testutil.TxSenderPID),
+		&pb.Account{Balance: 15, Nonce: 3},
+	)
+	assert.NoError(t, err)
+
+	t.Run("ValidHeader", func(t *testing.T) {
+		mockPoW.EXPECT().VerifyHeader(gomock.Any(), gomock.Any()).Times(1).Return(nil)
+
+		err := validator.ValidateBlock(validBlock, s)
+		assert.NoError(t, err)
+	})
+
+	t.Run("InvalidHeader", func(t *testing.T) {
+		mockPoW.EXPECT().VerifyHeader(gomock.Any(), gomock.Any()).Times(1).Return(engine.ErrInvalidBlockNumber)
+
+		err := validator.ValidateBlock(validBlock, s)
+		assert.EqualError(t, engine.ErrInvalidBlockNumber, err.Error())
+	})
 }

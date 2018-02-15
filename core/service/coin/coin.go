@@ -251,11 +251,12 @@ func (s *Service) createCoin(ctx context.Context) error {
 	engine := engine.NewHashEngine(minerPublicKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
 
 	processor := processor.NewProcessor()
-	validator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
+	balanceValidator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
+	gossipValidator := validator.NewGossipValidator(uint32(s.config.MaxTxPerBlock), engine, chain)
 
-	gossip := gossip.NewGossip(s.host, s.pubsub, state, validator)
+	gossip := gossip.NewGossip(s.host, s.pubsub, state, gossipValidator)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, validator, processor)
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor)
 
 	return nil
 }

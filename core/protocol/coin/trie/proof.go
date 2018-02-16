@@ -137,7 +137,7 @@ func NewProofFromProto(msgs []*pb.ProofNode) Proof {
 
 // Key returns the key contained in the proof.
 func (p Proof) Key() ([]byte, error) {
-	if len(p) < 0 {
+	if len(p) < 1 {
 		return nil, errors.WithStack(ErrProofEmpty)
 	}
 
@@ -146,7 +146,7 @@ func (p Proof) Key() ([]byte, error) {
 
 // Value returns the value contained in the proof.
 func (p Proof) Value() ([]byte, error) {
-	if len(p) < 0 {
+	if len(p) < 1 {
 		return nil, errors.WithStack(ErrProofEmpty)
 	}
 
@@ -155,7 +155,7 @@ func (p Proof) Value() ([]byte, error) {
 
 // MerkleRoot returns the Merkle root contained in the proof.
 func (p Proof) MerkleRoot(hashCode uint64) ([]byte, error) {
-	if len(p) < 0 {
+	if len(p) < 1 {
 		return nil, errors.WithStack(ErrProofEmpty)
 	}
 
@@ -164,7 +164,7 @@ func (p Proof) MerkleRoot(hashCode uint64) ([]byte, error) {
 
 // Verify verifies the proof against the given Merkle root, key, and value.
 func (p Proof) Verify(merkleRoot multihash.Multihash, key, val []byte) error {
-	if len(p) < 0 {
+	if len(p) < 1 {
 		return errors.WithStack(ErrProofEmpty)
 	}
 

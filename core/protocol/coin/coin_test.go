@@ -150,7 +150,7 @@ func TestGetAccountTransactions(t *testing.T) {
 	expected := []*pb.Transaction{tx}
 	blk := blocktest.NewBlock(t, expected)
 
-	err := c.state.ProcessTransactions([]byte("state"), blk)
+	err := c.state.ProcessBlock(blk)
 	require.NoError(t, err, "c.state.ProcessTransactions([]byte(state), blk)")
 
 	chain.EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(2)

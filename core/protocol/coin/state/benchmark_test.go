@@ -138,7 +138,7 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
+		err := s.ProcessBlock(blk)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -170,7 +170,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	blk := blocktest.NewBlock(b, txs)
 
 	for i := 0; i < b.N; i++ {
-		err := s.ProcessTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
+		err := s.ProcessBlock(blk)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -179,7 +179,7 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := b.N - 1; i >= 0; i-- {
-		err := s.RollbackTransactions([]byte(fmt.Sprintf("state-%10d", i)), blk)
+		err := s.RollbackBlock(blk)
 		if err != nil {
 			b.Fatal(err)
 		}

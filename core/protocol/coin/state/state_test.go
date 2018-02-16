@@ -93,7 +93,7 @@ func TestState(t *testing.T) {
 			}}
 			blk := blocktest.NewBlock(t, txs)
 
-			err = s.ProcessTransactions([]byte("state1"), blk)
+			err = s.ProcessBlock(blk)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -125,7 +125,7 @@ func TestState(t *testing.T) {
 			}}
 			blk := blocktest.NewBlock(t, txs)
 
-			err = s.ProcessTransactions([]byte("reward-state"), blk)
+			err = s.ProcessBlock(blk)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -182,15 +182,14 @@ func TestState(t *testing.T) {
 			}}
 			blk2 := blocktest.NewBlock(t, txs2)
 
-			err = s.ProcessTransactions([]byte("state1"), blk1)
+			err = s.ProcessBlock(blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
-			err = s.ProcessTransactions([]byte("state2"), blk2)
+			err = s.ProcessBlock(blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
-			// Rollback state2.
-
-			err = s.RollbackTransactions([]byte("state2"), blk2)
+			// Rollback blk2.
+			err = s.RollbackBlock(blk2)
 			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err := s.GetAccount(alice)
@@ -205,9 +204,8 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
 
-			// Rollback state1.
-
-			err = s.RollbackTransactions([]byte("state1"), blk1)
+			// Rollback blk1.
+			err = s.RollbackBlock(blk1)
 			assert.NoError(t, err, "s.RollbackTransactions(state1)")
 
 			v, err = s.GetAccount(alice)
@@ -270,23 +268,22 @@ func TestState(t *testing.T) {
 			}}
 			blk2 := blocktest.NewBlock(t, txs2)
 
-			err = s.ProcessTransactions([]byte("state1"), blk1)
+			err = s.ProcessBlock(blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
 
-			err = s.ProcessTransactions([]byte("state2"), blk2)
+			err = s.ProcessBlock(blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, uint64(6), v.Nonce, "s.GetAccount(alice).Nonce")
 
-			// Rollback state2.
-
-			err = s.RollbackTransactions([]byte("state2"), blk2)
+			// Rollback blk2.
+			err = s.RollbackBlock(blk2)
 			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err = s.GetAccount(alice)
@@ -339,7 +336,7 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
 			assert.ElementsMatch(t, []*TxKey{}, v, "s.GetAccountTxHashes(alice)")
 
-			err = s.ProcessTransactions([]byte("state1"), blk1)
+			err = s.ProcessBlock(blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
 			v, err = s.GetAccountTxKeys(alice)
@@ -354,7 +351,7 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccountTxHashes(charlie)")
 			assert.ElementsMatch(t, []*TxKey{txh1[1]}, v, "s.GetAccountTxHashes(charlie)")
 
-			err = s.ProcessTransactions([]byte("state2"), blk2)
+			err = s.ProcessBlock(blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
 			v, err = s.GetAccountTxKeys(alice)
@@ -362,8 +359,7 @@ func TestState(t *testing.T) {
 			assert.ElementsMatch(t, append(txh1, txh2...), v, "s.GetAccountTxHashes(alice)")
 
 			// Rollback.
-
-			err = s.RollbackTransactions([]byte("state2"), blk2)
+			err = s.RollbackBlock(blk2)
 			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err = s.GetAccountTxKeys(alice)
@@ -394,10 +390,10 @@ func TestState(t *testing.T) {
 			blk2.GetHeader().BlockNumber = blk1.BlockNumber() + 1
 			txh2 := computeTxKeys(txs2, blk2)[0]
 
-			err := s.ProcessTransactions([]byte("state1"), blk1)
+			err := s.ProcessBlock(blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
-			err = s.ProcessTransactions([]byte("state2"), blk2)
+			err = s.ProcessBlock(blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
 			v, err := s.GetAccountTxKeys(alice)

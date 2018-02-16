@@ -183,14 +183,14 @@ func TestState(t *testing.T) {
 			blk2 := blocktest.NewBlock(t, txs2)
 
 			err = s.ProcessBlock(blk1)
-			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+			assert.NoError(t, err, "s.ProcessBlock(blk1)")
 
 			err = s.ProcessBlock(blk2)
-			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+			assert.NoError(t, err, "s.ProcessBlock(blk2)")
 
 			// Rollback blk2.
 			err = s.RollbackBlock(blk2)
-			assert.NoError(t, err, "s.RollbackTransactions(state2)")
+			assert.NoError(t, err, "s.RollbackBlock(blk2)")
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -206,7 +206,7 @@ func TestState(t *testing.T) {
 
 			// Rollback blk1.
 			err = s.RollbackBlock(blk1)
-			assert.NoError(t, err, "s.RollbackTransactions(state1)")
+			assert.NoError(t, err, "s.RollbackBlock(blk1)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -269,14 +269,14 @@ func TestState(t *testing.T) {
 			blk2 := blocktest.NewBlock(t, txs2)
 
 			err = s.ProcessBlock(blk1)
-			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+			assert.NoError(t, err, "s.ProcessBlock(blk1)")
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
 
 			err = s.ProcessBlock(blk2)
-			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+			assert.NoError(t, err, "s.ProcessBlock(blk2)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -284,7 +284,7 @@ func TestState(t *testing.T) {
 
 			// Rollback blk2.
 			err = s.RollbackBlock(blk2)
-			assert.NoError(t, err, "s.RollbackTransactions(state2)")
+			assert.NoError(t, err, "s.RollbackBlock(blk2)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
@@ -337,7 +337,7 @@ func TestState(t *testing.T) {
 			assert.ElementsMatch(t, []*TxKey{}, v, "s.GetAccountTxHashes(alice)")
 
 			err = s.ProcessBlock(blk1)
-			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+			assert.NoError(t, err, "s.ProcessBlock(blk1)")
 
 			v, err = s.GetAccountTxKeys(alice)
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
@@ -352,7 +352,7 @@ func TestState(t *testing.T) {
 			assert.ElementsMatch(t, []*TxKey{txh1[1]}, v, "s.GetAccountTxHashes(charlie)")
 
 			err = s.ProcessBlock(blk2)
-			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+			assert.NoError(t, err, "s.ProcessBlock(blk2)")
 
 			v, err = s.GetAccountTxKeys(alice)
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
@@ -360,7 +360,7 @@ func TestState(t *testing.T) {
 
 			// Rollback.
 			err = s.RollbackBlock(blk2)
-			assert.NoError(t, err, "s.RollbackTransactions(state2)")
+			assert.NoError(t, err, "s.RollbackBlock(blk2)")
 
 			v, err = s.GetAccountTxKeys(alice)
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
@@ -391,10 +391,10 @@ func TestState(t *testing.T) {
 			txh2 := computeTxKeys(txs2, blk2)[0]
 
 			err := s.ProcessBlock(blk1)
-			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+			assert.NoError(t, err, "s.ProcessBlock(blk1)")
 
 			err = s.ProcessBlock(blk2)
-			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+			assert.NoError(t, err, "s.ProcessBlock(blk2)")
 
 			v, err := s.GetAccountTxKeys(alice)
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")

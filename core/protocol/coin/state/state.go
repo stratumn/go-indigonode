@@ -60,17 +60,13 @@ type Writer interface {
 	// rolled back.
 	UpdateAccount(pubKey []byte, account *pb.Account) error
 
-	// ProcessTransactions processes all the transactions of the given
-	// block and updates the state accordingly. It should be given a unique
-	// state ID, for instance the hash of the block containing the
-	// transactions.
-	ProcessTransactions(stateID []byte, blk *pb.Block) error
+	// ProcessBlock processes all the transactions of the given
+	// block and updates the state accordingly.
+	ProcessBlock(blk *pb.Block) error
 
-	// RollbackTransactions rolls back transactions. The parameters are
-	// expected to be identical to the ones that were given to the
-	// corresponding call to ProcessTransactions().
-	// You should only rollback the current state to the previous one.
-	RollbackTransactions(stateID []byte, blk *pb.Block) error
+	// RollbackBlock rolls back a block.
+	// You should only rollback the last block.
+	RollbackBlock(blk *pb.Block) error
 }
 
 const (
@@ -215,7 +211,7 @@ func (s *stateDB) doUpdateAccount(pubKey []byte, account *pb.Account) error {
 	return s.accountsTrie.Put(pubKey, buf)
 }
 
-func (s *stateDB) ProcessTransactions(stateID []byte, blk *pb.Block) error {
+func (s *stateDB) ProcessBlock(blk *pb.Block) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
@@ -277,9 +273,14 @@ func (s *stateDB) ProcessTransactions(stateID []byte, blk *pb.Block) error {
 		}
 	}
 
+	key, err := s.prevNoncesKey(blk)
+	if err != nil {
+		return err
+	}
+
 	// We do not put nonces in the trie since they are implementation
 	// specific and should not affect the Merkle Root.
-	if err := s.diff.Put(s.prevNoncesKey(stateID), nonces); err != nil {
+	if err := s.diff.Put(key, nonces); err != nil {
 		return err
 	}
 
@@ -292,14 +293,19 @@ func (s *stateDB) ProcessTransactions(stateID []byte, blk *pb.Block) error {
 	return s.diff.Apply()
 }
 
-func (s *stateDB) RollbackTransactions(stateID []byte, blk *pb.Block) error {
+func (s *stateDB) RollbackBlock(blk *pb.Block) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
 	defer s.accountsTrie.Reset()
 
+	key, err := s.prevNoncesKey(blk)
+	if err != nil {
+		return err
+	}
+
 	// Nonces are in the database, not the trie.
-	nonces, err := s.diff.Get(s.prevNoncesKey(stateID))
+	nonces, err := s.diff.Get(key)
 	if err != nil {
 		return err
 	}
@@ -359,7 +365,7 @@ func (s *stateDB) RollbackTransactions(stateID []byte, blk *pb.Block) error {
 	}
 
 	// Don't need nonces anymore.
-	if err := s.diff.Delete(s.prevNoncesKey(stateID)); err != nil {
+	if err := s.diff.Delete(key); err != nil {
 		return err
 	}
 
@@ -393,9 +399,13 @@ func accountTxKeysKey(pubKey []byte, txIdx int, blkHeight uint64) []byte {
 	return append(append(pubKey, encodeUint64(blkHeight)...), encodeUint64(uint64(txIdx))...)
 }
 
-// prevNoncesKey returns the previous nonces key for the given state ID.
-func (s *stateDB) prevNoncesKey(stateID []byte) []byte {
-	return append(append(s.prefix, prevNoncesPrefix), stateID...)
+// prevNoncesKey returns the previous nonces key for the given block.
+func (s *stateDB) prevNoncesKey(blk *pb.Block) ([]byte, error) {
+	h, err := coinutil.HashHeader(blk.GetHeader())
+	if err != nil {
+		return nil, err
+	}
+	return append(append(s.prefix, prevNoncesPrefix), h...), nil
 }
 
 // encodeUint64 encodes an uint64 to a buffer.

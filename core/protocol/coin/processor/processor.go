@@ -56,8 +56,7 @@ func NewProcessor(provider ContentProvider) Processor {
 }
 
 type stateTransition struct {
-	stateID []byte
-	block   *pb.Block
+	block *pb.Block
 }
 
 func (p *processor) Process(ctx context.Context, block *pb.Block, state state.State, ch chain.Chain) error {
@@ -119,11 +118,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	// Update state.
-	h, err := coinutil.HashHeader(block.Header)
-	if err != nil {
-		return err
-	}
-	return state.ProcessTransactions(h, block)
+	return state.ProcessBlock(block)
 }
 
 // Update the state to follow the new main branch.
@@ -151,7 +146,7 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 		if mainNumber >= forkNumber {
 			// Prepend transition to forward to be then played in good order.
 			forward = append(
-				[]*stateTransition{{stateID: mainHash, block: mainBlock}},
+				[]*stateTransition{{block: mainBlock}},
 				forward...,
 			)
 			mainHash = mainBlock.PreviousHash()
@@ -162,7 +157,7 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 		}
 
 		if mainNumber <= forkNumber {
-			backward = append(backward, &stateTransition{stateID: forkHash, block: forkBlock})
+			backward = append(backward, &stateTransition{block: forkBlock})
 			forkHash = forkBlock.PreviousHash()
 			forkBlock, err = chain.GetBlock(forkBlock.PreviousHash(), forkBlock.BlockNumber()-1)
 			if err != nil {
@@ -174,13 +169,13 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.Sta
 	}
 
 	for _, st := range backward {
-		if err = state.RollbackTransactions(st.stateID, st.block); err != nil {
+		if err = state.RollbackBlock(st.block); err != nil {
 			return err
 		}
 	}
 
 	for _, st := range forward {
-		if err = state.ProcessTransactions(st.stateID, st.block); err != nil {
+		if err = state.ProcessBlock(st.block); err != nil {
 			return err
 		}
 	}

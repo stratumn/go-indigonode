@@ -132,7 +132,7 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 				log.Event(ctx, "AddTransaction", logging.Metadata{"error": err})
 			}
 		case *pb.Gossip_Block:
-			err := c.AppendBlock(m.Block)
+			err := c.AppendBlock(ctx, m.Block)
 			if err != nil {
 				log.Event(ctx, "AppendBlock", logging.Metadata{"error": err})
 			}
@@ -177,7 +177,7 @@ func (c *Coin) AddValidTransaction(tx *pb.Transaction) error {
 // the chain, updating internal state to reflect the block's transactions.
 // The miner will be notified of the new block and can decide to mine
 // on top of it or keep mining on another fork.
-func (c *Coin) AppendBlock(block *pb.Block) error {
+func (c *Coin) AppendBlock(ctx context.Context, block *pb.Block) error {
 	// Validate block contents.
 	err := c.validator.ValidateBlock(block, nil)
 	if err != nil {
@@ -190,7 +190,7 @@ func (c *Coin) AppendBlock(block *pb.Block) error {
 		return err
 	}
 
-	return c.processor.Process(block, c.state, c.chain)
+	return c.processor.Process(ctx, block, c.state, c.chain)
 }
 
 // StartMining starts the underlying miner.
@@ -206,6 +206,6 @@ func (c *Coin) StartTxGossip(ctx context.Context) error {
 // StartBlockGossip starts gossiping blocks.
 func (c *Coin) StartBlockGossip(ctx context.Context) error {
 	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
-		return c.processor.Process(block, c.state, c.chain)
+		return c.processor.Process(ctx, block, c.state, c.chain)
 	})
 }

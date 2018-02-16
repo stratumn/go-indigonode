@@ -15,6 +15,7 @@
 package processor_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -23,14 +24,31 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
+
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
+
+type provider struct {
+	resources map[string]bool
+}
+
+func (p *provider) Provide(ctx context.Context, key *cid.Cid, brdcst bool) error {
+	if p.resources == nil {
+		p.resources = map[string]bool{}
+	}
+	if brdcst {
+		p.resources[key.String()] = true
+	}
+	return nil
+}
 
 func TestProcessor_Process(t *testing.T) {
 	alice := []byte("alice")
 	bob := []byte("bob")
 	charlie := []byte("charlie")
 
-	p := processor.NewProcessor()
+	dht := &provider{}
+	p := processor.NewProcessor(dht)
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
 	c := &testutil.SimpleChain{}
 
@@ -71,9 +89,10 @@ func TestProcessor_Process(t *testing.T) {
 	h2, err := coinutil.HashHeader(block2.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
-	assert.NoError(t, p.Process(block1, s, c))
-	assert.NoError(t, p.Process(block2, s, c))
-	assert.NoError(t, p.Process(block2, s, c))
+	ctx := context.Background()
+	assert.NoError(t, p.Process(ctx, block1, s, c))
+	assert.NoError(t, p.Process(ctx, block2, s, c))
+	assert.NoError(t, p.Process(ctx, block2, s, c))
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)
@@ -91,6 +110,14 @@ func TestProcessor_Process(t *testing.T) {
 	headers, err := c.GetHeadersByNumber(1)
 	assert.NoError(t, err, "GetHeadersByNumber()")
 	assert.Len(t, headers, 1, "GetHeadersByNumber()")
+
+	// Check provider
+	cid1, err := cid.Cast(h1)
+	assert.NoError(t, err, "cid.Cast()")
+	assert.True(t, dht.resources[cid1.String()], "dht.Provide()")
+	cid2, err := cid.Cast(h2)
+	assert.NoError(t, err, "cid.Cast()")
+	assert.True(t, dht.resources[cid2.String()], "dht.Provide()")
 
 	// Check state
 	v, err := s.GetAccount(alice)
@@ -124,7 +151,7 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	charlie := []byte("charlie")
 	dexter := []byte("dexter")
 
-	p := processor.NewProcessor()
+	p := processor.NewProcessor(nil)
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
 	c := &testutil.SimpleChain{}
 
@@ -231,12 +258,13 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	h4, err := coinutil.HashHeader(block4.Header)
 	assert.NoError(t, err, "HashHeader(block3)")
 
-	assert.NoError(t, p.Process(block1, s, c))
-	assert.NoError(t, p.Process(block21, s, c))
-	assert.NoError(t, p.Process(block31, s, c))
-	assert.NoError(t, p.Process(block22, s, c))
-	assert.NoError(t, p.Process(block32, s, c))
-	assert.NoError(t, p.Process(block4, s, c))
+	ctx := context.Background()
+	assert.NoError(t, p.Process(ctx, block1, s, c))
+	assert.NoError(t, p.Process(ctx, block21, s, c))
+	assert.NoError(t, p.Process(ctx, block31, s, c))
+	assert.NoError(t, p.Process(ctx, block22, s, c))
+	assert.NoError(t, p.Process(ctx, block32, s, c))
+	assert.NoError(t, p.Process(ctx, block4, s, c))
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)

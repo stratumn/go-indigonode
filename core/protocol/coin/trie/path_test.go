@@ -21,6 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newPath creates a new path from a buffer. If odd is true, then the number of
+// nibbles is odd.
+func newPath(buf []byte, odd bool) path {
+	return path(newNibs(buf, odd))
+}
+
 func TestPath_Encoding(t *testing.T) {
 	tests := []struct {
 		name         string

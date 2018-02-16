@@ -41,12 +41,6 @@ var (
 //	depth (uvarint32)  indices  (one nibble for each depth)
 type path nibs
 
-// newPath creates a new path from a buffer. If odd is true, then the number of
-// nibbles is odd.
-func newPath(buf []byte, odd bool) path {
-	return path(newNibs(buf, odd))
-}
-
 // unmarshalPath unmarshals a path. It returns the path and the number of bytes
 // read if no error occured.
 func unmarshalPath(buf []byte) (path, int, error) {

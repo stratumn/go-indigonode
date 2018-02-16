@@ -74,7 +74,10 @@ func (s grpcServer) AccountTransactions(req *rpcpb.AccountTransactionsReq, ss rp
 	}
 
 	for _, txs := range txs {
-		ss.Send(txs)
+		err := ss.Send(txs)
+		if err != nil {
+			return errors.WithStack(err)
+		}
 	}
 	return nil
 }

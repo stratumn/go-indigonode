@@ -265,11 +265,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 		return err
 	}
 
-	if err = tx.Put(c.numToHashKey(n), hs); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.Put(c.numToHashKey(n), hs)
 }
 
 // SetHead sets the head of the chain.

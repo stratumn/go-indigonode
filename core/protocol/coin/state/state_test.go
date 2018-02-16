@@ -32,7 +32,7 @@ func TestState(t *testing.T) {
 
 		txKeys := make([]*TxKey, len(txs))
 		for i := range txs {
-			txKeys[i] = &TxKey{TxIdx: i, BlkHash: h}
+			txKeys[i] = &TxKey{TxIdx: uint64(i), BlkHash: h}
 		}
 		return txKeys
 	}

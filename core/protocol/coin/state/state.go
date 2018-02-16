@@ -17,7 +17,6 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -82,12 +81,6 @@ const (
 	// prevNoncesPrefix is the prefix for previous nonces keys.
 	prevNoncesPrefix = iota + 1
 )
-
-// TxKey is used to save a user transactions.
-type TxKey struct {
-	TxIdx   int
-	BlkHash []byte
-}
 
 type stateDB struct {
 	// The general pattern for updating accounts is:
@@ -171,7 +164,7 @@ func (s *stateDB) GetAccountTxKeys(pubKey []byte) ([]*TxKey, error) {
 		}
 		if bytes.Compare(iter.Key(), pubKey) != 0 {
 			txK := &TxKey{}
-			err := json.Unmarshal(iter.Value(), txK)
+			err := txK.Unmarshal(iter.Value())
 			if err != nil {
 				return nil, err
 			}
@@ -380,12 +373,8 @@ func (s *stateDB) addTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {
 	if err != nil {
 		return err
 	}
-	txKey := &TxKey{TxIdx: txIdx, BlkHash: h}
-	txKeyB, err := json.Marshal(txKey)
-	if err != nil {
-		return err
-	}
-	return s.accountsTrie.Put(accountTxKeysKey(pubKey, txIdx, blk.BlockNumber()), txKeyB)
+	txKey := &TxKey{TxIdx: uint64(txIdx), BlkHash: h}
+	return s.accountsTrie.Put(accountTxKeysKey(pubKey, txIdx, blk.BlockNumber()), txKey.Marshal())
 }
 
 func (s *stateDB) removeTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {

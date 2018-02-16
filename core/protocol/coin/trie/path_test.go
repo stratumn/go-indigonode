@@ -21,30 +21,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// newPath creates a new path from a buffer. If odd is true, then the number of
+// nibbles is odd.
+func newPath(buf []byte, odd bool) path {
+	return path(newNibs(buf, odd))
+}
+
 func TestPath_Encoding(t *testing.T) {
 	tests := []struct {
 		name         string
-		path         Path
+		path         path
 		marshalErr   error
 		unmarshalErr error
 	}{{
 		"empty",
-		NewPath(nil, false),
+		newPath(nil, false),
 		nil,
 		nil,
 	}, {
 		"0-to-2",
-		NewPath([]byte{0x01, 0x20}, true),
+		newPath([]byte{0x01, 0x20}, true),
 		nil,
 		nil,
 	}, {
 		"0-to-15",
-		NewPath([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
+		newPath([]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef}, false),
 		nil,
 		nil,
 	}, {
 		"15-to-0",
-		NewPath([]byte{0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}, false),
+		newPath([]byte{0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10}, false),
 		nil,
 		nil,
 	}}
@@ -60,7 +66,7 @@ func TestPath_Encoding(t *testing.T) {
 
 			require.NoError(t, err, "tt.path.MarshalBinary()")
 
-			path, read, err := UnmarshalPath(buf)
+			path, read, err := unmarshalPath(buf)
 
 			if tt.unmarshalErr != nil {
 				assert.EqualError(t, err, tt.unmarshalErr.Error(), "UnmarshalPath()")

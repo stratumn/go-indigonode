@@ -31,12 +31,12 @@ func (t *Trie) Dump() (string, error) {
 	return t.dumpRec(root, nil, "")
 }
 
-func (t *Trie) dumpRec(node Node, prefix []uint8, ident string) (string, error) {
+func (t *Trie) dumpRec(n node, prefix []uint8, ident string) (string, error) {
 	s := ""
 
-	switch v := node.(type) {
-	case *Edge:
-		s = ident + fmt.Sprintf("edge %v", NewNibsFromNibs(v.Path...))
+	switch v := n.(type) {
+	case *edge:
+		s = ident + fmt.Sprintf("edge %v", newNibsFromNibs(v.Path...))
 
 		if len(v.Hash) > 0 {
 			s += " " + v.Hash.B58String()
@@ -56,26 +56,26 @@ func (t *Trie) dumpRec(node Node, prefix []uint8, ident string) (string, error) 
 
 		s += "\n" + targetStr
 
-	case *Branch:
+	case *branch:
 		if len(v.Value) > 0 {
 			if len(prefix) > 0 {
 				s = ident + fmt.Sprintf(
 					"branch %v [%x]",
-					NewNibsFromNibs(prefix...),
+					newNibsFromNibs(prefix...),
 					v.Value,
 				)
 			} else {
 				s = ident + fmt.Sprintf("branch [%x]", v.Value)
 			}
 		} else if len(prefix) > 0 {
-			s = ident + fmt.Sprintf("branch %v", NewNibsFromNibs(prefix...))
+			s = ident + fmt.Sprintf("branch %v", newNibsFromNibs(prefix...))
 		} else {
 			s = ident + "branch"
 		}
 
 		for _, n := range v.EmbeddedNodes {
 			switch v := n.(type) {
-			case *Edge:
+			case *edge:
 				edgeStr, err := t.dumpRec(v, prefix, ident+"  ")
 				if err != nil {
 					return "", err
@@ -83,33 +83,33 @@ func (t *Trie) dumpRec(node Node, prefix []uint8, ident string) (string, error) 
 
 				s += "\n" + edgeStr
 
-			case Null:
+			case null:
 
 			default:
 				return "", errors.WithStack(ErrInvalidNodeType)
 			}
 		}
 
-	case *Leaf:
+	case *leaf:
 		if len(v.Value) > 0 {
 			if len(prefix) > 0 {
 				s = ident + fmt.Sprintf(
 					"leaf %v [%x]",
-					NewNibsFromNibs(prefix...),
+					newNibsFromNibs(prefix...),
 					v.Value,
 				)
 			} else {
 				s = ident + fmt.Sprintf("leaf [%x]", v.Value)
 			}
 		} else if len(prefix) > 0 {
-			s = ident + fmt.Sprintf("leaf %v", NewNibsFromNibs(prefix...))
+			s = ident + fmt.Sprintf("leaf %v", newNibsFromNibs(prefix...))
 		} else {
 			s = ident + "leaf"
 		}
 
-	case Null:
+	case null:
 		if len(prefix) > 0 {
-			s = ident + fmt.Sprintf("null %v", NewNibsFromNibs(prefix...))
+			s = ident + fmt.Sprintf("null %v", newNibsFromNibs(prefix...))
 		} else {
 			s = ident + "null"
 		}

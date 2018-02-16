@@ -29,42 +29,36 @@ var (
 	ErrBufferToShort = errors.New("the buffer is too short")
 )
 
-// Path represents the path of a node down the tree. Each nibble represents an
+// path represents the path of a node down the tree. Each nibble represents an
 // index taken (0-15).
 //
 // A path has a compact binary encoding. Since a branch has sixteen children,
 // two indices can be encoded into a single byte.
 //
-// Path Encoding
+// path Encoding
 //
 //	10100110           [1010 ...]
 //	depth (uvarint32)  indices  (one nibble for each depth)
-type Path Nibs
+type path nibs
 
-// NewPath creates a new path from a buffer. If odd is true, then the number of
-// nibbles is odd.
-func NewPath(buf []byte, odd bool) Path {
-	return Path(NewNibs(buf, odd))
-}
-
-// UnmarshalPath unmarshals a path. It returns the path and the number of bytes
+// unmarshalPath unmarshals a path. It returns the path and the number of bytes
 // read if no error occured.
-func UnmarshalPath(buf []byte) (Path, int, error) {
+func unmarshalPath(buf []byte) (path, int, error) {
 	depth, read := binary.Uvarint(buf)
 
 	if read <= 0 || len(buf) < read+int(depth+1)/2 {
-		return Path{}, 0, errors.WithStack(ErrInvalidPathLen)
+		return path{}, 0, errors.WithStack(ErrInvalidPathLen)
 	}
 
 	buf = buf[read : read+(int(depth)+1)/2]
-	nibs := NewNibs(buf, depth%2 == 1)
+	nibs := newNibs(buf, depth%2 == 1)
 
-	return Path(nibs), read + nibs.ByteLen(), nil
+	return path(nibs), read + nibs.ByteLen(), nil
 }
 
 // MarshalBinary marshals the path.
-func (p Path) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, binary.MaxVarintLen32+Nibs(p).ByteLen())
+func (p path) MarshalBinary() ([]byte, error) {
+	buf := make([]byte, binary.MaxVarintLen32+nibs(p).ByteLen())
 
 	written, err := p.MarshalInto(buf)
 	if err != nil {
@@ -76,18 +70,18 @@ func (p Path) MarshalBinary() ([]byte, error) {
 
 // MarshalInto marshals the path into an existing buffer. It returns the number
 // of bytes written.
-func (p Path) MarshalInto(buf []byte) (int, error) {
+func (p path) MarshalInto(buf []byte) (int, error) {
 	if len(buf) < binary.MaxVarintLen32 {
 		return 0, errors.WithStack(ErrBufferToShort)
 	}
 
-	written := binary.PutUvarint(buf, uint64(Nibs(p).Len()))
+	written := binary.PutUvarint(buf, uint64(nibs(p).Len()))
 
-	if len(buf) < written+Nibs(p).ByteLen() {
+	if len(buf) < written+nibs(p).ByteLen() {
 		return 0, errors.WithStack(ErrBufferToShort)
 	}
 
-	Nibs(p).CopyToBuf(buf[written:])
+	nibs(p).CopyToBuf(buf[written:])
 
-	return written + Nibs(p).ByteLen(), nil
+	return written + nibs(p).ByteLen(), nil
 }

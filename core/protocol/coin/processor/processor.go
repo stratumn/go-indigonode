@@ -84,9 +84,10 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 		contentID, err := cid.Cast(mh)
 		if err != nil {
 			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.String()})
-		}
-		if err = p.provider.Provide(ctx, contentID, true); err != nil {
-			log.Event(ctx, "failProvide", logging.Metadata{"cid": contentID.String(), "error": err.Error()})
+		} else {
+			if err = p.provider.Provide(ctx, contentID, true); err != nil {
+				log.Event(ctx, "failProvide", logging.Metadata{"cid": contentID.String(), "error": err.Error()})
+			}
 		}
 	}
 

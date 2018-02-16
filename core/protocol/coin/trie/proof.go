@@ -162,7 +162,7 @@ func (p Proof) MerkleRoot(hashCode uint64) ([]byte, error) {
 	return p[len(p)-1].Hash(hashCode)
 }
 
-// Verify verifies the proof the given Merkle root, key, and value.
+// Verify verifies the proof against the given Merkle root, key, and value.
 func (p Proof) Verify(merkleRoot multihash.Multihash, key, val []byte) error {
 	if len(p) < 0 {
 		return errors.WithStack(ErrProofEmpty)

@@ -19,7 +19,9 @@ import (
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
+	"github.com/stratumn/alice/grpc/coin/mockcoin"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,10 +39,9 @@ func TestGRPCServer_GetAccount(t *testing.T) {
 	}
 
 	server := &grpcServer{
-		func([]byte) (*pb.Account, error) {
+		GetAccount: func([]byte) (*pb.Account, error) {
 			return account, nil
 		},
-		nil,
 	}
 
 	res, err := server.Account(context.Background(), &rpcpb.AccountReq{
@@ -53,8 +54,7 @@ func TestGRPCServer_GetAccount(t *testing.T) {
 func TestGRPCServer_Transaction(t *testing.T) {
 	added := false
 	server := &grpcServer{
-		nil,
-		func(_ *pb.Transaction) error {
+		AddTransaction: func(_ *pb.Transaction) error {
 			added = true
 			return nil
 		},
@@ -70,4 +70,32 @@ func TestGRPCServer_Transaction(t *testing.T) {
 	assert.NoError(t, err, "server.Transaction()")
 	assert.NotNil(t, txResp.TxHash, "TransactionResp.TxHash")
 	assert.True(t, added, "added")
+}
+
+func TestGRPCServer_AccountTransactions(t *testing.T) {
+	pid, err := peer.IDB58Decode(testPID)
+	require.NoError(t, err, "peer.IDB58Decode(testPID)")
+
+	tx := &pb.Transaction{
+		Value: 42,
+	}
+
+	server := &grpcServer{
+		GetAccountTransactions: func([]byte) ([]*pb.Transaction, error) {
+			return []*pb.Transaction{tx}, nil
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	req, ss := &rpcpb.AccountTransactionsReq{
+		PeerId: []byte(pid),
+	}, mockcoin.NewMockCoin_AccountTransactionsServer(ctrl)
+
+	ss.EXPECT().Send(&pb.Transaction{
+		Value: 42,
+	})
+
+	assert.NoError(t, server.AccountTransactions(req, ss))
 }

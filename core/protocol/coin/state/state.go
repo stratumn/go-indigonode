@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/trie"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -33,6 +34,7 @@ var (
 // State stores users' account balances. It doesn't handle validation.
 type State interface {
 	Reader
+	TxReader
 	Writer
 }
 
@@ -44,6 +46,13 @@ type Reader interface {
 	GetAccount(pubKey []byte) (*pb.Account, error)
 }
 
+// TxReader gives read access to a user's transactions.
+type TxReader interface {
+	// GetAccountTxHashes gets the transaction history of a user identified
+	// by his public key.
+	GetAccountTxKeys(pubKey []byte) ([]*TxKey, error)
+}
+
 // Writer gives write access to users' account balances.
 type Writer interface {
 	// UpdateAccount sets or updates the account of a user identified by
@@ -51,16 +60,17 @@ type Writer interface {
 	// rolled back.
 	UpdateAccount(pubKey []byte, account *pb.Account) error
 
-	// ProcessTransactions processes all the given transactions and updates
-	// the state accordingly. It should be given a unique state ID, for
-	// instance the hash of the block containing the transactions.
-	ProcessTransactions(stateID []byte, txs []*pb.Transaction) error
+	// ProcessTransactions processes all the transactions of the given
+	// block and updates the state accordingly. It should be given a unique
+	// state ID, for instance the hash of the block containing the
+	// transactions.
+	ProcessTransactions(stateID []byte, blk *pb.Block) error
 
 	// RollbackTransactions rolls back transactions. The parameters are
 	// expected to be identical to the ones that were given to the
 	// corresponding call to ProcessTransactions().
 	// You should only rollback the current state to the previous one.
-	RollbackTransactions(stateID []byte, txs []*pb.Transaction) error
+	RollbackTransactions(stateID []byte, blk *pb.Block) error
 }
 
 const (
@@ -138,6 +148,38 @@ func (s *stateDB) doGetAccount(pubKey []byte) (*pb.Account, error) {
 	return &account, errors.WithStack(err)
 }
 
+func (s *stateDB) GetAccountTxKeys(pubKey []byte) ([]*TxKey, error) {
+	var txKeys []*TxKey
+	iter := s.accountsTrie.IteratePrefix(pubKey)
+	defer iter.Release()
+
+	// First key in the iterator will be the account itself.
+	next, err := iter.Next()
+	if err != nil || !next {
+		// There was an error or no account found
+		return txKeys, err
+	}
+
+	for {
+		next, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		if !next {
+			break
+		}
+		txK := &TxKey{}
+		err = txK.Unmarshal(iter.Value())
+		if err != nil {
+			return nil, err
+		}
+
+		txKeys = append(txKeys, txK)
+	}
+
+	return txKeys, nil
+}
+
 func (s *stateDB) UpdateAccount(pubKey []byte, account *pb.Account) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -173,11 +215,13 @@ func (s *stateDB) doUpdateAccount(pubKey []byte, account *pb.Account) error {
 	return s.accountsTrie.Put(pubKey, buf)
 }
 
-func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) error {
+func (s *stateDB) ProcessTransactions(stateID []byte, blk *pb.Block) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
 	defer s.accountsTrie.Reset()
+
+	txs := blk.GetTransactions()
 
 	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
@@ -207,6 +251,11 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 			if err != nil {
 				return err
 			}
+
+			err = s.addTxKey(tx.From, i, blk)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Add amount to receiver.
@@ -218,6 +267,11 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 		to.Balance += tx.Value
 
 		err = s.doUpdateAccount(tx.To, to)
+		if err != nil {
+			return err
+		}
+
+		err = s.addTxKey(tx.To, i, blk)
 		if err != nil {
 			return err
 		}
@@ -238,7 +292,7 @@ func (s *stateDB) ProcessTransactions(stateID []byte, txs []*pb.Transaction) err
 	return s.diff.Apply()
 }
 
-func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) error {
+func (s *stateDB) RollbackTransactions(stateID []byte, blk *pb.Block) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
@@ -250,12 +304,17 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		return err
 	}
 
+	txs := blk.GetTransactions()
+
 	if len(nonces) != len(txs)*8 {
 		return ErrInconsistentTransactions
 	}
 
 	for i := len(txs) - 1; i >= 0; i-- {
 		tx := txs[i]
+		if err != nil {
+			return err
+		}
 
 		// Add amount to sender, except for reward transaction.
 		if tx.From != nil {
@@ -273,6 +332,11 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 			if err != nil {
 				return err
 			}
+
+			err = s.removeTxKey(tx.From, i, blk)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Subtract amount from received.
@@ -284,6 +348,11 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 		to.Balance -= tx.Value
 
 		err = s.doUpdateAccount(tx.To, to)
+		if err != nil {
+			return err
+		}
+
+		err = s.removeTxKey(tx.To, i, blk)
 		if err != nil {
 			return err
 		}
@@ -303,7 +372,36 @@ func (s *stateDB) RollbackTransactions(stateID []byte, txs []*pb.Transaction) er
 	return s.diff.Apply()
 }
 
+func (s *stateDB) addTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {
+	h, err := coinutil.HashHeader(blk.Header)
+	if err != nil {
+		return err
+	}
+	txKey := &TxKey{TxIdx: uint64(txIdx), BlkHash: h}
+	return s.accountsTrie.Put(accountTxKeysKey(pubKey, txIdx, blk.BlockNumber()), txKey.Marshal())
+}
+
+func (s *stateDB) removeTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {
+	return s.accountsTrie.Delete(accountTxKeysKey(pubKey, txIdx, blk.BlockNumber()))
+}
+
+// accountTxHashesKey returns the key used to store a transaction related
+// to an account given its public key. We use the pubKey of the account so that
+// all the transactions of an account are stored in the account subtree.
+// The block height is used so that transactions are stored chronologically.
+func accountTxKeysKey(pubKey []byte, txIdx int, blkHeight uint64) []byte {
+	return append(append(pubKey, encodeUint64(blkHeight)...), encodeUint64(uint64(txIdx))...)
+}
+
 // prevNoncesKey returns the previous nonces key for the given state ID.
 func (s *stateDB) prevNoncesKey(stateID []byte) []byte {
 	return append(append(s.prefix, prevNoncesPrefix), stateID...)
+}
+
+// encodeUint64 encodes an uint64 to a buffer.
+func encodeUint64(value uint64) []byte {
+	v := make([]byte, 8)
+	binary.LittleEndian.PutUint64(v, value)
+
+	return v
 }

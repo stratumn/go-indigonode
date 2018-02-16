@@ -17,13 +17,26 @@ package state
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestState(t *testing.T) {
+	computeTxKeys := func(txs []*pb.Transaction, blk *pb.Block) []*TxKey {
+		h, err := coinutil.HashHeader(blk.Header)
+		assert.NoError(t, err, "coinutil.HashHeader()")
+
+		txKeys := make([]*TxKey, len(txs))
+		for i := range txs {
+			txKeys[i] = &TxKey{TxIdx: uint64(i), BlkHash: h}
+		}
+		return txKeys
+	}
+
 	alice := []byte("alice")
 	bob := []byte("bob")
 	charlie := []byte("charlie")
@@ -78,8 +91,9 @@ func TestState(t *testing.T) {
 				Fee:   1,
 				Nonce: 1,
 			}}
+			blk := blocktest.NewBlock(t, txs)
 
-			err = s.ProcessTransactions([]byte("state1"), txs)
+			err = s.ProcessTransactions([]byte("state1"), blk)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -109,8 +123,9 @@ func TestState(t *testing.T) {
 				To:    alice,
 				Value: 5,
 			}}
+			blk := blocktest.NewBlock(t, txs)
 
-			err = s.ProcessTransactions([]byte("reward-state"), txs)
+			err = s.ProcessTransactions([]byte("reward-state"), blk)
 			assert.NoError(t, err)
 
 			v, err := s.GetAccount(alice)
@@ -150,6 +165,7 @@ func TestState(t *testing.T) {
 				Fee:   3,
 				Nonce: 3,
 			}}
+			blk1 := blocktest.NewBlock(t, txs1)
 
 			txs2 := []*pb.Transaction{{
 				From:  bob,
@@ -164,16 +180,17 @@ func TestState(t *testing.T) {
 				Fee:   2,
 				Nonce: 4,
 			}}
+			blk2 := blocktest.NewBlock(t, txs2)
 
-			err = s.ProcessTransactions([]byte("state1"), txs1)
+			err = s.ProcessTransactions([]byte("state1"), blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
-			err = s.ProcessTransactions([]byte("state2"), txs2)
+			err = s.ProcessTransactions([]byte("state2"), blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
 			// Rollback state2.
 
-			err = s.RollbackTransactions([]byte("state2"), txs2)
+			err = s.RollbackTransactions([]byte("state2"), blk2)
 			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err := s.GetAccount(alice)
@@ -190,7 +207,7 @@ func TestState(t *testing.T) {
 
 			// Rollback state1.
 
-			err = s.RollbackTransactions([]byte("state1"), txs1)
+			err = s.RollbackTransactions([]byte("state1"), blk1)
 			assert.NoError(t, err, "s.RollbackTransactions(state1)")
 
 			v, err = s.GetAccount(alice)
@@ -236,6 +253,7 @@ func TestState(t *testing.T) {
 				Fee:   1,
 				Nonce: 1,
 			}}
+			blk1 := blocktest.NewBlock(t, txs1)
 
 			txs2 := []*pb.Transaction{{
 				From:  alice,
@@ -250,15 +268,16 @@ func TestState(t *testing.T) {
 				Fee:   1,
 				Nonce: 5,
 			}}
+			blk2 := blocktest.NewBlock(t, txs2)
 
-			err = s.ProcessTransactions([]byte("state1"), txs1)
+			err = s.ProcessTransactions([]byte("state1"), blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
 			v, err := s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
 
-			err = s.ProcessTransactions([]byte("state2"), txs2)
+			err = s.ProcessTransactions([]byte("state2"), blk2)
 			assert.NoError(t, err, "s.ProcessTransactions(state2)")
 
 			v, err = s.GetAccount(alice)
@@ -267,14 +286,126 @@ func TestState(t *testing.T) {
 
 			// Rollback state2.
 
-			err = s.RollbackTransactions([]byte("state2"), txs2)
+			err = s.RollbackTransactions([]byte("state2"), blk2)
 			assert.NoError(t, err, "s.RollbackTransactions(state2)")
 
 			v, err = s.GetAccount(alice)
 			assert.NoError(t, err, "s.GetAccount(alice)")
 			assert.Equal(t, uint64(3), v.Nonce, "s.GetAccount(alice).Nonce")
 		},
-	}}
+	}, {
+		"stores-transaction-hashes",
+		func(t *testing.T, s State) {
+			txs1 := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Fee:   1,
+				Nonce: 2,
+			}, {
+				From:  alice,
+				To:    charlie,
+				Value: 5,
+				Fee:   1,
+				Nonce: 3,
+			}, {
+				From:  alice,
+				To:    bob,
+				Value: 2,
+				Fee:   1,
+				Nonce: 1,
+			}}
+			blk1 := blocktest.NewBlock(t, txs1)
+			txh1 := computeTxKeys(txs1, blk1)
+
+			txs2 := []*pb.Transaction{{
+				From:  alice,
+				To:    charlie,
+				Value: 2,
+				Fee:   1,
+				Nonce: 6,
+			}, {
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Fee:   1,
+				Nonce: 5,
+			}}
+			blk2 := blocktest.NewBlock(t, txs2)
+			blk2.GetHeader().BlockNumber = blk1.BlockNumber() + 1
+			txh2 := computeTxKeys(txs2, blk2)
+
+			v, err := s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.ElementsMatch(t, []*TxKey{}, v, "s.GetAccountTxHashes(alice)")
+
+			err = s.ProcessTransactions([]byte("state1"), blk1)
+			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+
+			v, err = s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.ElementsMatch(t, txh1, v, "s.GetAccountTxHashes(alice)")
+
+			v, err = s.GetAccountTxKeys(bob)
+			assert.NoError(t, err, "s.GetAccountTxHashes(bob)")
+			assert.ElementsMatch(t, []*TxKey{txh1[0], txh1[2]}, v, "s.GetAccountTxHashes(bob)")
+
+			v, err = s.GetAccountTxKeys(charlie)
+			assert.NoError(t, err, "s.GetAccountTxHashes(charlie)")
+			assert.ElementsMatch(t, []*TxKey{txh1[1]}, v, "s.GetAccountTxHashes(charlie)")
+
+			err = s.ProcessTransactions([]byte("state2"), blk2)
+			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+
+			v, err = s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.ElementsMatch(t, append(txh1, txh2...), v, "s.GetAccountTxHashes(alice)")
+
+			// Rollback.
+
+			err = s.RollbackTransactions([]byte("state2"), blk2)
+			assert.NoError(t, err, "s.RollbackTransactions(state2)")
+
+			v, err = s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.ElementsMatch(t, txh1, v, "s.GetAccountTxHashes(alice)")
+		},
+	}, {
+		"orders-transaction-hashes",
+		func(t *testing.T, s State) {
+			txs1 := []*pb.Transaction{{
+				From:  alice,
+				To:    bob,
+				Value: 3,
+				Fee:   1,
+				Nonce: 2,
+			}}
+			blk1 := blocktest.NewBlock(t, txs1)
+			txh1 := computeTxKeys(txs1, blk1)[0]
+
+			txs2 := []*pb.Transaction{{
+				From:  alice,
+				To:    charlie,
+				Value: 2,
+				Fee:   1,
+				Nonce: 6,
+			}}
+			blk2 := blocktest.NewBlock(t, txs2)
+			blk2.GetHeader().BlockNumber = blk1.BlockNumber() + 1
+			txh2 := computeTxKeys(txs2, blk2)[0]
+
+			err := s.ProcessTransactions([]byte("state1"), blk1)
+			assert.NoError(t, err, "s.ProcessTransactions(state1)")
+
+			err = s.ProcessTransactions([]byte("state2"), blk2)
+			assert.NoError(t, err, "s.ProcessTransactions(state2)")
+
+			v, err := s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.Equal(t, []*TxKey{txh1, txh2}, v, "s.GetAccountTxHashes(alice)")
+		},
+	},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

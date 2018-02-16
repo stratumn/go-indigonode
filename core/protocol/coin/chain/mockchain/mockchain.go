@@ -5,10 +5,11 @@
 package mockchain
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	coin "github.com/stratumn/alice/pb/coin"
-	reflect "reflect"
 )
 
 // MockChain is a mock of Chain interface
@@ -95,6 +96,19 @@ func (m *MockChain) GetBlock(arg0 []byte, arg1 uint64) (*coin.Block, error) {
 // GetBlock indicates an expected call of GetBlock
 func (mr *MockChainMockRecorder) GetBlock(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlock", reflect.TypeOf((*MockChain)(nil).GetBlock), arg0, arg1)
+}
+
+// GetBlockByHash mocks base method
+func (m *MockChain) GetBlockByHash(arg0 []byte) (*coin.Block, error) {
+	ret := m.ctrl.Call(m, "GetBlockByHash", arg0)
+	ret0, _ := ret[0].(*coin.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockByHash indicates an expected call of GetBlockByHash
+func (mr *MockChainMockRecorder) GetBlockByHash(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByHash", reflect.TypeOf((*MockChain)(nil).GetBlockByHash), arg0)
 }
 
 // GetHeaderByHash mocks base method

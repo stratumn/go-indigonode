@@ -18,13 +18,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/chain/mockchain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
+	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -133,6 +136,36 @@ func TestCoinProtocolHandler(t *testing.T) {
 			return v1.ValidatedTx(tx1.GetTx()) && v0.ValidatedTx(tx2.GetTx())
 		}, "validator.ValidatedTx")
 	})
+}
+
+func TestGetAccountTransactions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	chain := mockchain.NewMockChain(ctrl)
+
+	alice := []byte("alice")
+
+	c := NewCoinBuilder(t).WithChain(chain).Build(t)
+	tx := ctestutil.NewTransaction(t, 1, 1, 1)
+	expected := []*pb.Transaction{tx}
+	blk := blocktest.NewBlock(t, expected)
+
+	err := c.state.ProcessTransactions([]byte("state"), blk)
+	require.NoError(t, err, "c.state.ProcessTransactions([]byte(state), blk)")
+
+	chain.EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(2)
+
+	actual, err := c.GetAccountTransactions(tx.From)
+	require.NoError(t, err, "c.GetAccountTransactions(tx.From)")
+	assert.Equal(t, expected, actual, "c.GetAccountTransactions(tx.From)")
+
+	actual, err = c.GetAccountTransactions(tx.To)
+	require.NoError(t, err, "c.GetAccountTransactions(tx.To)")
+	assert.Equal(t, expected, actual, "c.GetAccountTransactions(tx.To)")
+
+	actual, err = c.GetAccountTransactions(alice)
+	require.NoError(t, err, "c.GetAccountTransactions(alice)")
+	assert.Empty(t, actual, "c.GetAccountTransactions(alice)")
 }
 
 func TestCoinMining_SingleNode(t *testing.T) {
@@ -312,7 +345,7 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 	)
 	assert.NoError(t, err, "s.UpdateAccount()")
 
-	genesisBlock := ctestutil.NewBlock(
+	genesisBlock := blocktest.NewBlock(
 		t,
 		[]*pb.Transaction{&pb.Transaction{
 			Value: config.initialBalance,

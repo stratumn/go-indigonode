@@ -114,11 +114,7 @@ var migrations = []cfg.MigrateHandler{
 		if err := tree.Set("coin.block_difficulty", int64(42)); err != nil {
 			return err
 		}
-		if err := tree.Set("coin.db_path", "data/coin/db"); err != nil {
-			return err
-		}
-
-		return nil
+		return tree.Set("coin.db_path", "data/coin/db")
 	},
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.pubsub", "pubsub")

@@ -27,8 +27,9 @@ import (
 
 // grpcServer is a gRPC server for the coin service.
 type grpcServer struct {
-	GetAccount     func([]byte) (*pb.Account, error)
-	AddTransaction func(*pb.Transaction) error
+	GetAccount             func([]byte) (*pb.Account, error)
+	AddTransaction         func(*pb.Transaction) error
+	GetAccountTransactions func([]byte) ([]*pb.Transaction, error)
 }
 
 // Account returns an account.
@@ -59,4 +60,24 @@ func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (respo
 	}
 
 	return txResponse, nil
+}
+
+func (s grpcServer) AccountTransactions(req *rpcpb.AccountTransactionsReq, ss rpcpb.Coin_AccountTransactionsServer) error {
+	_, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	txs, err := s.GetAccountTransactions(req.PeerId)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for _, txs := range txs {
+		err := ss.Send(txs)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
 }

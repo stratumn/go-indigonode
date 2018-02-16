@@ -19,6 +19,7 @@ import (
 
 	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/pb/trie"
 )
 
 var (
@@ -49,6 +50,27 @@ type ProofNode struct {
 	// ChildHashes contains the hash of the child nodes if the node is a
 	// branch.
 	ChildHashes []multihash.Multihash
+}
+
+// NewProofNodeFromProto converts protobuf message to a proof node.
+func NewProofNodeFromProto(msg *pb.ProofNode) ProofNode {
+	var childHashes []multihash.Multihash
+
+	if len(msg.ChildHashes) > 0 {
+		// Otherwise test fails because nil != []multiaddr.Multiaddr{}.
+		childHashes = make([]multihash.Multihash, len(msg.ChildHashes))
+	}
+
+	for i, hash := range msg.ChildHashes {
+		childHashes[i] = make(multihash.Multihash, len(hash))
+		copy(childHashes[i], hash)
+	}
+
+	return ProofNode{
+		Key:         msg.Key,
+		Value:       msg.Value,
+		ChildHashes: childHashes,
+	}
 }
 
 // Hash hashes the node.
@@ -83,8 +105,35 @@ func (n ProofNode) Hash(hashCode uint64) (multihash.Multihash, error) {
 	return hash, errors.WithStack(err)
 }
 
+// ToProto converts the node to a protobuf message.
+func (n ProofNode) ToProto() *pb.ProofNode {
+	childHashes := make([][]byte, len(n.ChildHashes))
+
+	for i, hash := range n.ChildHashes {
+		childHashes[i] = make([]byte, len(hash))
+		copy(childHashes[i], hash)
+	}
+
+	return &pb.ProofNode{
+		Key:         n.Key,
+		Value:       n.Value,
+		ChildHashes: childHashes,
+	}
+}
+
 // Proof contains evidence that a value is in a Patricia Merkle Trie.
 type Proof []ProofNode
+
+// NewProofFromProto converts a slice of protobuf messages to a proof.
+func NewProofFromProto(msgs []*pb.ProofNode) Proof {
+	p := make(Proof, len(msgs))
+
+	for i, m := range msgs {
+		p[i] = NewProofNodeFromProto(m)
+	}
+
+	return p
+}
 
 // Key returns the key contained in the proof.
 func (p Proof) Key() ([]byte, error) {
@@ -180,6 +229,17 @@ nodeLoop:
 	}
 
 	return nil
+}
+
+// ToProto converts the proof to a slice of protobuf messages.
+func (p Proof) ToProto() []*pb.ProofNode {
+	msgs := make([]*pb.ProofNode, len(p))
+
+	for i, n := range p {
+		msgs[i] = n.ToProto()
+	}
+
+	return msgs
 }
 
 // nodeToProof converts a node to a proof node. The key must be in nibble

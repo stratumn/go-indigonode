@@ -23,14 +23,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustMakeHash(t *testing.T, b58 string) multihash.Multihash {
+	h, err := multihash.FromB58String(b58)
+	assert.NoErrorf(t, err, "multihash.FromB58String(%s)", b58)
+
+	return h
+}
+
 func TestProof(t *testing.T) {
-	mustMakeHash := func(b58 string) multihash.Multihash {
-		h, err := multihash.FromB58String(b58)
-		assert.NoErrorf(t, err, "multihash.FromB58String(%s)", b58)
-
-		return h
-	}
-
 	validProof := Proof{
 		ProofNode{
 			Key:   []byte{0x01, 0x00},
@@ -38,19 +38,19 @@ func TestProof(t *testing.T) {
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("QmNqFMMuB5Vy7GFuTzgUJy1uvUVbdEL5xb3vKLUVwhccN3"),
-				mustMakeHash("Qmd2U7CRFYZgTRRmeBq3muMUTm9nFJhv85PWfeuSgr7qAm"),
+				mustMakeHash(t, "QmNqFMMuB5Vy7GFuTzgUJy1uvUVbdEL5xb3vKLUVwhccN3"),
+				mustMakeHash(t, "Qmd2U7CRFYZgTRRmeBq3muMUTm9nFJhv85PWfeuSgr7qAm"),
 			},
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("Qmbr6LRmh8NHx4GdnLAZa3LWKCx7Wgfs5ZEuKv3N9skFJo"),
-				mustMakeHash("Qmf4Uz9HUk8gTQPR8b2a9fAbuqYHH5DHNwiaHbuoff9Lp8"),
+				mustMakeHash(t, "Qmbr6LRmh8NHx4GdnLAZa3LWKCx7Wgfs5ZEuKv3N9skFJo"),
+				mustMakeHash(t, "Qmf4Uz9HUk8gTQPR8b2a9fAbuqYHH5DHNwiaHbuoff9Lp8"),
 			},
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("Qmc6BqbcodSzMtsCj5fNxFvrzvoRwvgoZvpJxE4ZBvn413"),
+				mustMakeHash(t, "Qmc6BqbcodSzMtsCj5fNxFvrzvoRwvgoZvpJxE4ZBvn413"),
 			},
 		},
 	}
@@ -62,18 +62,18 @@ func TestProof(t *testing.T) {
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("Qmd2U7CRFYZgTRRmeBq3muMUTm9nFJhv85PWfeuSgr7qAm"),
+				mustMakeHash(t, "Qmd2U7CRFYZgTRRmeBq3muMUTm9nFJhv85PWfeuSgr7qAm"),
 			},
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("Qmbr6LRmh8NHx4GdnLAZa3LWKCx7Wgfs5ZEuKv3N9skFJo"),
-				mustMakeHash("Qmf4Uz9HUk8gTQPR8b2a9fAbuqYHH5DHNwiaHbuoff9Lp8"),
+				mustMakeHash(t, "Qmbr6LRmh8NHx4GdnLAZa3LWKCx7Wgfs5ZEuKv3N9skFJo"),
+				mustMakeHash(t, "Qmf4Uz9HUk8gTQPR8b2a9fAbuqYHH5DHNwiaHbuoff9Lp8"),
 			},
 		},
 		ProofNode{
 			ChildHashes: []multihash.Multihash{
-				mustMakeHash("Qmc6BqbcodSzMtsCj5fNxFvrzvoRwvgoZvpJxE4ZBvn413"),
+				mustMakeHash(t, "Qmc6BqbcodSzMtsCj5fNxFvrzvoRwvgoZvpJxE4ZBvn413"),
 			},
 		},
 	}
@@ -124,8 +124,7 @@ func TestProof(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mr, err := multihash.FromB58String(tt.merkle)
-			require.NoError(t, err, "multihash.FromB58String(tt.merkle)")
+			mr := mustMakeHash(t, tt.merkle)
 
 			k, err := hex.DecodeString(tt.key)
 			require.NoError(t, err, "hex.DecodeString(tt.key)")
@@ -139,4 +138,35 @@ func TestProof(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestProof_Proto(t *testing.T) {
+	want := Proof{
+		ProofNode{
+			Key:   []byte{0x01, 0x00},
+			Value: []byte("bob"),
+		},
+		ProofNode{
+			ChildHashes: []multihash.Multihash{
+				mustMakeHash(t, "QmNqFMMuB5Vy7GFuTzgUJy1uvUVbdEL5xb3vKLUVwhccN3"),
+				mustMakeHash(t, "Qmd2U7CRFYZgTRRmeBq3muMUTm9nFJhv85PWfeuSgr7qAm"),
+			},
+		},
+		ProofNode{
+			ChildHashes: []multihash.Multihash{
+				mustMakeHash(t, "Qmbr6LRmh8NHx4GdnLAZa3LWKCx7Wgfs5ZEuKv3N9skFJo"),
+				mustMakeHash(t, "Qmf4Uz9HUk8gTQPR8b2a9fAbuqYHH5DHNwiaHbuoff9Lp8"),
+			},
+		},
+		ProofNode{
+			ChildHashes: []multihash.Multihash{
+				mustMakeHash(t, "Qmc6BqbcodSzMtsCj5fNxFvrzvoRwvgoZvpJxE4ZBvn413"),
+			},
+		},
+	}
+
+	msg := want.ToProto()
+	got := NewProofFromProto(msg)
+
+	assert.Equal(t, want, got)
 }

@@ -178,7 +178,7 @@ func (p Proof) Verify(merkleRoot multihash.Multihash, key, val []byte) error {
 		return err
 	}
 
-	if bytes.Compare(mr, merkleRoot) != 0 {
+	if !bytes.Equal(mr, merkleRoot) {
 		return errors.WithStack(ErrInvalidMerkleRoot)
 	}
 
@@ -187,7 +187,7 @@ func (p Proof) Verify(merkleRoot multihash.Multihash, key, val []byte) error {
 		return err
 	}
 
-	if bytes.Compare(k, key) != 0 {
+	if !bytes.Equal(k, key) {
 		return errors.WithStack(ErrInvalidKey)
 	}
 
@@ -196,7 +196,7 @@ func (p Proof) Verify(merkleRoot multihash.Multihash, key, val []byte) error {
 		return err
 	}
 
-	if bytes.Compare(v, val) != 0 {
+	if !bytes.Equal(v, val) {
 		return errors.WithStack(ErrInvalidValue)
 	}
 
@@ -216,7 +216,7 @@ nodeLoop:
 				return err
 			}
 
-			if bytes.Compare(childHash, hash) != 0 {
+			if !bytes.Equal(childHash, hash) {
 				continue
 			}
 

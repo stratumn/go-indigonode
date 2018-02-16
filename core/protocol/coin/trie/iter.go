@@ -29,9 +29,10 @@ var (
 
 // iter is used to iterate ranges of a trie.
 type iter struct {
-	trie  *Trie
-	start []uint8
-	stop  []uint8
+	trie       *Trie
+	subtrieKey []uint8
+	start      []uint8
+	stop       []uint8
 
 	mu  sync.RWMutex
 	key []byte
@@ -39,11 +40,12 @@ type iter struct {
 }
 
 // newIter creates a new iterator.
-func newIter(trie *Trie, start, stop []byte) *iter {
+func newIter(trie *Trie, subtrieKey []uint8, start, stop []byte) *iter {
 	return &iter{
-		trie:  trie,
-		start: newNibs(start, false).Expand(),
-		stop:  newNibs(stop, false).Expand(),
+		trie:       trie,
+		subtrieKey: subtrieKey,
+		start:      newNibs(start, false).Expand(),
+		stop:       newNibs(stop, false).Expand(),
 	}
 }
 
@@ -67,7 +69,7 @@ func (i *iter) Next() (bool, error) {
 
 	defer i.trie.atomicCache.Reset()
 
-	root, err := i.trie.rootNode()
+	root, err := i.trie.getNode(i.subtrieKey)
 	if err != nil {
 		return false, err
 	}

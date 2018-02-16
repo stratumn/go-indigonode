@@ -62,7 +62,7 @@ func (n nodeType) String() string {
 //
 // A node has a compact binary encoding.
 //
-// node Encoding
+// Node Encoding
 //
 //	Null node
 //	---------

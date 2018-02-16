@@ -110,11 +110,20 @@ func (t *Trie) Reset() {
 
 // Get gets the value of the given key.
 func (t *Trie) Get(key []byte) ([]byte, error) {
+	return t.SubtrieGet(nil, key)
+}
+
+// SubtrieGet gets the value of the given key relative to the given subtrie
+// key.
+func (t *Trie) SubtrieGet(subtrieKey, key []byte) ([]byte, error) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	defer t.atomicCache.Reset()
 
-	n, err := t.getNode(newNibs(key, false).Expand())
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
+	key = newNibsWithoutCopy(key, false).Expand()
+
+	n, err := t.getNode(append(subtrieKey, key...))
 	if err != nil {
 		return nil, err
 	}
@@ -145,13 +154,31 @@ func (t *Trie) Get(key []byte) ([]byte, error) {
 // key (inclusive) up to the given stop key (exclusive). Remember to call
 // Release() on the iterator.
 func (t *Trie) IterateRange(start, stop []byte) db.Iterator {
-	return newIter(t, start, stop)
+	return t.SubtrieIterateRange(nil, start, stop)
+}
+
+// SubtrieIterateRange creates an iterator that iterates from the given start
+// key (inclusive) up to the given stop key (exclusive) relative to the given
+// subtrie key. Remember to call Release() on the iterator.
+func (t *Trie) SubtrieIterateRange(subtrieKey, start, stop []byte) db.Iterator {
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
+
+	return newIter(t, subtrieKey, start, stop)
 }
 
 // IteratePrefix creates an iterator that iterates over all the keys
 // that begin with the given prefix. Remember to call Release() on the
 // iterator.
 func (t *Trie) IteratePrefix(prefix []byte) db.Iterator {
+	return t.SubtrieIteratePrefix(nil, prefix)
+}
+
+// SubtrieIteratePrefix creates an iterator that iterates over all the keys
+// that begin with the given prefix relative to the given subtrie. Remember to
+// call Release() on the iterator.
+func (t *Trie) SubtrieIteratePrefix(subtrieKey, prefix []byte) db.Iterator {
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
+
 	// Taken from goleveldb.
 	var stop []byte
 
@@ -165,32 +192,43 @@ func (t *Trie) IteratePrefix(prefix []byte) db.Iterator {
 		}
 	}
 
-	return newIter(t, prefix, stop)
+	return newIter(t, subtrieKey, prefix, stop)
 }
 
-// MerkleRoot returns the hash of the root node. If there an no entries, the
-// hash of Null{} is returned.
+// MerkleRoot returns the hash of the root node.
 func (t *Trie) MerkleRoot() (multihash.Multihash, error) {
+	return t.SubtrieMerkleRoot(nil)
+}
+
+// SubtrieMerkleRoot returns the hash of the given subtrie key.
+func (t *Trie) SubtrieMerkleRoot(subtrieKey []byte) (multihash.Multihash, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	return t.cache.Hash(nil)
+	return t.cache.Hash(newNibsWithoutCopy(subtrieKey, false).Expand())
 }
 
 // Proof returns a proof of the value for the given key.
 func (t *Trie) Proof(key []byte) (Proof, error) {
+	return t.SubtrieProof(nil, key)
+}
+
+// SubtrieProof returns a proof of the value for the given key relative to
+// the given subtrie key.
+func (t *Trie) SubtrieProof(subtrieKey, key []byte) (Proof, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	defer t.atomicCache.Reset()
 
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
 	key = newNibsWithoutCopy(key, false).Expand()
 
 	// Compute hashes if needed.
-	if _, err := t.cache.Hash(nil); err != nil {
+	if _, err := t.cache.Hash(subtrieKey); err != nil {
 		return nil, err
 	}
 
-	root, err := t.rootNode()
+	root, err := t.getNode(subtrieKey)
 	if err != nil {
 		return nil, err
 	}
@@ -267,6 +305,12 @@ func (t *Trie) recProof(n node, prefix, key []uint8) ([]ProofNode, bool, error) 
 // Put sets the value of the given key. Putting a nil or empty value is the
 // same as deleting it.
 func (t *Trie) Put(key, value []byte) error {
+	return t.SubtriePut(nil, key, value)
+}
+
+// SubtriePut sets the value of the given key relative to the given subtrie
+// key. Putting a nil or empty value is the same as deleting it.
+func (t *Trie) SubtriePut(subtrieKey, key, value []byte) error {
 	if len(value) < 1 {
 		return t.Delete(key)
 	}
@@ -275,12 +319,13 @@ func (t *Trie) Put(key, value []byte) error {
 	defer t.mu.Unlock()
 	defer t.atomicCache.Reset()
 
-	root, err := t.rootNode()
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
+	key = newNibsWithoutCopy(key, false).Expand()
+
+	root, err := t.getNode(subtrieKey)
 	if err != nil {
 		return err
 	}
-
-	key = newNibsWithoutCopy(key, false).Expand()
 
 	_, _, err = t.recPut(root, nil, key, value)
 
@@ -469,16 +514,23 @@ func (t *Trie) split(e *edge, prefix, key []uint8, value []byte, i int) (node, [
 // Delete removes the value for the given key. Deleting a non-existing key is
 // a NOP.
 func (t *Trie) Delete(key []byte) error {
+	return t.SubtrieDelete(nil, key)
+}
+
+// SubtrieDelete removes the value for the given key relative to the given
+// subtrie key. Deleting a non-existing key is a NOP.
+func (t *Trie) SubtrieDelete(subtrieKey, key []byte) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	defer t.atomicCache.Reset()
 
-	root, err := t.rootNode()
+	subtrieKey = newNibsWithoutCopy(subtrieKey, false).Expand()
+	key = newNibsWithoutCopy(key, false).Expand()
+
+	root, err := t.getNode(subtrieKey)
 	if err != nil {
 		return err
 	}
-
-	key = newNibsWithoutCopy(key, false).Expand()
 
 	_, _, _, err = t.recDelete(root, nil, key)
 

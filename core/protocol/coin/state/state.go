@@ -15,7 +15,6 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
 	"sync"
 
@@ -154,6 +153,13 @@ func (s *stateDB) GetAccountTxKeys(pubKey []byte) ([]*TxKey, error) {
 	iter := s.accountsTrie.IteratePrefix(pubKey)
 	defer iter.Release()
 
+	// First key in the iterator will be the account itself.
+	next, err := iter.Next()
+	if err != nil || !next {
+		// There was an error or no account found
+		return txKeys, err
+	}
+
 	for {
 		next, err := iter.Next()
 		if err != nil {
@@ -162,15 +168,13 @@ func (s *stateDB) GetAccountTxKeys(pubKey []byte) ([]*TxKey, error) {
 		if !next {
 			break
 		}
-		if bytes.Compare(iter.Key(), pubKey) != 0 {
-			txK := &TxKey{}
-			err := txK.Unmarshal(iter.Value())
-			if err != nil {
-				return nil, err
-			}
-
-			txKeys = append(txKeys, txK)
+		txK := &TxKey{}
+		err = txK.Unmarshal(iter.Value())
+		if err != nil {
+			return nil, err
 		}
+
+		txKeys = append(txKeys, txK)
 	}
 
 	return txKeys, nil

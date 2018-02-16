@@ -146,7 +146,7 @@ func TestGetAccountTransactions(t *testing.T) {
 	alice := []byte("alice")
 
 	c := NewCoinBuilder(t).WithChain(chain).Build(t)
-	tx := ctestutil.NewTransaction(t, 0, 1, 1)
+	tx := ctestutil.NewTransaction(t, 1, 1, 1)
 	expected := []*pb.Transaction{tx}
 	blk := blocktest.NewBlock(t, expected)
 

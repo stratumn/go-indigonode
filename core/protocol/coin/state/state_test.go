@@ -335,10 +335,14 @@ func TestState(t *testing.T) {
 			blk2.GetHeader().BlockNumber = blk1.BlockNumber() + 1
 			txh2 := computeTxKeys(txs2, blk2)
 
-			err := s.ProcessTransactions([]byte("state1"), blk1)
+			v, err := s.GetAccountTxKeys(alice)
+			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
+			assert.ElementsMatch(t, []*TxKey{}, v, "s.GetAccountTxHashes(alice)")
+
+			err = s.ProcessTransactions([]byte("state1"), blk1)
 			assert.NoError(t, err, "s.ProcessTransactions(state1)")
 
-			v, err := s.GetAccountTxKeys(alice)
+			v, err = s.GetAccountTxKeys(alice)
 			assert.NoError(t, err, "s.GetAccountTxHashes(alice)")
 			assert.ElementsMatch(t, txh1, v, "s.GetAccountTxHashes(alice)")
 

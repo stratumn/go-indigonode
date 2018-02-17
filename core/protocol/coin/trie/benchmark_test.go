@@ -309,3 +309,49 @@ func BenchmarkTrie_Put_FileDB_Diff(b *testing.B) {
 		b.Error(err)
 	}
 }
+
+func BenchmarkTrie_Range_FileDB(b *testing.B) {
+	filename, err := ioutil.TempDir("", "")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(filename)
+
+	database, err := db.NewFileDB(filename, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer database.Close()
+
+	trie := New(OptDB(database))
+	key := make([]byte, 64*b.N)
+	value := make([]byte, 128*b.N)
+
+	if _, err := rand.Read(key); err != nil {
+		b.Fatal(err)
+	}
+
+	if _, err := rand.Read(value); err != nil {
+		b.Fatal(err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		if err := trie.Put(key[i*64:(i+1)*64], value[i*128:(i+1)*128]); err != nil {
+			b.Error(err)
+		}
+	}
+
+	if err := trie.Commit(); err != nil {
+		b.Error(err)
+	}
+
+	iter := trie.IterateRange(nil, nil)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		if _, err := iter.Next(); err != nil {
+			b.Error(err)
+		}
+	}
+}

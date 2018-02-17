@@ -67,9 +67,7 @@ func (i *iter) Next() (bool, error) {
 	i.trie.mu.RLock()
 	defer i.trie.mu.RUnlock()
 
-	defer i.trie.atomicCache.Reset()
-
-	root, err := i.trie.getNode(i.subtrieKey)
+	root, err := i.trie.cache.Get(i.subtrieKey)
 	if err != nil {
 		return false, err
 	}
@@ -108,7 +106,7 @@ func (i *iter) recNext(n node, prefix []uint8) (bool, error) {
 		prefix = append(prefix, e.Path...)
 
 		var err error
-		n, err = i.trie.getNode(prefix)
+		n, err = i.trie.cache.Get(prefix)
 		if err != nil {
 			return false, err
 		}

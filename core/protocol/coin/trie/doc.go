@@ -114,7 +114,14 @@
 //
 // In this implementation, Get is O(1) because a key directly maps to its
 // value in the database.
+package trie
+
+// Dev Notes
 //
 // By convention, keys are defined in []byte whereas []uint8 represents a
 // slice of nibble (0-15).
-package trie
+//
+// Nodes are pointers (except null). For performance reasons, the cache doesn't
+// clone nodes, so be careful when mutating them. In general, always clone an
+// externally created node before mutating it. On the other hand, the cache
+// creates a copy of the keys.

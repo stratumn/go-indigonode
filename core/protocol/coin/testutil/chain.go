@@ -133,6 +133,22 @@ func (c *SimpleChain) getBlock(hash []byte) (*pb.Block, error) {
 	return nil, chain.ErrBlockHashNotFound
 }
 
+// GetParentBlock retrieves the block's parent block.
+func (c *SimpleChain) GetParentBlock(header *pb.Header) (*pb.Block, error) {
+	for _, b := range c.blocks {
+		blockHash, err := coinutil.HashHeader(b.Header)
+		if err != nil {
+			return nil, err
+		}
+
+		if bytes.Equal(header.PreviousHash, blockHash) {
+			return b, nil
+		}
+	}
+
+	return nil, chain.ErrInvalidPreviousBlock
+}
+
 // AddBlock adds a block to the chain without any validation.
 // It also sets the given block as current block.
 func (c *SimpleChain) AddBlock(block *pb.Block) error {

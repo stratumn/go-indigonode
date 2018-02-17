@@ -19,8 +19,10 @@
 package chain
 
 import (
+	"bytes"
 	"errors"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
@@ -69,6 +71,9 @@ type Reader interface {
 
 	// GetBlockByHash retrieves a block from the database by header hash.
 	GetBlockByHash(hash []byte) (*pb.Block, error)
+
+	// GetParentBlock retrieves the header's parent block.
+	GetParentBlock(header *pb.Header) (*pb.Block, error)
 }
 
 // Writer defines methods needed to write to the local blockchain.
@@ -85,4 +90,75 @@ type Writer interface {
 type Chain interface {
 	Reader
 	Writer
+}
+
+// GetPath returns the path from current header
+// to a given block (excluding that block).
+func GetPath(c Reader, block *pb.Block) (rollbacks []*pb.Block, replays []*pb.Block, err error) {
+	branchBlock, err := c.GetParentBlock(block.Header)
+	if err != nil {
+		return nil, nil, ErrInvalidPreviousBlock
+	}
+
+	mainBlock, err := c.CurrentBlock()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	mainHash, err := coinutil.HashHeader(mainBlock.Header)
+	if err != nil {
+		return nil, nil, err
+	}
+	if bytes.Equal(block.Header.PreviousHash, mainHash) {
+		return
+	}
+
+	// Rewind the block branch until we are at main branch height.
+	for branchBlock.Header.BlockNumber > mainBlock.Header.BlockNumber {
+		replays = append([]*pb.Block{branchBlock}, replays...)
+		branchBlock, err = c.GetParentBlock(branchBlock.Header)
+		if err != nil {
+			return nil, nil, nil
+		}
+	}
+
+	// Rewind the main branch until we are at fork branch height.
+	for mainBlock.Header.BlockNumber > branchBlock.Header.BlockNumber {
+		rollbacks = append(rollbacks, mainBlock)
+		mainBlock, err = c.GetParentBlock(mainBlock.Header)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// Rewind both branches until we found the common ancestor.
+	for !bytes.Equal(branchBlock.Header.PreviousHash, mainBlock.Header.PreviousHash) {
+		replays = append([]*pb.Block{branchBlock}, replays...)
+		branchBlock, err = c.GetParentBlock(branchBlock.Header)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		rollbacks = append(rollbacks, mainBlock)
+		mainBlock, err = c.GetParentBlock(mainBlock.Header)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	mainHash, err = coinutil.HashHeader(mainBlock.Header)
+	if err != nil {
+		return nil, nil, err
+	}
+	branchHash, err := coinutil.HashHeader(branchBlock.Header)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if !bytes.Equal(mainHash, branchHash) {
+		rollbacks = append(rollbacks, mainBlock)
+		replays = append([]*pb.Block{branchBlock}, replays...)
+	}
+
+	return
 }

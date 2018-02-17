@@ -15,6 +15,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"strings"
 	"testing"
@@ -268,6 +269,7 @@ branch
 			}
 
 			require.NoError(t, trie.Commit(), "trie.Commit()")
+			require.NoError(t, trie.Check(context.Background()), "trie.Check()")
 
 			got, err := trie.Dump()
 			require.NoError(t, err, "trie.dump()")
@@ -463,6 +465,7 @@ branch
 			}
 
 			require.NoError(t, trie.Commit(), "trie.Commit()")
+			require.NoError(t, trie.Check(context.Background()), "trie.Check()")
 
 			got, err := trie.Dump()
 			require.NoError(t, err, "trie.dump()")

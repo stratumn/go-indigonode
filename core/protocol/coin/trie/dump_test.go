@@ -23,7 +23,7 @@ import (
 // Dump returns a string containing a dump of all the values in the trie for
 // debugging and testing. Not pretty but does the job.
 func (t *Trie) Dump() (string, error) {
-	root, err := t.rootNode()
+	root, err := t.cache.Get(nil)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +44,7 @@ func (t *Trie) dumpRec(n node, prefix []uint8, ident string) (string, error) {
 
 		path := append(prefix, v.Path...)
 
-		target, err := t.getNode(path)
+		target, err := t.cache.Get(path)
 		if err != nil {
 			return "", err
 		}

@@ -31,3 +31,11 @@ func (b *Block) PreviousHash() []byte {
 	}
 	return b.Header.PreviousHash
 }
+
+// Nonce returns the nonce of the block's header.
+func (b *Block) Nonce() uint64 {
+	if b.Header == nil {
+		return 0
+	}
+	return b.Header.Nonce
+}

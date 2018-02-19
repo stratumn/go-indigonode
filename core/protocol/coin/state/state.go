@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"sync"
 
+	multihash "github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -40,6 +41,9 @@ type State interface {
 
 // Reader gives read access to users' account balances.
 type Reader interface {
+	// MerkleRoot returns the Merkle Root of the current state.
+	MerkleRoot() (multihash.Multihash, error)
+
 	// GetAccount gets the account details of a user identified
 	// by his public key. It returns &pb.Account{} if the account is not
 	// found.
@@ -122,6 +126,10 @@ func NewState(database db.ReadWriteBatcher, opts ...Opt) State {
 	)
 
 	return s
+}
+
+func (s *stateDB) MerkleRoot() (multihash.Multihash, error) {
+	return s.accountsTrie.MerkleRoot()
 }
 
 func (s *stateDB) GetAccount(pubKey []byte) (*pb.Account, error) {

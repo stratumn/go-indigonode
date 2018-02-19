@@ -181,9 +181,16 @@ func TestState(t *testing.T) {
 				Nonce: 4,
 			}}
 			blk2 := blocktest.NewBlock(t, txs2)
+			blk2.Header.BlockNumber = blk1.BlockNumber() + 1
+
+			mr0a, err := s.MerkleRoot()
+			assert.NoError(t, err, "s.MerkleRoot(blk0a)")
 
 			err = s.ProcessBlock(blk1)
 			assert.NoError(t, err, "s.ProcessBlock(blk1)")
+
+			mr1a, err := s.MerkleRoot()
+			assert.NoError(t, err, "s.MerkleRoot(blk1a)")
 
 			err = s.ProcessBlock(blk2)
 			assert.NoError(t, err, "s.ProcessBlock(blk2)")
@@ -204,6 +211,10 @@ func TestState(t *testing.T) {
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
 
+			mr1b, err := s.MerkleRoot()
+			assert.NoError(t, err, "s.MerkleRoot(blk1b)")
+			assert.Equal(t, mr1a, mr1b, "s.MerkleRoot(blk1b)")
+
 			// Rollback blk1.
 			err = s.RollbackBlock(blk1)
 			assert.NoError(t, err, "s.RollbackBlock(blk1)")
@@ -219,6 +230,10 @@ func TestState(t *testing.T) {
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
 			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
+
+			mr0b, err := s.MerkleRoot()
+			assert.NoError(t, err, "s.MerkleRoot(blk0b)")
+			assert.Equal(t, mr0a, mr0b, "s.MerkleRoot(blk0b)")
 
 			// Verify that we didn't wrongfully take into account the miner reward
 			// that has a nil sender address.

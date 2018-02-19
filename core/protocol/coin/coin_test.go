@@ -36,6 +36,7 @@ import (
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	testutil "gx/ipfs/QmV1axkk86DDkYwS269AvPy9eV5h7mUyHveJkSVHPjrQtY/go-libp2p-netutil"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -169,13 +170,9 @@ func TestGetAccountTransactions(t *testing.T) {
 }
 
 func TestCoinMining_SingleNode(t *testing.T) {
-	minerPubKey := NewCoinBuilder(t).PublicKey()
-	minerAddress, err := minerPubKey.Bytes()
-	require.NoError(t, err, "minerPubKey.Bytes()")
-
 	t.Run("start-stop-mining", func(t *testing.T) {
-		c := NewCoinBuilder(t).WithPublicKey(minerPubKey).Build(t)
-		verifyAccount(t, c, minerAddress, &pb.Account{})
+		c := NewCoinBuilder(t).WithMinerID("alice").Build(t)
+		verifyAccount(t, c, "alice", &pb.Account{})
 
 		ctx, cancel := context.WithCancel(context.Background())
 		errChan := make(chan error)
@@ -184,10 +181,10 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		}()
 
 		cancel()
-		err = <-errChan
+		err := <-errChan
 		assert.EqualError(t, err, context.Canceled.Error(), "<-errChan")
 
-		verifyAccount(t, c, minerAddress, &pb.Account{})
+		verifyAccount(t, c, "alice", &pb.Account{})
 	})
 
 	t.Run("reject-invalid-txs", func(t *testing.T) {
@@ -205,7 +202,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			&MiningTestConfig{
 				initialBalance: 80,
 				maxTxPerBlock:  2,
-				minerPubKey:    minerPubKey,
+				minerID:        "bob",
 				reward:         3,
 				pendingTxs: []*pb.Transaction{
 					ctestutil.NewTransaction(t, 20, 5, 3),
@@ -233,16 +230,16 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		})
 
 		t.Run("updates-miner-account", func(t *testing.T) {
-			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*3 + 5 + 4 + 3})
+			verifyAccount(t, c, "bob", &pb.Account{Balance: 2*3 + 5 + 4 + 3})
 		})
 
 		t.Run("updates-sender-account", func(t *testing.T) {
-			verifyAccount(t, c, []byte(ctestutil.TxSenderPID),
+			verifyAccount(t, c, ctestutil.TxSenderPID,
 				&pb.Account{Balance: 80 - 20 - 5 - 10 - 4 - 5 - 3, Nonce: 5})
 		})
 
 		t.Run("updates-receiver-account", func(t *testing.T) {
-			verifyAccount(t, c, []byte(ctestutil.TxRecipientPID),
+			verifyAccount(t, c, ctestutil.TxRecipientPID,
 				&pb.Account{Balance: 20 + 10 + 5})
 		})
 	})
@@ -253,7 +250,7 @@ func TestCoinMining_SingleNode(t *testing.T) {
 			&MiningTestConfig{
 				initialBalance: 200,
 				maxTxPerBlock:  3,
-				minerPubKey:    minerPubKey,
+				minerID:        "carol",
 				reward:         5,
 				pendingTxs: []*pb.Transaction{
 					// These three txs should be included in the same block,
@@ -295,16 +292,16 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		})
 
 		t.Run("updates-miner-account", func(t *testing.T) {
-			verifyAccount(t, c, minerAddress, &pb.Account{Balance: 2*5 + 2 + 3 + 10 + 2 + 1})
+			verifyAccount(t, c, "carol", &pb.Account{Balance: 2*5 + 2 + 3 + 10 + 2 + 1})
 		})
 
 		t.Run("updates-sender-account", func(t *testing.T) {
-			verifyAccount(t, c, []byte(ctestutil.TxSenderPID),
+			verifyAccount(t, c, ctestutil.TxSenderPID,
 				&pb.Account{Balance: 200 - 5 - 2 - 10 - 3 - 7 - 10 - 5 - 2 - 5 - 1, Nonce: 7})
 		})
 
 		t.Run("updates-receiver-account", func(t *testing.T) {
-			verifyAccount(t, c, []byte(ctestutil.TxRecipientPID),
+			verifyAccount(t, c, ctestutil.TxRecipientPID,
 				&pb.Account{Balance: 5 + 10 + 7 + 5 + 5})
 		})
 	})
@@ -315,10 +312,10 @@ func TestCoinMining_SingleNode(t *testing.T) {
 // the miner doesn't care about the transaction addresses, we don't
 // lose test coverage with that assumpion).
 type MiningTestConfig struct {
-	initialBalance uint64              // Initial balance of the sender's account.
-	maxTxPerBlock  uint32              // Max number of txs to include per block.
-	minerPubKey    *coinutil.PublicKey // Public key of the miner.
-	reward         uint64              // Miner reward for producing blocks.
+	initialBalance uint64  // Initial balance of the sender's account.
+	maxTxPerBlock  uint32  // Max number of txs to include per block.
+	minerID        peer.ID // ID of the miner.
+	reward         uint64  // Miner reward for producing blocks.
 
 	validTxsOnly bool              // Should the test fail if transactions are rejected
 	pendingTxs   []*pb.Transaction // Transactions in the pool before mining starts.
@@ -358,7 +355,7 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 	c := NewCoinBuilder(t).
 		WithChain(chain).
 		WithMaxTxPerBlock(config.maxTxPerBlock).
-		WithPublicKey(config.minerPubKey).
+		WithMinerID(config.minerID).
 		WithReward(config.reward).
 		WithState(s).
 		Build(t)
@@ -390,8 +387,8 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 	return c
 }
 
-func verifyAccount(t *testing.T, c *Coin, address []byte, expected *pb.Account) {
-	account, err := c.GetAccount(address)
+func verifyAccount(t *testing.T, c *Coin, id peer.ID, expected *pb.Account) {
+	account, err := c.GetAccount([]byte(id))
 	assert.NoError(t, err, "c.GetAccount()")
 	assert.Equal(t, expected, account, "account")
 }

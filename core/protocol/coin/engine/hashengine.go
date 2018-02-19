@@ -25,6 +25,8 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 // HashEngine is an engine that uses hashes of the block as a proof-of-work.
@@ -34,16 +36,16 @@ type HashEngine struct {
 	difficulty uint64
 	reward     uint64
 
-	pubKey *coinutil.PublicKey
+	minerID peer.ID
 }
 
 // NewHashEngine creates a PoW engine with an initial difficulty.
 // The miner should specify its public key to receive block rewards.
-func NewHashEngine(pubKey *coinutil.PublicKey, difficulty, reward uint64) PoW {
+func NewHashEngine(minerID peer.ID, difficulty, reward uint64) PoW {
 	return &HashEngine{
 		difficulty: difficulty,
 		reward:     reward,
-		pubKey:     pubKey,
+		minerID:    minerID,
 	}
 }
 
@@ -183,13 +185,8 @@ func (e *HashEngine) pow(ctx context.Context, block *pb.Block) error {
 
 // createReward creates a reward for the miner finalizing the block.
 func (e *HashEngine) createReward(txs []*pb.Transaction) (*pb.Transaction, error) {
-	to, err := e.pubKey.Bytes()
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
 	reward := &pb.Transaction{
-		To:    to,
+		To:    []byte(e.minerID),
 		Value: e.reward + coinutil.GetBlockFees(&pb.Block{Transactions: txs}),
 	}
 

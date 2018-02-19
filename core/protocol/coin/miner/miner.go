@@ -37,7 +37,7 @@ var (
 )
 
 // log is the logger for the miner.
-var log = logging.Logger("miner")
+var log = logging.Logger("coin.miner")
 
 // Miner produces new blocks, adds them to the chain and notifies
 // other participants of the blocks it produces.

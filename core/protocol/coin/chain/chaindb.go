@@ -16,6 +16,7 @@ package chain
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/json"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 // prefixes for db keys.
@@ -31,6 +34,9 @@ var (
 	blockPrefix     = []byte("b") // blockPrefix + hash -> block
 	numToHashPrefix = []byte("n") // numToHashPrefix + num -> []hash
 )
+
+// log is the logger for the chain.
+var log = logging.Logger("coin.chain")
 
 /*
 chainDB implements the Chain interface with a given DB.
@@ -269,7 +275,21 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 }
 
 // SetHead sets the head of the chain.
-func (c *chainDB) SetHead(block *pb.Block) error {
+func (c *chainDB) SetHead(block *pb.Block) (err error) {
+	e := log.EventBegin(context.Background(), "SetHead", &logging.Metadata{
+		"BlockNumber":  block.BlockNumber(),
+		"PreviousHash": block.PreviousHash(),
+		"Nonce":        block.Nonce(),
+		"TxCount":      len(block.Transactions),
+	})
+	defer func() {
+		if err != nil {
+			e.SetError(err)
+		}
+
+		e.Done()
+	}()
+
 	b, err := block.Marshal()
 	if err != nil {
 		return err

@@ -215,15 +215,7 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 	var validSig bool
 	switch tx.Signature.KeyType {
 	case pb.KeyType_Ed25519:
-		// libp2p's crypto package is very confusing to use.
-		// The Bytes() method gives you the bytes of a proto message that
-		// contains the signature and its key type, but the Unmarshal method
-		// requires you to pass only the signature bytes and omit the first
-		// 4 key type bytes. So here we strip the first 4 bytes.
-		// The alternative is to use the ic.UnmarshalPublicKey method but it
-		// requires us to first create and marshal a proto message just to
-		// unmarshal it, which feels really dumb.
-		sigKey, err := ic.UnmarshalEd25519PublicKey(tx.Signature.PublicKey[4:])
+		sigKey, err := ic.UnmarshalPublicKey(tx.Signature.PublicKey)
 		if err != nil {
 			return errors.WithStack(err)
 		}

@@ -41,8 +41,11 @@ func OptDB(db db.ReadWriter) Opt {
 
 // OptPrefix sets a prefix for all the database keys.
 func OptPrefix(prefix []byte) Opt {
+	p := make([]byte, len(prefix))
+	copy(p, prefix)
+
 	return func(t *Trie) {
-		t.prefix = prefix
+		t.prefix = p
 	}
 }
 

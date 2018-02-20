@@ -100,11 +100,11 @@ type Opt func(*stateDB)
 
 // OptPrefix sets a prefix for all the database keys.
 var OptPrefix = func(prefix []byte) Opt {
-	p := make([]byte, len(prefix))
-	copy(p, prefix)
+	// To make sure append creates a new array we set a cap.
+	l := len(prefix)
 
 	return func(s *stateDB) {
-		s.prefix = p
+		s.prefix = prefix[:l:l]
 	}
 }
 
@@ -407,10 +407,9 @@ func (s *stateDB) removeTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {
 // all the transactions of an account are stored in the account subtree.
 // The block height is used so that transactions are stored chronologically.
 func accountTxKeysKey(pubKey []byte, txIdx int, blkHeight uint64) []byte {
-	pk := make([]byte, len(pubKey), len(pubKey)+16)
-	copy(pk, pubKey)
+	l := len(pubKey)
 
-	return append(append(pk, encodeUint64(blkHeight)...), encodeUint64(uint64(txIdx))...)
+	return append(append(pubKey[:l:l], encodeUint64(blkHeight)...), encodeUint64(uint64(txIdx))...)
 }
 
 // prevNoncesKey returns the previous nonces key for the given block.
@@ -420,10 +419,7 @@ func (s *stateDB) prevNoncesKey(blk *pb.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	p := make([]byte, len(s.prefix), len(s.prefix)+1+len(h))
-	copy(p, s.prefix)
-
-	return append(append(p, prevNoncesPrefix), h...), nil
+	return append(append(s.prefix, prevNoncesPrefix), h...), nil
 }
 
 // encodeUint64 encodes an uint64 to a buffer.

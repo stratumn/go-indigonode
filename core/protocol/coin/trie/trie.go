@@ -41,11 +41,11 @@ func OptDB(db db.ReadWriter) Opt {
 
 // OptPrefix sets a prefix for all the database keys.
 func OptPrefix(prefix []byte) Opt {
-	p := make([]byte, len(prefix))
-	copy(p, prefix)
+	// To make sure append creates a new array we set a cap.
+	l := len(prefix)
 
 	return func(t *Trie) {
-		t.prefix = p
+		t.prefix = prefix[:l:l]
 	}
 }
 
@@ -268,6 +268,9 @@ func (t *Trie) SubtrieProof(subtrieKey, key []byte) (Proof, error) {
 //	- key is the part of the key left to visit
 //	- node is the node corresponding to the prefix
 func (t *Trie) recProof(n node, prefix, key []uint8) ([]ProofNode, bool, error) {
+	l := len(prefix)
+	prefix = prefix[:l:l]
+
 	if e, ok := n.(*edge); ok {
 		// Follow edge but don't include it in the proof.
 		if !bytes.HasPrefix(key, e.Path) {
@@ -376,6 +379,9 @@ func (t *Trie) SubtriePut(subtrieKey, key, value []byte) error {
 //
 // It returns the updated node and its key.
 func (t *Trie) recPut(c *cache, n node, prefix, key []uint8, value []byte) (node, []uint8, error) {
+	l := len(prefix)
+	prefix = prefix[:l:l]
+
 	if e, ok := n.(*edge); ok {
 		// Handle edge cases.
 		i := 0
@@ -583,6 +589,9 @@ func (t *Trie) SubtrieDelete(subtrieKey, key []byte) error {
 //
 // It returns the updated node, its path, and whether the key was found.
 func (t *Trie) recDelete(c *cache, n node, prefix, key []uint8) (node, []uint8, bool, error) {
+	l := len(prefix)
+	prefix = prefix[:l:l]
+
 	var err error
 
 	if e, ok := n.(*edge); ok {
@@ -824,6 +833,9 @@ func (t *Trie) SubtrieCheck(ctx context.Context, subtrieKey []byte) error {
 //	- node is the node corresponding to the prefix
 //	- hash is the expected hash of the node
 func (t *Trie) recCheck(ctx context.Context, n node, prefix []uint8, hash multihash.Multihash) error {
+	l := len(prefix)
+	prefix = prefix[:l:l]
+
 	select {
 	case <-ctx.Done():
 		return errors.WithStack(ctx.Err())

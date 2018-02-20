@@ -123,5 +123,4 @@ package trie
 //
 // Nodes are pointers (except null). For performance reasons, the cache doesn't
 // clone nodes, so be careful when mutating them. In general, always clone an
-// externally created node before mutating it. On the other hand, the cache
-// creates a copy of the keys.
+// externally created node before mutating it.

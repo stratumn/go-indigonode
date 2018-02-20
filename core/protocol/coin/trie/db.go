@@ -41,7 +41,10 @@ type dbrwNodeDB struct {
 // newDbrwNodeDB creates a new nodeDB from a db.ReadWriter and database key
 // prefix.
 func newDbrwNodeDB(dbrw db.ReadWriter, prefix []byte) nodeDB {
-	return dbrwNodeDB{dbrw: dbrw, prefix: prefix}
+	p := make([]byte, len(prefix))
+	copy(p, prefix)
+
+	return dbrwNodeDB{dbrw: dbrw, prefix: p}
 }
 
 func (ndb dbrwNodeDB) Get(key []uint8) (node, error) {

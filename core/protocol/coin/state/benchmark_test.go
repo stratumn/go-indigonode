@@ -138,6 +138,8 @@ func benchmarkProcess(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		blk.GetHeader().BlockNumber = uint64(i)
+
 		err := s.ProcessBlock(blk)
 		if err != nil {
 			b.Fatal(err)
@@ -170,6 +172,8 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	blk := blocktest.NewBlock(b, txs)
 
 	for i := 0; i < b.N; i++ {
+		blk.GetHeader().BlockNumber = uint64(i)
+
 		err := s.ProcessBlock(blk)
 		if err != nil {
 			b.Fatal(err)
@@ -179,6 +183,8 @@ func benchmarkRollback(b *testing.B, db db.DB, n int) {
 	b.ResetTimer()
 
 	for i := b.N - 1; i >= 0; i-- {
+		blk.GetHeader().BlockNumber = uint64(i)
+
 		err := s.RollbackBlock(blk)
 		if err != nil {
 			b.Fatal(err)

@@ -25,8 +25,10 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
+	"github.com/stratumn/alice/core/protocol/coin/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	rpcpb "github.com/stratumn/alice/grpc/coin"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -261,10 +263,11 @@ func (s *Service) createCoin(ctx context.Context) error {
 	processor := processor.NewProcessor(s.kaddht)
 	balanceValidator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)
 	gossipValidator := validator.NewGossipValidator(uint32(s.config.MaxTxPerBlock), engine, chain)
-
+	p2p := p2p.NewP2P(s.host, protocol.ProtocolID)
+	sync := synchronizer.NewSynchronizer(p2p, s.kaddht)
 	gossip := gossip.NewGossip(s.host, s.pubsub, state, gossipValidator)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor)
+	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor, p2p, sync)
 
 	return nil
 }

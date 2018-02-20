@@ -15,42 +15,12 @@
 package testutil
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/gossip/mockgossip"
-	pb "github.com/stratumn/alice/pb/coin"
 )
-
-// RandomGossipTx creates a random transaction broadcast between peers.
-func RandomGossipTx() *pb.Gossip {
-	return &pb.Gossip{
-		Msg: &pb.Gossip_Tx{
-			Tx: &pb.Transaction{
-				From:  []byte("Alice"),
-				To:    []byte("Bob"),
-				Value: rand.Uint64(),
-				Nonce: rand.Uint64(),
-			},
-		},
-	}
-}
-
-// RandomGossipBlock creates a random block broadcast between peers.
-func RandomGossipBlock() *pb.Gossip {
-	return &pb.Gossip{
-		Msg: &pb.Gossip_Block{
-			Block: &pb.Block{
-				Header: &pb.Header{
-					Version:     1,
-					BlockNumber: rand.Uint64(),
-				},
-			},
-		},
-	}
-}
 
 // NewDummyGossip returns a gossip mock that does nothing.
 func NewDummyGossip(t *testing.T) gossip.Gossip {

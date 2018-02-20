@@ -65,7 +65,7 @@ func newCache(ndb nodeDB, hashCode uint64, lruSize int) *cache {
 }
 
 // Get gets a node from the cache. It will load the value from the database if
-// it isn't in the cache. The key is copied.
+// it isn't in the cache.
 func (c *cache) Get(key []uint8) (node, error) {
 	if elem, ok := c.elements[string(key)]; ok {
 		entry := elem.Value.(*cacheEntry)
@@ -84,27 +84,21 @@ func (c *cache) Get(key []uint8) (node, error) {
 		return null{}, err
 	}
 
-	k := make([]byte, len(key))
-	copy(k, key)
-	c.touch(&cacheEntry{Key: k, Node: n})
+	c.touch(&cacheEntry{Key: key, Node: n})
 
 	return n, nil
 }
 
-// Put sets a node in the cache. The key is copied.
+// Put sets a node in the cache.
 func (c *cache) Put(key []uint8, n node) error {
-	k := make([]byte, len(key))
-	copy(k, key)
-	c.touch(&cacheEntry{Key: k, Node: n, Dirty: true})
+	c.touch(&cacheEntry{Key: key, Node: n, Dirty: true})
 
 	return nil
 }
 
-// Delete marks a node as deleted. The key is copied.
+// Delete marks a node as deleted.
 func (c *cache) Delete(key []uint8) error {
-	k := make([]byte, len(key))
-	copy(k, key)
-	c.touch(&cacheEntry{Key: k, Dirty: true, Deleted: true})
+	c.touch(&cacheEntry{Key: key, Dirty: true, Deleted: true})
 
 	return nil
 }
@@ -168,6 +162,9 @@ func (c *cache) Hash(key []uint8) (multihash.Multihash, error) {
 	if c.hashCode == 0 {
 		return nil, nil
 	}
+
+	l := len(key)
+	key = key[:l:l]
 
 	n, err := c.Get(key)
 	if err != nil {

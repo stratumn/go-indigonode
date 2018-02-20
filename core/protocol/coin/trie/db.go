@@ -41,10 +41,9 @@ type dbrwNodeDB struct {
 // newDbrwNodeDB creates a new nodeDB from a db.ReadWriter and database key
 // prefix.
 func newDbrwNodeDB(dbrw db.ReadWriter, prefix []byte) nodeDB {
-	p := make([]byte, len(prefix))
-	copy(p, prefix)
+	l := len(prefix)
 
-	return dbrwNodeDB{dbrw: dbrw, prefix: p}
+	return dbrwNodeDB{dbrw: dbrw, prefix: prefix[:l:l]}
 }
 
 func (ndb dbrwNodeDB) Get(key []uint8) (node, error) {
@@ -97,10 +96,7 @@ func (ndb dbrwNodeDB) key(key []uint8) ([]byte, error) {
 		return nil, err
 	}
 
-	p := make([]byte, len(ndb.prefix), len(ndb.prefix)+len(k))
-	copy(p, ndb.prefix)
-
-	return append(p, k...), nil
+	return append(ndb.prefix, k...), nil
 }
 
 // mapNodeDB implements nodeDB using a map.

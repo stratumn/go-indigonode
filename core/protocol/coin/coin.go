@@ -16,6 +16,7 @@ package coin
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -23,8 +24,10 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/miner"
+	"github.com/stratumn/alice/core/protocol/coin/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -58,13 +61,15 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
-	engine    engine.Engine
-	state     state.State
-	chain     chain.Chain
-	gossip    gossip.Gossip
-	txpool    state.TxPool
-	processor processor.Processor
-	validator validator.Validator
+	engine       engine.Engine
+	state        state.State
+	chain        chain.Chain
+	gossip       gossip.Gossip
+	txpool       state.TxPool
+	processor    processor.Processor
+	validator    validator.Validator
+	synchronizer synchronizer.Synchronizer
+	p2p          p2p.P2P
 
 	miner *miner.Miner
 }
@@ -78,24 +83,35 @@ func NewCoin(
 	g gossip.Gossip,
 	v validator.Validator,
 	p processor.Processor,
+	p2p p2p.P2P,
+	sync synchronizer.Synchronizer,
 ) *Coin {
 
 	miner := miner.NewMiner(txp, e, s, c, v, p, g)
 
 	return &Coin{
-		engine:    e,
-		state:     s,
-		chain:     c,
-		txpool:    txp,
-		processor: p,
-		validator: v,
-		gossip:    g,
-		miner:     miner,
+		engine:       e,
+		state:        s,
+		chain:        c,
+		txpool:       txp,
+		processor:    p,
+		validator:    v,
+		gossip:       g,
+		p2p:          p2p,
+		synchronizer: sync,
+		miner:        miner,
 	}
 }
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
+	// Synchronize the chain.
+	genesisHash, err := hex.DecodeString(synchronizer.GenesisHash)
+	if err != nil {
+		return err
+	}
+	c.synchronize(ctx, genesisHash)
+
 	if err := c.StartTxGossip(ctx); err != nil {
 		return err
 	}
@@ -113,9 +129,10 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	})
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
+	enc := protobuf.Multicodec(nil).Encoder(stream)
 
 	for {
-		var gossip pb.Gossip
+		var gossip pb.Request
 		err := dec.Decode(&gossip)
 		if err == io.EOF {
 			return
@@ -126,16 +143,52 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 		}
 
 		switch m := gossip.Msg.(type) {
-		case *pb.Gossip_Tx:
-			err := c.AddTransaction(m.Tx)
+		case *pb.Request_HeaderReq:
+			h, err := c.chain.GetHeaderByHash(m.HeaderReq.Hash)
 			if err != nil {
-				log.Event(ctx, "AddTransaction", logging.Metadata{"error": err})
+				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
 			}
-		case *pb.Gossip_Block:
-			err := c.AppendBlock(ctx, m.Block)
+			if err := enc.Encode(pb.NewHeaderResponse(h)); err != nil {
+				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
+			}
+		case *pb.Request_HeadersReq:
+			headers := make([]*pb.Header, m.HeadersReq.Amount)
+			for i := uint64(0); i < m.HeadersReq.Amount; i++ {
+				h, err := c.chain.GetHeaderByNumber(m.HeadersReq.From + uint64(i))
+				if err != nil {
+					break
+				}
+				headers[i] = h
+			}
+
+			rsp := pb.NewHeadersResponse(headers)
+			if err := enc.Encode(rsp); err != nil {
+				log.Event(ctx, "HeadersReq response", logging.Metadata{"error": err})
+			}
+		case *pb.Request_BlockReq:
+			h, err := c.chain.GetBlockByHash(m.BlockReq.Hash)
 			if err != nil {
-				log.Event(ctx, "AppendBlock", logging.Metadata{"error": err})
+				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
 			}
+			if err := enc.Encode(pb.NewBlockResponse(h)); err != nil {
+				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
+			}
+		case *pb.Request_BlocksReq:
+			blocks := make([]*pb.Block, m.BlocksReq.Amount)
+			i := uint64(0)
+			for ; i < m.BlocksReq.Amount; i++ {
+				b, err := c.chain.GetBlockByNumber(m.BlocksReq.From + uint64(i))
+				if err != nil {
+					break
+				}
+				blocks[i] = b
+			}
+
+			rsp := pb.NewBlocksResponse(blocks[:i])
+			if err := enc.Encode(rsp); err != nil {
+				log.Event(ctx, "BlocksReq response", logging.Metadata{"error": err})
+			}
+
 		default:
 			log.Event(ctx, "Gossip", logging.Metadata{
 				"error": "Unexpected type",
@@ -232,4 +285,12 @@ func (c *Coin) StartBlockGossip(ctx context.Context) error {
 	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
 		return c.processor.Process(ctx, block, c.state, c.chain)
 	})
+}
+
+// synchronize synchronizes the local chain.
+func (c *Coin) synchronize(ctx context.Context, hash []byte) {
+	syncCtx, cancel := context.WithCancel(ctx)
+	// TODO: Handle sync channels.
+	_, _ = c.synchronizer.Synchronize(syncCtx, hash, c.chain)
+	cancel()
 }

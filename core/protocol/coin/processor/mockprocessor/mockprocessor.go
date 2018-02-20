@@ -5,6 +5,7 @@
 package mockprocessor
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	state "github.com/stratumn/alice/core/protocol/coin/state"
@@ -36,13 +37,13 @@ func (m *MockProcessor) EXPECT() *MockProcessorMockRecorder {
 }
 
 // Process mocks base method
-func (m *MockProcessor) Process(arg0 *coin.Block, arg1 state.State, arg2 chain.Writer) error {
-	ret := m.ctrl.Call(m, "Process", arg0, arg1, arg2)
+func (m *MockProcessor) Process(arg0 context.Context, arg1 *coin.Block, arg2 state.State, arg3 chain.Chain) error {
+	ret := m.ctrl.Call(m, "Process", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Process indicates an expected call of Process
-func (mr *MockProcessorMockRecorder) Process(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Process", reflect.TypeOf((*MockProcessor)(nil).Process), arg0, arg1, arg2)
+func (mr *MockProcessorMockRecorder) Process(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Process", reflect.TypeOf((*MockProcessor)(nil).Process), arg0, arg1, arg2, arg3)
 }

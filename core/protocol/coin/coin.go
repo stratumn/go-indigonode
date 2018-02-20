@@ -216,16 +216,19 @@ func (c *Coin) AppendBlock(ctx context.Context, block *pb.Block) error {
 
 // StartMining starts the underlying miner.
 func (c *Coin) StartMining(ctx context.Context) error {
+	log.Event(ctx, "StartMiner")
 	return c.miner.Start(ctx)
 }
 
 // StartTxGossip starts gossiping transactions.
 func (c *Coin) StartTxGossip(ctx context.Context) error {
+	log.Event(ctx, "StartTxGossip")
 	return c.gossip.ListenTx(ctx, c.AddValidTransaction)
 }
 
 // StartBlockGossip starts gossiping blocks.
 func (c *Coin) StartBlockGossip(ctx context.Context) error {
+	log.Event(ctx, "StartBlockGossip")
 	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
 		return c.processor.Process(ctx, block, c.state, c.chain)
 	})

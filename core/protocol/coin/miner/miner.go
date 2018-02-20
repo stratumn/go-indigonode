@@ -37,7 +37,7 @@ var (
 )
 
 // log is the logger for the miner.
-var log = logging.Logger("miner")
+var log = logging.Logger("coin.miner")
 
 // Miner produces new blocks, adds them to the chain and notifies
 // other participants of the blocks it produces.
@@ -113,13 +113,13 @@ miningLoop:
 		case txs := <-m.txsChan:
 			err := m.produce(ctx, txs)
 			if err != nil {
-				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err})
+				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err.Error()})
 			} else {
 				log.Event(ctx, "NewBlockProduced")
 			}
 		case <-ctx.Done():
 			miningErr = ctx.Err()
-			log.Event(ctx, "Stopped", logging.Metadata{"error": miningErr})
+			log.Event(ctx, "Stopped", logging.Metadata{"error": miningErr.Error()})
 			break miningLoop
 		}
 	}
@@ -178,7 +178,7 @@ func (m *Miner) startTxLoop(ctx context.Context) error {
 func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) {
 	defer func() {
 		if err != nil {
-			m.putBackInTxPool(txs)
+			m.putBackInTxPool(ctx, txs)
 		}
 	}()
 
@@ -199,7 +199,7 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 	}
 
 	if err := m.gossip.PublishBlock(block); err != nil {
-		log.Warningf("Unable to publish mined block: %v", err.Error())
+		log.Event(ctx, "PublishBlockFailure", &logging.Metadata{"error": err.Error()})
 	}
 
 	err = m.processor.Process(ctx, block, m.state, m.chain)
@@ -212,12 +212,12 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 
 // putBackInTxPool puts back transactions into the txpool.
 // It discards invalid transactions.
-func (m *Miner) putBackInTxPool(txs []*pb.Transaction) {
+func (m *Miner) putBackInTxPool(ctx context.Context, txs []*pb.Transaction) {
 	for _, tx := range txs {
 		if err := m.validator.ValidateTx(tx, m.state); err == nil {
 			err := m.txpool.AddTransaction(tx)
 			if err != nil {
-				log.Debugf("couldn't add tx to txpool: %s", err.Error())
+				log.Event(ctx, "AddTransactionFailure", &logging.Metadata{"error": err.Error()})
 			}
 		}
 	}

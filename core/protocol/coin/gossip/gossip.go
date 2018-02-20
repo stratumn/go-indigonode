@@ -28,6 +28,7 @@ import (
 
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -93,6 +94,17 @@ func (g *gossip) ListenTx(ctx context.Context, processTx func(*pb.Transaction) e
 		if err := tx.Unmarshal(msg.GetData()); err != nil {
 			return err
 		}
+
+		from, _ := peer.IDFromBytes(tx.From)
+		to, _ := peer.IDFromBytes(tx.To)
+		log.Event(context.Background(), "TransactionReceived", &logging.Metadata{
+			"From":  peer.IDB58Encode(from),
+			"To":    peer.IDB58Encode(to),
+			"Value": tx.Value,
+			"Fee":   tx.Fee,
+			"Nonce": tx.Nonce,
+		})
+
 		return processTx(tx)
 	})
 }
@@ -108,6 +120,14 @@ func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) e
 		if err := block.Unmarshal(msg.GetData()); err != nil {
 			return err
 		}
+
+		log.Event(context.Background(), "BlockReceived", &logging.Metadata{
+			"BlockNumber":  block.BlockNumber(),
+			"PreviousHash": block.PreviousHash(),
+			"Nonce":        block.Nonce(),
+			"TxCount":      len(block.Transactions),
+		})
+
 		return processBlock(block)
 	})
 }

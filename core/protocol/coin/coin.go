@@ -154,7 +154,7 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 		case *pb.Request_HeadersReq:
 			headers := make([]*pb.Header, m.HeadersReq.Amount)
 			for i := uint64(0); i < m.HeadersReq.Amount; i++ {
-				h, err := c.chain.GetHeaderByNumber(m.HeadersReq.From + uint64(i))
+				h, err := c.chain.GetHeaderByNumber(m.HeadersReq.From + i)
 				if err != nil {
 					break
 				}
@@ -177,7 +177,7 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 			blocks := make([]*pb.Block, m.BlocksReq.Amount)
 			i := uint64(0)
 			for ; i < m.BlocksReq.Amount; i++ {
-				b, err := c.chain.GetBlockByNumber(m.BlocksReq.From + uint64(i))
+				b, err := c.chain.GetBlockByNumber(m.BlocksReq.From + i)
 				if err != nil {
 					break
 				}

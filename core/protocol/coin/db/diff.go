@@ -18,6 +18,12 @@ import (
 	"sync"
 )
 
+// diffEntry describes an updated value.
+type diffEntry struct {
+	Value   []byte
+	Deleted bool
+}
+
 // Diff implements ReadWriter and records changes that need to be applied to an
 // underlying database. The recorded changes can then be applied atomically
 // using a batch. It ensures only one write operation per key changed.
@@ -25,16 +31,14 @@ type Diff struct {
 	db ReadWriteBatcher
 
 	mu      sync.RWMutex
-	updated map[string][]byte
-	deleted map[string]struct{}
+	entries map[string]diffEntry
 }
 
 // NewDiff creates a new Diff with the given underlying database.
 func NewDiff(db ReadWriteBatcher) *Diff {
 	return &Diff{
 		db:      db,
-		updated: map[string][]byte{},
-		deleted: map[string]struct{}{},
+		entries: map[string]diffEntry{},
 	}
 }
 
@@ -45,16 +49,17 @@ func (d *Diff) Get(key []byte) ([]byte, error) {
 
 	// NOTE: Go has optimizations for `map[(string(key)]` so it's better
 	// not to create a variable for the key.
-	if _, ok := d.deleted[string(key)]; ok {
+	entry, ok := d.entries[string(key)]
+
+	if !ok {
+		return d.db.Get(key)
+	}
+
+	if entry.Deleted {
 		return nil, ErrNotFound
 	}
 
-	v, ok := d.updated[string(key)]
-	if ok {
-		return v, nil
-	}
-
-	return d.db.Get(key)
+	return entry.Value, nil
 }
 
 // Put records an updated value.
@@ -62,8 +67,7 @@ func (d *Diff) Put(key, value []byte) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.updated[string(key)] = value
-	delete(d.deleted, string(key))
+	d.entries[string(key)] = diffEntry{Value: value}
 
 	return nil
 }
@@ -73,8 +77,7 @@ func (d *Diff) Delete(key []byte) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.deleted[string(key)] = struct{}{}
-	delete(d.updated, string(key))
+	d.entries[string(key)] = diffEntry{Deleted: true}
 
 	return nil
 }
@@ -87,12 +90,12 @@ func (d *Diff) Apply() error {
 
 	batch := d.db.Batch()
 
-	for k, v := range d.updated {
-		batch.Put([]byte(k), v)
-	}
-
-	for k := range d.deleted {
-		batch.Delete([]byte(k))
+	for key, entry := range d.entries {
+		if entry.Deleted {
+			batch.Delete([]byte(key))
+		} else {
+			batch.Put([]byte(key), entry.Value)
+		}
 	}
 
 	if err := d.db.Write(batch); err != nil {
@@ -113,6 +116,5 @@ func (d *Diff) Reset() {
 }
 
 func (d *Diff) doReset() {
-	d.updated = map[string][]byte{}
-	d.deleted = map[string]struct{}{}
+	d.entries = map[string]diffEntry{}
 }

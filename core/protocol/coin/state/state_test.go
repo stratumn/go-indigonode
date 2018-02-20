@@ -20,6 +20,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,9 +38,21 @@ func TestState(t *testing.T) {
 		return txKeys
 	}
 
-	alice := []byte("alice")
-	bob := []byte("bob")
-	charlie := []byte("charlie")
+	_, _, pid, err := txtest.NewKeyPair()
+	require.NoError(t, err)
+	alice := []byte(pid)
+
+	_, _, pid, err = txtest.NewKeyPair()
+	require.NoError(t, err)
+	bob := []byte(pid)
+
+	_, _, pid, err = txtest.NewKeyPair()
+	require.NoError(t, err)
+	charlie := []byte(pid)
+
+	_, _, pid, err = txtest.NewKeyPair()
+	require.NoError(t, err)
+	donald := []byte(pid)
 
 	tests := []struct {
 		name string
@@ -62,7 +75,7 @@ func TestState(t *testing.T) {
 	}, {
 		"get-inexisting",
 		func(t *testing.T, s State) {
-			v, err := s.GetAccount(alice)
+			v, err := s.GetAccount(donald)
 			assert.NoError(t, err, "s.GetAccount()")
 			assert.Equal(t, &pb.Account{}, v)
 		},
@@ -70,6 +83,12 @@ func TestState(t *testing.T) {
 		"process-transactions",
 		func(t *testing.T, s State) {
 			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
+
+			err = s.UpdateAccount(bob, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount()")
+
+			err = s.UpdateAccount(charlie, &pb.Account{Balance: 20})
 			assert.NoError(t, err, "s.UpdateAccount()")
 
 			txs := []*pb.Transaction{{
@@ -102,11 +121,11 @@ func TestState(t *testing.T) {
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5 - 1, Nonce: 1}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 20 + 10 - 5 - 1, Nonce: 1}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 1, Nonce: 1}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 20 + 5 - 2 - 1, Nonce: 1}, v, "s.GetAccount(charlie)")
 		},
 	}, {
 		"process-reward-transaction",
@@ -141,9 +160,6 @@ func TestState(t *testing.T) {
 	}, {
 		"rollback-transactions",
 		func(t *testing.T, s State) {
-			err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
-			assert.NoError(t, err, "s.UpdateAccount()")
-
 			// Process two states.
 
 			txs1 := []*pb.Transaction{{
@@ -205,11 +221,11 @@ func TestState(t *testing.T) {
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{Balance: 10 - 5 - 2, Nonce: 2}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 20 + 10 - 5 - 2, Nonce: 2}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{Balance: 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 20 + 5 - 2 - 3, Nonce: 3}, v, "s.GetAccount(charlie)")
 
 			mr1b, err := s.MerkleRoot()
 			assert.NoError(t, err, "s.MerkleRoot(blk1b)")
@@ -225,11 +241,11 @@ func TestState(t *testing.T) {
 
 			v, err = s.GetAccount(bob)
 			assert.NoError(t, err, "s.GetAccount(bob)")
-			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(bob)")
+			assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(bob)")
 
 			v, err = s.GetAccount(charlie)
 			assert.NoError(t, err, "s.GetAccount(charlie)")
-			assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
+			assert.Equal(t, &pb.Account{Balance: 20}, v, "s.GetAccount(charlie)")
 
 			mr0b, err := s.MerkleRoot()
 			assert.NoError(t, err, "s.MerkleRoot(blk0b)")
@@ -424,7 +440,18 @@ func TestState(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			defer memdb.Close()
 
-			tt.run(t, NewState(memdb, OptPrefix([]byte("test-"))))
+			s := NewState(memdb, OptPrefix([]byte("test-")))
+
+			err = s.UpdateAccount(alice, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount(alice)")
+
+			err = s.UpdateAccount(bob, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount(alice)")
+
+			err = s.UpdateAccount(charlie, &pb.Account{Balance: 20})
+			assert.NoError(t, err, "s.UpdateAccount(alice)")
+
+			tt.run(t, s)
 		})
 	}
 }

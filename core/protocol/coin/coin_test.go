@@ -28,6 +28,7 @@ import (
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -147,11 +148,13 @@ func TestGetAccountTransactions(t *testing.T) {
 	alice := []byte("alice")
 
 	c := NewCoinBuilder(t).WithChain(chain).Build(t)
-	tx := ctestutil.NewTransaction(t, 1, 1, 1)
+	err := c.state.UpdateAccount([]byte(txtest.TxSenderPID), &pb.Account{Balance: 100})
+	require.NoError(t, err)
+	tx := txtest.NewTransaction(t, 1, 1, 1)
 	expected := []*pb.Transaction{tx}
 	blk := blocktest.NewBlock(t, expected)
 
-	err := c.state.ProcessBlock(blk)
+	err = c.state.ProcessBlock(blk)
 	require.NoError(t, err, "c.state.ProcessBlock(blk)")
 
 	chain.EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(2)
@@ -189,11 +192,11 @@ func TestCoinMining_SingleNode(t *testing.T) {
 
 	t.Run("reject-invalid-txs", func(t *testing.T) {
 		c := NewCoinBuilder(t).Build(t)
-		err := c.AddTransaction(ctestutil.NewTransaction(t, 0, 1, 1))
+		err := c.AddTransaction(txtest.NewTransaction(t, 0, 1, 1))
 		assert.EqualError(t, err, validator.ErrInvalidTxValue.Error(), "c.AddTransaction()")
 
-		err = c.AddTransaction(ctestutil.NewTransaction(t, 42, 1, 3))
-		assert.EqualError(t, err, validator.ErrInsufficientBalance.Error(), "c.AddTransaction()")
+		err = c.AddTransaction(txtest.NewTransaction(t, 42, 1, 3))
+		assert.EqualError(t, err, state.ErrInsufficientBalance.Error(), "c.AddTransaction()")
 	})
 
 	t.Run("produce-blocks-from-old-txs", func(t *testing.T) {
@@ -205,9 +208,9 @@ func TestCoinMining_SingleNode(t *testing.T) {
 				minerID:        "bob",
 				reward:         3,
 				pendingTxs: []*pb.Transaction{
-					ctestutil.NewTransaction(t, 20, 5, 3),
-					ctestutil.NewTransaction(t, 10, 4, 4),
-					ctestutil.NewTransaction(t, 5, 3, 5),
+					txtest.NewTransaction(t, 20, 5, 3),
+					txtest.NewTransaction(t, 10, 4, 4),
+					txtest.NewTransaction(t, 5, 3, 5),
 				},
 				validTxsOnly: true,
 				stopCond: func(c *Coin) bool {
@@ -234,12 +237,12 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		})
 
 		t.Run("updates-sender-account", func(t *testing.T) {
-			verifyAccount(t, c, ctestutil.TxSenderPID,
+			verifyAccount(t, c, txtest.TxSenderPID,
 				&pb.Account{Balance: 80 - 20 - 5 - 10 - 4 - 5 - 3, Nonce: 5})
 		})
 
 		t.Run("updates-receiver-account", func(t *testing.T) {
-			verifyAccount(t, c, ctestutil.TxRecipientPID,
+			verifyAccount(t, c, txtest.TxRecipientPID,
 				&pb.Account{Balance: 20 + 10 + 5})
 		})
 	})
@@ -255,15 +258,15 @@ func TestCoinMining_SingleNode(t *testing.T) {
 				pendingTxs: []*pb.Transaction{
 					// These three txs should be included in the same block,
 					// so their order (nonce) should not matter.
-					ctestutil.NewTransaction(t, 5, 2, 1),
-					ctestutil.NewTransaction(t, 10, 3, 3),
-					ctestutil.NewTransaction(t, 7, 10, 4),
+					txtest.NewTransaction(t, 5, 2, 1),
+					txtest.NewTransaction(t, 10, 3, 3),
+					txtest.NewTransaction(t, 7, 10, 4),
 				},
 				liveTxs: []*pb.Transaction{
 					// This tx should be rejected because of its nonce and low fee.
-					ctestutil.NewTransaction(t, 5, 1, 3),
-					ctestutil.NewTransaction(t, 5, 2, 6),
-					ctestutil.NewTransaction(t, 5, 1, 7),
+					txtest.NewTransaction(t, 5, 1, 3),
+					txtest.NewTransaction(t, 5, 2, 6),
+					txtest.NewTransaction(t, 5, 1, 7),
 				},
 				validTxsOnly: false,
 				stopCond: func(c *Coin) bool {
@@ -296,12 +299,12 @@ func TestCoinMining_SingleNode(t *testing.T) {
 		})
 
 		t.Run("updates-sender-account", func(t *testing.T) {
-			verifyAccount(t, c, ctestutil.TxSenderPID,
+			verifyAccount(t, c, txtest.TxSenderPID,
 				&pb.Account{Balance: 200 - 5 - 2 - 10 - 3 - 7 - 10 - 5 - 2 - 5 - 1, Nonce: 7})
 		})
 
 		t.Run("updates-receiver-account", func(t *testing.T) {
-			verifyAccount(t, c, ctestutil.TxRecipientPID,
+			verifyAccount(t, c, txtest.TxRecipientPID,
 				&pb.Account{Balance: 5 + 10 + 7 + 5 + 5})
 		})
 	})
@@ -337,7 +340,7 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 
 	s := state.NewState(db, state.OptPrefix([]byte("test")))
 	err = s.UpdateAccount(
-		[]byte(ctestutil.TxSenderPID),
+		[]byte(txtest.TxSenderPID),
 		&pb.Account{Balance: config.initialBalance},
 	)
 	assert.NoError(t, err, "s.UpdateAccount()")
@@ -346,7 +349,7 @@ func mineAllTransactions(t *testing.T, config *MiningTestConfig) *Coin {
 		t,
 		[]*pb.Transaction{&pb.Transaction{
 			Value: config.initialBalance,
-			To:    []byte(ctestutil.TxSenderPID),
+			To:    []byte(txtest.TxSenderPID),
 		},
 		})
 	genesisBlock.Header.BlockNumber = 0

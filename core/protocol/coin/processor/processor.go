@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -29,8 +31,13 @@ import (
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
 
-// log is the logger for the processor.
-var log = logging.Logger("processor")
+var (
+	// log is the logger for the processor.
+	log = logging.Logger("coin.processor")
+
+	// errReorgAborted is returned when the reorg is aborted.
+	errReorgAborted = errors.New("reorg aborted")
+)
 
 // Processor is an interface for processing blocks using a given initial state.
 type Processor interface {
@@ -53,10 +60,6 @@ type processor struct {
 // NewProcessor creates a new processor.
 func NewProcessor(provider ContentProvider) Processor {
 	return &processor{provider: provider}
-}
-
-type stateTransition struct {
-	block *pb.Block
 }
 
 func (p *processor) Process(ctx context.Context, block *pb.Block, state state.State, ch chain.Chain) error {
@@ -97,7 +100,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 
 	// If the block is not higher than the current head,
 	// do not update state, end processing.
-	if head != nil && head.BlockNumber() > block.BlockNumber() {
+	if head != nil && head.BlockNumber() >= block.BlockNumber() {
 		return nil
 	}
 
@@ -113,7 +116,17 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 			return err
 		}
 		if !bytes.Equal(hash, block.PreviousHash()) {
-			return p.reorg(head, block, state, ch)
+			if err := p.reorg(head, block, state, ch); err != nil {
+				if err == errReorgAborted {
+					log.Event(ctx, "ReorgAborted")
+
+					return ch.SetHead(head)
+				}
+
+				return err
+			}
+
+			return nil
 		}
 	}
 
@@ -122,62 +135,40 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 }
 
 // Update the state to follow the new main branch.
-func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, state state.State, chain chain.Chain) error {
-	backward := []*stateTransition{}
-	forward := []*stateTransition{}
+func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, st state.State, ch chain.Reader) error {
+	var cursor *pb.Block
 
-	mainBlock := newHead
-	mainNumber := mainBlock.BlockNumber()
-	mainHash, err := coinutil.HashHeader(mainBlock.Header)
+	backward, forward, err := chain.GetPath(ch, prevHead, newHead)
 	if err != nil {
 		return err
 	}
 
-	forkBlock := prevHead
-	forkNumber := forkBlock.BlockNumber()
-	forkHash, err := coinutil.HashHeader(forkBlock.Header)
-	if err != nil {
-		return err
-	}
+	forward = append(forward, newHead)
 
-	// First gets the two chains to the same height.
-	// Then go back to first common ancestor.
-	for !bytes.Equal(mainHash, forkHash) {
-		if mainNumber >= forkNumber {
-			// Prepend transition to forward to be then played in good order.
-			forward = append(
-				[]*stateTransition{{block: mainBlock}},
-				forward...,
-			)
-			mainHash = mainBlock.PreviousHash()
-			mainBlock, err = chain.GetBlock(mainBlock.PreviousHash(), mainBlock.BlockNumber()-1)
-			if err != nil {
-				return err
-			}
-		}
-
-		if mainNumber <= forkNumber {
-			backward = append(backward, &stateTransition{block: forkBlock})
-			forkHash = forkBlock.PreviousHash()
-			forkBlock, err = chain.GetBlock(forkBlock.PreviousHash(), forkBlock.BlockNumber()-1)
-			if err != nil {
-				return err
-			}
-		}
-		mainNumber = mainBlock.BlockNumber()
-		forkNumber = forkBlock.BlockNumber()
-	}
-
-	for _, st := range backward {
-		if err = state.RollbackBlock(st.block); err != nil {
+	for _, b := range backward {
+		if err = st.RollbackBlock(b); err != nil {
 			return err
 		}
+		cursor = b
 	}
 
-	for _, st := range forward {
-		if err = state.ProcessBlock(st.block); err != nil {
+	for _, b := range forward {
+		if err = st.ProcessBlock(b); err != nil {
+			// Block has been rejected by state, undo reorg.
+			if errors.Cause(err) == state.ErrInvalidBlock {
+				if cursor != nil {
+					if err := p.reorg(cursor, prevHead, st, ch); err != nil {
+						return err
+					}
+				}
+
+				return errReorgAborted
+			}
+
 			return err
 		}
+		cursor = b
 	}
+
 	return nil
 }

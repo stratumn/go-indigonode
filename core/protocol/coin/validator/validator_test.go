@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +47,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"empty-value",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 0, 0, 42)
+			tx := txtest.NewTransaction(t, 0, 0, 42)
 			return tx
 		},
 		func() state.State { return nil },
@@ -54,7 +55,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-to",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			tx.To = nil
 			return tx
 		},
@@ -63,7 +64,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-from",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			tx.From = nil
 			return tx
 		},
@@ -72,7 +73,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"send-to-self",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			tx.From = tx.To
 			return tx
 		},
@@ -81,7 +82,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"missing-signature",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			tx.Signature = nil
 			return tx
 		},
@@ -90,7 +91,7 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"invalid-signature",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			tx.Signature.Signature[3] ^= 1
 			return tx
 		},
@@ -99,53 +100,53 @@ func TestValidateTx(t *testing.T) {
 	}, {
 		"invalid-balance",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 0, 42)
+			tx := txtest.NewTransaction(t, 42, 0, 42)
 			return tx
 		},
 		func() state.State { return testutil.NewSimpleState(t) },
-		validator.ErrInsufficientBalance,
+		state.ErrInsufficientBalance,
 	}, {
 		"invalid-balance-fee",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 40, 5, 3)
+			tx := txtest.NewTransaction(t, 40, 5, 3)
 			return tx
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 41, Nonce: 1},
 			)
 			assert.NoError(t, err)
 			return s
 		},
-		validator.ErrInsufficientBalance,
+		state.ErrInsufficientBalance,
 	}, {
 		"invalid-nonce",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 3, 42)
+			tx := txtest.NewTransaction(t, 42, 3, 42)
 			return tx
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 80, Nonce: 42},
 			)
 			assert.NoError(t, err)
 			return s
 		},
-		validator.ErrInvalidTxNonce,
+		state.ErrInvalidTxNonce,
 	}, {
 		"valid-tx",
 		func() *pb.Transaction {
-			tx := testutil.NewTransaction(t, 42, 3, 42)
+			tx := txtest.NewTransaction(t, 42, 3, 42)
 			return tx
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 80, Nonce: 40},
 			)
 			assert.NoError(t, err)
@@ -197,7 +198,7 @@ func TestValidateBlock(t *testing.T) {
 		func() *pb.Block {
 			var txs []*pb.Transaction
 			for i := uint32(0); i < testMaxTxCount+1; i++ {
-				txs = append(txs, testutil.NewTransaction(t, 1, 1, uint64(i)))
+				txs = append(txs, txtest.NewTransaction(t, 1, 1, uint64(i)))
 			}
 
 			return blocktest.NewBlock(t, txs)
@@ -211,16 +212,16 @@ func TestValidateBlock(t *testing.T) {
 		func() *pb.Block {
 			var txs []*pb.Transaction
 			for i := uint32(0); i < testMaxTxCount; i++ {
-				txs = append(txs, testutil.NewTransaction(t, 1, 1, uint64(i+1)))
+				txs = append(txs, txtest.NewTransaction(t, 1, 1, uint64(i+1)))
 			}
 
-			txs = append(txs, testutil.NewRewardTransaction(t, 1))
+			txs = append(txs, txtest.NewRewardTransaction(t, 1))
 			return blocktest.NewBlock(t, txs)
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 80, Nonce: 0},
 			)
 			assert.NoError(t, err)
@@ -231,8 +232,8 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-signature",
 		func() *pb.Block {
 			block := blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 1, 5),
-				testutil.NewTransaction(t, 7, 2, 1),
+				txtest.NewTransaction(t, 3, 1, 5),
+				txtest.NewTransaction(t, 7, 2, 1),
 			})
 
 			block.Transactions[1].Signature.Signature[5] ^= block.Transactions[1].Signature.Signature[5]
@@ -249,26 +250,26 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-balance",
 		func() *pb.Block {
 			return blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 2, 5),
-				testutil.NewTransaction(t, 3, 1, 6),
+				txtest.NewTransaction(t, 3, 2, 5),
+				txtest.NewTransaction(t, 3, 1, 6),
 			})
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 8, Nonce: 1},
 			)
 			assert.NoError(t, err)
 			return s
 		},
-		validator.ErrInsufficientBalance,
+		state.ErrInsufficientBalance,
 	}, {
 		"invalid-merkle-root",
 		func() *pb.Block {
 			block := blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 1, 5),
-				testutil.NewTransaction(t, 7, 1, 6),
+				txtest.NewTransaction(t, 3, 1, 5),
+				txtest.NewTransaction(t, 7, 1, 6),
 			})
 
 			block.Header.MerkleRoot = []byte("does not look valid")
@@ -280,8 +281,8 @@ func TestValidateBlock(t *testing.T) {
 	}, {"multiple-rewards",
 		func() *pb.Block {
 			return blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewRewardTransaction(t, 3),
-				testutil.NewRewardTransaction(t, 4),
+				txtest.NewRewardTransaction(t, 3),
+				txtest.NewRewardTransaction(t, 4),
 			})
 		},
 		func() state.State { return nil },
@@ -290,8 +291,8 @@ func TestValidateBlock(t *testing.T) {
 		"invalid-reward",
 		func() *pb.Block {
 			return blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 1, 5, 1),
-				testutil.NewRewardTransaction(t, 5+testReward+1),
+				txtest.NewTransaction(t, 1, 5, 1),
+				txtest.NewRewardTransaction(t, 5+testReward+1),
 			})
 		},
 		func() state.State { return nil },
@@ -300,15 +301,15 @@ func TestValidateBlock(t *testing.T) {
 		"valid-block",
 		func() *pb.Block {
 			return blocktest.NewBlock(t, []*pb.Transaction{
-				testutil.NewTransaction(t, 3, 1, 5),
-				testutil.NewTransaction(t, 7, 1, 8),
-				testutil.NewRewardTransaction(t, testReward+1+1),
+				txtest.NewTransaction(t, 3, 1, 5),
+				txtest.NewTransaction(t, 7, 1, 8),
+				txtest.NewRewardTransaction(t, testReward+1+1),
 			})
 		},
 		func() state.State {
 			s := testutil.NewSimpleState(t)
 			err := s.UpdateAccount(
-				[]byte(testutil.TxSenderPID),
+				[]byte(txtest.TxSenderPID),
 				&pb.Account{Balance: 15, Nonce: 3},
 			)
 			assert.NoError(t, err)
@@ -349,14 +350,14 @@ func TestGossipValidator(t *testing.T) {
 	validator := validator.NewGossipValidator(testMaxTxCount, mockPoW, mockChain)
 
 	validBlock := blocktest.NewBlock(t, []*pb.Transaction{
-		testutil.NewTransaction(t, 3, 1, 5),
-		testutil.NewTransaction(t, 7, 1, 8),
-		testutil.NewRewardTransaction(t, testReward+1+1),
+		txtest.NewTransaction(t, 3, 1, 5),
+		txtest.NewTransaction(t, 7, 1, 8),
+		txtest.NewRewardTransaction(t, testReward+1+1),
 	})
 
 	s := testutil.NewSimpleState(t)
 	err := s.UpdateAccount(
-		[]byte(testutil.TxSenderPID),
+		[]byte(txtest.TxSenderPID),
 		&pb.Account{Balance: 15, Nonce: 3},
 	)
 	assert.NoError(t, err)

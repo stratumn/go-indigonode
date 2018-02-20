@@ -94,70 +94,72 @@ type Chain interface {
 
 // GetPath returns the path from current header
 // to a given block (excluding that block).
-func GetPath(c Reader, block *pb.Block) (rollbacks []*pb.Block, replays []*pb.Block, err error) {
-	branchBlock, err := c.GetParentBlock(block.Header)
+func GetPath(c Reader, from *pb.Block, to *pb.Block) (rollbacks []*pb.Block, replays []*pb.Block, err error) {
+
+	toParent, err := c.GetParentBlock(to.Header)
 	if err != nil {
 		return nil, nil, ErrInvalidPreviousBlock
 	}
 
-	mainBlock, err := c.CurrentBlock()
+	fromHash, err := coinutil.HashHeader(from.Header)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mainHash, err := coinutil.HashHeader(mainBlock.Header)
+	fromParent, err := c.GetBlock(fromHash, from.Header.BlockNumber)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ErrBlockHashNotFound
 	}
-	if bytes.Equal(block.Header.PreviousHash, mainHash) {
+
+	if bytes.Equal(to.Header.PreviousHash, fromHash) {
 		return
 	}
 
-	// Rewind the block branch until we are at main branch height.
-	for branchBlock.Header.BlockNumber > mainBlock.Header.BlockNumber {
-		replays = append([]*pb.Block{branchBlock}, replays...)
-		branchBlock, err = c.GetParentBlock(branchBlock.Header)
+	// Rewind the to branch until we are at from block height.
+	for toParent.Header.BlockNumber > fromParent.Header.BlockNumber {
+		replays = append([]*pb.Block{toParent}, replays...)
+		toParent, err = c.GetParentBlock(toParent.Header)
 		if err != nil {
-			return nil, nil, nil
+			return nil, nil, err
 		}
 	}
 
-	// Rewind the main branch until we are at fork branch height.
-	for mainBlock.Header.BlockNumber > branchBlock.Header.BlockNumber {
-		rollbacks = append(rollbacks, mainBlock)
-		mainBlock, err = c.GetParentBlock(mainBlock.Header)
+	// Rewind the from branch until we are at to block height.
+	for fromParent.Header.BlockNumber > toParent.Header.BlockNumber {
+		rollbacks = append(rollbacks, fromParent)
+		fromParent, err = c.GetParentBlock(fromParent.Header)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
 	// Rewind both branches until we found the common ancestor.
-	for !bytes.Equal(branchBlock.Header.PreviousHash, mainBlock.Header.PreviousHash) {
-		replays = append([]*pb.Block{branchBlock}, replays...)
-		branchBlock, err = c.GetParentBlock(branchBlock.Header)
+	for !bytes.Equal(toParent.Header.PreviousHash, fromParent.Header.PreviousHash) {
+		replays = append([]*pb.Block{toParent}, replays...)
+		toParent, err = c.GetParentBlock(toParent.Header)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		rollbacks = append(rollbacks, mainBlock)
-		mainBlock, err = c.GetParentBlock(mainBlock.Header)
+		rollbacks = append(rollbacks, fromParent)
+		fromParent, err = c.GetParentBlock(fromParent.Header)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	mainHash, err = coinutil.HashHeader(mainBlock.Header)
+	fromHash, err = coinutil.HashHeader(fromParent.Header)
 	if err != nil {
 		return nil, nil, err
 	}
-	branchHash, err := coinutil.HashHeader(branchBlock.Header)
+	toHash, err := coinutil.HashHeader(toParent.Header)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if !bytes.Equal(mainHash, branchHash) {
-		rollbacks = append(rollbacks, mainBlock)
-		replays = append([]*pb.Block{branchBlock}, replays...)
+	if !bytes.Equal(fromHash, toHash) {
+		rollbacks = append(rollbacks, fromParent)
+		replays = append([]*pb.Block{toParent}, replays...)
 	}
 
 	return

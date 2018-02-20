@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/state"
-	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,9 +34,9 @@ func TestInMemoryTxPool(t *testing.T) {
 	}, {
 		"highest-fee",
 		func(t *testing.T, txp state.TxPool) {
-			txp.AddTransaction(testutil.NewTransaction(t, 5, 1, 1))
-			txp.AddTransaction(testutil.NewTransaction(t, 5, 3, 1))
-			txp.AddTransaction(testutil.NewTransaction(t, 5, 2, 1))
+			txp.AddTransaction(txtest.NewTransaction(t, 5, 1, 1))
+			txp.AddTransaction(txtest.NewTransaction(t, 5, 3, 1))
+			txp.AddTransaction(txtest.NewTransaction(t, 5, 2, 1))
 
 			tx := txp.PopTransaction()
 			assert.NotNil(t, tx, "txp.PopTransaction()")

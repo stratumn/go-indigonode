@@ -261,32 +261,32 @@ func TestPath(t *testing.T) {
 	err = c.SetHead(b4)
 	require.NoError(t, err)
 
-	rollbacks, replays, err := GetPath(c, b4Child)
+	rollbacks, replays, err := GetPath(c, b4, b4Child)
 	require.NoError(t, err)
 	assert.Len(t, rollbacks, 0)
 	assert.Len(t, replays, 0)
 
-	rollbacks, replays, err = GetPath(c, b5Child)
+	rollbacks, replays, err = GetPath(c, b4, b5Child)
 	require.NoError(t, err)
 	assert.Equal(t, []*pb.Block{b4, b3, b2, b1}, rollbacks)
 	assert.Equal(t, []*pb.Block{b5}, replays)
 
-	rollbacks, replays, err = GetPath(c, b7Child)
+	rollbacks, replays, err = GetPath(c, b4, b7Child)
 	require.NoError(t, err)
 	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
 	assert.Equal(t, []*pb.Block{b6, b7}, replays)
 
-	rollbacks, replays, err = GetPath(c, b9Child)
+	rollbacks, replays, err = GetPath(c, b4, b9Child)
 	require.NoError(t, err)
 	assert.Equal(t, []*pb.Block{b4}, rollbacks)
 	assert.Equal(t, []*pb.Block{b8, b9}, replays)
 
-	rollbacks, replays, err = GetPath(c, b2)
+	rollbacks, replays, err = GetPath(c, b4, b2)
 	require.NoError(t, err)
 	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
 	assert.Len(t, replays, 0)
 
-	rollbacks, replays, err = GetPath(c, b7)
+	rollbacks, replays, err = GetPath(c, b4, b7)
 	require.NoError(t, err)
 	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
 	assert.Equal(t, []*pb.Block{b6}, replays)

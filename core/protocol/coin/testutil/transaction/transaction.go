@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package testutil
+package transaction
 
 import (
 	"testing"
@@ -55,6 +55,21 @@ func init() {
 	}
 
 	TxRecipientPID = pid
+}
+
+// NewKeyPair returns key pair and peer ID.
+func NewKeyPair() (ic.PrivKey, ic.PubKey, []byte, error) {
+	sk, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	pid, err := peer.IDFromPrivateKey(sk)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return sk, pk, []byte(pid), nil
 }
 
 // NewTransaction creates a properly signed transaction.

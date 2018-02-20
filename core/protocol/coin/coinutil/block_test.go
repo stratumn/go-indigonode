@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,11 +27,11 @@ func TestGetMinerReward(t *testing.T) {
 	t.Run("Returns single reward", func(t *testing.T) {
 		tx, err := coinutil.GetMinerReward(&pb.Block{
 			Transactions: []*pb.Transaction{
-				testutil.NewTransaction(t, 1, 1, 1),
-				testutil.NewTransaction(t, 1, 1, 1),
-				testutil.NewRewardTransaction(t, 5),
-				testutil.NewTransaction(t, 1, 1, 1),
-				testutil.NewTransaction(t, 1, 1, 1),
+				txtest.NewTransaction(t, 1, 1, 1),
+				txtest.NewTransaction(t, 1, 1, 1),
+				txtest.NewRewardTransaction(t, 5),
+				txtest.NewTransaction(t, 1, 1, 1),
+				txtest.NewTransaction(t, 1, 1, 1),
 			},
 		})
 
@@ -43,9 +43,9 @@ func TestGetMinerReward(t *testing.T) {
 	t.Run("Returns error if multiple rewards", func(t *testing.T) {
 		_, err := coinutil.GetMinerReward(&pb.Block{
 			Transactions: []*pb.Transaction{
-				testutil.NewTransaction(t, 1, 1, 1),
-				testutil.NewRewardTransaction(t, 5),
-				testutil.NewRewardTransaction(t, 10),
+				txtest.NewTransaction(t, 1, 1, 1),
+				txtest.NewRewardTransaction(t, 5),
+				txtest.NewRewardTransaction(t, 10),
 			},
 		})
 
@@ -56,16 +56,16 @@ func TestGetMinerReward(t *testing.T) {
 func TestGetBlockFees(t *testing.T) {
 	totalFees := coinutil.GetBlockFees(&pb.Block{
 		Transactions: []*pb.Transaction{
-			testutil.NewTransaction(t, 1, 1, 1),
-			testutil.NewTransaction(t, 1, 2, 1),
+			txtest.NewTransaction(t, 1, 1, 1),
+			txtest.NewTransaction(t, 1, 2, 1),
 			// Miner reward because empty sender
 			&pb.Transaction{
 				Value: 5,
 				// The fee should be silently ignored
 				Fee: 15,
 			},
-			testutil.NewTransaction(t, 1, 3, 1),
-			testutil.NewTransaction(t, 1, 4, 1),
+			txtest.NewTransaction(t, 1, 3, 1),
+			txtest.NewTransaction(t, 1, 4, 1),
 		},
 	})
 

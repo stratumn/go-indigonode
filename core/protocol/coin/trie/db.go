@@ -97,7 +97,10 @@ func (ndb dbrwNodeDB) key(key []uint8) ([]byte, error) {
 		return nil, err
 	}
 
-	return append(ndb.prefix, k...), nil
+	p := make([]byte, len(ndb.prefix), len(ndb.prefix)+len(k))
+	copy(p, ndb.prefix)
+
+	return append(p, k...), nil
 }
 
 // mapNodeDB implements nodeDB using a map.

@@ -25,20 +25,18 @@ import (
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func TestHashEngine_Difficulty(t *testing.T) {
-	e := engine.NewHashEngine(nil, 42, 5)
+	e := engine.NewHashEngine("alice", 42, 5)
 	assert.Equal(t, uint64(42), e.Difficulty(), "e.Difficulty()")
 
-	e = engine.NewHashEngine(nil, 0, 5)
+	e = engine.NewHashEngine("alice", 0, 5)
 	assert.Equal(t, uint64(0), e.Difficulty(), "e.Difficulty()")
 }
 
 func TestHashEngine_Reward(t *testing.T) {
-	e := engine.NewHashEngine(nil, 3, 42)
+	e := engine.NewHashEngine("alice", 3, 42)
 	assert.Equal(t, uint64(42), e.Reward(), "e.Reward()")
 }
 
@@ -117,7 +115,7 @@ func TestHashEngine_VerifyHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(nil, tt.difficulty, 5)
+			e := engine.NewHashEngine("", tt.difficulty, 5)
 			tt.run(t, e)
 		})
 	}
@@ -172,7 +170,7 @@ func TestHashEngine_Prepare(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(nil, 42, 5)
+			e := engine.NewHashEngine("alice", 42, 5)
 			tt.run(t, e)
 		})
 	}
@@ -194,10 +192,6 @@ func TestHashEngine_Finalize(t *testing.T) {
 	}
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 	require.NoError(t, chain.SetHead(firstBlock), "chain.SetHead()")
-
-	_, pk, err := ic.GenerateKeyPair(ic.Ed25519, 0)
-	require.NoError(t, err, "ic.GenerateKeyPair()")
-	pubKey := coinutil.NewPublicKey(pk, pb.KeyType_Ed25519)
 
 	// Static reward to miner in reward transaction.
 	testReward := uint64(5)
@@ -254,9 +248,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 			assert.Equal(t, testReward+txFees, blockReward.Value, "blockReward.Value")
 			assert.Nil(t, blockReward.Signature, "blockReward.Signature")
 
-			to, err := pubKey.Bytes()
-			assert.NoError(t, err, "pubKey.Bytes()")
-			assert.EqualValues(t, to, blockReward.To, "blockReward.To")
+			assert.EqualValues(t, []byte("alice"), blockReward.To, "blockReward.To")
 		},
 	}, {
 		"block-nonce-pow",
@@ -286,7 +278,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := engine.NewHashEngine(pubKey, tt.difficulty, testReward)
+			e := engine.NewHashEngine("alice", tt.difficulty, testReward)
 			tt.run(t, e)
 		})
 	}

@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -36,7 +35,7 @@ import (
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
-	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	kaddht "gx/ipfs/QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL/go-libp2p-kad-dht"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
@@ -55,9 +54,9 @@ var (
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
 
-	// ErrMissingMinerPublicKey is returned when the miner's public key is missing
+	// ErrMissingMinerID is returned when the miner's peer ID is missing
 	// from the configuration file.
-	ErrMissingMinerPublicKey = errors.New("the miner's public key should be configured")
+	ErrMissingMinerID = errors.New("the miner's peer ID should be configured")
 )
 
 // Host represents an Alice host.
@@ -95,32 +94,27 @@ type Config struct {
 	// PubSub is the name of the pubsub service.
 	PubSub string `toml:"pubsub" comment:"The name of the pubsub service."`
 
-	// MinerPublicKey is the base64-encoded public key of the miner.
-	// Block rewards will be sent to this address.
-	MinerPublicKey string `toml:"miner_public_key" comment:"The public key of the miner."`
+	// MinerID is the peer ID of the miner.
+	// Block rewards will be sent to this peer.
+	// Note that a miner can generate as many peer IDs as it wants and use any of them.
+	MinerID string `toml:"miner_id" comment:"The peer ID of the miner."`
 
 	// KadDHT is the name of the kaddht service.
 	KadDHT string `toml:"kaddht" comment:"The name of the kaddht service."`
 }
 
-// GetMinerPublicKey decodes the miner's public key from the configuration.
-func (c *Config) GetMinerPublicKey() (*coinutil.PublicKey, error) {
-	publicKeyBytes, err := ic.ConfigDecodeKey(c.MinerPublicKey)
+// GetMinerID reads the miner's peer ID from the configuration.
+func (c *Config) GetMinerID() (peer.ID, error) {
+	if len(c.MinerID) == 0 {
+		return "", ErrMissingMinerID
+	}
+
+	minerID, err := peer.IDB58Decode(c.MinerID)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return "", errors.WithStack(err)
 	}
 
-	if len(publicKeyBytes) == 0 {
-		return nil, ErrMissingMinerPublicKey
-	}
-
-	// Note: we need to skip the multi-hash header, hence the 4:
-	minerPublicKey, err := ic.UnmarshalEd25519PublicKey(publicKeyBytes[4:])
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return coinutil.NewPublicKey(minerPublicKey, pb.KeyType_Ed25519), nil
+	return minerID, nil
 }
 
 // ID returns the unique identifier of the service.
@@ -257,12 +251,12 @@ func (s *Service) createCoin(ctx context.Context) error {
 	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
 	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
 
-	minerPublicKey, err := s.config.GetMinerPublicKey()
+	minerID, err := s.config.GetMinerID()
 	if err != nil {
 		return err
 	}
 
-	engine := engine.NewHashEngine(minerPublicKey, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
+	engine := engine.NewHashEngine(minerID, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
 
 	processor := processor.NewProcessor(s.kaddht)
 	balanceValidator := validator.NewBalanceValidator(uint32(s.config.MaxTxPerBlock), engine)

@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -26,10 +25,9 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
-	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/require"
 
-	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 // CoinBuilder is a utility to create a coin protocol with custom mocks
@@ -45,7 +43,7 @@ type CoinBuilder struct {
 
 	db db.DB
 
-	pk *coinutil.PublicKey
+	minerID peer.ID
 
 	difficulty    uint64
 	maxTxPerBlock uint32
@@ -59,27 +57,24 @@ func NewCoinBuilder(t *testing.T) *CoinBuilder {
 	db, err := db.NewMemDB(nil)
 	require.NoError(t, err, "db.NewMemDB()")
 
-	_, pubKey, err := ic.GenerateKeyPair(ic.Ed25519, 0)
-	require.NoError(t, err, "ic.GenerateKeyPair()")
-
 	return &CoinBuilder{
 		db:            db,
-		pk:            coinutil.NewPublicKey(pubKey, pb.KeyType_Ed25519),
+		minerID:       "alice",
 		difficulty:    1,
 		maxTxPerBlock: 2,
 		reward:        5,
 	}
 }
 
-// WithPublicKey configures the builder to use the given miner public key.
-func (c *CoinBuilder) WithPublicKey(pk *coinutil.PublicKey) *CoinBuilder {
-	c.pk = pk
+// WithMinerID configures the builder to use the given miner peer ID.
+func (c *CoinBuilder) WithMinerID(id peer.ID) *CoinBuilder {
+	c.minerID = id
 	return c
 }
 
-// PublicKey returns the public key that will be used for the miner.
-func (c *CoinBuilder) PublicKey() *coinutil.PublicKey {
-	return c.pk
+// MinerID returns the peer ID that will be used for the miner.
+func (c *CoinBuilder) MinerID() peer.ID {
+	return c.minerID
 }
 
 // WithDifficulty configures the builder to use the given block difficulty.
@@ -158,7 +153,7 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 		c.chain = chain.NewChainDB(c.db, chain.OptPrefix([]byte("c")))
 	}
 	if c.engine == nil {
-		c.engine = engine.NewHashEngine(c.pk, c.difficulty, c.reward)
+		c.engine = engine.NewHashEngine(c.minerID, c.difficulty, c.reward)
 	}
 	if c.gossip == nil {
 		c.gossip = testutil.NewDummyGossip(t)

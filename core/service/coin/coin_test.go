@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -26,24 +27,24 @@ func TestCoinConfig(t *testing.T) {
 	_, pubKey, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "crypto.GenerateKeyPair()")
 
-	pubKeyBytes, err := pubKey.Bytes()
-	assert.NoError(t, err, "pubKey.Bytes()")
+	id, err := peer.IDFromPublicKey(pubKey)
+	assert.NoError(t, err, "peer.IDFromPublicKey()")
 
-	t.Run("decode-public-key", func(t *testing.T) {
-		config := &Config{MinerPublicKey: crypto.ConfigEncodeKey(pubKeyBytes)}
+	configEncoded := peer.IDB58Encode(id)
 
-		decodedPublicKey, err := config.GetMinerPublicKey()
-		assert.NoError(t, err, "config.GetMinerPublicKey()")
+	t.Run("decode-miner-d", func(t *testing.T) {
+		config := &Config{MinerID: configEncoded}
 
-		decodedPublicKeyBytes, err := decodedPublicKey.Bytes()
-		assert.NoError(t, err, "decodedPublicKey.Bytes()")
-		assert.EqualValues(t, pubKeyBytes, decodedPublicKeyBytes)
+		decodedMinerID, err := config.GetMinerID()
+		assert.NoError(t, err, "config.GetMinerID()")
+
+		assert.Equal(t, id, decodedMinerID, "decodedMinerID")
 	})
 
-	t.Run("missing-public-key", func(t *testing.T) {
+	t.Run("missing-miner-d", func(t *testing.T) {
 		config := &Config{}
 
-		_, err := config.GetMinerPublicKey()
-		assert.EqualError(t, err, ErrMissingMinerPublicKey.Error())
+		_, err := config.GetMinerID()
+		assert.EqualError(t, err, ErrMissingMinerID.Error())
 	})
 }

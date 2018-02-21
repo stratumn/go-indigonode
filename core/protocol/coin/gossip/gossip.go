@@ -19,6 +19,7 @@ package gossip
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -54,6 +55,9 @@ type Gossip interface {
 	PublishTx(tx *pb.Transaction) error
 	// PublishBlock sends a new block to the gossip.
 	PublishBlock(block *pb.Block) error
+
+	// Close closes the gossip layer.
+	Close() error
 }
 
 // Gossip handles the gossiping of blocks and transactions.
@@ -80,6 +84,17 @@ func NewGossip(
 		validator: v,
 		subs:      make(map[string]*floodsub.Subscription),
 	}
+}
+
+func (g *gossip) Close() error {
+	for _, s := range g.subs {
+		s.Cancel()
+	}
+
+	// TODO: Remove topic validators once it is possible.
+	// https://github.com/libp2p/go-floodsub/issues/68
+
+	return nil
 }
 
 // ListenTx subscribes to transaction topic and listens to incoming transactions.
@@ -192,7 +207,12 @@ func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
 
 	g.subs[topic] = sub
 
+	// We can't remove a topic validator for now...
+	// https://github.com/libp2p/go-floodsub/issues/68
 	err = g.pubsub.RegisterTopicValidator(topic, validator)
+	if err != nil && err.Error() == fmt.Sprintf("Duplicate validator for topic %s", topic) {
+		return nil
+	}
 	return errors.WithStack(err)
 }
 

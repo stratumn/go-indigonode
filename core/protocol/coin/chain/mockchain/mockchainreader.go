@@ -5,11 +5,10 @@
 package mockchain
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	coin "github.com/stratumn/alice/pb/coin"
+	reflect "reflect"
 )
 
 // MockReader is a mock of Reader interface
@@ -136,4 +135,17 @@ func (m *MockReader) GetHeadersByNumber(arg0 uint64) ([]*coin.Header, error) {
 // GetHeadersByNumber indicates an expected call of GetHeadersByNumber
 func (mr *MockReaderMockRecorder) GetHeadersByNumber(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeadersByNumber", reflect.TypeOf((*MockReader)(nil).GetHeadersByNumber), arg0)
+}
+
+// GetParentBlock mocks base method
+func (m *MockReader) GetParentBlock(arg0 *coin.Header) (*coin.Block, error) {
+	ret := m.ctrl.Call(m, "GetParentBlock", arg0)
+	ret0, _ := ret[0].(*coin.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetParentBlock indicates an expected call of GetParentBlock
+func (mr *MockReaderMockRecorder) GetParentBlock(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParentBlock", reflect.TypeOf((*MockReader)(nil).GetParentBlock), arg0)
 }

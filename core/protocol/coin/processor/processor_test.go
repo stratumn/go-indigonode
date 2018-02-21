@@ -16,17 +16,38 @@ package processor_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 )
+
+var (
+	alice, bob, charlie, dexter []byte
+	accounts                    map[string]*pb.Account
+)
+
+func init() {
+	accounts = make(map[string]*pb.Account)
+
+	for _, user := range []*[]byte{&alice, &bob, &charlie, &dexter} {
+		_, _, pid, err := txtest.NewKeyPair()
+		if err != nil {
+			panic(err)
+		}
+		*user = pid
+		accounts[string(*user)] = &pb.Account{Balance: 20, Nonce: 0}
+	}
+}
 
 type provider struct {
 	resources map[string]bool
@@ -43,17 +64,15 @@ func (p *provider) Provide(ctx context.Context, key *cid.Cid, brdcst bool) error
 }
 
 func TestProcessor_Process(t *testing.T) {
-	alice := []byte("alice")
-	bob := []byte("bob")
-	charlie := []byte("charlie")
-
 	dht := &provider{}
 	p := processor.NewProcessor(dht)
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
 	c := &testutil.SimpleChain{}
 
-	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
-	assert.NoError(t, err, "s.UpdateAccount(alice)")
+	for user, account := range accounts {
+		err := s.UpdateAccount([]byte(user), account)
+		assert.NoError(t, err, fmt.Sprintf("s.UpdateAccount(%v)", user))
+	}
 
 	block1 := &pb.Block{
 		Header: &pb.Header{
@@ -90,9 +109,15 @@ func TestProcessor_Process(t *testing.T) {
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
 	ctx := context.Background()
+
 	assert.NoError(t, p.Process(ctx, block1, s, c))
+	checkState(t, accounts, []*pb.Block{block1}, s)
+
 	assert.NoError(t, p.Process(ctx, block2, s, c))
+	checkState(t, accounts, []*pb.Block{block1, block2}, s)
+
 	assert.NoError(t, p.Process(ctx, block2, s, c))
+	checkState(t, accounts, []*pb.Block{block1, block2}, s)
 
 	// Check chain
 	b, err := c.GetBlock(h1, 0)
@@ -118,19 +143,6 @@ func TestProcessor_Process(t *testing.T) {
 	cid2, err := cid.Cast(h2)
 	assert.NoError(t, err, "cid.Cast()")
 	assert.True(t, dht.resources[cid2.String()], "dht.Provide()")
-
-	// Check state
-	v, err := s.GetAccount(alice)
-	assert.NoError(t, err, "s.GetAccount(alice)")
-	assert.Equal(t, &pb.Account{Balance: 20 - 10 + 2, Nonce: 1}, v, "s.GetAccount(alice)")
-
-	v, err = s.GetAccount(bob)
-	assert.NoError(t, err, "s.GetAccount(bob)")
-	assert.Equal(t, &pb.Account{Balance: 10 - 5, Nonce: 2}, v, "s.GetAccount(bob)")
-
-	v, err = s.GetAccount(charlie)
-	assert.NoError(t, err, "s.GetAccount(charlie)")
-	assert.Equal(t, &pb.Account{Balance: 5 - 2, Nonce: 3}, v, "s.GetAccount(charlie)")
 }
 
 func TestProcessor_ProcessWithReorg(t *testing.T) {
@@ -146,17 +158,14 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	and that transactions from block22, block32 and block4 are applied to the state.
 	*/
 
-	alice := []byte("alice")
-	bob := []byte("bob")
-	charlie := []byte("charlie")
-	dexter := []byte("dexter")
-
 	p := processor.NewProcessor(nil)
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
 	c := &testutil.SimpleChain{}
 
-	err := s.UpdateAccount(alice, &pb.Account{Balance: 20})
-	assert.NoError(t, err, "s.UpdateAccount(alice)")
+	for user, account := range accounts {
+		err := s.UpdateAccount([]byte(user), account)
+		assert.NoError(t, err, fmt.Sprintf("s.UpdateAccount(%v)", user))
+	}
 
 	block1 := &pb.Block{
 		Header: &pb.Header{
@@ -204,7 +213,7 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 			From:  bob,
 			To:    dexter,
 			Value: 3,
-			Nonce: 2,
+			Nonce: 3,
 		}},
 	}
 	h31, err := coinutil.HashHeader(block31.Header)
@@ -246,7 +255,7 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 		Header: &pb.Header{
 			BlockNumber:  3,
 			PreviousHash: h32,
-			Nonce:        4,
+			Nonce:        41,
 		},
 		Transactions: []*pb.Transaction{{
 			From:  alice,
@@ -258,12 +267,42 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	h4, err := coinutil.HashHeader(block4.Header)
 	assert.NoError(t, err, "HashHeader(block3)")
 
+	block4invalid := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  3,
+			PreviousHash: h32,
+			Nonce:        42,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  alice,
+			To:    dexter,
+			Value: 100,
+			Nonce: 4,
+		}},
+	}
+
 	ctx := context.Background()
 	assert.NoError(t, p.Process(ctx, block1, s, c))
 	assert.NoError(t, p.Process(ctx, block21, s, c))
 	assert.NoError(t, p.Process(ctx, block31, s, c))
 	assert.NoError(t, p.Process(ctx, block22, s, c))
 	assert.NoError(t, p.Process(ctx, block32, s, c))
+
+	// Check state no reorg no new head.
+	checkState(t, accounts, []*pb.Block{block1, block21, block31}, s)
+	header, err := c.CurrentHeader()
+	assert.NoError(t, err, "CurrentHeader()")
+	assert.Equal(t, block31.Header, header)
+
+	// Check state no reorg invalid block.
+	assert.NoError(t, p.Process(ctx, block4invalid, s, c))
+
+	checkState(t, accounts, []*pb.Block{block1, block21, block31}, s)
+	header, err = c.CurrentHeader()
+	assert.NoError(t, err, "CurrentHeader()")
+	assert.Equal(t, block31.Header, header)
+
+	// Adding block 4 will trigger reorg.
 	assert.NoError(t, p.Process(ctx, block4, s, c))
 
 	// Check chain
@@ -291,24 +330,32 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	assert.NoError(t, err, "GetBlock()")
 	assert.Equal(t, block4, b, "GetBlock()")
 
-	header, err := c.CurrentHeader()
+	header, err = c.CurrentHeader()
 	assert.NoError(t, err, "CurrentHeader()")
 	assert.Equal(t, block4.Header, header, "CurrentHeader()")
 
-	// Check state
-	v, err := s.GetAccount(alice)
-	assert.NoError(t, err, "s.GetAccount(alice)")
-	assert.Equal(t, &pb.Account{Balance: 20 - 10 - 4, Nonce: 2}, v, "s.GetAccount(alice)")
+	checkState(t, accounts, []*pb.Block{block1, block22, block32, block4}, s)
+}
 
-	v, err = s.GetAccount(bob)
-	assert.NoError(t, err, "s.GetAccount(bob)")
-	assert.Equal(t, &pb.Account{Balance: 10 - 5 + 1, Nonce: 2}, v, "s.GetAccount(bob)")
+func checkState(t *testing.T, accounts map[string]*pb.Account, blocks []*pb.Block, s state.Reader) {
+	a := make(map[string]*pb.Account)
 
-	v, err = s.GetAccount(charlie)
-	assert.NoError(t, err, "s.GetAccount(charlie)")
-	assert.Equal(t, &pb.Account{}, v, "s.GetAccount(charlie)")
+	for user, account := range accounts {
+		a[user] = &pb.Account{Balance: account.Balance, Nonce: account.Nonce}
+	}
 
-	v, err = s.GetAccount(dexter)
-	assert.NoError(t, err, "s.GetAccount(dexter)")
-	assert.Equal(t, &pb.Account{Balance: 5 + 4 - 1, Nonce: 42}, v, "s.GetAccount(dexter)")
+	for _, b := range blocks {
+		for _, tx := range b.GetTransactions() {
+			a[string(tx.From)].Balance -= tx.Value + tx.Fee
+			a[string(tx.To)].Balance += tx.Value
+			a[string(tx.From)].Nonce = tx.Nonce
+		}
+	}
+
+	for u, account := range a {
+		aa, err := s.GetAccount([]byte(u))
+
+		require.NoError(t, err)
+		assert.Equal(t, account, aa)
+	}
 }

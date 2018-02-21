@@ -22,6 +22,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -188,7 +189,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 
 	firstBlock := &pb.Block{
 		Header:       &pb.Header{Version: 1, BlockNumber: 1, PreviousHash: genesisHash},
-		Transactions: []*pb.Transaction{testutil.NewTransaction(t, 4, 1, 2)},
+		Transactions: []*pb.Transaction{txtest.NewTransaction(t, 4, 1, 2)},
 	}
 	require.NoError(t, chain.AddBlock(firstBlock), "chain.AddBlock()")
 	require.NoError(t, chain.SetHead(firstBlock), "chain.SetHead()")

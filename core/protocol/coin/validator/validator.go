@@ -37,10 +37,6 @@ var (
 	// ErrInvalidTxValue is returned when the transaction value is 0.
 	ErrInvalidTxValue = errors.New("invalid tx value")
 
-	// ErrInvalidTxNonce is returned when the transaction nonce isn't greater
-	// than the last nonce used by the sender's account.
-	ErrInvalidTxNonce = errors.New("invalid tx nonce")
-
 	// ErrInvalidTxSender is returned when the transaction sender is invalid.
 	ErrInvalidTxSender = errors.New("invalid tx sender")
 
@@ -55,9 +51,6 @@ var (
 
 	// ErrTxSignatureNotHandled is returned when the transaction signature scheme isn't implemented.
 	ErrTxSignatureNotHandled = errors.New("tx signature scheme not supported yet")
-
-	// ErrInsufficientBalance is returned when the sender tries to send more coins than he has.
-	ErrInsufficientBalance = errors.New("tx sender does not have enough coins to send")
 
 	// ErrTooManyTxs is returned when the sender tries to put too many transactions in a block.
 	ErrTooManyTxs = errors.New("too many txs in proposed block")
@@ -93,12 +86,15 @@ type Validator interface {
 	ValidateTransactions(transactions []*pb.Transaction, state state.Reader) error
 }
 
-// GossipValidator validates coin transactions.
-// Compared to BalanceValidator, block validation also
-// validates block header.
+// GossipValidator validates everything including the block header except balances.
 type GossipValidator struct {
 	chReader chain.Reader
 	*BalanceValidator
+}
+
+// ValidateTx validates that the transaction is well-formed and properly signed.
+func (g *GossipValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
+	return g.BalanceValidator.ValidateTx(tx, nil)
 }
 
 // ValidateBlock validates the transactions contained in a block and the block header.
@@ -106,7 +102,12 @@ func (g *GossipValidator) ValidateBlock(block *pb.Block, state state.Reader) err
 	if err := g.BalanceValidator.engine.VerifyHeader(g.chReader, block.Header); err != nil {
 		return err
 	}
-	return g.BalanceValidator.ValidateBlock(block, state)
+	return g.BalanceValidator.ValidateBlock(block, nil)
+}
+
+// ValidateTransactions validates that transactions are well-formed and properly signed.
+func (g *GossipValidator) ValidateTransactions(transactions []*pb.Transaction, state state.Reader) error {
+	return g.BalanceValidator.ValidateTransactions(transactions, nil)
 }
 
 // NewGossipValidator returns a GossipValidator.
@@ -141,7 +142,7 @@ func (v *BalanceValidator) MaxTxPerBlock() uint32 {
 // ValidateTx validates a transaction.
 // If state is nil, ValidateTx only validates that the
 // transaction is well-formed and properly signed.
-func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, state state.Reader) error {
+func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, s state.Reader) error {
 	err := v.validateFormat(tx)
 	if err != nil {
 		return err
@@ -152,8 +153,8 @@ func (v *BalanceValidator) ValidateTx(tx *pb.Transaction, state state.Reader) er
 		return err
 	}
 
-	if state != nil {
-		err = v.validateBalance(tx, state)
+	if s != nil {
+		err = state.ValidateBalance(s, tx)
 		if err != nil {
 			return err
 		}
@@ -241,24 +242,6 @@ func (v *BalanceValidator) validateSignature(tx *pb.Transaction) error {
 	return nil
 }
 
-// validateBalance validates that the sender does not send coins he doesn't have.
-func (v *BalanceValidator) validateBalance(tx *pb.Transaction, s state.Reader) error {
-	account, err := s.GetAccount(tx.From)
-	if err != nil {
-		return err
-	}
-
-	if tx.Nonce <= account.Nonce {
-		return ErrInvalidTxNonce
-	}
-
-	if account.Balance < tx.Value+tx.Fee {
-		return ErrInsufficientBalance
-	}
-
-	return nil
-}
-
 // ValidateBlock validates a block.
 func (v *BalanceValidator) ValidateBlock(block *pb.Block, s state.Reader) error {
 	// Reject blocks with height 0: we do not accept another genesis block.
@@ -293,49 +276,8 @@ func (v *BalanceValidator) ValidateTransactions(transactions []*pb.Transaction, 
 		}
 	}
 
-	// Aggregate transactions from the same sender and verify balance.
-	txs := make(map[peer.ID]*pb.Account)
-	for _, tx := range transactions {
-		if tx.From == nil {
-			continue
-		}
-
-		// We need to validate each Tx individually as well so that balance
-		// cannot wrap around because of int overflow.
-		// Later we could use a more efficient implementation taking into
-		// account received txs and ordering by nonce.
-		if err := v.validateBalance(tx, s); err != nil {
-			return err
-		}
-
-		senderID, err := peer.IDFromBytes(tx.From)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		_, ok := txs[senderID]
-		if !ok {
-			txs[senderID] = &pb.Account{}
-		}
-
-		account := txs[senderID]
-		txs[senderID] = &pb.Account{
-			Balance: account.Balance + tx.Value + tx.Fee,
-			Nonce:   tx.Nonce,
-		}
-	}
-
-	for from, val := range txs {
-		err := v.validateBalance(
-			&pb.Transaction{
-				From:  []byte(from),
-				Value: val.Balance,
-				Nonce: val.Nonce,
-			},
-			s)
-		if err != nil {
-			return err
-		}
+	if s != nil {
+		return state.ValidateBalances(s, transactions)
 	}
 
 	return nil

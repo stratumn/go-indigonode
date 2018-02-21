@@ -15,6 +15,7 @@
 package state
 
 import (
+	"context"
 	"encoding/binary"
 	"sync"
 
@@ -24,12 +25,21 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/trie"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var (
+	// log is the logger for the state.
+	log = logging.Logger("coin.state")
+
 	// ErrInconsistentTransactions is returned when the transactions to
 	// roll back are inconsistent with the saved nonces.
 	ErrInconsistentTransactions = errors.New("transactions are inconsistent")
+
+	// ErrInvalidBlock is returned if balances or nonces in a block transactions
+	// are incorrect.
+	ErrInvalidBlock = errors.New("invalid block")
 )
 
 // State stores users' account balances. It doesn't handle validation.
@@ -222,13 +232,42 @@ func (s *stateDB) doUpdateAccount(pubKey []byte, account *pb.Account) error {
 	return s.accountsTrie.Put(pubKey, buf)
 }
 
-func (s *stateDB) ProcessBlock(blk *pb.Block) error {
+func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
+	e := log.EventBegin(context.Background(), "ProcessBlock", &logging.Metadata{
+		"BlockNumber":  blk.BlockNumber(),
+		"PreviousHash": blk.PreviousHash(),
+		"Nonce":        blk.Nonce(),
+		"TxCount":      len(blk.Transactions),
+	})
+	defer func() {
+		if err != nil {
+			e.SetError(err)
+		}
+
+		e.Done()
+	}()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()
 	defer s.accountsTrie.Reset()
 
 	txs := blk.GetTransactions()
+
+	if err := ValidateBalances(s, txs); err != nil {
+		if errors.Cause(err) == ErrInsufficientBalance || errors.Cause(err) == ErrInvalidTxNonce {
+			log.Event(context.Background(), "InvalidBlock", &logging.Metadata{
+				"BlockNumber":  blk.BlockNumber(),
+				"PreviousHash": blk.PreviousHash(),
+				"Nonce":        blk.Nonce(),
+				"TxCount":      len(blk.Transactions),
+				"error":        err.Error(),
+			})
+
+			return ErrInvalidBlock
+		}
+		return err
+	}
 
 	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
@@ -304,7 +343,21 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) error {
 	return s.diff.Apply()
 }
 
-func (s *stateDB) RollbackBlock(blk *pb.Block) error {
+func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
+	e := log.EventBegin(context.Background(), "RollbackBlock", &logging.Metadata{
+		"BlockNumber":  blk.BlockNumber(),
+		"PreviousHash": blk.PreviousHash(),
+		"Nonce":        blk.Nonce(),
+		"TxCount":      len(blk.Transactions),
+	})
+	defer func() {
+		if err != nil {
+			e.SetError(err)
+		}
+
+		e.Done()
+	}()
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	defer s.diff.Reset()

@@ -192,6 +192,11 @@ func (c *chainDB) GetHeaderByHash(hash []byte) (*pb.Header, error) {
 	return block.Header, nil
 }
 
+// GetParentBlock retrieves the parent block.
+func (c *chainDB) GetParentBlock(header *pb.Header) (*pb.Block, error) {
+	return c.GetBlock(header.PreviousHash, header.BlockNumber-1)
+}
+
 // AddBlock adds a block to the chain.
 // It assumes that the block has been validated.
 // We still check that previous hash points to the block before this one.

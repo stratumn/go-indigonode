@@ -24,6 +24,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,8 +57,8 @@ func TestMiner_TxPool(t *testing.T) {
 
 		assert.Equal(t, 0, txpool.TxCount(), "txpool.TxCount()")
 
-		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
-		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 2))
+		txpool.AddTransaction(txtest.NewTransaction(t, 1, 1, 1))
+		txpool.AddTransaction(txtest.NewTransaction(t, 1, 1, 2))
 
 		tassert.WaitUntil(
 			t,
@@ -76,7 +77,7 @@ func TestMiner_TxPool(t *testing.T) {
 			Build()
 		go m.Start(ctx)
 
-		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
+		txpool.AddTransaction(txtest.NewTransaction(t, 1, 1, 1))
 		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.PopCount() >= 1 },
@@ -101,7 +102,7 @@ func TestMiner_TxPool(t *testing.T) {
 			Build()
 		go m.Start(ctx)
 
-		txpool.AddTransaction(testutil.NewTransaction(t, 1, 1, 1))
+		txpool.AddTransaction(txtest.NewTransaction(t, 1, 1, 1))
 		tassert.WaitUntil(
 			t,
 			func() bool { return txpool.PopCount() >= 1 },
@@ -124,7 +125,7 @@ func TestMiner_Produce(t *testing.T) {
 	// Start a miner with a txpool containing a valid transaction.
 	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryTxPool {
 		txpool := &testutil.InMemoryTxPool{}
-		txpool.AddTransaction(testutil.NewTransaction(t, 3, 1, 5))
+		txpool.AddTransaction(txtest.NewTransaction(t, 3, 1, 5))
 
 		m := NewMinerBuilder(t).
 			WithEngine(e).

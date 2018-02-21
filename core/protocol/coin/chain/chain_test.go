@@ -180,3 +180,114 @@ func TestChain(t *testing.T) {
 		})
 	}
 }
+
+func TestPath(t *testing.T) {
+	// This test will retrieve the path between the head b4 and new blocks:
+	// b4Child a child of b4 rollbacks[] replays[]
+	// b5Child a child of b5 rollbacks[b4, b3, b2, b1] replays [b5]
+	// b7Child a child of b7 rollbacks[b4, b3, b2] replays [b6, b7]
+	// b9Child a child of b9 rollbacks[b4] replays[b8, b9]
+	//
+	// The chain looks like this
+	// genesis - b1 - b2 - b3 - b4
+	//         \    \         \
+	//           b5   b6        b8
+	//                   \         \
+	//                     b7        b9
+
+	genesisBlock := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
+	genesisHash, err := coinutil.HashHeader(genesisBlock.Header)
+	require.NoError(t, err)
+
+	// Main branch
+	b1 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 1}}
+	b1Hash, err := coinutil.HashHeader(b1.Header)
+	require.NoError(t, err)
+
+	b2 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: b1Hash, Nonce: 2}}
+	b2Hash, err := coinutil.HashHeader(b2.Header)
+	require.NoError(t, err)
+
+	b3 := &pb.Block{Header: &pb.Header{BlockNumber: 3, PreviousHash: b2Hash, Nonce: 3}}
+	b3Hash, err := coinutil.HashHeader(b3.Header)
+	require.NoError(t, err)
+
+	b4 := &pb.Block{Header: &pb.Header{BlockNumber: 4, PreviousHash: b3Hash, Nonce: 4}}
+	b4Hash, err := coinutil.HashHeader(b4.Header)
+	require.NoError(t, err)
+
+	b4Child := &pb.Block{Header: &pb.Header{BlockNumber: 5, PreviousHash: b4Hash}}
+
+	// First fork
+	b5 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 5}}
+	b5Hash, err := coinutil.HashHeader(b5.Header)
+	require.NoError(t, err)
+
+	b5Child := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: b5Hash}}
+
+	// Second fork
+	b6 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: b1Hash, Nonce: 6}}
+	b6Hash, err := coinutil.HashHeader(b6.Header)
+	require.NoError(t, err)
+
+	b7 := &pb.Block{Header: &pb.Header{BlockNumber: 3, PreviousHash: b6Hash, Nonce: 7}}
+	b7Hash, err := coinutil.HashHeader(b7.Header)
+	require.NoError(t, err)
+
+	b7Child := &pb.Block{Header: &pb.Header{BlockNumber: 4, PreviousHash: b7Hash}}
+
+	// Third fork
+	b8 := &pb.Block{Header: &pb.Header{BlockNumber: 4, PreviousHash: b3Hash, Nonce: 8}}
+	b8Hash, err := coinutil.HashHeader(b8.Header)
+	require.NoError(t, err)
+
+	b9 := &pb.Block{Header: &pb.Header{BlockNumber: 5, PreviousHash: b8Hash, Nonce: 9}}
+	b9Hash, err := coinutil.HashHeader(b9.Header)
+	require.NoError(t, err)
+
+	b9Child := &pb.Block{Header: &pb.Header{BlockNumber: 6, PreviousHash: b9Hash}}
+
+	// Chain setup
+	memdb, err := db.NewMemDB(nil)
+	require.NoError(t, err)
+
+	c := NewChainDB(memdb, OptGenesisBlock(genesisBlock))
+
+	for _, b := range []*pb.Block{b1, b2, b3, b4, b5, b6, b7, b8, b9} {
+		err := c.AddBlock(b)
+		require.NoError(t, err)
+	}
+
+	err = c.SetHead(b4)
+	require.NoError(t, err)
+
+	rollbacks, replays, err := GetPath(c, b4, b4Child)
+	require.NoError(t, err)
+	assert.Len(t, rollbacks, 0)
+	assert.Len(t, replays, 0)
+
+	rollbacks, replays, err = GetPath(c, b4, b5Child)
+	require.NoError(t, err)
+	assert.Equal(t, []*pb.Block{b4, b3, b2, b1}, rollbacks)
+	assert.Equal(t, []*pb.Block{b5}, replays)
+
+	rollbacks, replays, err = GetPath(c, b4, b7Child)
+	require.NoError(t, err)
+	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
+	assert.Equal(t, []*pb.Block{b6, b7}, replays)
+
+	rollbacks, replays, err = GetPath(c, b4, b9Child)
+	require.NoError(t, err)
+	assert.Equal(t, []*pb.Block{b4}, rollbacks)
+	assert.Equal(t, []*pb.Block{b8, b9}, replays)
+
+	rollbacks, replays, err = GetPath(c, b4, b2)
+	require.NoError(t, err)
+	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
+	assert.Len(t, replays, 0)
+
+	rollbacks, replays, err = GetPath(c, b4, b7)
+	require.NoError(t, err)
+	assert.Equal(t, []*pb.Block{b4, b3, b2}, rollbacks)
+	assert.Equal(t, []*pb.Block{b6}, replays)
+}

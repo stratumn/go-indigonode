@@ -254,6 +254,20 @@ func TestGossip(t *testing.T) {
 		assertNotReceive(t, c1)
 		assertNotReceive(t, c2)
 	})
+
+	t.Run("Close", func(t *testing.T) {
+		g, err := newGossip(ctx, t, h1)
+		require.NoError(t, err)
+		gg := g.(*gossip)
+		err = gg.subscribe("topic1", func(ctx context.Context, m *floodsub.Message) bool { return true })
+		require.NoError(t, err)
+		err = gg.subscribe("topic2", func(ctx context.Context, m *floodsub.Message) bool { return true })
+		require.NoError(t, err)
+		assert.Len(t, gg.pubsub.GetTopics(), 2)
+
+		assert.NoError(t, gg.Close(), "Close()")
+		assert.Len(t, gg.pubsub.GetTopics(), 0)
+	})
 }
 
 func assertReceive(t *testing.T, c chan msg, want interface{}) {

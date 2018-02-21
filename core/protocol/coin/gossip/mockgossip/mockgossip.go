@@ -34,6 +34,18 @@ func (m *MockGossip) EXPECT() *MockGossipMockRecorder {
 	return m.recorder
 }
 
+// Close mocks base method
+func (m *MockGossip) Close() error {
+	ret := m.ctrl.Call(m, "Close")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Close indicates an expected call of Close
+func (mr *MockGossipMockRecorder) Close() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockGossip)(nil).Close))
+}
+
 // ListenBlock mocks base method
 func (m *MockGossip) ListenBlock(arg0 context.Context, arg1 func(*coin.Block) error) error {
 	ret := m.ctrl.Call(m, "ListenBlock", arg0, arg1)

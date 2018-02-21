@@ -19,8 +19,12 @@ import (
 	"io"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	p2pcore "github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/chain/mockchain"
+	"github.com/stratumn/alice/core/protocol/coin/p2p/mockencoder"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +32,7 @@ import (
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	testutil "gx/ipfs/QmV1axkk86DDkYwS269AvPy9eV5h7mUyHveJkSVHPjrQtY/go-libp2p-netutil"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 func TestP2PRequestsHandler(t *testing.T) {
@@ -142,6 +147,79 @@ func TestP2PRequestsHandler(t *testing.T) {
 	})
 }
 
+func TestP2PResponsesHandler(t *testing.T) {
+	ctx := context.Background()
+	h1 := p2pcore.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+
+	protocolID := protocol.ID("proptocolID")
+	p2p := NewP2P(h1, protocolID)
+
+	t.Run("RespondHeaderByHash", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		ch := mockchain.NewMockReader(ctrl)
+		enc := mockencoder.NewMockEncoder(ctrl)
+
+		req := &pb.HeaderRequest{Hash: []byte("zoulou")}
+		h := &pb.Header{Nonce: 42}
+		ch.EXPECT().GetHeaderByHash(gomock.Any()).Return(h, nil).Times(1)
+		enc.EXPECT().Encode(pb.NewHeaderResponse(h)).Return(nil).Times(1)
+
+		err := p2p.RespondHeaderByHash(ctx, req, enc, ch)
+		assert.NoError(t, err, "RespondHeaderByHash()")
+	})
+
+	t.Run("RespondHeadersByNumber", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		ch := mockchain.NewMockReader(ctrl)
+		enc := mockencoder.NewMockEncoder(ctrl)
+
+		req := &pb.HeadersRequest{From: 3, Amount: 42}
+		h := &pb.Header{Nonce: 42}
+		ch.EXPECT().GetHeaderByNumber(uint64(3)).Return(h, nil).Times(1)
+		ch.EXPECT().GetHeaderByNumber(uint64(4)).Return(h, nil).Times(1)
+		ch.EXPECT().GetHeaderByNumber(uint64(5)).Return(nil, chain.ErrBlockNotFound).Times(1)
+		enc.EXPECT().Encode(pb.NewHeadersResponse([]*pb.Header{h, h})).Return(nil).Times(1)
+
+		err := p2p.RespondHeadersByNumber(ctx, req, enc, ch)
+		assert.NoError(t, err, "RespondHeaderByHash()")
+	})
+
+	t.Run("RespondBlockByHash", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		ch := mockchain.NewMockReader(ctrl)
+		enc := mockencoder.NewMockEncoder(ctrl)
+
+		req := &pb.BlockRequest{Hash: []byte("zoulou")}
+		b := &pb.Block{Header: &pb.Header{Nonce: 42}}
+		ch.EXPECT().GetBlockByHash(gomock.Any()).Return(b, nil).Times(1)
+		enc.EXPECT().Encode(pb.NewBlockResponse(b)).Return(nil).Times(1)
+
+		err := p2p.RespondBlockByHash(ctx, req, enc, ch)
+		assert.NoError(t, err, "RespondBlockByHash()")
+	})
+
+	t.Run("RespondBlocksByNumber", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		ch := mockchain.NewMockReader(ctrl)
+		enc := mockencoder.NewMockEncoder(ctrl)
+
+		req := &pb.BlocksRequest{From: 3, Amount: 42}
+		b := &pb.Block{Header: &pb.Header{Nonce: 42}}
+		ch.EXPECT().GetBlockByNumber(uint64(3)).Return(b, nil).Times(1)
+		ch.EXPECT().GetBlockByNumber(uint64(4)).Return(b, nil).Times(1)
+		ch.EXPECT().GetBlockByNumber(uint64(5)).Return(nil, chain.ErrBlockNotFound).Times(1)
+		enc.EXPECT().Encode(pb.NewBlocksResponse([]*pb.Block{b, b})).Return(nil).Times(1)
+
+		err := p2p.RespondBlocksByNumber(ctx, req, enc, ch)
+		assert.NoError(t, err, "RespondBlockByHash()")
+	})
+
+}
+
 // Returns a stream handler that always returns response
 func getSingleResponseStreamHandler(ctx context.Context, response *pb.Response) func(inet.Stream) {
 
@@ -180,5 +258,4 @@ func getSingleResponseStreamHandler(ctx context.Context, response *pb.Response) 
 			}
 		}
 	}
-
 }

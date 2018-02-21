@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockchain -destination mockp2p/mockp2p.go github.com/stratumn/alice/core/protocol/coin/p2p P2P
+//go:generate mockgen -package mockp2p -destination mockp2p/mockp2p.go github.com/stratumn/alice/core/protocol/coin/p2p P2P
+//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/core/protocol/coin/p2p Encoder
 
 package p2p
 
@@ -20,6 +21,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	pb "github.com/stratumn/alice/pb/coin"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
@@ -38,6 +40,11 @@ var (
 	ErrBadResponseType = errors.New("bad response type")
 )
 
+// Encoder is an interface that implements an Encode method.
+type Encoder interface {
+	Encode(interface{}) error
+}
+
 // P2P is where the p2p APIs are defined.
 type P2P interface {
 	// RequestHeaderByHash request a header given its hash from a peer.
@@ -51,6 +58,18 @@ type P2P interface {
 
 	// RequestHeadersByNumber request a batch of blocks within a range in the main branch of a peer.
 	RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Block, error)
+
+	// RespondHeaderByHash responds to a HeaderRequest.
+	RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, enc Encoder, chain chain.Reader) error
+
+	// RespondHeadersByNumber responds to a HeadersRequest.
+	RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest, enc Encoder, c chain.Reader) error
+
+	// RespondBlockByHash responds to a BlockRequest.
+	RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc Encoder, chain chain.Reader) error
+
+	// RespondBlocksByNumber responds to a BlocksRequest.
+	RespondBlocksByNumber(ctx context.Context, req *pb.BlocksRequest, enc Encoder, c chain.Reader) error
 }
 
 // P2P is where the p2p APIs are defined.
@@ -115,7 +134,7 @@ func (p *p2p) RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, a
 	return rsp.GetBlocks()
 }
 
-// request sends a request message to a peer. and return its response.
+// request sends a request message to a peer and return its response.
 func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*pb.Response, error) {
 	event := log.EventBegin(ctx, "Send", logging.Metadata{
 		"peerID": pid.Pretty(),
@@ -162,4 +181,70 @@ func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*p
 	case err := <-errCh:
 		return nil, err
 	}
+}
+
+// RespondHeaderByHash responds to a HeaderRequest.
+func (p *p2p) RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, enc Encoder, chain chain.Reader) error {
+	h, err := chain.GetHeaderByHash(req.Hash)
+	if err != nil {
+		return err
+	}
+	if err := enc.Encode(pb.NewHeaderResponse(h)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RespondHeadersByNumber responds to a HeadersRequest.
+func (p *p2p) RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest, enc Encoder, c chain.Reader) error {
+	headers := make([]*pb.Header, req.Amount)
+	i := uint64(0)
+	for ; i < req.Amount; i++ {
+		h, err := c.GetHeaderByNumber(req.From + i)
+		if errors.Cause(err) == chain.ErrBlockNotFound {
+			break
+		} else if err != nil {
+			return err
+		}
+		headers[i] = h
+	}
+
+	rsp := pb.NewHeadersResponse(headers[:i])
+	if err := enc.Encode(rsp); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RespondBlockByHash responds to a BlockRequest.
+func (p *p2p) RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc Encoder, chain chain.Reader) error {
+	b, err := chain.GetBlockByHash(req.Hash)
+	if err != nil {
+		return err
+	}
+	if err := enc.Encode(pb.NewBlockResponse(b)); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RespondBlocksByNumber responds to a BlocksRequest.
+func (p *p2p) RespondBlocksByNumber(ctx context.Context, req *pb.BlocksRequest, enc Encoder, c chain.Reader) error {
+	blocks := make([]*pb.Block, req.Amount)
+	i := uint64(0)
+	for ; i < req.Amount; i++ {
+		h, err := c.GetBlockByNumber(req.From + i)
+		if errors.Cause(err) == chain.ErrBlockNotFound {
+			break
+		} else if err != nil {
+			return err
+		}
+		blocks[i] = h
+	}
+
+	rsp := pb.NewBlocksResponse(blocks[:i])
+	if err := enc.Encode(rsp); err != nil {
+		return err
+	}
+	return nil
 }

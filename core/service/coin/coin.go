@@ -35,6 +35,7 @@ import (
 
 	inet "gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net"
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	kaddht "gx/ipfs/QmfChjky1VNaHUQR9F2xqR1QEyX45pqU78nhsoq5GDYoKL/go-libp2p-kad-dht"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
@@ -58,6 +59,8 @@ var (
 	// from the configuration file.
 	ErrMissingMinerID = errors.New("the miner's peer ID should be configured")
 )
+
+var log = logging.Logger("coin")
 
 // Host represents an Alice host.
 type Host = ihost.Host
@@ -240,7 +243,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	return errors.WithStack(ctx.Err())
 }
 
-func (s *Service) createCoin(ctx context.Context) (func() error, error) {
+func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	db, err := db.NewFileDB(s.config.DbPath, nil)
 	if err != nil {
 		return nil, err
@@ -268,11 +271,13 @@ func (s *Service) createCoin(ctx context.Context) (func() error, error) {
 
 	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor)
 
-	close := func() error {
+	close := func() {
 		if err := gossip.Close(); err != nil {
-			// log.Event
+			log.Event(ctx, "gossip.Close()", logging.Metadata{"error": err.Error()})
 		}
-		return db.Close()
+		if err := db.Close(); err != nil {
+			log.Event(ctx, "db.Close()", logging.Metadata{"error": err.Error()})
+		}
 	}
 
 	return close, nil

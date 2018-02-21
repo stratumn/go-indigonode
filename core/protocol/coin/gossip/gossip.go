@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -67,6 +68,7 @@ type gossip struct {
 	state     state.Reader
 	validator validator.Validator
 
+	mu   sync.RWMutex
 	subs map[string]*floodsub.Subscription
 }
 
@@ -87,6 +89,8 @@ func NewGossip(
 }
 
 func (g *gossip) Close() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	for _, s := range g.subs {
 		s.Cancel()
 	}
@@ -237,7 +241,6 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 					})
 				}
 			}
-
 			msg, errIncoming = sub.Next(ctx)
 		}
 	}()
@@ -246,6 +249,9 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 }
 
 func (g *gossip) publish(topic string, data []byte) error {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
 	err := g.pubsub.Publish(topic, data)
 	if err != nil {
 		log.Event(context.Background(), "UnableToPublish", logging.Metadata{"topic": topic, "error": err.Error()})

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -91,7 +92,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	head, err := ch.CurrentBlock()
-	if err != nil {
+	if err != nil && errors.Cause(err) != chain.ErrBlockNotFound {
 		return err
 	}
 

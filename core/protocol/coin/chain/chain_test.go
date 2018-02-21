@@ -43,7 +43,7 @@ func TestChain(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			c := NewChainDB(memdb)
 			h, err := c.CurrentHeader()
-			assert.NoError(t, err, "c.GetBlock(block1)")
+			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetBlock(block1)")
 			assert.Nil(t, h, "s.CurrentHeader()")
 		},
 	}, {

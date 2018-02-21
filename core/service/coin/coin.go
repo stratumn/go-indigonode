@@ -198,10 +198,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	coinCtx, cancel := context.WithCancel(ctx)
 	errChan := make(chan error)
 
-	if err := s.createCoin(coinCtx); err != nil {
+	close, err := s.createCoin(coinCtx)
+	if err != nil {
 		cancel()
 		return err
 	}
+	defer close()
 
 	if err := s.coin.Run(coinCtx); err != nil {
 		cancel()
@@ -228,7 +230,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	cancel()
 
-	err := <-errChan
+	err = <-errChan
 	s.coin = nil
 
 	if err != nil {
@@ -238,10 +240,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	return errors.WithStack(ctx.Err())
 }
 
-func (s *Service) createCoin(ctx context.Context) error {
+func (s *Service) createCoin(ctx context.Context) (func() error, error) {
 	db, err := db.NewFileDB(s.config.DbPath, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	stateDBPrefix := []byte("s")
@@ -253,7 +255,7 @@ func (s *Service) createCoin(ctx context.Context) error {
 
 	minerID, err := s.config.GetMinerID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	engine := engine.NewHashEngine(minerID, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
@@ -266,7 +268,14 @@ func (s *Service) createCoin(ctx context.Context) error {
 
 	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor)
 
-	return nil
+	close := func() error {
+		if err := gossip.Close(); err != nil {
+			// log.Event
+		}
+		return db.Close()
+	}
+
+	return close, nil
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

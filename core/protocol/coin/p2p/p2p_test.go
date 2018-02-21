@@ -43,104 +43,103 @@ func TestP2PRequestsHandler(t *testing.T) {
 
 	p2p := NewP2P(h1, "protocol")
 
-	t.Run("RequestHeaderByHash/success", func(t *testing.T) {
-		header := &pb.Header{Nonce: 42}
-		rsp := &pb.Response{Msg: &pb.Response_HeaderRsp{HeaderRsp: header}}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+	t.Run("RequestHeaderByHash", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			header := &pb.Header{Nonce: 42}
+			rsp := &pb.Response{Msg: &pb.Response_HeaderRsp{HeaderRsp: header}}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
-		r, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
-		assert.NoError(t, err, "RequestHeaderByHash()")
-		assert.Equal(t, header, r, "RequestHeaderByHash()")
+			r, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
+			assert.NoError(t, err, "RequestHeaderByHash()")
+			assert.Equal(t, header, r, "RequestHeaderByHash()")
+		})
+		t.Run("bad-response-type", func(t *testing.T) {
+			rsp := &pb.Response{}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
+			_, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
+			assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeaderByHash()")
+		})
 	})
 
-	t.Run("RequestHeaderByHash/bad-response-type", func(t *testing.T) {
-		rsp := &pb.Response{}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+	t.Run("RequestHeadersByNumber", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			headers := []*pb.Header{
+				&pb.Header{Nonce: 42},
+				&pb.Header{Nonce: 43},
+			}
+			rsp := &pb.Response{Msg: &pb.Response_HeadersRsp{HeadersRsp: &pb.Headers{Headers: headers}}}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
-		_, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
-		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeaderByHash()")
+			r, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 1)
+			assert.NoError(t, err, "RequestHeadersByNumber()")
+			assert.Equal(t, headers, r, "RequestHeadersByNumber()")
+		})
+		t.Run("bad-response-type", func(t *testing.T) {
+			rsp := &pb.Response{}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+
+			_, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 2)
+			assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeadersByNumber()")
+		})
 	})
 
-	t.Run("RequestHeadersByNumber/success", func(t *testing.T) {
-		headers := []*pb.Header{
-			&pb.Header{Nonce: 42},
-			&pb.Header{Nonce: 43},
-		}
-		rsp := &pb.Response{Msg: &pb.Response_HeadersRsp{HeadersRsp: &pb.Headers{Headers: headers}}}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+	t.Run("RequestBlockByHash", func(t *testing.T) {
+		t.Run("RequestBlockByHash/success", func(t *testing.T) {
+			block := &pb.Block{Header: &pb.Header{Nonce: 42}}
+			rsp := &pb.Response{Msg: &pb.Response_BlockRsp{BlockRsp: block}}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
-		r, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 1)
-		assert.NoError(t, err, "RequestHeadersByNumber()")
-		assert.Equal(t, headers, r, "RequestHeadersByNumber()")
+			r, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
+			assert.NoError(t, err, "RequestBlockByHash()")
+			assert.Equal(t, block, r, "RequestBlockByHash()")
+		})
+		t.Run("bad-response-type", func(t *testing.T) {
+			rsp := &pb.Response{}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
+			_, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
+			assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlockByHash()")
+		})
 	})
 
-	t.Run("RequestHeadersByNumber/bad-response-type", func(t *testing.T) {
-		rsp := &pb.Response{}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+	t.Run("RequestBlocksByNumber", func(t *testing.T) {
+		t.Run("success", func(t *testing.T) {
+			blocks := []*pb.Block{
+				&pb.Block{Header: &pb.Header{Nonce: 42}},
+				&pb.Block{Header: &pb.Header{Nonce: 43}},
+			}
+			rsp := &pb.Response{Msg: &pb.Response_BlocksRsp{BlocksRsp: &pb.Blocks{Blocks: blocks}}}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
-		_, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 2)
-		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeadersByNumber()")
+			r, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 1)
+			assert.NoError(t, err, "RequestBlocksByNumber()")
+			assert.Equal(t, blocks, r, "RequestBlocksByNumber()")
+		})
+		t.Run("bad-response-type", func(t *testing.T) {
+			rsp := &pb.Response{}
+			ctx := context.Background()
+			defer ctx.Done()
+			h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
+
+			_, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 2)
+			assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlocksByNumber()")
+		})
 	})
-
-	t.Run("RequestBlockByHash/success", func(t *testing.T) {
-		block := &pb.Block{Header: &pb.Header{Nonce: 42}}
-		rsp := &pb.Response{Msg: &pb.Response_BlockRsp{BlockRsp: block}}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
-
-		r, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
-		assert.NoError(t, err, "RequestBlockByHash()")
-		assert.Equal(t, block, r, "RequestBlockByHash()")
-
-	})
-
-	t.Run("RequestBlockByHash/bad-response-type", func(t *testing.T) {
-		rsp := &pb.Response{}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
-
-		_, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
-		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlockByHash()")
-	})
-
-	t.Run("RequestBlocksByNumber/success", func(t *testing.T) {
-		blocks := []*pb.Block{
-			&pb.Block{Header: &pb.Header{Nonce: 42}},
-			&pb.Block{Header: &pb.Header{Nonce: 43}},
-		}
-		rsp := &pb.Response{Msg: &pb.Response_BlocksRsp{BlocksRsp: &pb.Blocks{Blocks: blocks}}}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
-
-		r, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 1)
-		assert.NoError(t, err, "RequestBlocksByNumber()")
-		assert.Equal(t, blocks, r, "RequestBlocksByNumber()")
-
-	})
-
-	t.Run("RequestBlocksByNumber/bad-response-type", func(t *testing.T) {
-		rsp := &pb.Response{}
-		ctx := context.Background()
-		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
-
-		_, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 2)
-		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlocksByNumber()")
-	})
-
 }
 
 // Returns a stream handler that always returns response

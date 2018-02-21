@@ -40,6 +40,10 @@ func (c *SimpleChain) CurrentBlock() (*pb.Block, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
+	if c.currentBlock == nil {
+		return nil, chain.ErrBlockNotFound
+	}
+
 	return c.currentBlock, nil
 }
 
@@ -49,7 +53,7 @@ func (c *SimpleChain) CurrentHeader() (*pb.Header, error) {
 	defer c.mu.RUnlock()
 
 	if c.currentBlock == nil {
-		return nil, nil
+		return nil, chain.ErrBlockNotFound
 	}
 
 	return c.currentBlock.Header, nil

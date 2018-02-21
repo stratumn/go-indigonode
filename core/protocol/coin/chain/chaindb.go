@@ -127,11 +127,7 @@ func (c *chainDB) GetBlockByHash(hash []byte) (*pb.Block, error) {
 
 // CurrentBlock retrieves the current block from the local chain.
 func (c *chainDB) CurrentBlock() (*pb.Block, error) {
-	b, err := c.dbGetBlock(lastBlockKey)
-	if err != nil && errors.Cause(err) != ErrBlockNotFound {
-		return nil, err
-	}
-	return b, nil
+	return c.dbGetBlock(lastBlockKey)
 }
 
 // CurrentHeader retrieves the current header from the local chain.
@@ -139,9 +135,6 @@ func (c *chainDB) CurrentHeader() (*pb.Header, error) {
 	block, err := c.CurrentBlock()
 	if err != nil {
 		return nil, err
-	}
-	if block == nil {
-		return nil, nil
 	}
 
 	return block.Header, nil
@@ -153,6 +146,9 @@ func (c *chainDB) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	hashes, err := c.dbGetHashes(number)
 	if err != nil {
 		return nil, err
+	}
+	if hashes == nil {
+		return nil, ErrBlockNotFound
 	}
 
 	res := make([]*pb.Header, len(hashes))

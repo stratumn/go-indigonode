@@ -178,7 +178,7 @@ func (c *chainDB) GetBlockByNumber(number uint64) (*pb.Block, error) {
 
 	hash, ok := c.mainBranch[number]
 	if !ok {
-		return nil, ErrBlockNumberNotFound
+		return nil, ErrBlockNotFound
 	}
 
 	return c.dbGetBlock(c.blockKey(hash))
@@ -276,10 +276,11 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	// Add header hash to the mapping.
 	n := block.BlockNumber()
 	hashes, err := c.dbGetHashes(n)
-	if errors.Cause(err) == ErrBlockNumberNotFound {
-		hashes = make([][]byte, 0)
-	} else if err != nil {
+	if err != nil {
 		return err
+	}
+	if hashes == nil {
+		hashes = make([][]byte, 0)
 	}
 
 	hashes = append(hashes, h)
@@ -373,7 +374,7 @@ func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	b, err := c.db.Get(c.numToHashKey(number))
 	if errors.Cause(err) == db.ErrNotFound {
-		return nil, ErrBlockNumberNotFound
+		return nil, nil
 	}
 
 	if err != nil {

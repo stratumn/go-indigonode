@@ -113,7 +113,7 @@ func TestChain(t *testing.T) {
 		"get-by-bad-number",
 		func(t *testing.T, c Chain) {
 			_, err := c.GetHeadersByNumber(42)
-			assert.EqualError(t, err, ErrBlockNumberNotFound.Error(), "c.GetHeadersByNumber()")
+			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetHeadersByNumber()")
 		},
 	}, {
 		"get-by-hash",

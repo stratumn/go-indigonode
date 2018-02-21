@@ -139,7 +139,6 @@ message Request {
         HeadersRequest headers_req = 2;
         BlockRequest block_req = 3;
         BlocksRequest blocks_req = 4;
-
     }
 }
 

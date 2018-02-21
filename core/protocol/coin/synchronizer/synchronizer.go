@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// GenesisHash is the has of the genesis block
+	// GenesisHash is the hash of the genesis block
 	GenesisHash = "QmWFYJ4DHy1yS6T3fyJQTP8f66gW2jW7vMGtL4DnwUSBd9"
 )
 
@@ -41,7 +41,7 @@ type Synchronizer interface {
 	Synchronize(context.Context, []byte, chain.Reader) (<-chan *pb.Block, <-chan error)
 }
 
-// ContentProviderFinder is an interface used to get the peers that provide a resource..
+// ContentProviderFinder is an interface used to get the peers that provide a resource.
 // The resource is identified by a content ID.
 type ContentProviderFinder interface {
 	FindProviders(ctx context.Context, c *cid.Cid) ([]pstore.PeerInfo, error)

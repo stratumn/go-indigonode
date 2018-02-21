@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/chain/mockchain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
+	mockp2p "github.com/stratumn/alice/core/protocol/coin/p2p/mockp2p"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
@@ -45,7 +46,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 	ctx := context.Background()
 	hosts := make([]ihost.Host, 2)
 	coins := make([]*Coin, 2)
-	chains := make([]*mockchain.MockChain, 2)
+	p2ps := make([]*mockp2p.MockP2P, 2)
 
 	for i := 0; i < 2; i++ {
 		hosts[i] = p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
@@ -56,12 +57,8 @@ func TestCoinProtocolHandler(t *testing.T) {
 		// We configure validation to fail.
 		// We only want to test that the coin protocol
 		// correctly called the validator.
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-		chains[i] = mockchain.NewMockChain(ctrl)
 		coins[i] = &Coin{
 			validator: ctestutil.NewInstrumentedValidator(&ctestutil.Rejector{}),
-			chain:     chains[i],
 		}
 
 		ii := i
@@ -74,6 +71,13 @@ func TestCoinProtocolHandler(t *testing.T) {
 	require.NoError(t, hosts[1].Connect(ctx, hosts[0].Peerstore().PeerInfo(hosts[0].ID())), "Connect()")
 
 	t.Run("Send different messages on the same stream", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		p2ps[0] = mockp2p.NewMockP2P(ctrl)
+		coins[0].p2p = p2ps[0]
+		p2ps[1] = mockp2p.NewMockP2P(ctrl)
+		coins[1].p2p = p2ps[1]
+
 		s0_1, err := hosts[0].NewStream(ctx, hosts[1].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
 		defer s0_1.Close()
@@ -82,11 +86,10 @@ func TestCoinProtocolHandler(t *testing.T) {
 		require.NoError(t, err, "NewStream()")
 		defer s1_0.Close()
 
-		blk := blocktest.NewBlock(t, []*pb.Transaction{ctestutil.NewTransaction(t, 1, 1, 1)})
-
-		chains[0].EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(1)
-		chains[1].EXPECT().GetHeaderByNumber(gomock.Any()).Return(blk.Header, nil).Times(42)
-		chains[1].EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(1)
+		done := []bool{false, false, false}
+		p2ps[0].EXPECT().RespondBlockByHash(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) { done[0] = true }).Return(nil).Times(1)
+		p2ps[1].EXPECT().RespondHeadersByNumber(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) { done[1] = true }).Return(nil).Times(1)
+		p2ps[1].EXPECT().RespondBlockByHash(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) { done[2] = true }).Return(nil).Times(1)
 
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
@@ -102,9 +105,15 @@ func TestCoinProtocolHandler(t *testing.T) {
 		req3 := pb.NewHeadersRequest(0, 42)
 		err = enc0_1.Encode(req3)
 		assert.NoError(t, err, "Encode()")
+
+		tassert.WaitUntil(t, func() bool { return done[0] && done[1] && done[2] }, "Calls are not done.")
+
 	})
 
 	t.Run("Ignore invalid messages", func(t *testing.T) {
+		coins[0].p2p = ctestutil.NewDummyP2P(t)
+		coins[1].p2p = ctestutil.NewDummyP2P(t)
+
 		s1_0, err := hosts[1].NewStream(ctx, hosts[0].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
 		defer s1_0.Close()
@@ -115,6 +124,9 @@ func TestCoinProtocolHandler(t *testing.T) {
 	})
 
 	t.Run("Open and close streams", func(t *testing.T) {
+		coins[0].p2p = ctestutil.NewDummyP2P(t)
+		coins[1].p2p = ctestutil.NewDummyP2P(t)
+
 		s1_0, err := hosts[1].NewStream(ctx, hosts[0].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
 		defer s1_0.Close()
@@ -122,9 +134,6 @@ func TestCoinProtocolHandler(t *testing.T) {
 		s0_1, err := hosts[0].NewStream(ctx, hosts[1].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
 
-		blk := blocktest.NewBlock(t, []*pb.Transaction{ctestutil.NewTransaction(t, 1, 1, 1)})
-
-		chains[0].EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(1)
 		req1 := pb.NewBlockRequest([]byte("plap"))
 		enc0_1 := protobuf.Multicodec(nil).Encoder(s0_1)
 		err = enc0_1.Encode(req1)
@@ -133,7 +142,6 @@ func TestCoinProtocolHandler(t *testing.T) {
 		err = s0_1.Close()
 		assert.NoError(t, err, "Close()")
 
-		chains[1].EXPECT().GetBlockByHash(gomock.Any()).Return(blk, nil).Times(1)
 		req2 := pb.NewBlockRequest([]byte("zou"))
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 		err = enc1_0.Encode(req2)

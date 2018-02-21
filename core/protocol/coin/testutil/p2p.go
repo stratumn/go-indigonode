@@ -32,5 +32,10 @@ func NewDummyP2P(t *testing.T) p2p.P2P {
 	mockP2P.EXPECT().RequestHeaderByHash(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
 	mockP2P.EXPECT().RequestHeadersByNumber(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
 
+	mockP2P.EXPECT().RespondBlockByHash(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockP2P.EXPECT().RespondBlocksByNumber(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockP2P.EXPECT().RespondHeaderByHash(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockP2P.EXPECT().RespondHeadersByNumber(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+
 	return mockP2P
 }

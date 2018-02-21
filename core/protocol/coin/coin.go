@@ -141,51 +141,21 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 
 		switch m := gossip.Msg.(type) {
 		case *pb.Request_HeaderReq:
-			h, err := c.chain.GetHeaderByHash(m.HeaderReq.Hash)
-			if err != nil {
-				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
-			}
-			if err := enc.Encode(pb.NewHeaderResponse(h)); err != nil {
+			if err := c.p2p.RespondHeaderByHash(ctx, m.HeaderReq, enc, c.chain); err != nil {
 				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
 			}
 		case *pb.Request_HeadersReq:
-			headers := make([]*pb.Header, m.HeadersReq.Amount)
-			for i := uint64(0); i < m.HeadersReq.Amount; i++ {
-				h, err := c.chain.GetHeaderByNumber(m.HeadersReq.From + i)
-				if err != nil {
-					break
-				}
-				headers[i] = h
-			}
-
-			rsp := pb.NewHeadersResponse(headers)
-			if err := enc.Encode(rsp); err != nil {
+			if err := c.p2p.RespondHeadersByNumber(ctx, m.HeadersReq, enc, c.chain); err != nil {
 				log.Event(ctx, "HeadersReq response", logging.Metadata{"error": err})
 			}
 		case *pb.Request_BlockReq:
-			h, err := c.chain.GetBlockByHash(m.BlockReq.Hash)
-			if err != nil {
-				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
-			}
-			if err := enc.Encode(pb.NewBlockResponse(h)); err != nil {
+			if err := c.p2p.RespondBlockByHash(ctx, m.BlockReq, enc, c.chain); err != nil {
 				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
 			}
 		case *pb.Request_BlocksReq:
-			blocks := make([]*pb.Block, m.BlocksReq.Amount)
-			i := uint64(0)
-			for ; i < m.BlocksReq.Amount; i++ {
-				b, err := c.chain.GetBlockByNumber(m.BlocksReq.From + i)
-				if err != nil {
-					break
-				}
-				blocks[i] = b
-			}
-
-			rsp := pb.NewBlocksResponse(blocks[:i])
-			if err := enc.Encode(rsp); err != nil {
+			if err := c.p2p.RespondBlocksByNumber(ctx, m.BlocksReq, enc, c.chain); err != nil {
 				log.Event(ctx, "BlocksReq response", logging.Metadata{"error": err})
 			}
-
 		default:
 			log.Event(ctx, "Gossip", logging.Metadata{
 				"error": "Unexpected type",

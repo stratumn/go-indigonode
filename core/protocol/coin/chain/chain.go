@@ -108,7 +108,7 @@ func GetPath(c Reader, from *pb.Block, to *pb.Block) (rollbacks []*pb.Block, rep
 
 	fromParent, err := c.GetBlock(fromHash, from.Header.BlockNumber)
 	if err != nil {
-		return nil, nil, ErrBlockHashNotFound
+		return nil, nil, ErrBlockNotFound
 	}
 
 	if bytes.Equal(to.Header.PreviousHash, fromHash) {

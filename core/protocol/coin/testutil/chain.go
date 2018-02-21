@@ -68,7 +68,7 @@ func (c *SimpleChain) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	}
 
 	if res == nil {
-		return nil, chain.ErrBlockNumberNotFound
+		return nil, chain.ErrBlockNotFound
 	}
 
 	return res, nil
@@ -81,7 +81,7 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 
 	b := c.currentBlock
 	if b.BlockNumber() < number {
-		return nil, chain.ErrBlockNumberNotFound
+		return nil, chain.ErrBlockNotFound
 	}
 
 	for b.BlockNumber() > number {
@@ -125,7 +125,7 @@ func (c *SimpleChain) GetBlockByNumber(number uint64) (*pb.Block, error) {
 
 	b := c.currentBlock
 	if b.BlockNumber() < number {
-		return nil, chain.ErrBlockNumberNotFound
+		return nil, chain.ErrBlockNotFound
 	}
 
 	for b.BlockNumber() > number {

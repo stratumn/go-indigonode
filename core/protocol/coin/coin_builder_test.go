@@ -38,12 +38,12 @@ type CoinBuilder struct {
 	chain        chain.Chain
 	engine       engine.PoW
 	gossip       gossip.Gossip
+	p2p          p2p.P2P
 	processor    processor.Processor
 	state        state.State
+	synchronizer synchronizer.Synchronizer
 	txpool       state.TxPool
 	validator    validator.Validator
-	synchronizer synchronizer.Synchronizer
-	p2p          p2p.P2P
 
 	db db.DB
 

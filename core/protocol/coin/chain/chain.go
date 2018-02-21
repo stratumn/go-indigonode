@@ -30,9 +30,6 @@ var (
 	// ErrBlockNotFound is returned when looking for a block that is not in the chain.
 	ErrBlockNotFound = errors.New("block not found in the chain")
 
-	// ErrBlockNumberNotFound is returned when looking for a block that is not in the chain.
-	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
-
 	// ErrBlockNumberIncorrect is returned when adding a block with a bad number.
 	ErrBlockNumberIncorrect = errors.New("block number does not correspond to hash")
 

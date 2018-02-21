@@ -281,12 +281,7 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 
 // SetHead sets the head of the chain.
 func (c *chainDB) SetHead(block *pb.Block) (err error) {
-	e := log.EventBegin(context.Background(), "SetHead", &logging.Metadata{
-		"BlockNumber":  block.BlockNumber(),
-		"PreviousHash": block.PreviousHash(),
-		"Nonce":        block.Nonce(),
-		"TxCount":      len(block.Transactions),
-	})
+	e := log.EventBegin(context.Background(), "SetHead", &logging.Metadata{"block": block.Loggable()})
 	defer func() {
 		if err != nil {
 			e.SetError(err)

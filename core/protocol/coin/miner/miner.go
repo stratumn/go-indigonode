@@ -114,8 +114,6 @@ miningLoop:
 			err := m.produce(ctx, txs)
 			if err != nil {
 				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err.Error()})
-			} else {
-				log.Event(ctx, "NewBlockProduced")
 			}
 		case <-ctx.Done():
 			miningErr = ctx.Err()
@@ -199,7 +197,10 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 	}
 
 	if err := m.gossip.PublishBlock(block); err != nil {
-		log.Event(ctx, "PublishBlockFailure", &logging.Metadata{"error": err.Error()})
+		log.Event(ctx, "PublishBlockFailure", &logging.Metadata{
+			"error": err.Error(),
+			"block": block.Loggable(),
+		})
 	}
 
 	err = m.processor.Process(ctx, block, m.state, m.chain)
@@ -207,6 +208,7 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		return
 	}
 
+	log.Event(ctx, "NewBlockProduced", &logging.Metadata{"block": block.Loggable()})
 	return
 }
 
@@ -217,7 +219,10 @@ func (m *Miner) putBackInTxPool(ctx context.Context, txs []*pb.Transaction) {
 		if err := m.validator.ValidateTx(tx, m.state); err == nil {
 			err := m.txpool.AddTransaction(tx)
 			if err != nil {
-				log.Event(ctx, "AddTransactionFailure", &logging.Metadata{"error": err.Error()})
+				log.Event(ctx, "AddTransactionFailure", &logging.Metadata{
+					"error": err.Error(),
+					"tx":    tx.Loggable(),
+				})
 			}
 		}
 	}

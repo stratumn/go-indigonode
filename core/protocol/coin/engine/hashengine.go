@@ -72,7 +72,7 @@ func (e *HashEngine) VerifyHeader(chain chain.Reader, header *pb.Header) error {
 // consensus rules.
 func (e *HashEngine) Prepare(chain chain.Reader, header *pb.Header) error {
 	currentHeader, err := chain.CurrentHeader()
-	if err != nil || currentHeader == nil {
+	if err != nil {
 		return ErrInvalidChain
 	}
 

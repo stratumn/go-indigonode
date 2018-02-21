@@ -48,7 +48,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{Msg: &pb.Response_HeaderRsp{HeaderRsp: header}}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		r, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
 		assert.NoError(t, err, "RequestHeaderByHash()")
@@ -60,7 +60,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		_, err := p2p.RequestHeaderByHash(ctx, h2.ID(), []byte("zoulou"))
 		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeaderByHash()")
@@ -74,7 +74,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{Msg: &pb.Response_HeadersRsp{HeadersRsp: &pb.Headers{Headers: headers}}}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		r, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 1)
 		assert.NoError(t, err, "RequestHeadersByNumber()")
@@ -86,7 +86,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		_, err := p2p.RequestHeadersByNumber(ctx, h2.ID(), 1, 2)
 		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestHeadersByNumber()")
@@ -97,7 +97,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{Msg: &pb.Response_BlockRsp{BlockRsp: block}}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		r, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
 		assert.NoError(t, err, "RequestBlockByHash()")
@@ -109,7 +109,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		_, err := p2p.RequestBlockByHash(ctx, h2.ID(), []byte("zoulou"))
 		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlockByHash()")
@@ -123,7 +123,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{Msg: &pb.Response_BlocksRsp{BlocksRsp: &pb.Blocks{Blocks: blocks}}}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		r, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 1)
 		assert.NoError(t, err, "RequestBlocksByNumber()")
@@ -135,7 +135,7 @@ func TestP2PRequestsHandler(t *testing.T) {
 		rsp := &pb.Response{}
 		ctx := context.Background()
 		defer ctx.Done()
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, rsp))
+		h2.SetStreamHandler("protocol", getSingleResponseStreamHandler(ctx, rsp))
 
 		_, err := p2p.RequestBlocksByNumber(ctx, h2.ID(), 1, 2)
 		assert.EqualError(t, err, pb.ErrBadResponseType.Error(), "RequestBlocksByNumber()")
@@ -143,8 +143,8 @@ func TestP2PRequestsHandler(t *testing.T) {
 
 }
 
-// Returns a tream handler that always returns response
-func getStreamHandler(ctx context.Context, response *pb.Response) func(inet.Stream) {
+// Returns a stream handler that always returns response
+func getSingleResponseStreamHandler(ctx context.Context, response *pb.Response) func(inet.Stream) {
 
 	return func(stream inet.Stream) {
 		dec := protobuf.Multicodec(nil).Decoder(stream)

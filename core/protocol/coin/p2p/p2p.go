@@ -38,7 +38,7 @@ var (
 	ErrBadResponseType = errors.New("bad response type")
 )
 
-// P2P is where the p2p APIs are defined
+// P2P is where the p2p APIs are defined.
 type P2P interface {
 	// RequestHeaderByHash request a header given its hash from a peer.
 	RequestHeaderByHash(ctx context.Context, peerID peer.ID, hash []byte) (*pb.Header, error)
@@ -53,9 +53,8 @@ type P2P interface {
 	RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Block, error)
 }
 
-// P2P is where the p2p APIs are defined
+// P2P is where the p2p APIs are defined.
 type p2p struct {
-	// host coin.Host
 	host       ihost.Host
 	protocolID protocol.ID
 }

@@ -16,10 +16,10 @@ package coin
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"io"
 
+	base58 "github.com/jbenet/go-base58"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -106,10 +106,7 @@ func NewCoin(
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
 	// Synchronize the chain.
-	genesisHash, err := hex.DecodeString(synchronizer.GenesisHash)
-	if err != nil {
-		return err
-	}
+	genesisHash := base58.Decode(synchronizer.GenesisHash)
 	c.synchronize(ctx, genesisHash)
 
 	if err := c.StartTxGossip(ctx); err != nil {

@@ -61,7 +61,7 @@ func NewDummyGossip(t *testing.T) gossip.Gossip {
 	mockGossip.EXPECT().ListenBlock(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 	mockGossip.EXPECT().PublishTx(gomock.Any()).AnyTimes().Return(nil)
 	mockGossip.EXPECT().PublishBlock(gomock.Any()).AnyTimes().Return(nil)
-	mockGossip.EXPECT().Close(gomock.Any()).AnyTimes().Return(nil)
+	mockGossip.EXPECT().Close().AnyTimes().Return(nil)
 
 	return mockGossip
 }

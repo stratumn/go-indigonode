@@ -189,10 +189,7 @@ func (p *p2p) RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, en
 	if err != nil {
 		return err
 	}
-	if err := enc.Encode(pb.NewHeaderResponse(h)); err != nil {
-		return err
-	}
-	return nil
+	return enc.Encode(pb.NewHeaderResponse(h))
 }
 
 // RespondHeadersByNumber responds to a HeadersRequest.
@@ -210,10 +207,7 @@ func (p *p2p) RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest
 	}
 
 	rsp := pb.NewHeadersResponse(headers[:i])
-	if err := enc.Encode(rsp); err != nil {
-		return err
-	}
-	return nil
+	return enc.Encode(rsp)
 }
 
 // RespondBlockByHash responds to a BlockRequest.
@@ -222,10 +216,7 @@ func (p *p2p) RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc 
 	if err != nil {
 		return err
 	}
-	if err := enc.Encode(pb.NewBlockResponse(b)); err != nil {
-		return err
-	}
-	return nil
+	return enc.Encode(pb.NewBlockResponse(b))
 }
 
 // RespondBlocksByNumber responds to a BlocksRequest.
@@ -243,8 +234,5 @@ func (p *p2p) RespondBlocksByNumber(ctx context.Context, req *pb.BlocksRequest, 
 	}
 
 	rsp := pb.NewBlocksResponse(blocks[:i])
-	if err := enc.Encode(rsp); err != nil {
-		return err
-	}
-	return nil
+	return enc.Encode(rsp)
 }

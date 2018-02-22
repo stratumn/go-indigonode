@@ -19,6 +19,8 @@ package gossip
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -54,6 +56,9 @@ type Gossip interface {
 	PublishTx(tx *pb.Transaction) error
 	// PublishBlock sends a new block to the gossip.
 	PublishBlock(block *pb.Block) error
+
+	// Close closes the gossip layer.
+	Close() error
 }
 
 // Gossip handles the gossiping of blocks and transactions.
@@ -63,6 +68,7 @@ type gossip struct {
 	state     state.Reader
 	validator validator.Validator
 
+	mu   sync.RWMutex
 	subs map[string]*floodsub.Subscription
 }
 
@@ -80,6 +86,19 @@ func NewGossip(
 		validator: v,
 		subs:      make(map[string]*floodsub.Subscription),
 	}
+}
+
+func (g *gossip) Close() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, s := range g.subs {
+		s.Cancel()
+	}
+
+	// TODO: Remove topic validators once it is possible.
+	// https://github.com/libp2p/go-floodsub/issues/68
+
+	return nil
 }
 
 // ListenTx subscribes to transaction topic and listens to incoming transactions.
@@ -192,7 +211,12 @@ func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
 
 	g.subs[topic] = sub
 
+	// We can't remove a topic validator for now...
+	// https://github.com/libp2p/go-floodsub/issues/68
 	err = g.pubsub.RegisterTopicValidator(topic, validator)
+	if err != nil && err.Error() == fmt.Sprintf("Duplicate validator for topic %s", topic) {
+		return nil
+	}
 	return errors.WithStack(err)
 }
 
@@ -217,7 +241,6 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 					})
 				}
 			}
-
 			msg, errIncoming = sub.Next(ctx)
 		}
 	}()
@@ -226,6 +249,9 @@ func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *fl
 }
 
 func (g *gossip) publish(topic string, data []byte) error {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
 	err := g.pubsub.Publish(topic, data)
 	if err != nil {
 		log.Event(context.Background(), "UnableToPublish", logging.Metadata{"topic": topic, "error": err.Error()})

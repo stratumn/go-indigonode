@@ -15,8 +15,8 @@
 package coin
 
 import (
-	"errors"
 	"encoding/hex"
+	"errors"
 
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
@@ -100,6 +100,8 @@ func (tx *Transaction) Loggable() map[string]interface{} {
 	loggable["nonce"] = tx.Nonce
 
 	return loggable
+}
+
 // NewHeaderRequest returns a request object of type HeaderReq.
 func NewHeaderRequest(hash []byte) *Request {
 	return &Request{

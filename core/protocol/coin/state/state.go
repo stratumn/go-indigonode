@@ -233,12 +233,7 @@ func (s *stateDB) doUpdateAccount(pubKey []byte, account *pb.Account) error {
 }
 
 func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
-	e := log.EventBegin(context.Background(), "ProcessBlock", &logging.Metadata{
-		"BlockNumber":  blk.BlockNumber(),
-		"PreviousHash": blk.PreviousHash(),
-		"Nonce":        blk.Nonce(),
-		"TxCount":      len(blk.Transactions),
-	})
+	e := log.EventBegin(context.Background(), "ProcessBlock", &logging.Metadata{"block": blk.Loggable()})
 	defer func() {
 		if err != nil {
 			e.SetError(err)
@@ -256,13 +251,7 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
 
 	if err := ValidateBalances(s, txs); err != nil {
 		if errors.Cause(err) == ErrInsufficientBalance || errors.Cause(err) == ErrInvalidTxNonce {
-			log.Event(context.Background(), "InvalidBlock", &logging.Metadata{
-				"BlockNumber":  blk.BlockNumber(),
-				"PreviousHash": blk.PreviousHash(),
-				"Nonce":        blk.Nonce(),
-				"TxCount":      len(blk.Transactions),
-				"error":        err.Error(),
-			})
+			log.Event(context.Background(), "InvalidBlock", &logging.Metadata{"block": blk.Loggable()})
 
 			return ErrInvalidBlock
 		}
@@ -344,12 +333,7 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
 }
 
 func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
-	e := log.EventBegin(context.Background(), "RollbackBlock", &logging.Metadata{
-		"BlockNumber":  blk.BlockNumber(),
-		"PreviousHash": blk.PreviousHash(),
-		"Nonce":        blk.Nonce(),
-		"TxCount":      len(blk.Transactions),
-	})
+	e := log.EventBegin(context.Background(), "RollbackBlock", &logging.Metadata{"block": blk.Loggable()})
 	defer func() {
 		if err != nil {
 			e.SetError(err)

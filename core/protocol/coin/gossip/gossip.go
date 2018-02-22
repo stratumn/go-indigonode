@@ -139,6 +139,7 @@ func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) e
 
 // PublishTx publishes a transaction message.
 func (g *gossip) PublishTx(tx *pb.Transaction) error {
+	log.Event(context.Background(), "PublishTx", &logging.Metadata{"tx": tx.Loggable()})
 	txData, err := tx.Marshal()
 	if err != nil {
 		return err
@@ -149,6 +150,7 @@ func (g *gossip) PublishTx(tx *pb.Transaction) error {
 
 // PublishBlock publishes a block message.
 func (g *gossip) PublishBlock(block *pb.Block) error {
+	log.Event(context.Background(), "PublishBlock", &logging.Metadata{"block": block.Loggable()})
 	blockData, err := block.Marshal()
 	if err != nil {
 		return err

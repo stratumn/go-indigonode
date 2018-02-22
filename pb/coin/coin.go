@@ -60,7 +60,10 @@ func (h *Header) Loggable() map[string]interface{} {
 // Loggable returns a loggable form of a block.
 func (b *Block) Loggable() map[string]interface{} {
 	loggable := make(map[string]interface{})
-	loggable["header"] = b.Header.Loggable()
+
+	if b.Header != nil {
+		loggable["header"] = b.Header.Loggable()
+	}
 
 	txs := make([]map[string]interface{}, len(b.Transactions))
 	for i, tx := range b.Transactions {

@@ -15,11 +15,12 @@
 package coinutil
 
 import (
-	multihash "github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stratumn/sdk/merkle"
 	"github.com/stratumn/sdk/types"
+
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 // HashHeader computes the hash of a given header.

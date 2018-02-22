@@ -18,8 +18,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
+
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 var (

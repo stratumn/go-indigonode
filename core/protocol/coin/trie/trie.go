@@ -19,9 +19,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/db"
+
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 var (

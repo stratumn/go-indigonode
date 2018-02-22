@@ -18,9 +18,10 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 func mustMakeHash(t *testing.T, b58 string) multihash.Multihash {

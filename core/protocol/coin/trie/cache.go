@@ -17,7 +17,7 @@ package trie
 import (
 	"container/list"
 
-	"github.com/multiformats/go-multihash"
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 // cacheEntry represents an entry in the cash.

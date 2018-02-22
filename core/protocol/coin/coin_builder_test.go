@@ -21,8 +21,10 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
+	"github.com/stratumn/alice/core/protocol/coin/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	"github.com/stretchr/testify/require"
@@ -33,13 +35,15 @@ import (
 // CoinBuilder is a utility to create a coin protocol with custom mocks
 // to simulate a wide variety of configurations.
 type CoinBuilder struct {
-	chain     chain.Chain
-	engine    engine.PoW
-	gossip    gossip.Gossip
-	processor processor.Processor
-	state     state.State
-	txpool    state.TxPool
-	validator validator.Validator
+	chain        chain.Chain
+	engine       engine.PoW
+	gossip       gossip.Gossip
+	p2p          p2p.P2P
+	processor    processor.Processor
+	state        state.State
+	synchronizer synchronizer.Synchronizer
+	txpool       state.TxPool
+	validator    validator.Validator
 
 	db db.DB
 
@@ -138,6 +142,18 @@ func (c *CoinBuilder) WithValidator(validator validator.Validator) *CoinBuilder 
 	return c
 }
 
+// WithP2P configures the builder to use the given p2p apis.
+func (c *CoinBuilder) WithP2P(p2p p2p.P2P) *CoinBuilder {
+	c.p2p = p2p
+	return c
+}
+
+// WithSynchronizer configures the builder to use the given synchronizer.
+func (c *CoinBuilder) WithSynchronizer(synchronizer synchronizer.Synchronizer) *CoinBuilder {
+	c.synchronizer = synchronizer
+	return c
+}
+
 // Build builds the underlying coin protocol and returns it.
 // It's now ready to use in your tests.
 func (c *CoinBuilder) Build(t *testing.T) *Coin {
@@ -164,6 +180,13 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 	if c.validator == nil {
 		c.validator = validator.NewBalanceValidator(c.maxTxPerBlock, c.engine)
 	}
+	if c.p2p == nil {
+		c.p2p = testutil.NewDummyP2P(t)
+	}
+	if c.synchronizer == nil {
+		// TODO: something smart, a mock or a dummy sync.
+		c.synchronizer = nil
+	}
 
 	return NewCoin(
 		c.txpool,
@@ -173,5 +196,7 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 		c.gossip,
 		c.validator,
 		c.processor,
+		c.p2p,
+		c.synchronizer,
 	)
 }

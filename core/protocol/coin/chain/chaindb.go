@@ -132,7 +132,7 @@ func (c *chainDB) CurrentBlock() (*pb.Block, error) {
 
 // CurrentHeader retrieves the current header from the local chain.
 func (c *chainDB) CurrentHeader() (*pb.Header, error) {
-	block, err := c.dbGetBlock(lastBlockKey)
+	block, err := c.CurrentBlock()
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +146,9 @@ func (c *chainDB) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	hashes, err := c.dbGetHashes(number)
 	if err != nil {
 		return nil, err
+	}
+	if hashes == nil {
+		return nil, ErrBlockNotFound
 	}
 
 	res := make([]*pb.Header, len(hashes))
@@ -161,8 +164,8 @@ func (c *chainDB) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	return res, nil
 }
 
-// GetHeaderByNumber retrieves a header from the main branch by number.
-func (c *chainDB) GetHeaderByNumber(number uint64) (*pb.Header, error) {
+// GetBlockByNumber retrieves a header from the main branch by number.
+func (c *chainDB) GetBlockByNumber(number uint64) (*pb.Block, error) {
 	if c.mainBranch == nil {
 		if err := c.generateMainBranch(); err != nil {
 			return nil, err
@@ -171,10 +174,15 @@ func (c *chainDB) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 
 	hash, ok := c.mainBranch[number]
 	if !ok {
-		return nil, ErrBlockNumberNotFound
+		return nil, ErrBlockNotFound
 	}
 
-	block, err := c.dbGetBlock(c.blockKey(hash))
+	return c.dbGetBlock(c.blockKey(hash))
+}
+
+// GetHeaderByNumber retrieves a header from the main branch by number.
+func (c *chainDB) GetHeaderByNumber(number uint64) (*pb.Header, error) {
+	block, err := c.GetBlockByNumber(number)
 	if err != nil {
 		return nil, err
 	}
@@ -264,10 +272,11 @@ func (c *chainDB) doAddBlock(tx db.Transaction, block *pb.Block) error {
 	// Add header hash to the mapping.
 	n := block.BlockNumber()
 	hashes, err := c.dbGetHashes(n)
-	if errors.Cause(err) == ErrBlockNumberNotFound {
-		hashes = make([][]byte, 0)
-	} else if err != nil {
+	if err != nil {
 		return err
+	}
+	if hashes == nil {
+		hashes = make([][]byte, 0)
 	}
 
 	hashes = append(hashes, h)
@@ -303,7 +312,7 @@ func (c *chainDB) SetHead(block *pb.Block) (err error) {
 	// Check that block is in the chain.
 	_, err = c.db.Get(c.blockKey(h))
 	if errors.Cause(err) == db.ErrNotFound {
-		return ErrBlockHashNotFound
+		return ErrBlockNotFound
 	}
 
 	if err != nil {
@@ -336,7 +345,7 @@ func (c *chainDB) SetHead(block *pb.Block) (err error) {
 func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 	b, err := c.db.Get(idx)
 	if errors.Cause(err) == db.ErrNotFound {
-		return nil, ErrBlockHashNotFound
+		return nil, ErrBlockNotFound
 	}
 
 	if err != nil {
@@ -356,7 +365,7 @@ func (c *chainDB) dbGetBlock(idx []byte) (*pb.Block, error) {
 func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 	b, err := c.db.Get(c.numToHashKey(number))
 	if errors.Cause(err) == db.ErrNotFound {
-		return nil, ErrBlockNumberNotFound
+		return nil, nil
 	}
 
 	if err != nil {

@@ -27,11 +27,8 @@ import (
 )
 
 var (
-	// ErrBlockHashNotFound is returned when looking for a block that is not in the chain.
-	ErrBlockHashNotFound = errors.New("block hash not found in the chain")
-
-	// ErrBlockNumberNotFound is returned when looking for a block that is not in the chain.
-	ErrBlockNumberNotFound = errors.New("block number not found in the chain")
+	// ErrBlockNotFound is returned when looking for a block that is not in the chain.
+	ErrBlockNotFound = errors.New("block not found in the chain")
 
 	// ErrBlockNumberIncorrect is returned when adding a block with a bad number.
 	ErrBlockNumberIncorrect = errors.New("block number does not correspond to hash")
@@ -72,6 +69,9 @@ type Reader interface {
 	// GetBlockByHash retrieves a block from the database by header hash.
 	GetBlockByHash(hash []byte) (*pb.Block, error)
 
+	// GetBlockByNumber retrieves a block from the main branch by number.
+	GetBlockByNumber(number uint64) (*pb.Block, error)
+
 	// GetParentBlock retrieves the header's parent block.
 	GetParentBlock(header *pb.Header) (*pb.Block, error)
 }
@@ -108,7 +108,7 @@ func GetPath(c Reader, from *pb.Block, to *pb.Block) (rollbacks []*pb.Block, rep
 
 	fromParent, err := c.GetBlock(fromHash, from.Header.BlockNumber)
 	if err != nil {
-		return nil, nil, ErrBlockHashNotFound
+		return nil, nil, ErrBlockNotFound
 	}
 
 	if bytes.Equal(to.Header.PreviousHash, fromHash) {

@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/state"
@@ -69,7 +68,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	// Check block has already been processed.
-	if _, err := ch.GetBlock(mh, block.BlockNumber()); err != nil && err != chain.ErrBlockHashNotFound {
+	if _, err := ch.GetBlock(mh, block.BlockNumber()); err != nil && err != chain.ErrBlockNotFound {
 		return err
 	} else if err == nil {
 		log.Event(context.Background(), "blockAlreadyProcessed", logging.Metadata{"hash": mh.String(), "height": block.BlockNumber()})
@@ -85,7 +84,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	if p.provider != nil {
 		contentID, err := cid.Cast(mh)
 		if err != nil {
-			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.String()})
+			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.B58String()})
 		} else {
 			if err = p.provider.Provide(ctx, contentID, true); err != nil {
 				log.Event(ctx, "failProvide", logging.Metadata{"cid": contentID.String(), "error": err.Error()})
@@ -94,7 +93,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	head, err := ch.CurrentBlock()
-	if err != nil {
+	if err != nil && errors.Cause(err) != chain.ErrBlockNotFound {
 		return err
 	}
 

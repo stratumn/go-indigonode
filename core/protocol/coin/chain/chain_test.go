@@ -43,14 +43,14 @@ func TestChain(t *testing.T) {
 			require.NoError(t, err, "db.NewMemDB()")
 			c := NewChainDB(memdb)
 			h, err := c.CurrentHeader()
-			assert.EqualError(t, err, ErrBlockHashNotFound.Error(), "c.GetBlock(block1)")
+			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetBlock(block1)")
 			assert.Nil(t, h, "s.CurrentHeader()")
 		},
 	}, {
 		"add-invalid-previous-hash",
 		func(t *testing.T, c Chain) {
 			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, PreviousHash: h2}}
-			assert.EqualError(t, c.AddBlock(block), ErrBlockHashNotFound.Error(), "c.AddBlock()")
+			assert.EqualError(t, c.AddBlock(block), ErrBlockNotFound.Error(), "c.AddBlock()")
 		},
 	}, {
 		"add-invalid-number",
@@ -82,13 +82,13 @@ func TestChain(t *testing.T) {
 	}, {
 		"set-bad-head",
 		func(t *testing.T, c Chain) {
-			assert.EqualError(t, c.SetHead(block2), ErrBlockHashNotFound.Error(), "c.SetHead()")
+			assert.EqualError(t, c.SetHead(block2), ErrBlockNotFound.Error(), "c.SetHead()")
 		},
 	}, {
 		"get-by-number",
 		func(t *testing.T, c Chain) {
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
-
+			// Get header.
 			h, err := c.GetHeadersByNumber(genesisBlock.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
 			assert.Equal(t, []*pb.Header{genesisBlock.Header}, h)
@@ -113,7 +113,7 @@ func TestChain(t *testing.T) {
 		"get-by-bad-number",
 		func(t *testing.T, c Chain) {
 			_, err := c.GetHeadersByNumber(42)
-			assert.EqualError(t, err, ErrBlockNumberNotFound.Error(), "c.GetHeadersByNumber()")
+			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetHeadersByNumber()")
 		},
 	}, {
 		"get-by-hash",
@@ -132,7 +132,7 @@ func TestChain(t *testing.T) {
 		"get-by-bad-hash",
 		func(t *testing.T, c Chain) {
 			_, err := c.GetHeaderByHash(h2)
-			assert.EqualError(t, err, ErrBlockHashNotFound.Error(), "c.GetHeaderByHash()")
+			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetHeaderByHash()")
 		},
 	}, {
 		"update-main-branch",
@@ -152,6 +152,15 @@ func TestChain(t *testing.T) {
 			assert.NoError(t, c.AddBlock(block2bis), "c.AddBlock()")
 			assert.NoError(t, c.AddBlock(block3bis), "c.AddBlock()")
 
+			// Get block.
+			b, err := c.GetBlockByNumber(1)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block2)
+			b, err = c.GetBlockByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block3)
+
+			// Get header.
 			h, err := c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
 			assert.Equal(t, h, block2.Header)
@@ -161,6 +170,15 @@ func TestChain(t *testing.T) {
 
 			assert.NoError(t, c.SetHead(block3bis), "c.SetHead()")
 
+			// Get block.
+			b, err = c.GetBlockByNumber(1)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block2bis)
+			b, err = c.GetBlockByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block3bis)
+
+			// Get header.
 			h, err = c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
 			assert.Equal(t, h, block2bis.Header)

@@ -23,14 +23,6 @@ package stratumn.alice.pb.coin;
 option go_package = "github.com/stratumn/alice/pb/coin;coin";
 option (gogoproto.stable_marshaler_all) = true;
 
-// The consensus engine exchanges Gossip messages between peers.
-// They are used to forward transactions to all peers, notify of a new block, etc.
-message Gossip {
-    oneof msg {
-        Transaction tx = 1;
-        Block block = 2;
-    }
-}
 
 // A coin transaction.
 message Transaction {
@@ -136,4 +128,73 @@ message Account {
         (stratumn.alice.grpc.ext.field_desc) = "Nonce",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
+}
+
+// The synchronization mechanism exchanges Request and Response messages between peers.
+// They are used to request specific block data from peers.
+
+message Request {
+    oneof msg {
+        HeaderRequest header_req = 1;
+        HeadersRequest headers_req = 2;
+        BlockRequest block_req = 3;
+        BlocksRequest blocks_req = 4;
+    }
+}
+
+message Response {
+    oneof msg {
+        Header header_rsp = 1;
+        Headers headers_rsp = 2;
+        Block block_rsp = 3;
+        Blocks blocks_rsp = 4;
+    }
+}
+
+// request one header from a peer.
+message HeaderRequest {
+    bytes hash = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block hash",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// request a list of headers from a peer.
+message HeadersRequest {
+    uint64 from = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Headers starting at this number",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    uint64 amount = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Amount of headers requested",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+message Headers {
+    repeated Header headers = 1;
+}
+
+// request one block from a peer.
+message BlockRequest {
+    bytes hash = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block hash",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+// request a list of blocks from a peer.
+message BlocksRequest {
+    uint64 from = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Blocks starting at this number",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+    uint64 amount = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Amount of blocks requested",
+        (stratumn.alice.grpc.ext.field_required) = true
+    ];
+}
+
+message Blocks {
+    repeated Block blocks = 1;
 }

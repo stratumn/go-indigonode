@@ -19,12 +19,15 @@ import (
 	"fmt"
 	"io"
 
+	base58 "github.com/jbenet/go-base58"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/miner"
+	"github.com/stratumn/alice/core/protocol/coin/p2p"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 
@@ -58,13 +61,15 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
-	engine    engine.Engine
-	state     state.State
-	chain     chain.Chain
-	gossip    gossip.Gossip
-	txpool    state.TxPool
-	processor processor.Processor
-	validator validator.Validator
+	engine       engine.Engine
+	state        state.State
+	chain        chain.Chain
+	gossip       gossip.Gossip
+	txpool       state.TxPool
+	processor    processor.Processor
+	validator    validator.Validator
+	synchronizer synchronizer.Synchronizer
+	p2p          p2p.P2P
 
 	miner *miner.Miner
 }
@@ -78,24 +83,32 @@ func NewCoin(
 	g gossip.Gossip,
 	v validator.Validator,
 	p processor.Processor,
+	p2p p2p.P2P,
+	sync synchronizer.Synchronizer,
 ) *Coin {
 
 	miner := miner.NewMiner(txp, e, s, c, v, p, g)
 
 	return &Coin{
-		engine:    e,
-		state:     s,
-		chain:     c,
-		txpool:    txp,
-		processor: p,
-		validator: v,
-		gossip:    g,
-		miner:     miner,
+		engine:       e,
+		state:        s,
+		chain:        c,
+		txpool:       txp,
+		processor:    p,
+		validator:    v,
+		gossip:       g,
+		p2p:          p2p,
+		synchronizer: sync,
+		miner:        miner,
 	}
 }
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
+	// Synchronize the chain.
+	genesisHash := base58.Decode(synchronizer.GenesisHash)
+	c.synchronize(ctx, genesisHash)
+
 	if err := c.StartTxGossip(ctx); err != nil {
 		return err
 	}
@@ -113,9 +126,10 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	})
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
+	enc := protobuf.Multicodec(nil).Encoder(stream)
 
 	for {
-		var gossip pb.Gossip
+		var gossip pb.Request
 		err := dec.Decode(&gossip)
 		if err == io.EOF {
 			return
@@ -126,15 +140,21 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 		}
 
 		switch m := gossip.Msg.(type) {
-		case *pb.Gossip_Tx:
-			err := c.AddTransaction(m.Tx)
-			if err != nil {
-				log.Event(ctx, "AddTransaction", logging.Metadata{"error": err})
+		case *pb.Request_HeaderReq:
+			if err := c.p2p.RespondHeaderByHash(ctx, m.HeaderReq, enc, c.chain); err != nil {
+				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
 			}
-		case *pb.Gossip_Block:
-			err := c.AppendBlock(ctx, m.Block)
-			if err != nil {
-				log.Event(ctx, "AppendBlock", logging.Metadata{"error": err})
+		case *pb.Request_HeadersReq:
+			if err := c.p2p.RespondHeadersByNumber(ctx, m.HeadersReq, enc, c.chain); err != nil {
+				log.Event(ctx, "HeadersReq response", logging.Metadata{"error": err})
+			}
+		case *pb.Request_BlockReq:
+			if err := c.p2p.RespondBlockByHash(ctx, m.BlockReq, enc, c.chain); err != nil {
+				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
+			}
+		case *pb.Request_BlocksReq:
+			if err := c.p2p.RespondBlocksByNumber(ctx, m.BlocksReq, enc, c.chain); err != nil {
+				log.Event(ctx, "BlocksReq response", logging.Metadata{"error": err})
 			}
 		default:
 			log.Event(ctx, "Gossip", logging.Metadata{
@@ -232,4 +252,12 @@ func (c *Coin) StartBlockGossip(ctx context.Context) error {
 	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
 		return c.processor.Process(ctx, block, c.state, c.chain)
 	})
+}
+
+// synchronize synchronizes the local chain.
+func (c *Coin) synchronize(ctx context.Context, hash []byte) {
+	syncCtx, cancel := context.WithCancel(ctx)
+	// TODO: Handle sync channels.
+	_, _ = c.synchronizer.Synchronize(syncCtx, hash, c.chain)
+	cancel()
 }

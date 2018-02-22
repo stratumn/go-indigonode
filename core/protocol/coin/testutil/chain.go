@@ -40,6 +40,10 @@ func (c *SimpleChain) CurrentBlock() (*pb.Block, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
+	if c.currentBlock == nil {
+		return nil, chain.ErrBlockNotFound
+	}
+
 	return c.currentBlock, nil
 }
 
@@ -49,7 +53,7 @@ func (c *SimpleChain) CurrentHeader() (*pb.Header, error) {
 	defer c.mu.RUnlock()
 
 	if c.currentBlock == nil {
-		return nil, nil
+		return nil, chain.ErrBlockNotFound
 	}
 
 	return c.currentBlock.Header, nil
@@ -68,7 +72,7 @@ func (c *SimpleChain) GetHeadersByNumber(number uint64) ([]*pb.Header, error) {
 	}
 
 	if res == nil {
-		return nil, chain.ErrBlockNumberNotFound
+		return nil, chain.ErrBlockNotFound
 	}
 
 	return res, nil
@@ -81,7 +85,7 @@ func (c *SimpleChain) GetHeaderByNumber(number uint64) (*pb.Header, error) {
 
 	b := c.currentBlock
 	if b.BlockNumber() < number {
-		return nil, chain.ErrBlockNumberNotFound
+		return nil, chain.ErrBlockNotFound
 	}
 
 	for b.BlockNumber() > number {
@@ -118,6 +122,27 @@ func (c *SimpleChain) GetBlock(hash []byte, _ uint64) (*pb.Block, error) {
 	return c.GetBlockByHash(hash)
 }
 
+// GetBlockByNumber retrieves a header from the main branch by number.
+func (c *SimpleChain) GetBlockByNumber(number uint64) (*pb.Block, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	b := c.currentBlock
+	if b.BlockNumber() < number {
+		return nil, chain.ErrBlockNotFound
+	}
+
+	for b.BlockNumber() > number {
+		var err error
+		b, err = c.getBlock(b.PreviousHash())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return b, nil
+}
+
 func (c *SimpleChain) getBlock(hash []byte) (*pb.Block, error) {
 	for _, b := range c.blocks {
 		blockHash, err := coinutil.HashHeader(b.Header)
@@ -130,7 +155,7 @@ func (c *SimpleChain) getBlock(hash []byte) (*pb.Block, error) {
 		}
 	}
 
-	return nil, chain.ErrBlockHashNotFound
+	return nil, chain.ErrBlockNotFound
 }
 
 // GetParentBlock retrieves the block's parent block.

@@ -17,9 +17,10 @@ package trie
 import (
 	"bytes"
 
-	"github.com/multiformats/go-multihash"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/trie"
+
+	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
 var (

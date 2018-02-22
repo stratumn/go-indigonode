@@ -171,6 +171,12 @@
       "hash": "QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY",
       "name": "go-cid",
       "version": "0.7.20"
+    },
+    {
+      "author": "multiformats",
+      "hash": "QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua",
+      "name": "go-multihash",
+      "version": "1.0.7"
     }
   ],
   "gxVersion": "0.11.0",

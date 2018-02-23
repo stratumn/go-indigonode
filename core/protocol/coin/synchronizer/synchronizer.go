@@ -212,7 +212,7 @@ func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, pe
 	var ancestorHash []byte
 	// The common ancestor is necessarily below height.
 	// Get the 64 blocks before height.
-	for height >= 0 {
+	for {
 		var cursor *pb.Header
 		from := uint64(0)
 		if height >= s.maxHeadersPerBatch {

@@ -19,6 +19,7 @@ package p2p
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -89,9 +90,16 @@ func NewP2P(host ihost.Host, p protocol.ID) P2P {
 // RequestHeaderByHash requests the header for the given hash
 // on the main chain from peer peerID.
 func (p *p2p) RequestHeaderByHash(ctx context.Context, peerID peer.ID, hash []byte) (*pb.Header, error) {
+	e := log.EventBegin(ctx, "RequestHeaderByHash", logging.Metadata{
+		"peerID": peerID.Loggable(),
+		"hash":   hex.EncodeToString(hash),
+	})
+	defer e.Done()
+
 	req := pb.NewHeaderRequest(hash)
 	rsp, err := p.request(ctx, peerID, req)
 	if err != nil {
+		e.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -101,9 +109,16 @@ func (p *p2p) RequestHeaderByHash(ctx context.Context, peerID peer.ID, hash []by
 // RequestBlockByHash requests the header for the given hash
 // on the main chain from peer peerID.
 func (p *p2p) RequestBlockByHash(ctx context.Context, peerID peer.ID, hash []byte) (*pb.Block, error) {
+	e := log.EventBegin(ctx, "RequestBlockByHash", logging.Metadata{
+		"peerID": peerID.Loggable(),
+		"hash":   hex.EncodeToString(hash),
+	})
+	defer e.Done()
+
 	req := pb.NewBlockRequest(hash)
 	rsp, err := p.request(ctx, peerID, req)
 	if err != nil {
+		e.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -113,9 +128,13 @@ func (p *p2p) RequestBlockByHash(ctx context.Context, peerID peer.ID, hash []byt
 // RequestHeadersByNumber requests a batch of headers reanging from `from`
 // and with length `amount`.
 func (p *p2p) RequestHeadersByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Header, error) {
+	e := log.EventBegin(ctx, "RequestHeadersByNumber", logging.Metadata{"peerID": peerID.Loggable(), "from": from, "amount": amount})
+	defer e.Done()
+
 	req := pb.NewHeadersRequest(from, amount)
 	rsp, err := p.request(ctx, peerID, req)
 	if err != nil {
+		e.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -125,9 +144,13 @@ func (p *p2p) RequestHeadersByNumber(ctx context.Context, peerID peer.ID, from, 
 // RequestBlocksByNumber requests a batch of blocks reanging from `from`
 // and with length `amount`.
 func (p *p2p) RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Block, error) {
+	e := log.EventBegin(ctx, "RequestBlocksByNumber", logging.Metadata{"peerID": peerID.Loggable(), "from": from, "amount": amount})
+	defer e.Done()
+
 	req := pb.NewBlocksRequest(from, amount)
 	rsp, err := p.request(ctx, peerID, req)
 	if err != nil {
+		e.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -136,18 +159,12 @@ func (p *p2p) RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, a
 
 // request sends a request message to a peer and return its response.
 func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*pb.Response, error) {
-	event := log.EventBegin(ctx, "Send", logging.Metadata{
-		"peerID": pid.Pretty(),
-	})
-	defer event.Done()
-
 	successCh := make(chan *pb.Response, 1)
 	errCh := make(chan error, 1)
 
 	go func() {
 		stream, err := p.host.NewStream(ctx, pid, p.protocolID)
 		if err != nil {
-			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
@@ -155,7 +172,6 @@ func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*p
 		// Send the request
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		if err = enc.Encode(message); err != nil {
-			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
@@ -165,7 +181,6 @@ func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*p
 		rsp := pb.Response{}
 
 		if err = dec.Decode(&rsp); err != nil {
-			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
@@ -185,8 +200,12 @@ func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*p
 
 // RespondHeaderByHash responds to a HeaderRequest.
 func (p *p2p) RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, enc Encoder, chain chain.Reader) error {
+	e := log.EventBegin(ctx, "RespondHeaderByHash", logging.Metadata{"hash": hex.EncodeToString(req.Hash)})
+	defer e.Done()
+
 	h, err := chain.GetHeaderByHash(req.Hash)
 	if err != nil {
+		e.SetError(err)
 		return err
 	}
 	return enc.Encode(pb.NewHeaderResponse(h))
@@ -194,26 +213,37 @@ func (p *p2p) RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, en
 
 // RespondHeadersByNumber responds to a HeadersRequest.
 func (p *p2p) RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest, enc Encoder, c chain.Reader) error {
+	e := log.EventBegin(ctx, "RespondHeadersByNumber", logging.Metadata{"from": req.From, "amount": req.Amount})
+	defer e.Done()
+
 	headers := make([]*pb.Header, req.Amount)
 	i := uint64(0)
 	for ; i < req.Amount; i++ {
 		h, err := c.GetHeaderByNumber(req.From + i)
-		if errors.Cause(err) == chain.ErrBlockNotFound {
+		if err == chain.ErrBlockNotFound {
 			break
 		} else if err != nil {
+			e.SetError(err)
 			return err
 		}
 		headers[i] = h
 	}
 
 	rsp := pb.NewHeadersResponse(headers[:i])
-	return enc.Encode(rsp)
+	if err := enc.Encode(rsp); err != nil {
+		e.SetError(err)
+		return err
+	}
+	return nil
 }
 
 // RespondBlockByHash responds to a BlockRequest.
 func (p *p2p) RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc Encoder, chain chain.Reader) error {
+	e := log.EventBegin(ctx, "RespondBlockByHash", logging.Metadata{"hash": hex.EncodeToString(req.Hash)})
+	defer e.Done()
 	b, err := chain.GetBlockByHash(req.Hash)
 	if err != nil {
+		e.SetError(err)
 		return err
 	}
 	return enc.Encode(pb.NewBlockResponse(b))
@@ -221,18 +251,26 @@ func (p *p2p) RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc 
 
 // RespondBlocksByNumber responds to a BlocksRequest.
 func (p *p2p) RespondBlocksByNumber(ctx context.Context, req *pb.BlocksRequest, enc Encoder, c chain.Reader) error {
+	e := log.EventBegin(ctx, "RespondBlocksByNumber", logging.Metadata{"from": req.From, "amount": req.Amount})
+	defer e.Done()
+
 	blocks := make([]*pb.Block, req.Amount)
 	i := uint64(0)
 	for ; i < req.Amount; i++ {
 		h, err := c.GetBlockByNumber(req.From + i)
-		if errors.Cause(err) == chain.ErrBlockNotFound {
+		if err == chain.ErrBlockNotFound {
 			break
 		} else if err != nil {
+			e.SetError(err)
 			return err
 		}
 		blocks[i] = h
 	}
 
 	rsp := pb.NewBlocksResponse(blocks[:i])
-	return enc.Encode(rsp)
+	if err := enc.Encode(rsp); err != nil {
+		e.SetError(err)
+		return err
+	}
+	return nil
 }

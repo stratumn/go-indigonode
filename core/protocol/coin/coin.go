@@ -16,10 +16,10 @@ package coin
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 
-	base58 "github.com/jbenet/go-base58"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -105,15 +105,29 @@ func NewCoin(
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
-	// Synchronize the chain.
-	genesisHash := base58.Decode(synchronizer.GenesisHash)
-	c.synchronize(ctx, genesisHash)
+	if err := c.checkGenesisBlock(ctx); err != nil {
+		return err
+	}
 
 	if err := c.StartTxGossip(ctx); err != nil {
 		return err
 	}
 
 	return c.StartBlockGossip(ctx)
+}
+
+// checkGenesisBlock checks if the chain has the genesis block and add it if not.
+func (c *Coin) checkGenesisBlock(ctx context.Context) error {
+	genBlock, genHash, err := GetGenesisBlock()
+	if err != nil {
+		return err
+	}
+	_, err = c.chain.GetBlockByHash(genHash)
+	if err == chain.ErrBlockNotFound {
+		return c.processor.Process(ctx, genBlock, c.state, c.chain)
+	}
+
+	return err
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -226,8 +240,19 @@ func (c *Coin) AppendBlock(ctx context.Context, block *pb.Block) error {
 	}
 
 	// Validate block header according to consensus.
-	err = c.engine.VerifyHeader(nil, block.Header)
+	err = c.engine.VerifyHeader(c.chain, block.Header)
 	if err != nil {
+		return err
+	}
+
+	// Check that we have the previous block.
+	// If not, sync with the network to get it.
+	_, err = c.chain.GetBlockByHash(block.PreviousHash())
+	if err == chain.ErrBlockNotFound {
+		if err := c.synchronize(ctx, block.PreviousHash()); err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 
@@ -250,14 +275,33 @@ func (c *Coin) StartTxGossip(ctx context.Context) error {
 func (c *Coin) StartBlockGossip(ctx context.Context) error {
 	log.Event(ctx, "StartBlockGossip")
 	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
-		return c.processor.Process(ctx, block, c.state, c.chain)
+		return c.AppendBlock(ctx, block)
 	})
 }
 
 // synchronize synchronizes the local chain.
-func (c *Coin) synchronize(ctx context.Context, hash []byte) {
+func (c *Coin) synchronize(ctx context.Context, hash []byte) error {
+	event := log.EventBegin(ctx, "Synchronize local chain", logging.Metadata{"hash": hex.EncodeToString(hash)})
+	defer event.Done()
 	syncCtx, cancel := context.WithCancel(ctx)
-	// TODO: Handle sync channels.
-	_, _ = c.synchronizer.Synchronize(syncCtx, hash, c.chain)
-	cancel()
+	defer cancel()
+
+	resCh, errCh := c.synchronizer.Synchronize(syncCtx, hash, c.chain)
+
+	for {
+		select {
+		case b, ok := <-resCh:
+			if !ok {
+				// No more blocks to process.
+				return nil
+			}
+			if err := c.AppendBlock(ctx, b); err != nil {
+				event.SetError(err)
+				return err
+			}
+		case err := <-errCh:
+			event.SetError(err)
+			return err
+		}
+	}
 }

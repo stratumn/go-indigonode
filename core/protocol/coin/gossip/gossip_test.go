@@ -21,6 +21,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/state"
+	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
+	"github.com/stratumn/alice/core/protocol/coin/validator"
+	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
+	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,13 +34,6 @@ import (
 	netutil "gx/ipfs/QmWUugnJBbcuin8qdfiCYKAsNkG8NeDLhzoBqRaqXhAHd4/go-libp2p-netutil"
 	bhost "gx/ipfs/QmZ15dDSCo4DKn4o4GnqqLExKATBeeo3oNyQ5FBKtNjEQT/go-libp2p-blankhost"
 	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
-
-	"github.com/stratumn/alice/core/protocol/coin/db"
-	"github.com/stratumn/alice/core/protocol/coin/state"
-	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
-	"github.com/stratumn/alice/core/protocol/coin/validator"
-	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
-	pb "github.com/stratumn/alice/pb/coin"
 )
 
 var (
@@ -255,18 +254,54 @@ func TestGossip(t *testing.T) {
 		assertNotReceive(t, c2)
 	})
 
+	t.Run("NotifyBlockListeners", func(t *testing.T) {
+		b := &pb.Block{Header: &pb.Header{BlockNumber: 42}}
+		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
+
+		l1 := g2.AddBlockListener()
+		l2 := g2.AddBlockListener()
+
+		err = g1.PublishBlock(b)
+
+		assert.NoError(t, err)
+
+		assertReceive(t, c2, b)
+		assertNotReceive(t, c1)
+
+		select {
+		case h1 := <-l1:
+			assert.Equal(t, b.Header, h1, "<-l1")
+		case <-time.After(10 * time.Millisecond):
+			assert.Fail(t, "<-l1 timed out")
+		}
+
+		select {
+		case h2 := <-l2:
+			assert.Equal(t, b.Header, h2, "<-l2")
+		case <-time.After(10 * time.Millisecond):
+			assert.Fail(t, "<-l2 timed out")
+		}
+	})
+
 	t.Run("Close", func(t *testing.T) {
 		g, err := newGossip(ctx, t, h1)
 		require.NoError(t, err)
+
 		gg := g.(*gossip)
 		err = gg.subscribe("topic1", func(ctx context.Context, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
+
 		err = gg.subscribe("topic2", func(ctx context.Context, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
+
 		assert.Len(t, gg.pubsub.GetTopics(), 2)
+
+		g.AddBlockListener()
+		assert.Len(t, gg.blockListeners, 1)
 
 		assert.NoError(t, gg.Close(), "Close()")
 		assert.Len(t, gg.pubsub.GetTopics(), 0)
+		assert.Len(t, gg.blockListeners, 0)
 	})
 }
 

@@ -99,3 +99,24 @@ func TestGRPCServer_AccountTransactions(t *testing.T) {
 
 	assert.NoError(t, server.AccountTransactions(req, ss))
 }
+
+func TestGRPCServer_Blockchain(t *testing.T) {
+	server := &grpcServer{
+		GetBlockchain: func(uint32, []byte, uint32) ([]*pb.Block, error) {
+			return []*pb.Block{
+				&pb.Block{Header: &pb.Header{BlockNumber: 13, Nonce: 2}},
+				&pb.Block{Header: &pb.Header{BlockNumber: 14, Nonce: 4}},
+			}, nil
+		},
+	}
+
+	blockchain, err := server.Blockchain(
+		context.Background(),
+		&rpcpb.BlockchainReq{BlockNumber: 14, Count: 2},
+	)
+
+	assert.NoError(t, err, "server.Blockchain()")
+	assert.Len(t, blockchain.Blocks, 2, "blockchain.Blocks")
+	assert.Equal(t, blockchain.Blocks[0].BlockNumber(), uint64(13), "BlockNumber()")
+	assert.Equal(t, blockchain.Blocks[1].BlockNumber(), uint64(14), "BlockNumber()")
+}

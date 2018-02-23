@@ -34,9 +34,14 @@ service Coin {
         option (stratumn.alice.grpc.ext.method_no_cli) = true;
     }
 
-    // Get all the past transactions of an account
+    // Get all the past transactions of an account.
     rpc AccountTransactions (AccountTransactionsReq) returns (stream stratumn.alice.pb.coin.Transaction) {
         option (stratumn.alice.grpc.ext.method_desc) = "Get the transaction history of an account";
+    }
+
+    // Get blocks from the blockchain.
+    rpc Blockchain (BlockchainReq) returns (BlockchainResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Get blockchain blocks";         
     }
 }
 
@@ -46,6 +51,26 @@ message AccountReq {
       (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
       (stratumn.alice.grpc.ext.field_required) = true,
       (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+}
+
+// The request to get part of the blockchain.
+message BlockchainReq {
+    uint32 block_number = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block number to lookup. If ommitted, defaults to the last block."
+    ];
+    bytes header_hash = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Header hash to lookup. If ommitted, defaults to the last block."    
+    ];  
+    uint32 count = 3 [
+      (stratumn.alice.grpc.ext.field_desc) = "Number of blocks returned. If ommitted, defaults to one."
+    ];
+}
+
+// The response to a request for blockchain blocks.
+message BlockchainResp {
+    repeated stratumn.alice.pb.coin.Block blocks = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Blockchain blocks."
     ];
 }
 

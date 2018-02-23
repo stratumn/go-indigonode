@@ -19,6 +19,7 @@ package processor
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -36,6 +37,9 @@ var (
 
 	// errReorgAborted is returned when the reorg is aborted.
 	errReorgAborted = errors.New("reorg aborted")
+
+	// ProvideTimeout is the timeout when letting the network we provide a resoruce.
+	ProvideTimeout = time.Second * 10
 )
 
 // Processor is an interface for processing blocks using a given initial state.
@@ -86,7 +90,9 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 		if err != nil {
 			log.Event(ctx, "failCastHashToCID", logging.Metadata{"hash": mh.B58String()})
 		} else {
-			if err = p.provider.Provide(ctx, contentID, true); err != nil {
+			provideCtx, cancel := context.WithTimeout(ctx, ProvideTimeout)
+			defer cancel()
+			if err = p.provider.Provide(provideCtx, contentID, true); err != nil {
 				log.Event(ctx, "failProvide", logging.Metadata{"cid": contentID.String(), "error": err.Error()})
 			}
 		}

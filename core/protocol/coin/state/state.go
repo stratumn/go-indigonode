@@ -127,7 +127,7 @@ var OptPrefix = func(prefix []byte) Opt {
 func NewState(database db.ReadWriteBatcher, opts ...Opt) State {
 	diff := db.NewDiff(database)
 
-	s := &stateDB{diff: db.NewDiff(database)}
+	s := &stateDB{diff: diff}
 
 	for _, o := range opts {
 		o(s)

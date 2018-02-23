@@ -25,7 +25,9 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	mockp2p "github.com/stratumn/alice/core/protocol/coin/p2p/mockp2p"
+	"github.com/stratumn/alice/core/protocol/coin/processor/mockprocessor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer/mocksynchronizer"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
@@ -41,6 +43,30 @@ import (
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
+
+func TestCoinGenesis(t *testing.T) {
+	// Check genesis block.
+	genBlock, genHash, err := GetGenesisBlock()
+	assert.NoError(t, err, "GetGenesisBlock()")
+	h, err := coinutil.HashHeader(genBlock.Header)
+	assert.NoError(t, err, "HashHeader()")
+	assert.Equal(t, h, genHash, "GenesisHash")
+
+	// Run coin.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	p := mockprocessor.NewMockProcessor(ctrl)
+	coin := Coin{
+		chain:     &ctestutil.SimpleChain{},
+		processor: p,
+		gossip:    ctestutil.NewDummyGossip(t),
+	}
+
+	p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+	err = coin.Run(context.Background())
+	assert.NoError(t, err, "coin.Run()")
+}
 
 func TestCoinProtocolHandler(t *testing.T) {
 	ctx := context.Background()
@@ -179,6 +205,49 @@ func TestGetAccountTransactions(t *testing.T) {
 	actual, err = c.GetAccountTransactions(alice)
 	require.NoError(t, err, "c.GetAccountTransactions(alice)")
 	assert.Empty(t, actual, "c.GetAccountTransactions(alice)")
+}
+
+func TestAppendWithSync(t *testing.T) {
+	genBlock, _, err := GetGenesisBlock()
+	assert.NoError(t, err, "GetGenesisBlock()")
+	ch := &ctestutil.SimpleChain{}
+	ch.AddBlock(genBlock)
+	ch.SetHead(genBlock)
+
+	// Run coin.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	proc := mockprocessor.NewMockProcessor(ctrl)
+	sync := mocksynchronizer.NewMockSynchronizer(ctrl)
+	coin := Coin{
+		chain:        ch,
+		state:        ctestutil.NewSimpleState(t),
+		gossip:       ctestutil.NewDummyGossip(t),
+		synchronizer: sync,
+		processor:    proc,
+		validator:    &ctestutil.DummyValidator{},
+		engine:       &ctestutil.DummyEngine{},
+	}
+
+	err = coin.Run(context.Background())
+	assert.NoError(t, err, "coin.Run()")
+
+	block := &pb.Block{Header: &pb.Header{PreviousHash: []byte("plap")}}
+
+	resCh := make(chan *pb.Block)
+	errCh := make(chan error)
+
+	done := false
+	sync.EXPECT().Synchronize(gomock.Any(), block.PreviousHash(), gomock.Any()).Return(resCh, errCh).Times(1)
+	proc.EXPECT().Process(gomock.Any(), block, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, _, _ interface{}) { done = true }).Times(1)
+
+	go func() {
+		err = coin.AppendBlock(context.Background(), block)
+		assert.NoError(t, err, "AppendBlock()")
+	}()
+
+	close(resCh)
+	tassert.WaitUntil(t, func() bool { return done }, "Process() done")
 }
 
 func TestCoinMining_SingleNode(t *testing.T) {

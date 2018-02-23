@@ -99,7 +99,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	head, err := ch.CurrentBlock()
-	if err != nil && errors.Cause(err) != chain.ErrBlockNotFound {
+	if err != nil && err != chain.ErrBlockNotFound {
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (p *processor) reorg(prevHead *pb.Block, newHead *pb.Block, st state.State,
 	for _, b := range forward {
 		if err = st.ProcessBlock(b); err != nil {
 			// Block has been rejected by state, undo reorg.
-			if errors.Cause(err) == state.ErrInvalidBlock {
+			if err == state.ErrInvalidBlock {
 				if cursor != nil {
 					if err := p.reorg(cursor, prevHead, st, ch); err != nil {
 						return err

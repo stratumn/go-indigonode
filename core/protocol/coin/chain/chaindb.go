@@ -239,7 +239,7 @@ func (c *chainDB) checkAddBlock(h *pb.Header) error {
 
 	// Check previous block
 	prevBlock, err := c.dbGetBlock(c.blockKey(h.PreviousHash))
-	if errors.Cause(err) == ErrBlockNumberIncorrect {
+	if err == ErrBlockNumberIncorrect {
 		return ErrInvalidPreviousBlock
 	}
 	if err != nil {

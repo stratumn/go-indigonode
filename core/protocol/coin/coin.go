@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -124,7 +123,7 @@ func (c *Coin) checkGenesisBlock(ctx context.Context) error {
 		return err
 	}
 	_, err = c.chain.GetBlockByHash(genHash)
-	if errors.Cause(err) == chain.ErrBlockNotFound {
+	if err == chain.ErrBlockNotFound {
 		return c.processor.Process(ctx, genBlock, c.state, c.chain)
 	}
 

@@ -220,7 +220,7 @@ func (p *p2p) RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest
 	i := uint64(0)
 	for ; i < req.Amount; i++ {
 		h, err := c.GetHeaderByNumber(req.From + i)
-		if errors.Cause(err) == chain.ErrBlockNotFound {
+		if err == chain.ErrBlockNotFound {
 			break
 		} else if err != nil {
 			e.SetError(err)
@@ -258,7 +258,7 @@ func (p *p2p) RespondBlocksByNumber(ctx context.Context, req *pb.BlocksRequest, 
 	i := uint64(0)
 	for ; i < req.Amount; i++ {
 		h, err := c.GetBlockByNumber(req.From + i)
-		if errors.Cause(err) == chain.ErrBlockNotFound {
+		if err == chain.ErrBlockNotFound {
 			break
 		} else if err != nil {
 			e.SetError(err)

@@ -18,13 +18,15 @@ import (
 	"time"
 
 	ptypes "github.com/gogo/protobuf/types"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
+
+	multihash "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
 // GetGenesisBlock returns the genesis block and its hash.
-func GetGenesisBlock() (*pb.Block, []byte, error) {
+func GetGenesisBlock() (*pb.Block, multihash.Multihash, error) {
 	pid, err := peer.IDB58Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU")
 	if err != nil {
 		return nil, nil, err

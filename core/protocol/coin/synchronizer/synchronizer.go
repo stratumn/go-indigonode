@@ -20,6 +20,7 @@ package synchronizer
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -47,6 +48,9 @@ const (
 var (
 	// ErrNoProvider is returned when no peer was found for a given resource.
 	ErrNoProvider = errors.New("no peer could provide the resource")
+
+	// ErrNoCommonAncestor is returned when no common ancestor is found with a peer's chain.
+	ErrNoCommonAncestor = errors.New("the peer's chain does not intersect with ours")
 )
 
 // Synchronizer is used to sync the local chain with a peer's chain.
@@ -153,6 +157,7 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 	num := uint64(0)
 	if cur != nil {
 		head, err := s.findCommonAncestor(ctx, cur.BlockNumber, pid, chainReader)
+
 		if err != nil {
 			go func() {
 				errCh <- err
@@ -168,8 +173,9 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 }
 
 // fetchBlocks gets blocks from the main branch of a given peer per batches.
-// All received blocks (and errors) eare written to channels.
+// All received blocks (and errors) are written to channels.
 func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64, resCh chan<- *pb.Block, errCh chan<- error) {
+	fmt.Println("Get blocks ", from)
 	for {
 		select {
 		case <-ctx.Done():
@@ -203,13 +209,14 @@ func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64
 // findCommonAncestor finds and returns the header of the first common ancestor
 // between a node's main chain and a given local header.
 func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, peerID peer.ID, chain chain.Reader) (*pb.Header, error) {
-	ancestor := &pb.Header{}
+	var ancestorHash []byte
 	// The common ancestor is necessarily below height.
 	// Get the 64 blocks before height.
-	for height > 0 {
+	for height >= 0 {
+		var cursor *pb.Header
 		from := uint64(0)
-		if height > s.maxHeadersPerBatch {
-			from = height - s.maxHeadersPerBatch
+		if height >= s.maxHeadersPerBatch {
+			from = height - s.maxHeadersPerBatch + 1
 		}
 
 		headers, err := s.p2p.RequestHeadersByNumber(ctx, peerID, from, s.maxHeadersPerBatch)
@@ -219,7 +226,7 @@ func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, pe
 
 		for i := len(headers) - 1; i >= 0; i-- {
 			h := headers[i]
-			if ancestor != nil && h.BlockNumber < ancestor.BlockNumber {
+			if cursor != nil && h.BlockNumber < cursor.BlockNumber {
 				continue
 			}
 
@@ -228,16 +235,21 @@ func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, pe
 				return nil, err
 			}
 			if bytes.Equal(h.PreviousHash, localHeader.PreviousHash) {
-				ancestor = h
+				cursor = h
+				ancestorHash = h.PreviousHash
 			}
 		}
 
-		if ancestor.BlockNumber != 0 || height < s.maxHeadersPerBatch {
+		if ancestorHash != nil || height < s.maxHeadersPerBatch {
 			break
 		}
 
 		height -= s.maxHeadersPerBatch
 	}
 
-	return ancestor, nil
+	if ancestorHash == nil {
+		return nil, ErrNoCommonAncestor
+	}
+
+	return chain.GetHeaderByHash(ancestorHash)
 }

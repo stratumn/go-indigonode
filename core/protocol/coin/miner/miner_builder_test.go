@@ -42,12 +42,19 @@ type MinerBuilder struct {
 // good default values to build a test Miner.
 func NewMinerBuilder(t *testing.T) *MinerBuilder {
 	return &MinerBuilder{
+		chain:     &testutil.SimpleChain{},
 		engine:    &testutil.DummyEngine{},
 		gossip:    testutil.NewDummyGossip(t),
 		txpool:    &testutil.InMemoryTxPool{},
 		processor: &testutil.DummyProcessor{},
 		validator: &testutil.DummyValidator{},
 	}
+}
+
+// WithChain configures the builder to use the given chain.
+func (m *MinerBuilder) WithChain(chain chain.Chain) *MinerBuilder {
+	m.chain = chain
+	return m
 }
 
 // WithEngine configures the builder to use the given engine.

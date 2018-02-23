@@ -19,12 +19,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
+	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
-
+	"github.com/stratumn/alice/core/protocol/coin/processor/mockprocessor"
+	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
+	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,19 +127,22 @@ func TestMiner_Produce(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	testChain := &testutil.SimpleChain{}
+
 	// Start a miner with a txpool containing a valid transaction.
-	startMiner := func(p processor.Processor, e engine.Engine) *testutil.InMemoryTxPool {
+	startMiner := func(p processor.Processor, e engine.Engine) *Miner {
 		txpool := &testutil.InMemoryTxPool{}
 		txpool.AddTransaction(txtest.NewTransaction(t, 3, 1, 5))
 
 		m := NewMinerBuilder(t).
+			WithChain(testChain).
 			WithEngine(e).
 			WithTxPool(txpool).
 			WithProcessor(p).
 			Build()
 		go m.Start(ctx)
 
-		return txpool
+		return m
 	}
 
 	t.Run("Sends new valid block to processor", func(t *testing.T) {
@@ -164,7 +172,7 @@ func TestMiner_Produce(t *testing.T) {
 
 	t.Run("Aborts block if processor returns an error", func(t *testing.T) {
 		processor := testutil.NewInstrumentedProcessor(&testutil.FaultyProcessor{})
-		txpool := startMiner(processor, &testutil.DummyEngine{})
+		m := startMiner(processor, &testutil.DummyEngine{})
 
 		tassert.WaitUntil(
 			t,
@@ -176,8 +184,88 @@ func TestMiner_Produce(t *testing.T) {
 		// was correctly aborted.
 		tassert.WaitUntil(
 			t,
-			func() bool { return txpool.TxCount() > 0 },
+			func() bool { return m.txpool.(*testutil.InMemoryTxPool).TxCount() > 0 },
 			"txpool.TxCount() > 0",
 		)
+	})
+
+	t.Run("Aborts block if new head is received", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		e := mockengine.NewMockPoW(ctrl)
+		e.EXPECT().Prepare(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+
+		// Simulate a long block production that will be cancelled.
+		e.EXPECT().
+			Finalize(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&pb.Block{}, nil).
+			Do(func(context.Context, chain.Reader, *pb.Header, state.Reader, []*pb.Transaction) {
+				<-time.After(5 * time.Second)
+			})
+
+		// We'll receive a new block from an external source (gossip)
+		// and should start mining on it.
+		gossipedNewHead := &pb.Header{BlockNumber: 42}
+
+		// The block we produce should take into account the received new head.
+		p := mockprocessor.NewMockProcessor(ctrl)
+		p.EXPECT().
+			Process(
+				gomock.Any(),
+				&pb.Block{Header: &pb.Header{BlockNumber: gossipedNewHead.BlockNumber + 1}},
+				gomock.Any(),
+				gomock.Any()).
+			Return(nil)
+		processor := testutil.NewInstrumentedProcessor(p)
+
+		m := startMiner(processor, e)
+
+		// If the first Finalize is correctly cancelled, this second call to Finalize will be made.
+		e.EXPECT().
+			Finalize(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&pb.Block{Header: &pb.Header{BlockNumber: gossipedNewHead.BlockNumber + 1}}, nil)
+
+		assert.NoError(t, testChain.SetHead(&pb.Block{Header: gossipedNewHead}))
+		m.newBlockChan <- gossipedNewHead
+
+		tassert.WaitUntil(t, func() bool { return processor.ProcessedCount() == 1 }, "processor.ProcessedCount() == 1")
+	})
+
+	t.Run("Ignores new block if it's not the head", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		unblockProduceChan := make(chan struct{})
+		e := mockengine.NewMockPoW(ctrl)
+		e.EXPECT().Prepare(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		e.EXPECT().
+			Finalize(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&pb.Block{Header: &pb.Header{BlockNumber: 42}}, nil).
+			Do(func(context.Context, chain.Reader, *pb.Header, state.Reader, []*pb.Transaction) {
+				<-unblockProduceChan
+			})
+
+		p := mockprocessor.NewMockProcessor(ctrl)
+		p.EXPECT().
+			Process(
+				gomock.Any(),
+				&pb.Block{Header: &pb.Header{BlockNumber: 42}},
+				gomock.Any(),
+				gomock.Any()).
+			Return(nil)
+		processor := testutil.NewInstrumentedProcessor(p)
+
+		// We keep the chain head at a value different from the incoming blocks.
+		assert.NoError(t, testChain.SetHead(&pb.Block{Header: &pb.Header{BlockNumber: 41}}))
+
+		m := startMiner(processor, e)
+
+		m.newBlockChan <- &pb.Header{BlockNumber: 13}
+		m.newBlockChan <- &pb.Header{BlockNumber: 22}
+
+		unblockProduceChan <- struct{}{}
+
+		tassert.WaitUntil(t, func() bool { return processor.ProcessedCount() == 1 }, "processor.ProcessedCount() == 1")
 	})
 }

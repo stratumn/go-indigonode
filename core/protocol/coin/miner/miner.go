@@ -53,7 +53,8 @@ type Miner struct {
 	state     state.State
 	validator validator.Validator
 
-	txsChan chan []*pb.Transaction
+	newBlockChan chan *pb.Header
+	txsChan      chan []*pb.Transaction
 }
 
 // NewMiner creates a new miner that will start mining on the given chain.
@@ -68,14 +69,15 @@ func NewMiner(
 	g gossip.Gossip) *Miner {
 
 	miner := &Miner{
-		chain:     c,
-		engine:    e,
-		gossip:    g,
-		txpool:    txp,
-		processor: p,
-		state:     s,
-		validator: v,
-		txsChan:   make(chan []*pb.Transaction),
+		chain:        c,
+		engine:       e,
+		gossip:       g,
+		txpool:       txp,
+		processor:    p,
+		state:        s,
+		validator:    v,
+		newBlockChan: g.AddBlockListener(),
+		txsChan:      make(chan []*pb.Transaction),
 	}
 
 	return miner
@@ -113,7 +115,11 @@ miningLoop:
 		case txs := <-m.txsChan:
 			err := m.produce(ctx, txs)
 			if err != nil {
-				log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err.Error()})
+				if err == context.Canceled {
+					log.Event(ctx, "BlockProductionCanceled")
+				} else {
+					log.Event(ctx, "BlockProductionFailed", logging.Metadata{"error": err.Error()})
+				}
 			}
 		case <-ctx.Done():
 			miningErr = ctx.Err()
@@ -191,11 +197,43 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		return
 	}
 
-	block, err = m.engine.Finalize(ctx, m.chain, header, m.state, txs)
-	if err != nil {
-		return
-	}
+	powCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
+	powSuccessChan := make(chan *pb.Block)
+	powErrorChan := make(chan error)
+
+	go func() {
+		block, err = m.engine.Finalize(powCtx, m.chain, header, m.state, txs)
+		if err != nil {
+			powErrorChan <- err
+		} else {
+			log.Event(powCtx, "PowSuccess", &logging.Metadata{"nonce": block.Nonce()})
+			powSuccessChan <- block
+		}
+	}()
+
+	for {
+		select {
+		case h := <-m.newBlockChan:
+			if m.isCurrentHead(powCtx, h) {
+				err = context.Canceled
+				return
+			}
+		case block := <-powSuccessChan:
+			err = m.processNewBlock(ctx, block)
+			if err == nil {
+				log.Event(ctx, "NewBlockProduced", &logging.Metadata{"block": block.Loggable()})
+			}
+			return
+		case err = <-powErrorChan:
+			return
+		}
+	}
+}
+
+// processNewBlock takes a finalized block, processes it and publishes it.
+func (m *Miner) processNewBlock(ctx context.Context, block *pb.Block) error {
 	if err := m.gossip.PublishBlock(block); err != nil {
 		log.Event(ctx, "PublishBlockFailure", &logging.Metadata{
 			"error": err.Error(),
@@ -203,13 +241,7 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 		})
 	}
 
-	err = m.processor.Process(ctx, block, m.state, m.chain)
-	if err != nil {
-		return
-	}
-
-	log.Event(ctx, "NewBlockProduced", &logging.Metadata{"block": block.Loggable()})
-	return
+	return m.processor.Process(ctx, block, m.state, m.chain)
 }
 
 // putBackInTxPool puts back transactions into the txpool.
@@ -226,4 +258,16 @@ func (m *Miner) putBackInTxPool(ctx context.Context, txs []*pb.Transaction) {
 			}
 		}
 	}
+}
+
+// isCurrentHead returns true if the given header
+// is the current head of the chain.
+func (m *Miner) isCurrentHead(ctx context.Context, h *pb.Header) bool {
+	current, err := m.chain.CurrentHeader()
+	if err != nil {
+		log.Event(ctx, "CurrentHeaderError", &logging.Metadata{"error": err.Error()})
+		return false
+	}
+
+	return h == current
 }

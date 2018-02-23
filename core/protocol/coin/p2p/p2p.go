@@ -19,6 +19,7 @@ package p2p
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -89,7 +90,10 @@ func NewP2P(host ihost.Host, p protocol.ID) P2P {
 // RequestHeaderByHash requests the header for the given hash
 // on the main chain from peer peerID.
 func (p *p2p) RequestHeaderByHash(ctx context.Context, peerID peer.ID, hash []byte) (*pb.Header, error) {
-	e := log.EventBegin(ctx, "RequestHeaderByHash", logging.Metadata{"peerID": peerID, "hash": peerID.Loggable()})
+	e := log.EventBegin(ctx, "RequestHeaderByHash", logging.Metadata{
+		"peerID": peerID.Loggable(),
+		"hash":   hex.EncodeToString(hash),
+	})
 	defer e.Done()
 
 	req := pb.NewHeaderRequest(hash)
@@ -105,7 +109,10 @@ func (p *p2p) RequestHeaderByHash(ctx context.Context, peerID peer.ID, hash []by
 // RequestBlockByHash requests the header for the given hash
 // on the main chain from peer peerID.
 func (p *p2p) RequestBlockByHash(ctx context.Context, peerID peer.ID, hash []byte) (*pb.Block, error) {
-	e := log.EventBegin(ctx, "RequestBlockByHash", logging.Metadata{"peerID": peerID, "hash": peerID.Loggable()})
+	e := log.EventBegin(ctx, "RequestBlockByHash", logging.Metadata{
+		"peerID": peerID.Loggable(),
+		"hash":   hex.EncodeToString(hash),
+	})
 	defer e.Done()
 
 	req := pb.NewBlockRequest(hash)
@@ -121,7 +128,7 @@ func (p *p2p) RequestBlockByHash(ctx context.Context, peerID peer.ID, hash []byt
 // RequestHeadersByNumber requests a batch of headers reanging from `from`
 // and with length `amount`.
 func (p *p2p) RequestHeadersByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Header, error) {
-	e := log.EventBegin(ctx, "RequestHeadersByNumber", logging.Metadata{"peerID": peerID, "from": from, "amount": amount})
+	e := log.EventBegin(ctx, "RequestHeadersByNumber", logging.Metadata{"peerID": peerID.Loggable(), "from": from, "amount": amount})
 	defer e.Done()
 
 	req := pb.NewHeadersRequest(from, amount)
@@ -137,7 +144,7 @@ func (p *p2p) RequestHeadersByNumber(ctx context.Context, peerID peer.ID, from, 
 // RequestBlocksByNumber requests a batch of blocks reanging from `from`
 // and with length `amount`.
 func (p *p2p) RequestBlocksByNumber(ctx context.Context, peerID peer.ID, from, amount uint64) ([]*pb.Block, error) {
-	e := log.EventBegin(ctx, "RequestBlocksByNumber", logging.Metadata{"peerID": peerID, "from": from, "amount": amount})
+	e := log.EventBegin(ctx, "RequestBlocksByNumber", logging.Metadata{"peerID": peerID.Loggable(), "from": from, "amount": amount})
 	defer e.Done()
 
 	req := pb.NewBlocksRequest(from, amount)
@@ -193,7 +200,7 @@ func (p *p2p) request(ctx context.Context, pid peer.ID, message *pb.Request) (*p
 
 // RespondHeaderByHash responds to a HeaderRequest.
 func (p *p2p) RespondHeaderByHash(ctx context.Context, req *pb.HeaderRequest, enc Encoder, chain chain.Reader) error {
-	e := log.EventBegin(ctx, "RespondHeaderByHash", logging.Metadata{"hash": req.Hash})
+	e := log.EventBegin(ctx, "RespondHeaderByHash", logging.Metadata{"hash": hex.EncodeToString(req.Hash)})
 	defer e.Done()
 
 	h, err := chain.GetHeaderByHash(req.Hash)
@@ -232,7 +239,7 @@ func (p *p2p) RespondHeadersByNumber(ctx context.Context, req *pb.HeadersRequest
 
 // RespondBlockByHash responds to a BlockRequest.
 func (p *p2p) RespondBlockByHash(ctx context.Context, req *pb.BlockRequest, enc Encoder, chain chain.Reader) error {
-	e := log.EventBegin(ctx, "RespondBlockByHash", logging.Metadata{"hash": req.Hash})
+	e := log.EventBegin(ctx, "RespondBlockByHash", logging.Metadata{"hash": hex.EncodeToString(req.Hash)})
 	defer e.Done()
 	b, err := chain.GetBlockByHash(req.Hash)
 	if err != nil {

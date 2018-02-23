@@ -18,28 +18,33 @@ import (
 	"time"
 
 	ptypes "github.com/gogo/protobuf/types"
-	base58 "github.com/jbenet/go-base58"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 
 // GetGenesisBlock returns the genesis block and its hash.
 func GetGenesisBlock() (*pb.Block, []byte, error) {
+	pid, err := peer.IDB58Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU")
+	if err != nil {
+		return nil, nil, err
+	}
+
 	txs := []*pb.Transaction{
 		&pb.Transaction{
-			To:    base58.Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU"),
+			To:    []byte(pid),
 			Value: uint64(9000),
 		},
 		&pb.Transaction{
-			To:    base58.Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU"),
+			To:    []byte(pid),
 			Value: uint64(10000),
 		},
 		&pb.Transaction{
-			To:    base58.Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU"),
+			To:    []byte(pid),
 			Value: uint64(11000),
 		},
 		&pb.Transaction{
-			To:    base58.Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU"),
+			To:    []byte(pid),
 			Value: uint64(12000),
 		},
 	}

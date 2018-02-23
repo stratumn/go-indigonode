@@ -16,9 +16,11 @@ package coin
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -121,11 +123,12 @@ func (c *Coin) checkGenesisBlock(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	b, err := c.chain.GetBlockByHash(genHash)
-	if err != nil || b == nil {
+	_, err = c.chain.GetBlockByHash(genHash)
+	if errors.Cause(err) == chain.ErrBlockNotFound {
 		return c.processor.Process(ctx, genBlock, c.state, c.chain)
 	}
-	return nil
+
+	return err
 }
 
 // StreamHandler handles incoming messages from peers.
@@ -279,7 +282,7 @@ func (c *Coin) StartBlockGossip(ctx context.Context) error {
 
 // synchronize synchronizes the local chain.
 func (c *Coin) synchronize(ctx context.Context, hash []byte) error {
-	event := log.EventBegin(ctx, "Synchronize local chain", logging.Metadata{"hash": hash})
+	event := log.EventBegin(ctx, "Synchronize local chain", logging.Metadata{"hash": hex.EncodeToString(hash)})
 	defer event.Done()
 	syncCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -288,8 +291,8 @@ func (c *Coin) synchronize(ctx context.Context, hash []byte) error {
 
 	for {
 		select {
-		case b := <-resCh:
-			if b == nil {
+		case b, ok := <-resCh:
+			if !ok {
 				// No more blocks to process.
 				return nil
 			}

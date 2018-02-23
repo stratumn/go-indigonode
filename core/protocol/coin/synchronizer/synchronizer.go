@@ -133,22 +133,31 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 
 	cur, err := chainReader.CurrentHeader()
 	if err != nil && err != chain.ErrBlockNotFound {
-		go func() { errCh <- err }()
+		go func() {
+			errCh <- err
+			close(errCh)
+		}()
 		return resCh, errCh
 	}
 
 	// Find a peer that really has the block by getting it.
 	pid, err := s.getPeerForBlock(ctx, hash)
 	if err != nil {
-		go func() { errCh <- err }()
+		go func() {
+			errCh <- err
+			close(errCh)
+		}()
 		return resCh, errCh
 	}
 
 	num := uint64(0)
 	if cur != nil {
-		head, err := s.findCommonAncestor(cur.BlockNumber, pid, chainReader)
+		head, err := s.findCommonAncestor(ctx, cur.BlockNumber, pid, chainReader)
 		if err != nil {
-			go func() { errCh <- err }()
+			go func() {
+				errCh <- err
+				close(errCh)
+			}()
 			return resCh, errCh
 		}
 		num = head.BlockNumber + 1
@@ -159,20 +168,20 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 }
 
 // fetchBlocks gets blocks from the main branch of a given peer per batches.
-// All receivde blocks (and errors) eare written to channels.
+// All received blocks (and errors) eare written to channels.
 func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64, resCh chan<- *pb.Block, errCh chan<- error) {
 	for {
 		select {
 		case <-ctx.Done():
 			err := errors.WithStack(ctx.Err())
 			if err != nil {
-				go func() { errCh <- err }()
+				errCh <- err
 			}
 			return
 		default:
 			blocks, err := s.p2p.RequestBlocksByNumber(ctx, pid, from, s.maxBlocksPerBatch)
 			if err != nil {
-				go func() { errCh <- err }()
+				errCh <- err
 				return
 			}
 
@@ -182,7 +191,7 @@ func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64
 			}
 
 			if uint64(len(blocks)) < s.maxBlocksPerBatch {
-				resCh <- nil
+				close(resCh)
 				return
 			}
 
@@ -193,9 +202,7 @@ func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64
 
 // findCommonAncestor finds and returns the header of the first common ancestor
 // between a node's main chain and a given local header.
-func (s *synchronizer) findCommonAncestor(height uint64, peerID peer.ID, chain chain.Reader) (*pb.Header, error) {
-	ctx := context.Background()
-
+func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, peerID peer.ID, chain chain.Reader) (*pb.Header, error) {
 	ancestor := &pb.Header{}
 	// The common ancestor is necessarily below height.
 	// Get the 64 blocks before height.

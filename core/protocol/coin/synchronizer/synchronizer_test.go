@@ -37,7 +37,7 @@ import (
 func TestSynchronize(t *testing.T) {
 	/*
 		the node starts with
-				block0 -> block1
+				block0 -> block1 -> block2
 
 		after the sync we have
 				block0 -> block1 -> block2
@@ -60,11 +60,9 @@ func TestSynchronize(t *testing.T) {
 	c.SetHead(block1)
 
 	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: hash1}}
-	// hash1, err := coinutil.HashHeader(block1.Header)
 	c.AddBlock(block2)
 	c.SetHead(block2)
 
-	// c := mockchain.NewMockReader(ctrl)
 	p2p := mockp2p.NewMockP2P(ctrl)
 	dht := mocksynchronizer.NewMockContentProviderFinder(ctrl)
 	sync := NewSynchronizer(p2p, dht, OptMaxBatchSizes(2))

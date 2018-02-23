@@ -20,7 +20,6 @@ package synchronizer
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -175,7 +174,6 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 // fetchBlocks gets blocks from the main branch of a given peer per batches.
 // All received blocks (and errors) are written to channels.
 func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64, resCh chan<- *pb.Block, errCh chan<- error) {
-	fmt.Println("Get blocks ", from)
 	for {
 		select {
 		case <-ctx.Done():

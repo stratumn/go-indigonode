@@ -104,7 +104,9 @@ func NewCoin(
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
-	c.checkGenesisBlock(ctx)
+	if err := c.checkGenesisBlock(ctx); err != nil {
+		return err
+	}
 
 	if err := c.StartTxGossip(ctx); err != nil {
 		return err

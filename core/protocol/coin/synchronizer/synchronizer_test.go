@@ -49,11 +49,13 @@ func TestSynchronize(t *testing.T) {
 	c := &testutil.SimpleChain{}
 	block0 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
 	hash0, err := coinutil.HashHeader(block0.Header)
+	assert.NoError(t, err, "HashHeader()")
 	c.AddBlock(block0)
 	c.SetHead(block0)
 
 	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: hash0}}
 	hash1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "HashHeader()")
 	c.AddBlock(block1)
 	c.SetHead(block1)
 
@@ -69,12 +71,15 @@ func TestSynchronize(t *testing.T) {
 
 	block1bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: hash0}}
 	hash1bis, err := coinutil.HashHeader(block1bis.Header)
+	assert.NoError(t, err, "HashHeader()")
 
 	block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: hash1bis}}
 	hash2bis, err := coinutil.HashHeader(block2bis.Header)
+	assert.NoError(t, err, "HashHeader()")
 
 	block3bis := &pb.Block{Header: &pb.Header{BlockNumber: 3, PreviousHash: hash2bis}}
 	hash3bis, err := coinutil.HashHeader(block3bis.Header)
+	assert.NoError(t, err, "HashHeader()")
 
 	assert.NoError(t, err, "hex.DecodeString()")
 	cid, err := cid.Cast(hash3bis)

@@ -75,7 +75,7 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	if _, err := ch.GetBlock(mh, block.BlockNumber()); err != nil && err != chain.ErrBlockNotFound {
 		return err
 	} else if err == nil {
-		log.Event(context.Background(), "blockAlreadyProcessed", logging.Metadata{"hash": mh.String(), "height": block.BlockNumber()})
+		log.Event(context.Background(), "BlockAlreadyProcessed", logging.Metadata{"hash": mh.String(), "height": block.BlockNumber()})
 		return nil
 	}
 

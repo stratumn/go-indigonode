@@ -23,6 +23,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -50,7 +52,8 @@ type Gossip interface {
 	ListenTx(ctx context.Context, processTx func(*pb.Transaction) error) error
 	// ListenBlock passes incoming blocks to a callback.
 	// Only valid blocks will be passed to the callback.
-	ListenBlock(ctx context.Context, processBlock func(*pb.Block) error) error
+	// A synchronous callback is given to sync the local chain.
+	ListenBlock(ctx context.Context, processBlock func(*pb.Block) error, sync func([]byte) error) error
 	// PublishTx sends a new transaction to the gossip.
 	PublishTx(tx *pb.Transaction) error
 	// PublishBlock sends a new block to the gossip.
@@ -69,6 +72,7 @@ type gossip struct {
 	host      host.Host
 	pubsub    *floodsub.PubSub
 	state     state.Reader
+	chain     chain.Reader
 	validator validator.Validator
 
 	listenersMu    sync.RWMutex
@@ -83,12 +87,14 @@ func NewGossip(
 	h host.Host,
 	p *floodsub.PubSub,
 	s state.Reader,
+	c chain.Reader,
 	v validator.Validator,
 ) Gossip {
 	return &gossip{
 		host:      h,
 		pubsub:    p,
 		state:     s,
+		chain:     c,
 		validator: v,
 		subs:      make(map[string]*floodsub.Subscription),
 	}
@@ -147,8 +153,8 @@ func (g *gossip) ListenTx(ctx context.Context, processTx func(*pb.Transaction) e
 }
 
 // ListenBlock subscribes to block topic and listens to incoming blocks.
-func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) error) error {
-	if err := g.subscribeBlock(); err != nil {
+func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) error, sync func([]byte) error) error {
+	if err := g.subscribeBlock(sync); err != nil {
 		return err
 	}
 
@@ -219,11 +225,25 @@ func (g *gossip) subscribeTx() error {
 }
 
 // subscribeBlock subscribes to the block topic.
-func (g *gossip) subscribeBlock() error {
+func (g *gossip) subscribeBlock(sync func([]byte) error) error {
 	return g.subscribe(BlockTopicName, func(ctx context.Context, m *floodsub.Message) bool {
 		block := &pb.Block{}
 		if err := block.Unmarshal(m.GetData()); err != nil {
 			log.Event(ctx, "InvalidBlockFormat", logging.Metadata{"error": err.Error()})
+			return false
+		}
+
+		// First thing is to sync with the given branch if we don't have it.
+		// TODO: we could choose to sync with it only if it is longer than ours.
+		_, err := g.chain.GetBlockByHash(block.PreviousHash())
+		if err == chain.ErrBlockNotFound {
+			// Synchronize.
+			err := sync(block.PreviousHash())
+			if err != nil {
+				return false
+			}
+		} else if err != nil {
+			log.Event(ctx, "ChainUnavailable", logging.Metadata{"error": err.Error()})
 			return false
 		}
 

@@ -617,7 +617,7 @@ func NewBlockchainBlocksReflector() Reflector {
 			return fmt.Sprintf("\n%s", block.String()), nil
 		},
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
-			return nil, ErrUnsupportedReflectType
+			return nil, errors.WithStack(ErrUnsupportedReflectType)
 		},
 	}
 }

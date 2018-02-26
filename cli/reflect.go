@@ -622,6 +622,37 @@ func NewBlockchainBlocksReflector() Reflector {
 	}
 }
 
+// NewBlockchainTransactionsReflector creates a reflector for
+// blockchains transactions.
+func NewBlockchainTransactionsReflector() Reflector {
+	return BasicReflector{
+		Zero: []byte{},
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_MESSAGE {
+				return false
+			}
+			if d.GetLabel() != descriptor.FieldDescriptorProto_LABEL_REPEATED {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldBlockchainTxs)
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			tx := v.(*dynamic.Message)
+			return fmt.Sprintf("\n%s", tx.String()), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			return nil, errors.WithStack(ErrUnsupportedReflectType)
+		},
+	}
+}
+
 // DefReflectors are the default reflectors used by NewServerReflector.
 var DefReflectors = []Reflector{
 	NewTimeReflector(),
@@ -639,6 +670,7 @@ var DefReflectors = []Reflector{
 	NewBytesReflector(),
 	NewEnumReflector(),
 	NewBlockchainBlocksReflector(),
+	NewBlockchainTransactionsReflector(),
 }
 
 // ServerReflector reflects commands from a gRPC server.

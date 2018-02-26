@@ -56,7 +56,7 @@ message AccountReq {
 
 // The request to get part of the blockchain.
 message BlockchainReq {
-    uint32 block_number = 1 [
+    uint64 block_number = 1 [
         (stratumn.alice.grpc.ext.field_desc) = "Block number to lookup. If ommitted, defaults to the last block."
     ];
     bytes header_hash = 2 [
@@ -70,7 +70,8 @@ message BlockchainReq {
 // The response to a request for blockchain blocks.
 message BlockchainResp {
     repeated stratumn.alice.pb.coin.Block blocks = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Blockchain blocks."
+        (stratumn.alice.grpc.ext.field_desc) = "Blockchain blocks.",
+        (stratumn.alice.grpc.ext.field_blockchain_blocks) = true
     ];
 }
 

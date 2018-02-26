@@ -36,4 +36,5 @@ extend google.protobuf.FieldOptions {
   bool field_bytesize = 50130;
   bool field_byterate = 50131;
   bool field_blockchain_blocks = 50140;
+  bool field_blockchain_txs = 50141;  
 }

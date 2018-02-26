@@ -83,3 +83,26 @@ func (m *InMemoryTxPool) PopTransaction() *pb.Transaction {
 func (m *InMemoryTxPool) PopCount() uint32 {
 	return m.popCount
 }
+
+// Peek returns the n first transactions from the pool.
+func (m *InMemoryTxPool) Peek(n uint32) []*pb.Transaction {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if uint32(len(m.txs)) < n {
+		n = uint32(len(m.txs))
+	}
+
+	res := make([]*pb.Transaction, n)
+	copy(res, m.txs)
+
+	return res
+}
+
+// Pending returns the number of transactions.
+func (m *InMemoryTxPool) Pending() uint64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return uint64(len(m.txs))
+}

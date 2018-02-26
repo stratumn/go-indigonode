@@ -120,3 +120,25 @@ func TestGRPCServer_Blockchain(t *testing.T) {
 	assert.Equal(t, blockchain.Blocks[0].BlockNumber(), uint64(13), "BlockNumber()")
 	assert.Equal(t, blockchain.Blocks[1].BlockNumber(), uint64(14), "BlockNumber()")
 }
+
+func TestGRPCServer_TransactionPool(t *testing.T) {
+	server := &grpcServer{
+		GetTransactionPool: func(uint32) (uint64, []*pb.Transaction, error) {
+			return 42, []*pb.Transaction{
+				&pb.Transaction{Value: 12},
+				&pb.Transaction{Value: 15},
+			}, nil
+		},
+	}
+
+	txPool, err := server.TransactionPool(
+		context.Background(),
+		&rpcpb.TransactionPoolReq{Count: 2},
+	)
+
+	assert.NoError(t, err, "server.TransactionPool()")
+	assert.Equal(t, uint64(42), txPool.Count, "Count")
+	assert.Len(t, txPool.Txs, 2, "txPool.Txs")
+	assert.Equal(t, uint64(12), txPool.Txs[0].Value, "Value")
+	assert.Equal(t, uint64(15), txPool.Txs[1].Value, "Value")
+}

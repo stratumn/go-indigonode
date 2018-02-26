@@ -39,9 +39,14 @@ service Coin {
         option (stratumn.alice.grpc.ext.method_desc) = "Get the transaction history of an account";
     }
 
+    // View transaction pool.
+    rpc TransactionPool (TransactionPoolReq) returns (TransactionPoolResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "View transaction pool";        
+    }
+
     // Get blocks from the blockchain.
     rpc Blockchain (BlockchainReq) returns (BlockchainResp) {
-        option (stratumn.alice.grpc.ext.method_desc) = "Get blockchain blocks";         
+        option (stratumn.alice.grpc.ext.method_desc) = "Get blockchain blocks";
     }
 }
 
@@ -88,5 +93,23 @@ message AccountTransactionsReq {
       (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
       (stratumn.alice.grpc.ext.field_required) = true,
       (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+}
+
+// The request to view the transaction pool.
+message TransactionPoolReq {
+    uint32 count = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Number of transactions returned. If ommitted, defaults to one."
+    ];
+}
+
+// The response to a request to view the transaction pool.
+message TransactionPoolResp {
+    uint64 count = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Number of transactions in the pool."
+    ];
+    repeated stratumn.alice.pb.coin.Transaction txs = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Blockchain transactions.",
+        (stratumn.alice.grpc.ext.field_blockchain_txs) = true
     ];
 }

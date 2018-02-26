@@ -308,6 +308,33 @@ func TestGetBlockchain(t *testing.T) {
 	})
 }
 
+func TestGetTransactionPool(t *testing.T) {
+	pool := &ctestutil.InMemoryTxPool{}
+	coin := NewCoinBuilder(t).WithTxPool(pool).Build(t)
+
+	alice := []byte("Alice")
+	bob := []byte("Bob")
+
+	pool.AddTransaction(&pb.Transaction{Value: 42, From: alice, To: bob})
+	pool.AddTransaction(&pb.Transaction{Value: 41, From: bob, To: alice})
+	pool.AddTransaction(&pb.Transaction{Value: 43, From: alice, To: alice})
+	pool.AddTransaction(&pb.Transaction{Value: 45, From: alice, To: bob})
+
+	t.Run("missing-count", func(t *testing.T) {
+		txCount, txs, err := coin.GetTransactionPool(0)
+		assert.NoError(t, err, "coin.GetTransactionPool()")
+		assert.Equal(t, uint64(4), txCount, "txCount")
+		assert.Len(t, txs, 1)
+	})
+
+	t.Run("huge-count", func(t *testing.T) {
+		txCount, txs, err := coin.GetTransactionPool(42000)
+		assert.NoError(t, err, "coin.GetTransactionPool()")
+		assert.Equal(t, uint64(4), txCount, "txCount")
+		assert.Len(t, txs, 4)
+	})
+}
+
 func TestCoinMining_SingleNode(t *testing.T) {
 	t.Run("start-stop-mining", func(t *testing.T) {
 		c := NewCoinBuilder(t).WithMinerID("alice").Build(t)

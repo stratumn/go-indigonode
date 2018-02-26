@@ -35,6 +35,14 @@ type TxPool interface {
 	// The txpool implementations can chose to prioritize fairness,
 	// miner rewards, or anything else they come up with.
 	PopTransaction() *pb.Transaction
+
+	// Peek peeks at n transactions from the txpool
+	// without modifying it.
+	Peek(n uint32) []*pb.Transaction
+
+	// Pending returns the number of transactions
+	// waiting to be processed.
+	Pending() uint64
 }
 
 // GreedyInMemoryTxPool is a very simple txpool that stores queued transactions
@@ -74,4 +82,27 @@ func (m *GreedyInMemoryTxPool) PopTransaction() *pb.Transaction {
 	m.txs[highestFeeIndex] = m.txs[len(m.txs)-1]
 	m.txs = m.txs[:len(m.txs)-1]
 	return highestFee
+}
+
+// Peek returns the n oldest transactions from the pool.
+func (m *GreedyInMemoryTxPool) Peek(n uint32) []*pb.Transaction {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if uint32(len(m.txs)) < n {
+		n = uint32(len(m.txs))
+	}
+
+	res := make([]*pb.Transaction, n)
+	copy(res, m.txs)
+
+	return res
+}
+
+// Pending returns the number of transactions.
+func (m *GreedyInMemoryTxPool) Pending() uint64 {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return uint64(len(m.txs))
 }

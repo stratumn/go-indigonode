@@ -592,6 +592,36 @@ func NewMaddrReflector() Reflector {
 	}
 }
 
+// NewBlockchainBlocksReflector creates a reflector for blockchains blocks.
+func NewBlockchainBlocksReflector() Reflector {
+	return BasicReflector{
+		Zero: []byte{},
+		Checker: func(d *desc.FieldDescriptor) bool {
+			if d.GetType() != descriptor.FieldDescriptorProto_TYPE_MESSAGE {
+				return false
+			}
+			if d.GetLabel() != descriptor.FieldDescriptorProto_LABEL_REPEATED {
+				return false
+			}
+
+			opts := d.GetFieldOptions()
+			if opts == nil {
+				return false
+			}
+
+			ex, err := proto.GetExtension(opts, ext.E_FieldBlockchainBlocks)
+			return err == nil && *ex.(*bool)
+		},
+		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
+			block := v.(*dynamic.Message)
+			return fmt.Sprintf("\n%s", block.String()), nil
+		},
+		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
+			return nil, errors.WithStack(ErrUnsupportedReflectType)
+		},
+	}
+}
+
 // DefReflectors are the default reflectors used by NewServerReflector.
 var DefReflectors = []Reflector{
 	NewTimeReflector(),
@@ -608,6 +638,7 @@ var DefReflectors = []Reflector{
 	NewUint64Reflector(),
 	NewBytesReflector(),
 	NewEnumReflector(),
+	NewBlockchainBlocksReflector(),
 }
 
 // ServerReflector reflects commands from a gRPC server.

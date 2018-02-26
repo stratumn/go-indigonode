@@ -100,6 +100,15 @@ func NewTransaction(t *testing.T, value, fee, nonce uint64) *pb.Transaction {
 	return tx
 }
 
+// NewTransactions creates a set of random transactions.
+func NewTransactions(t *testing.T, txCount int) []*pb.Transaction {
+	txs := make([]*pb.Transaction, txCount)
+	for i := 0; i < txCount; i++ {
+		txs[i] = NewTransaction(t, 4, 2, uint64(i))
+	}
+	return txs
+}
+
 // NewRewardTransaction creates a new reward transaction.
 func NewRewardTransaction(t *testing.T, value uint64) *pb.Transaction {
 	return &pb.Transaction{

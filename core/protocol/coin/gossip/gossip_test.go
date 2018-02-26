@@ -239,10 +239,8 @@ func TestGossip(t *testing.T) {
 
 		// Check that we asked for the sync.
 		tassert.WaitUntil(t, func() bool {
-			select {
-			case h := <-hashCh1:
-				return bytes.Equal(h, []byte("prev"))
-			}
+			h := <-hashCh1
+			return bytes.Equal(h, []byte("prev"))
 		}, "zou")
 	})
 

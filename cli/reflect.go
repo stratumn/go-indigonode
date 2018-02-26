@@ -614,7 +614,7 @@ func NewBlockchainBlocksReflector() Reflector {
 		},
 		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
 			block := v.(*dynamic.Message)
-			return fmt.Sprintf("\n%s", block.String()), nil
+			return fmt.Sprintf("\n%v", block), nil
 		},
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
 			return nil, errors.WithStack(ErrUnsupportedReflectType)
@@ -645,7 +645,7 @@ func NewBlockchainTransactionsReflector() Reflector {
 		},
 		Encoder: func(d *desc.FieldDescriptor, v interface{}) (string, error) {
 			tx := v.(*dynamic.Message)
-			return fmt.Sprintf("\n%s", tx.String()), nil
+			return fmt.Sprintf("\n%v", tx), nil
 		},
 		Decoder: func(d *desc.FieldDescriptor, s string) (interface{}, error) {
 			return nil, errors.WithStack(ErrUnsupportedReflectType)

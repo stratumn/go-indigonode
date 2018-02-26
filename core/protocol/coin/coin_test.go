@@ -224,15 +224,13 @@ func TestAppendBlock(t *testing.T) {
 	defer ctrl.Finish()
 	proc := mockprocessor.NewMockProcessor(ctrl)
 	val := mockvalidator.NewMockValidator(ctrl)
-	eng := mockengine.NewMockEngine(ctrl)
-	coin := &Coin{
-		chain:     ch,
-		state:     ctestutil.NewSimpleState(t),
-		gossip:    ctestutil.NewDummyGossip(t),
-		processor: proc,
-		validator: val,
-		engine:    eng,
-	}
+	eng := mockengine.NewMockPoW(ctrl)
+	coin := NewCoinBuilder(t).
+		WithChain(ch).
+		WithProcessor(proc).
+		WithValidator(val).
+		WithEngine(eng).
+		Build(t)
 
 	err = coin.Run(context.Background())
 	assert.NoError(t, err, "coin.Run()")
@@ -259,7 +257,7 @@ func TestSynchronize(t *testing.T) {
 	defer ctrl.Finish()
 	proc := mockprocessor.NewMockProcessor(ctrl)
 	val := mockvalidator.NewMockValidator(ctrl)
-	eng := mockengine.NewMockEngine(ctrl)
+	eng := mockengine.NewMockPoW(ctrl)
 	sync := mocksynchronizer.NewMockSynchronizer(ctrl)
 
 	tests := map[string]func(*testing.T, *Coin){
@@ -318,15 +316,13 @@ func TestSynchronize(t *testing.T) {
 
 	for n, test := range tests {
 		t.Run(n, func(t *testing.T) {
-			coin := &Coin{
-				chain:        ch,
-				state:        ctestutil.NewSimpleState(t),
-				gossip:       ctestutil.NewDummyGossip(t),
-				processor:    proc,
-				validator:    val,
-				engine:       eng,
-				synchronizer: sync,
-			}
+			coin := NewCoinBuilder(t).
+				WithChain(ch).
+				WithProcessor(proc).
+				WithValidator(val).
+				WithEngine(eng).
+				WithSynchronizer(sync).
+				Build(t)
 
 			err = coin.Run(context.Background())
 			assert.NoError(t, err, "coin.Run()")

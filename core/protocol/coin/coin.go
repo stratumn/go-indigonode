@@ -208,6 +208,8 @@ func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) 
 }
 
 // GetBlockchain gets blocks from the blockchain.
+// It returns the blocks in decreasing block number,
+// starting from the block requested.
 func (c *Coin) GetBlockchain(blockNumber uint64, hash []byte, count uint32) ([]*pb.Block, error) {
 	var start *pb.Block
 	var err error

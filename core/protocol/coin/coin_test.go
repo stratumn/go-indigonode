@@ -299,6 +299,13 @@ func TestGetBlockchain(t *testing.T) {
 		assert.Equal(t, block2, blocks[0])
 		assert.Equal(t, block1, blocks[1])
 	})
+
+	t.Run("head", func(t *testing.T) {
+		blocks, err := coin.GetBlockchain(0, nil, 1)
+		require.NoError(t, err, "coin.GetBlockchain()")
+		require.Len(t, blocks, 1, "len(blocks)")
+		assert.Equal(t, block2, blocks[0])
+	})
 }
 
 func TestCoinMining_SingleNode(t *testing.T) {

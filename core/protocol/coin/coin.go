@@ -207,6 +207,15 @@ func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) 
 	return transactions, nil
 }
 
+// GetTransactionPool returns the size of the transaction pool
+// and a few random transactions from the pool.
+func (c *Coin) GetTransactionPool(count uint32) (uint64, []*pb.Transaction, error) {
+	return 42, []*pb.Transaction{
+		&pb.Transaction{Fee: 2, Value: 42, From: []byte("Alice"), To: []byte("Bob")},
+		&pb.Transaction{Fee: 1, Value: 5, From: []byte("Bob"), To: []byte("Alice")},
+	}, nil
+}
+
 // GetBlockchain gets blocks from the blockchain.
 // It returns the blocks in decreasing block number,
 // starting from the block requested.

@@ -31,6 +31,7 @@ type grpcServer struct {
 	AddTransaction         func(*pb.Transaction) error
 	GetAccountTransactions func([]byte) ([]*pb.Transaction, error)
 	GetBlockchain          func(uint64, []byte, uint32) ([]*pb.Block, error)
+	GetTransactionPool     func(uint32) (uint64, []*pb.Transaction, error)
 }
 
 // Account returns an account.
@@ -81,6 +82,15 @@ func (s grpcServer) AccountTransactions(req *rpcpb.AccountTransactionsReq, ss rp
 		}
 	}
 	return nil
+}
+
+func (s grpcServer) TransactionPool(ctx context.Context, req *rpcpb.TransactionPoolReq) (*rpcpb.TransactionPoolResp, error) {
+	txCount, txs, err := s.GetTransactionPool(req.Count)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.TransactionPoolResp{Count: txCount, Txs: txs}, nil
 }
 
 func (s grpcServer) Blockchain(ctx context.Context, req *rpcpb.BlockchainReq) (*rpcpb.BlockchainResp, error) {

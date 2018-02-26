@@ -29,7 +29,7 @@ func NewDummyGossip(t *testing.T) gossip.Gossip {
 	mockGossip := mockgossip.NewMockGossip(mockCtrl)
 
 	mockGossip.EXPECT().ListenTx(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
-	mockGossip.EXPECT().ListenBlock(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+	mockGossip.EXPECT().ListenBlock(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 	mockGossip.EXPECT().PublishTx(gomock.Any()).AnyTimes().Return(nil)
 	mockGossip.EXPECT().PublishBlock(gomock.Any()).AnyTimes().Return(nil)
 	mockGossip.EXPECT().AddBlockListener().AnyTimes().Return(make(chan *pb.Header))

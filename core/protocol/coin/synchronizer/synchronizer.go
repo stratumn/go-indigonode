@@ -128,8 +128,10 @@ func (s *synchronizer) getPeerForBlock(ctx context.Context, hash []byte) (peer.I
 	return "", ErrNoProvider
 }
 
-// Synchronize syncs the local chain with the network. Load the
-// missing blocks and process them.
+// Synchronize syncs the local chain with the network.
+// The given hash tells where to start the sync from.
+// e.g, genesis block hash for full resync when a new node comes.
+// Returns the blocks in a channel.
 func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader chain.Reader) (<-chan *pb.Block, <-chan error) {
 	resCh := make(chan *pb.Block)
 	errCh := make(chan error)
@@ -189,7 +191,7 @@ func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64
 				return
 			}
 
-			// TODO: Should we order the blocks first or assume they are ordered ?
+			// We assume blocks are ordered.
 			for _, block := range blocks {
 				resCh <- block
 			}

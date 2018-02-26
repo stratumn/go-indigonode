@@ -284,17 +284,6 @@ func (c *Coin) AppendBlock(ctx context.Context, block *pb.Block) error {
 		return err
 	}
 
-	// Check that we have the previous block.
-	// If not, sync with the network to get it.
-	_, err = c.chain.GetBlockByHash(block.PreviousHash())
-	if err == chain.ErrBlockNotFound {
-		if err := c.synchronize(ctx, block.PreviousHash()); err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-
 	return c.processor.Process(ctx, block, c.state, c.chain)
 }
 
@@ -313,19 +302,24 @@ func (c *Coin) StartTxGossip(ctx context.Context) error {
 // StartBlockGossip starts gossiping blocks.
 func (c *Coin) StartBlockGossip(ctx context.Context) error {
 	log.Event(ctx, "StartBlockGossip")
-	return c.gossip.ListenBlock(ctx, func(block *pb.Block) error {
-		return c.AppendBlock(ctx, block)
-	})
+
+	return c.gossip.ListenBlock(
+		ctx,
+		func(block *pb.Block) error {
+			return c.AppendBlock(ctx, block)
+		},
+		func(h []byte) error {
+			return c.synchronize(ctx, h)
+		},
+	)
 }
 
 // synchronize synchronizes the local chain.
 func (c *Coin) synchronize(ctx context.Context, hash []byte) error {
 	event := log.EventBegin(ctx, "Synchronize local chain", logging.Metadata{"hash": hex.EncodeToString(hash)})
 	defer event.Done()
-	syncCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
-	resCh, errCh := c.synchronizer.Synchronize(syncCtx, hash, c.chain)
+	resCh, errCh := c.synchronizer.Synchronize(ctx, hash, c.chain)
 
 	for {
 		select {

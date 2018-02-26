@@ -15,10 +15,13 @@
 package gossip
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -62,8 +65,9 @@ func newGossip(ctx context.Context, t *testing.T, h host.Host) (Gossip, error) {
 	}
 
 	s := state.NewState(db)
+	c := chain.NewChainDB(db)
 
-	return NewGossip(h, p, s, mockValidator), nil
+	return NewGossip(h, p, s, c, mockValidator), nil
 }
 
 func TestGossip(t *testing.T) {
@@ -89,6 +93,9 @@ func TestGossip(t *testing.T) {
 
 	c1 := make(chan msg)
 	c2 := make(chan msg)
+
+	hashCh1 := make(chan []byte)
+	hashCh2 := make(chan []byte)
 
 	t.Run("SubscribeListen", func(t *testing.T) {
 		topic := "coin.test"
@@ -155,6 +162,9 @@ func TestGossip(t *testing.T) {
 				data:  b,
 			}
 			return nil
+		}, func(h []byte) error {
+			go func() { hashCh1 <- h }()
+			return nil
 		})
 		assert.NoError(t, err)
 
@@ -163,6 +173,9 @@ func TestGossip(t *testing.T) {
 				topic: BlockTopicName,
 				data:  b,
 			}
+			return nil
+		}, func(h []byte) error {
+			go func() { hashCh2 <- h }()
 			return nil
 		})
 		assert.NoError(t, err)
@@ -214,7 +227,7 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("PublishBlock", func(t *testing.T) {
-		b := &pb.Block{}
+		b := &pb.Block{Header: &pb.Header{PreviousHash: []byte("prev")}}
 		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
 
 		err = g2.PublishBlock(b)
@@ -223,10 +236,18 @@ func TestGossip(t *testing.T) {
 
 		assertReceive(t, c1, b)
 		assertNotReceive(t, c2)
+
+		// Check that we asked for the sync.
+		tassert.WaitUntil(t, func() bool {
+			select {
+			case h := <-hashCh1:
+				return bytes.Equal(h, []byte("prev"))
+			}
+		}, "zou")
 	})
 
 	t.Run("PublishInvalidBlock", func(t *testing.T) {
-		b := &pb.Block{}
+		b := &pb.Block{Header: &pb.Header{PreviousHash: []byte("prev")}}
 		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(validator.ErrTooManyTxs)
 
 		err = g1.PublishBlock(b)

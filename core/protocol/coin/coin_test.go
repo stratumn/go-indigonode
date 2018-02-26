@@ -16,7 +16,13 @@ package coin
 
 import (
 	"context"
+	"errors"
 	"testing"
+
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer/mocksynchronizer"
+
+	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
+	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/p2p"
@@ -27,7 +33,6 @@ import (
 	mockp2p "github.com/stratumn/alice/core/protocol/coin/p2p/mockp2p"
 	"github.com/stratumn/alice/core/protocol/coin/processor/mockprocessor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
-	"github.com/stratumn/alice/core/protocol/coin/synchronizer/mocksynchronizer"
 	ctestutil "github.com/stratumn/alice/core/protocol/coin/testutil"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
@@ -207,7 +212,7 @@ func TestGetAccountTransactions(t *testing.T) {
 	assert.Empty(t, actual, "c.GetAccountTransactions(alice)")
 }
 
-func TestAppendWithSync(t *testing.T) {
+func TestAppendBlock(t *testing.T) {
 	genBlock, _, err := GetGenesisBlock()
 	assert.NoError(t, err, "GetGenesisBlock()")
 	ch := &ctestutil.SimpleChain{}
@@ -218,15 +223,15 @@ func TestAppendWithSync(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	proc := mockprocessor.NewMockProcessor(ctrl)
-	sync := mocksynchronizer.NewMockSynchronizer(ctrl)
-	coin := Coin{
-		chain:        ch,
-		state:        ctestutil.NewSimpleState(t),
-		gossip:       ctestutil.NewDummyGossip(t),
-		synchronizer: sync,
-		processor:    proc,
-		validator:    &ctestutil.DummyValidator{},
-		engine:       &ctestutil.DummyEngine{},
+	val := mockvalidator.NewMockValidator(ctrl)
+	eng := mockengine.NewMockEngine(ctrl)
+	coin := &Coin{
+		chain:     ch,
+		state:     ctestutil.NewSimpleState(t),
+		gossip:    ctestutil.NewDummyGossip(t),
+		processor: proc,
+		validator: val,
+		engine:    eng,
 	}
 
 	err = coin.Run(context.Background())
@@ -234,20 +239,101 @@ func TestAppendWithSync(t *testing.T) {
 
 	block := &pb.Block{Header: &pb.Header{PreviousHash: []byte("plap")}}
 
-	resCh := make(chan *pb.Block)
-	errCh := make(chan error)
+	val.EXPECT().ValidateBlock(block, gomock.Any()).Return(nil).Times(1)
+	proc.EXPECT().Process(gomock.Any(), block, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	eng.EXPECT().VerifyHeader(gomock.Any(), block.Header).Return(nil).Times(1)
 
-	done := false
-	sync.EXPECT().Synchronize(gomock.Any(), block.PreviousHash(), gomock.Any()).Return(resCh, errCh).Times(1)
-	proc.EXPECT().Process(gomock.Any(), block, gomock.Any(), gomock.Any()).Return(nil).Do(func(_, _, _, _ interface{}) { done = true }).Times(1)
+	err = coin.AppendBlock(context.Background(), block)
+	assert.NoError(t, err, "AppendBlock()")
+}
 
-	go func() {
-		err = coin.AppendBlock(context.Background(), block)
-		assert.NoError(t, err, "AppendBlock()")
-	}()
+func TestSynchronize(t *testing.T) {
+	genBlock, _, err := GetGenesisBlock()
+	assert.NoError(t, err, "GetGenesisBlock()")
+	ch := &ctestutil.SimpleChain{}
+	ch.AddBlock(genBlock)
+	ch.SetHead(genBlock)
 
-	close(resCh)
-	tassert.WaitUntil(t, func() bool { return done }, "Process() done")
+	// Run coin.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	proc := mockprocessor.NewMockProcessor(ctrl)
+	val := mockvalidator.NewMockValidator(ctrl)
+	eng := mockengine.NewMockEngine(ctrl)
+	sync := mocksynchronizer.NewMockSynchronizer(ctrl)
+
+	tests := map[string]func(*testing.T, *Coin){
+		"append-blocks-in-order": func(t *testing.T, coin *Coin) {
+			block1 := &pb.Block{Header: &pb.Header{PreviousHash: []byte("plap")}}
+			block2 := &pb.Block{Header: &pb.Header{PreviousHash: []byte("zou")}}
+
+			hash := []byte("plap")
+			resCh := make(chan *pb.Block)
+			errCh := make(chan error)
+
+			gomock.InOrder(
+				sync.EXPECT().Synchronize(gomock.Any(), hash, coin.chain).Return(resCh, errCh).Times(1),
+				val.EXPECT().ValidateBlock(block1, gomock.Any()).Return(nil).Times(1),
+				eng.EXPECT().VerifyHeader(gomock.Any(), block1.Header).Return(nil).Times(1),
+				proc.EXPECT().Process(gomock.Any(), block1, gomock.Any(), gomock.Any()).Return(nil).Times(1),
+				val.EXPECT().ValidateBlock(block2, gomock.Any()).Return(nil).Times(1),
+				eng.EXPECT().VerifyHeader(gomock.Any(), block2.Header).Return(nil).Times(1),
+				proc.EXPECT().Process(gomock.Any(), block2, gomock.Any(), gomock.Any()).Return(nil).Times(1),
+			)
+
+			go func() {
+				resCh <- block1
+				resCh <- block2
+				close(resCh)
+			}()
+
+			err = coin.synchronize(context.Background(), hash)
+			assert.NoError(t, err, "synchronize()")
+		},
+		"sync-fail": func(t *testing.T, coin *Coin) {
+			block := &pb.Block{Header: &pb.Header{PreviousHash: []byte("plap")}}
+
+			hash := []byte("plap")
+			resCh := make(chan *pb.Block)
+			errCh := make(chan error)
+
+			gomock.InOrder(
+				sync.EXPECT().Synchronize(gomock.Any(), hash, coin.chain).Return(resCh, errCh).Times(1),
+				val.EXPECT().ValidateBlock(block, gomock.Any()).Return(nil).Times(1),
+				eng.EXPECT().VerifyHeader(gomock.Any(), block.Header).Return(nil).Times(1),
+				proc.EXPECT().Process(gomock.Any(), block, gomock.Any(), gomock.Any()).Return(nil).Times(1),
+			)
+
+			gandalf := errors.New("you shall not pass")
+
+			go func() {
+				resCh <- block
+				errCh <- gandalf
+			}()
+
+			err = coin.synchronize(context.Background(), hash)
+			assert.EqualError(t, err, gandalf.Error(), "synchronize()")
+		},
+	}
+
+	for n, test := range tests {
+		t.Run(n, func(t *testing.T) {
+			coin := &Coin{
+				chain:        ch,
+				state:        ctestutil.NewSimpleState(t),
+				gossip:       ctestutil.NewDummyGossip(t),
+				processor:    proc,
+				validator:    val,
+				engine:       eng,
+				synchronizer: sync,
+			}
+
+			err = coin.Run(context.Background())
+			assert.NoError(t, err, "coin.Run()")
+
+			test(t, coin)
+		})
+	}
 }
 
 func TestGetBlockchain(t *testing.T) {

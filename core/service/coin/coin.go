@@ -270,7 +270,7 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	gossipValidator := validator.NewGossipValidator(uint32(s.config.MaxTxPerBlock), engine, chain)
 	p2p := p2p.NewP2P(s.host, protocol.ProtocolID)
 	sync := synchronizer.NewSynchronizer(p2p, s.kaddht)
-	gossip := gossip.NewGossip(s.host, s.pubsub, state, gossipValidator)
+	gossip := gossip.NewGossip(s.host, s.pubsub, state, chain, gossipValidator)
 
 	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor, p2p, sync)
 

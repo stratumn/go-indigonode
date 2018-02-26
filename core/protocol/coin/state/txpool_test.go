@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInMemoryTxPool(t *testing.T) {
+func TestGreedyInMemoryTxPool(t *testing.T) {
 	tests := []struct {
 		name string
 		test func(*testing.T, state.TxPool)
@@ -30,6 +30,17 @@ func TestInMemoryTxPool(t *testing.T) {
 		"empty-pool",
 		func(t *testing.T, txp state.TxPool) {
 			assert.Nil(t, txp.PopTransaction(), "txp.PopTransaction()")
+			assert.Equal(t, uint64(0), txp.Pending(), "txp.Pending()")
+			assert.Len(t, txp.Peek(3), 0, "txp.Peek()")
+		},
+	}, {
+		"non-empty-pool",
+		func(t *testing.T, txp state.TxPool) {
+			txp.AddTransaction(txtest.NewTransaction(t, 5, 1, 1))
+			txp.AddTransaction(txtest.NewTransaction(t, 5, 3, 1))
+
+			assert.Equal(t, uint64(2), txp.Pending(), "txp.Pending()")
+			assert.Len(t, txp.Peek(3), 2, "txp.Peek()")
 		},
 	}, {
 		"highest-fee",

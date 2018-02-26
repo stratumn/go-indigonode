@@ -17,6 +17,7 @@ package coin
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 
@@ -210,10 +211,18 @@ func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) 
 // GetTransactionPool returns the size of the transaction pool
 // and a few random transactions from the pool.
 func (c *Coin) GetTransactionPool(count uint32) (uint64, []*pb.Transaction, error) {
-	return 42, []*pb.Transaction{
-		&pb.Transaction{Fee: 2, Value: 42, From: []byte("Alice"), To: []byte("Bob")},
-		&pb.Transaction{Fee: 1, Value: 5, From: []byte("Bob"), To: []byte("Alice")},
-	}, nil
+	if count == 0 {
+		count = 1
+	}
+
+	txCount := c.txpool.Pending()
+	if txCount == 0 {
+		return 0, nil, errors.New("transaction pool is empty")
+	}
+
+	txs := c.txpool.Peek(count)
+
+	return txCount, txs, nil
 }
 
 // GetBlockchain gets blocks from the blockchain.

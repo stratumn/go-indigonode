@@ -102,7 +102,7 @@ func TestGRPCServer_AccountTransactions(t *testing.T) {
 
 func TestGRPCServer_Blockchain(t *testing.T) {
 	server := &grpcServer{
-		GetBlockchain: func(uint32, []byte, uint32) ([]*pb.Block, error) {
+		GetBlockchain: func(uint64, []byte, uint32) ([]*pb.Block, error) {
 			return []*pb.Block{
 				&pb.Block{Header: &pb.Header{BlockNumber: 13, Nonce: 2}},
 				&pb.Block{Header: &pb.Header{BlockNumber: 14, Nonce: 4}},

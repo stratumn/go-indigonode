@@ -250,6 +250,57 @@ func TestAppendWithSync(t *testing.T) {
 	tassert.WaitUntil(t, func() bool { return done }, "Process() done")
 }
 
+func TestGetBlockchain(t *testing.T) {
+	ch := &ctestutil.SimpleChain{}
+
+	block0 := blocktest.NewBlock(t, txtest.NewTransactions(t, 2))
+	block0.Header.BlockNumber = 0
+	hash0, err := coinutil.HashHeader(block0.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
+
+	block1 := blocktest.NewBlock(t, txtest.NewTransactions(t, 3))
+	block1.Header.BlockNumber = 1
+	block1.Header.PreviousHash = hash0
+	hash1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
+
+	block2 := blocktest.NewBlock(t, txtest.NewTransactions(t, 1))
+	block2.Header.BlockNumber = 2
+	block2.Header.PreviousHash = hash1
+	hash2, err := coinutil.HashHeader(block2.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
+
+	require.NoError(t, ch.AddBlock(block0), "ch.AddBlock()")
+	require.NoError(t, ch.AddBlock(block1), "ch.AddBlock()")
+	require.NoError(t, ch.AddBlock(block2), "ch.AddBlock()")
+	require.NoError(t, ch.SetHead(block2), "ch.SetHead()")
+
+	coin := NewCoinBuilder(t).WithChain(ch).Build(t)
+
+	t.Run("block-number-single", func(t *testing.T) {
+		blocks, err := coin.GetBlockchain(2, nil, 0)
+		require.NoError(t, err, "coin.GetBlockchain()")
+		require.Len(t, blocks, 1, "len(blocks)")
+		assert.Equal(t, block2, blocks[0])
+	})
+
+	t.Run("block-number-multiple", func(t *testing.T) {
+		blocks, err := coin.GetBlockchain(1, hash2, 5)
+		require.NoError(t, err, "coin.GetBlockchain()")
+		require.Len(t, blocks, 2, "len(blocks)")
+		assert.Equal(t, block1, blocks[0])
+		assert.Equal(t, block0, blocks[1])
+	})
+
+	t.Run("header-hash-multiple", func(t *testing.T) {
+		blocks, err := coin.GetBlockchain(0, hash2, 2)
+		require.NoError(t, err, "coin.GetBlockchain()")
+		require.Len(t, blocks, 2, "len(blocks)")
+		assert.Equal(t, block2, blocks[0])
+		assert.Equal(t, block1, blocks[1])
+	})
+}
+
 func TestCoinMining_SingleNode(t *testing.T) {
 	t.Run("start-stop-mining", func(t *testing.T) {
 		c := NewCoinBuilder(t).WithMinerID("alice").Build(t)

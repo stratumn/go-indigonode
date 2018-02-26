@@ -207,6 +207,43 @@ func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) 
 	return transactions, nil
 }
 
+// GetBlockchain gets blocks from the blockchain.
+func (c *Coin) GetBlockchain(blockNumber uint64, hash []byte, count uint32) ([]*pb.Block, error) {
+	var start *pb.Block
+	var err error
+	if blockNumber != 0 {
+		start, err = c.chain.GetBlockByNumber(blockNumber)
+	} else if hash != nil {
+		start, err = c.chain.GetBlockByHash(hash)
+	} else {
+		start, err = c.chain.CurrentBlock()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if count < 2 {
+		return []*pb.Block{start}, nil
+	}
+
+	blocks := make([]*pb.Block, count)
+	blocks[0] = start
+	for i := uint32(1); i < count; i++ {
+		blocks[i], err = c.chain.GetParentBlock(blocks[i-1].Header)
+		if err != nil {
+			return nil, err
+		}
+
+		if blocks[i].BlockNumber() == 0 {
+			blocks = blocks[:i+1]
+			break
+		}
+	}
+
+	return blocks, nil
+}
+
 // PublishTransaction publishes and adds transaction received via grpc.
 func (c *Coin) PublishTransaction(tx *pb.Transaction) error {
 	return c.gossip.PublishTx(tx)

@@ -310,5 +310,12 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 
 			return s.coin.GetAccountTransactions(peerID)
 		},
+		GetBlockchain: func(blockNumber uint64, hash []byte, count uint32) ([]*pb.Block, error) {
+			if s.coin == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.coin.GetBlockchain(blockNumber, hash, count)
+		},
 	})
 }

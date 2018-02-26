@@ -30,7 +30,7 @@ type grpcServer struct {
 	GetAccount             func([]byte) (*pb.Account, error)
 	AddTransaction         func(*pb.Transaction) error
 	GetAccountTransactions func([]byte) ([]*pb.Transaction, error)
-	GetBlockchain          func(uint32, []byte, uint32) ([]*pb.Block, error)
+	GetBlockchain          func(uint64, []byte, uint32) ([]*pb.Block, error)
 }
 
 // Account returns an account.

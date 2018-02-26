@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -57,6 +56,10 @@ type Gossip interface {
 	// PublishBlock sends a new block to the gossip.
 	PublishBlock(block *pb.Block) error
 
+	// AddBlockListener returns a channel on which new valid
+	// block headers received will be published.
+	AddBlockListener() chan *pb.Header
+
 	// Close closes the gossip layer.
 	Close() error
 }
@@ -67,6 +70,9 @@ type gossip struct {
 	pubsub    *floodsub.PubSub
 	state     state.Reader
 	validator validator.Validator
+
+	listenersMu    sync.RWMutex
+	blockListeners []chan *pb.Header
 
 	mu   sync.RWMutex
 	subs map[string]*floodsub.Subscription
@@ -88,12 +94,33 @@ func NewGossip(
 	}
 }
 
+// AddBlockListener returns a channel on which new valid
+// block headers received will be published.
+func (g *gossip) AddBlockListener() chan *pb.Header {
+	g.listenersMu.Lock()
+	defer g.listenersMu.Unlock()
+
+	c := make(chan *pb.Header)
+	g.blockListeners = append(g.blockListeners, c)
+
+	return c
+}
+
+// Close closes subscriptions and listeners channels.
 func (g *gossip) Close() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	for _, s := range g.subs {
 		s.Cancel()
 	}
+
+	g.listenersMu.Lock()
+	defer g.listenersMu.Unlock()
+	for _, c := range g.blockListeners {
+		close(c)
+	}
+
+	g.blockListeners = nil
 
 	// TODO: Remove topic validators once it is possible.
 	// https://github.com/libp2p/go-floodsub/issues/68
@@ -133,7 +160,18 @@ func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) e
 
 		log.Event(context.Background(), "BlockReceived", &logging.Metadata{"block": block.Loggable()})
 
-		return processBlock(block)
+		if err := processBlock(block); err != nil {
+			return err
+		}
+
+		g.listenersMu.RLock()
+		defer g.listenersMu.RUnlock()
+
+		for _, c := range g.blockListeners {
+			go func(c chan *pb.Header) { c <- block.Header }(c)
+		}
+
+		return nil
 	})
 }
 

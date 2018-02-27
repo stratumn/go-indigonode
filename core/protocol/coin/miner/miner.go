@@ -15,12 +15,14 @@
 package miner
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync"
 	"time"
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/processor"
@@ -215,8 +217,8 @@ func (m *Miner) produce(ctx context.Context, txs []*pb.Transaction) (err error) 
 
 	for {
 		select {
-		case h := <-m.newBlockChan:
-			if m.isCurrentHead(powCtx, h) {
+		case incoming := <-m.newBlockChan:
+			if m.headUpdated(powCtx, incoming, header.PreviousHash) {
 				err = context.Canceled
 				return
 			}
@@ -260,14 +262,39 @@ func (m *Miner) putBackInTxPool(ctx context.Context, txs []*pb.Transaction) {
 	}
 }
 
-// isCurrentHead returns true if the given header
-// is the current head of the chain.
-func (m *Miner) isCurrentHead(ctx context.Context, h *pb.Header) bool {
+// headUpdated returns true if the given header
+// is an updated head that we aren't currently mining on.
+func (m *Miner) headUpdated(ctx context.Context, incoming *pb.Header, previousHash []byte) bool {
 	current, err := m.chain.CurrentHeader()
 	if err != nil {
 		log.Event(ctx, "CurrentHeaderError", &logging.Metadata{"error": err.Error()})
 		return false
 	}
 
-	return h == current
+	incomingHash, err := coinutil.HashHeader(incoming)
+	if err != nil {
+		return false
+	}
+
+	currentHash, err := coinutil.HashHeader(current)
+	if err != nil {
+		return false
+	}
+
+	log.Event(ctx, "HeaderReceived", &logging.Metadata{
+		"head": current.Loggable(),
+		"new":  incoming.Loggable(),
+	})
+
+	// If incoming wasn't set as the chain head, we can ignore.
+	if !bytes.Equal(incomingHash, currentHash) {
+		return false
+	}
+
+	// If we're already mining on top of the incoming header, we can ignore.
+	if bytes.Equal(incomingHash, previousHash) {
+		return false
+	}
+
+	return true
 }

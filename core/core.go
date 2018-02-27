@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -496,6 +497,11 @@ func doFgraph(w io.Writer, mgr *manager.Manager, servID string) error {
 func PrettyLog(filename, level, system string, follow, json, color bool) error {
 	var w io.Writer
 
+	var systemRegexp *regexp.Regexp
+	if system != "" {
+		systemRegexp, _ = regexp.Compile(system)
+	}
+
 	filter := func(entry map[string]interface{}) bool {
 		_, isError := entry["error"]
 
@@ -504,8 +510,10 @@ func PrettyLog(filename, level, system string, follow, json, color bool) error {
 			return false
 		case level == logger.Error && !isError:
 			return false
-		case system != "" && system != entry["system"].(string):
-			return false
+		case systemRegexp != nil:
+			return systemRegexp.MatchString(entry["system"].(string))
+		case system != "":
+			return system == entry["system"].(string)
 		}
 
 		return true

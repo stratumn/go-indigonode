@@ -62,6 +62,7 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
+	genesisBlock *pb.Block
 	engine       engine.Engine
 	state        state.State
 	chain        chain.Chain
@@ -77,6 +78,7 @@ type Coin struct {
 
 // NewCoin creates a new Coin.
 func NewCoin(
+	b *pb.Block,
 	txp state.TxPool,
 	e engine.Engine,
 	s state.State,
@@ -91,6 +93,7 @@ func NewCoin(
 	miner := miner.NewMiner(txp, e, s, c, v, p, g)
 
 	return &Coin{
+		genesisBlock: b,
 		engine:       e,
 		state:        s,
 		chain:        c,
@@ -106,7 +109,7 @@ func NewCoin(
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
-	if err := c.checkGenesisBlock(ctx); err != nil {
+	if err := c.processGenesisBlock(ctx); err != nil {
 		return err
 	}
 
@@ -117,18 +120,22 @@ func (c *Coin) Run(ctx context.Context) error {
 	return c.StartBlockGossip(ctx)
 }
 
-// checkGenesisBlock checks if the chain has the genesis block and add it if not.
-func (c *Coin) checkGenesisBlock(ctx context.Context) error {
-	genBlock, genHash, err := GetGenesisBlock()
+// processGenesisBlock checks that the genesis block is in the chain and adds it if not.
+func (c *Coin) processGenesisBlock(ctx context.Context) error {
+	e := log.EventBegin(ctx, "ProcessGenesisBlock")
+	defer e.Done()
+
+	_, err := c.chain.CurrentBlock()
+	if err == chain.ErrBlockNotFound {
+		return c.processor.Process(ctx, c.genesisBlock, c.state, c.chain)
+	}
 	if err != nil {
+		e.SetError(err)
 		return err
 	}
-	_, err = c.chain.GetBlockByHash(genHash)
-	if err == chain.ErrBlockNotFound {
-		return c.processor.Process(ctx, genBlock, c.state, c.chain)
-	}
 
-	return err
+	e.SetError(errors.New("chain already initialized"))
+	return nil
 }
 
 // StreamHandler handles incoming messages from peers.

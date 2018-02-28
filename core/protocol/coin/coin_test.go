@@ -50,27 +50,49 @@ import (
 )
 
 func TestCoinGenesis(t *testing.T) {
-	// Check genesis block.
-	genBlock, genHash, err := GetGenesisBlock()
-	assert.NoError(t, err, "GetGenesisBlock()")
-	h, err := coinutil.HashHeader(genBlock.Header)
-	assert.NoError(t, err, "HashHeader()")
-	assert.Equal(t, h, genHash, "GenesisHash")
+	t.Run("set-genesis-block", func(t *testing.T) {
+		// Check genesis block.
+		genBlock := &pb.Block{Header: &pb.Header{Nonce: 42}}
 
-	// Run coin.
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	p := mockprocessor.NewMockProcessor(ctrl)
-	coin := Coin{
-		chain:     &ctestutil.SimpleChain{},
-		processor: p,
-		gossip:    ctestutil.NewDummyGossip(t),
-	}
+		// Run coin.
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		p := mockprocessor.NewMockProcessor(ctrl)
+		coin := Coin{
+			genesisBlock: genBlock,
+			chain:        &ctestutil.SimpleChain{},
+			processor:    p,
+			gossip:       ctestutil.NewDummyGossip(t),
+		}
 
-	p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-	err = coin.Run(context.Background())
-	assert.NoError(t, err, "coin.Run()")
+		err := coin.Run(context.Background())
+		assert.NoError(t, err, "coin.Run()")
+	})
+	t.Run("second-genesis-block", func(t *testing.T) {
+		// Check genesis block.
+		genBlock := &pb.Block{Header: &pb.Header{Nonce: 42}}
+		genBlockBis := &pb.Block{Header: &pb.Header{Nonce: 43}}
+
+		// Run coin.
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		p := mockprocessor.NewMockProcessor(ctrl)
+		c := &ctestutil.SimpleChain{}
+		c.AddBlock(genBlock)
+		c.SetHead(genBlock)
+
+		coin := Coin{
+			genesisBlock: genBlockBis,
+			chain:        c,
+			processor:    p,
+			gossip:       ctestutil.NewDummyGossip(t),
+		}
+
+		err := coin.Run(context.Background())
+		assert.NoError(t, err, "coin.Run()")
+	})
 }
 
 func TestCoinProtocolHandler(t *testing.T) {
@@ -213,11 +235,10 @@ func TestGetAccountTransactions(t *testing.T) {
 }
 
 func TestAppendBlock(t *testing.T) {
-	genBlock, _, err := GetGenesisBlock()
-	assert.NoError(t, err, "GetGenesisBlock()")
+	genBlock := &pb.Block{Header: &pb.Header{Nonce: 42, Version: 32}}
 	ch := &ctestutil.SimpleChain{}
-	ch.AddBlock(genBlock)
-	ch.SetHead(genBlock)
+	ch.AddBlock(CoinBuilderDefaultGen)
+	ch.SetHead(CoinBuilderDefaultGen)
 
 	// Run coin.
 	ctrl := gomock.NewController(t)
@@ -230,9 +251,10 @@ func TestAppendBlock(t *testing.T) {
 		WithProcessor(proc).
 		WithValidator(val).
 		WithEngine(eng).
+		WithGenesisBlock(genBlock).
 		Build(t)
 
-	err = coin.Run(context.Background())
+	err := coin.Run(context.Background())
 	assert.NoError(t, err, "coin.Run()")
 
 	block := &pb.Block{Header: &pb.Header{PreviousHash: []byte("plap")}}
@@ -246,8 +268,7 @@ func TestAppendBlock(t *testing.T) {
 }
 
 func TestSynchronize(t *testing.T) {
-	genBlock, _, err := GetGenesisBlock()
-	assert.NoError(t, err, "GetGenesisBlock()")
+	genBlock := &pb.Block{Header: &pb.Header{Nonce: 42, Version: 32}}
 	ch := &ctestutil.SimpleChain{}
 	ch.AddBlock(genBlock)
 	ch.SetHead(genBlock)
@@ -285,7 +306,7 @@ func TestSynchronize(t *testing.T) {
 				close(resCh)
 			}()
 
-			err = coin.synchronize(context.Background(), hash)
+			err := coin.synchronize(context.Background(), hash)
 			assert.NoError(t, err, "synchronize()")
 		},
 		"sync-fail": func(t *testing.T, coin *Coin) {
@@ -309,7 +330,7 @@ func TestSynchronize(t *testing.T) {
 				errCh <- gandalf
 			}()
 
-			err = coin.synchronize(context.Background(), hash)
+			err := coin.synchronize(context.Background(), hash)
 			assert.EqualError(t, err, gandalf.Error(), "synchronize()")
 		},
 	}
@@ -322,9 +343,10 @@ func TestSynchronize(t *testing.T) {
 				WithValidator(val).
 				WithEngine(eng).
 				WithSynchronizer(sync).
+				WithGenesisBlock(genBlock).
 				Build(t)
 
-			err = coin.Run(context.Background())
+			err := coin.Run(context.Background())
 			assert.NoError(t, err, "coin.Run()")
 
 			test(t, coin)

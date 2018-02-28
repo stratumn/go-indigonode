@@ -18,6 +18,7 @@ package coin
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
@@ -106,6 +107,9 @@ type Config struct {
 
 	// KadDHT is the name of the kaddht service.
 	KadDHT string `toml:"kaddht" comment:"The name of the kaddht service."`
+
+	// GenesisBlock is the genesis block in hex. If none given, we use the default one in protocol/coin.
+	GenesisBlock string `toml:"genesis_block" comment:"The genesis block in hex."`
 }
 
 // GetMinerID reads the miner's peer ID from the configuration.
@@ -120,6 +124,26 @@ func (c *Config) GetMinerID() (peer.ID, error) {
 	}
 
 	return minerID, nil
+}
+
+// GetGenesisBlock gets the genesis block from the config if present.
+func (c *Config) GetGenesisBlock() (*pb.Block, error) {
+	// If no genesis block passed in the config, we will use the default one.
+	if len(c.GenesisBlock) == 0 {
+		return GetGenesisBlock()
+	}
+
+	b, err := hex.DecodeString(c.GenesisBlock)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	block := &pb.Block{}
+	if err = block.Unmarshal(b); err != nil {
+		return nil, err
+	}
+
+	return block, nil
 }
 
 // ID returns the unique identifier of the service.
@@ -262,6 +286,10 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	if err != nil {
 		return nil, err
 	}
+	genesisBlock, err := s.config.GetGenesisBlock()
+	if err != nil {
+		return nil, err
+	}
 
 	engine := engine.NewHashEngine(minerID, uint64(s.config.BlockDifficulty), uint64(s.config.MinerReward))
 
@@ -272,7 +300,7 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	sync := synchronizer.NewSynchronizer(p2p, s.kaddht)
 	gossip := gossip.NewGossip(s.host, s.pubsub, state, chain, gossipValidator)
 
-	s.coin = protocol.NewCoin(txpool, engine, state, chain, gossip, balanceValidator, processor, p2p, sync)
+	s.coin = protocol.NewCoin(genesisBlock, txpool, engine, state, chain, gossip, balanceValidator, processor, p2p, sync)
 
 	close := func() {
 		if err := gossip.Close(); err != nil {

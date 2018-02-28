@@ -27,14 +27,18 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
+	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
+var CoinBuilderDefaultGen = &pb.Block{Header: &pb.Header{Nonce: 42, Version: 32}}
+
 // CoinBuilder is a utility to create a coin protocol with custom mocks
 // to simulate a wide variety of configurations.
 type CoinBuilder struct {
+	genesisBlock *pb.Block
 	chain        chain.Chain
 	engine       engine.PoW
 	gossip       gossip.Gossip
@@ -154,6 +158,12 @@ func (c *CoinBuilder) WithSynchronizer(synchronizer synchronizer.Synchronizer) *
 	return c
 }
 
+// WithGenesisBlock configures the builder to use the given genesis block.
+func (c *CoinBuilder) WithGenesisBlock(b *pb.Block) *CoinBuilder {
+	c.genesisBlock = b
+	return c
+}
+
 // Build builds the underlying coin protocol and returns it.
 // It's now ready to use in your tests.
 func (c *CoinBuilder) Build(t *testing.T) *Coin {
@@ -188,7 +198,12 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 		c.synchronizer = nil
 	}
 
+	if c.genesisBlock == nil {
+		c.genesisBlock = CoinBuilderDefaultGen
+	}
+
 	return NewCoin(
+		c.genesisBlock,
 		c.txpool,
 		c.engine,
 		c.state,

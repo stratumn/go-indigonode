@@ -29,8 +29,8 @@ func TestChain(t *testing.T) {
 	genesisHash, err := coinutil.HashHeader(genesisBlock.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
-	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash}}
-	h2, err := coinutil.HashHeader(block2.Header)
+	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash}}
+	h1, err := coinutil.HashHeader(block1.Header)
 	assert.NoError(t, err, "coinutil.HashHeader()")
 
 	tests := []struct {
@@ -49,7 +49,7 @@ func TestChain(t *testing.T) {
 	}, {
 		"add-invalid-previous-hash",
 		func(t *testing.T, c Chain) {
-			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, PreviousHash: h2}}
+			block := &pb.Block{Header: &pb.Header{BlockNumber: 0, PreviousHash: h1}}
 			assert.EqualError(t, c.AddBlock(block), ErrBlockNotFound.Error(), "c.AddBlock()")
 		},
 	}, {
@@ -68,34 +68,34 @@ func TestChain(t *testing.T) {
 	}, {
 		"set-head",
 		func(t *testing.T, c Chain) {
-			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
-			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block1), "c.SetHead()")
 
 			h, err := c.CurrentHeader()
 			assert.NoError(t, err, "c.CurrentHeader()")
-			assert.Equal(t, h, block2.Header)
+			assert.Equal(t, h, block1.Header)
 
 			b, err := c.CurrentBlock()
 			assert.NoError(t, err, "c.CurrentBlock()")
-			assert.Equal(t, b, block2)
+			assert.Equal(t, b, block1)
 		},
 	}, {
 		"set-bad-head",
 		func(t *testing.T, c Chain) {
-			assert.EqualError(t, c.SetHead(block2), ErrBlockNotFound.Error(), "c.SetHead()")
+			assert.EqualError(t, c.SetHead(block1), ErrBlockNotFound.Error(), "c.SetHead()")
 		},
 	}, {
 		"get-by-number",
 		func(t *testing.T, c Chain) {
-			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
 			// Get header.
 			h, err := c.GetHeadersByNumber(genesisBlock.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
 			assert.Equal(t, []*pb.Header{genesisBlock.Header}, h)
 
-			h, err = c.GetHeadersByNumber(block2.Header.BlockNumber)
+			h, err = c.GetHeadersByNumber(block1.Header.BlockNumber)
 			assert.NoError(t, err, "c.GetHeadersByNumber()")
-			assert.Equal(t, []*pb.Header{block2.Header}, h)
+			assert.Equal(t, []*pb.Header{block1.Header}, h)
 		},
 	}, {
 		"get-by-number-multiple",
@@ -118,73 +118,99 @@ func TestChain(t *testing.T) {
 	}, {
 		"get-by-hash",
 		func(t *testing.T, c Chain) {
-			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
 
 			h, err := c.GetHeaderByHash(genesisHash)
 			assert.NoError(t, err, "c.GetHeaderByHash()")
 			assert.Equal(t, h, genesisBlock.Header)
 
-			h, err = c.GetHeaderByHash(h2)
+			h, err = c.GetHeaderByHash(h1)
 			assert.NoError(t, err, "c.GetHeaderByHash()")
-			assert.Equal(t, h, block2.Header)
+			assert.Equal(t, h, block1.Header)
 		},
 	}, {
 		"get-by-bad-hash",
 		func(t *testing.T, c Chain) {
-			_, err := c.GetHeaderByHash(h2)
+			_, err := c.GetHeaderByHash(h1)
 			assert.EqualError(t, err, ErrBlockNotFound.Error(), "c.GetHeaderByHash()")
 		},
 	}, {
 		"update-main-branch",
 		func(t *testing.T, c Chain) {
 			// Update the head and check that the main branch references are updated.
-			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 42}}
-			h2bis, err := coinutil.HashHeader(block2bis.Header)
+			block1bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: genesisHash, Nonce: 42}}
+			h1bis, err := coinutil.HashHeader(block1bis.Header)
 			assert.NoError(t, err, "coinutil.HashHeader()")
-			block3 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h2, Nonce: 42}}
-			block3bis := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h2bis, Nonce: 43}}
+			block2 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h1, Nonce: 42}}
+			block2bis := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h1bis, Nonce: 43}}
 
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block1), "c.SetHead()")
 			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
 			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
-			assert.NoError(t, c.AddBlock(block3), "c.AddBlock()")
-			assert.NoError(t, c.SetHead(block3), "c.SetHead()")
 
+			assert.NoError(t, c.AddBlock(block1bis), "c.AddBlock()")
 			assert.NoError(t, c.AddBlock(block2bis), "c.AddBlock()")
-			assert.NoError(t, c.AddBlock(block3bis), "c.AddBlock()")
 
 			// Get block.
 			b, err := c.GetBlockByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, b, block2)
+			assert.Equal(t, b, block1)
 			b, err = c.GetBlockByNumber(2)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, b, block3)
+			assert.Equal(t, b, block2)
 
 			// Get header.
 			h, err := c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, h, block2.Header)
+			assert.Equal(t, h, block1.Header)
 			h, err = c.GetHeaderByNumber(2)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, h, block3.Header)
+			assert.Equal(t, h, block2.Header)
 
-			assert.NoError(t, c.SetHead(block3bis), "c.SetHead()")
+			assert.NoError(t, c.SetHead(block2bis), "c.SetHead()")
 
 			// Get block.
 			b, err = c.GetBlockByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, b, block2bis)
+			assert.Equal(t, b, block1bis)
 			b, err = c.GetBlockByNumber(2)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, b, block3bis)
+			assert.Equal(t, b, block2bis)
 
 			// Get header.
 			h, err = c.GetHeaderByNumber(1)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, h, block2bis.Header)
+			assert.Equal(t, h, block1bis.Header)
 			h, err = c.GetHeaderByNumber(2)
 			assert.NoError(t, err, "c.GetHeaderByNumber()")
-			assert.Equal(t, h, block3bis.Header)
+			assert.Equal(t, h, block2bis.Header)
+		},
+	}, {
+		"get-by-number-main-chain",
+		func(t *testing.T, c Chain) {
+			// Check that the refs to the main chain are updated.
+			block2 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: h1, Nonce: 42}}
+
+			assert.NoError(t, c.AddBlock(block1), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block1), "c.SetHead()")
+
+			b, err := c.GetBlockByNumber(1)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block1)
+			h, err := c.GetHeaderByNumber(1)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, h, block1.Header)
+
+			assert.NoError(t, c.AddBlock(block2), "c.AddBlock()")
+			assert.NoError(t, c.SetHead(block2), "c.SetHead()")
+
+			b, err = c.GetBlockByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, b, block2)
+			h, err = c.GetHeaderByNumber(2)
+			assert.NoError(t, err, "c.GetHeaderByNumber()")
+			assert.Equal(t, h, block2.Header)
 		},
 	}}
 

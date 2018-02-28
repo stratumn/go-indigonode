@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
+
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -62,6 +64,7 @@ type Protocol interface {
 
 // Coin implements Protocol with a PoW engine.
 type Coin struct {
+	genesisBlock *pb.Block
 	engine       engine.Engine
 	state        state.State
 	chain        chain.Chain
@@ -77,6 +80,7 @@ type Coin struct {
 
 // NewCoin creates a new Coin.
 func NewCoin(
+	b *pb.Block,
 	txp state.TxPool,
 	e engine.Engine,
 	s state.State,
@@ -91,6 +95,7 @@ func NewCoin(
 	miner := miner.NewMiner(txp, e, s, c, v, p, g)
 
 	return &Coin{
+		genesisBlock: b,
 		engine:       e,
 		state:        s,
 		chain:        c,
@@ -119,10 +124,23 @@ func (c *Coin) Run(ctx context.Context) error {
 
 // checkGenesisBlock checks if the chain has the genesis block and add it if not.
 func (c *Coin) checkGenesisBlock(ctx context.Context) error {
-	genBlock, genHash, err := GetGenesisBlock()
-	if err != nil {
-		return err
+	var genBlock *pb.Block
+	var genHash []byte
+	var err error
+
+	if c.genesisBlock != nil {
+		genBlock = c.genesisBlock
+		genHash, err = coinutil.HashHeader(genBlock.Header)
+		if err != nil {
+			return err
+		}
+	} else {
+		genBlock, genHash, err = GetGenesisBlock()
+		if err != nil {
+			return err
+		}
 	}
+
 	_, err = c.chain.GetBlockByHash(genHash)
 	if err == chain.ErrBlockNotFound {
 		return c.processor.Process(ctx, genBlock, c.state, c.chain)

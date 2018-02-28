@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -52,7 +53,8 @@ type chainDB struct {
 	// mainChain is a lazy loaded cache that will contain refs to main branch's blocks
 	// We generate it only once requested.
 	// If there is a reorg, we just erase it and wait for next request.
-	mainBranch map[uint64][]byte
+	mainBranch   map[uint64][]byte
+	muMainBranch sync.RWMutex
 }
 
 // Opt is an option for Chain
@@ -171,6 +173,8 @@ func (c *chainDB) GetBlockByNumber(number uint64) (*pb.Block, error) {
 			return nil, err
 		}
 	}
+	c.muMainBranch.RLock()
+	defer c.muMainBranch.RUnlock()
 
 	hash, ok := c.mainBranch[number]
 	if !ok {
@@ -331,10 +335,15 @@ func (c *chainDB) SetHead(block *pb.Block) (err error) {
 			return err
 		}
 
+		c.muMainBranch.Lock()
 		if !bytes.Equal(hb, block.PreviousHash()) {
-			// If we switched branches, reset the main branch cache
+			// If we switched branches, reset the main branch cache.
 			c.mainBranch = nil
+		} else {
+			// Otherwise update the cache.
+			c.mainBranch[block.BlockNumber()] = h
 		}
+		c.muMainBranch.Unlock()
 	}
 
 	// Update LastBlock.
@@ -378,6 +387,9 @@ func (c *chainDB) dbGetHashes(number uint64) ([][]byte, error) {
 // generateMainBranch creates the map that contains
 // the refs to the main branch's blocks.
 func (c *chainDB) generateMainBranch() error {
+	c.muMainBranch.Lock()
+	defer c.muMainBranch.Unlock()
+
 	mainBranch := map[uint64][]byte{}
 
 	header, err := c.CurrentHeader()

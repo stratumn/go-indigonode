@@ -50,27 +50,55 @@ import (
 )
 
 func TestCoinGenesis(t *testing.T) {
-	// Check genesis block.
-	genBlock, genHash, err := GetGenesisBlock()
-	assert.NoError(t, err, "GetGenesisBlock()")
-	h, err := coinutil.HashHeader(genBlock.Header)
-	assert.NoError(t, err, "HashHeader()")
-	assert.Equal(t, h, genHash, "GenesisHash")
+	t.Run("Default genesis block", func(t *testing.T) {
+		// Check genesis block.
+		genBlock, genHash, err := GetGenesisBlock()
+		assert.NoError(t, err, "GetGenesisBlock()")
+		h, err := coinutil.HashHeader(genBlock.Header)
+		assert.NoError(t, err, "HashHeader()")
+		assert.Equal(t, h, genHash, "GenesisHash")
 
-	// Run coin.
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	p := mockprocessor.NewMockProcessor(ctrl)
-	coin := Coin{
-		chain:     &ctestutil.SimpleChain{},
-		processor: p,
-		gossip:    ctestutil.NewDummyGossip(t),
-	}
+		// Run coin.
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		p := mockprocessor.NewMockProcessor(ctrl)
+		coin := Coin{
+			chain:     &ctestutil.SimpleChain{},
+			processor: p,
+			gossip:    ctestutil.NewDummyGossip(t),
+		}
 
-	p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-	err = coin.Run(context.Background())
-	assert.NoError(t, err, "coin.Run()")
+		err = coin.Run(context.Background())
+		assert.NoError(t, err, "coin.Run()")
+	})
+
+	t.Run("Specific genesis block", func(t *testing.T) {
+		genBlock := &pb.Block{
+			Header: &pb.Header{
+				Nonce:   42,
+				Version: 24,
+			},
+		}
+
+		// Run coin.
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		p := mockprocessor.NewMockProcessor(ctrl)
+		coin := Coin{
+			genesisBlock: genBlock,
+			chain:        &ctestutil.SimpleChain{},
+			processor:    p,
+			gossip:       ctestutil.NewDummyGossip(t),
+		}
+
+		p.EXPECT().Process(gomock.Any(), genBlock, gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		err := coin.Run(context.Background())
+		assert.NoError(t, err, "coin.Run()")
+	})
+
 }
 
 func TestCoinProtocolHandler(t *testing.T) {

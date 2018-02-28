@@ -15,8 +15,10 @@
 package coin
 
 import (
+	"encoding/hex"
 	"testing"
 
+	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
@@ -46,5 +48,24 @@ func TestCoinConfig(t *testing.T) {
 
 		_, err := config.GetMinerID()
 		assert.EqualError(t, err, ErrMissingMinerID.Error())
+	})
+
+	t.Run("decode-genesis-block", func(t *testing.T) {
+		block := &pb.Block{
+			Header: &pb.Header{Nonce: 42, Version: 24},
+			Transactions: []*pb.Transaction{
+				&pb.Transaction{From: []byte("zou"), To: []byte("plap"), Value: 42},
+				&pb.Transaction{From: []byte("pizza"), To: []byte("yolo"), Value: 43},
+			},
+		}
+		b, err := block.Marshal()
+		assert.NoError(t, err, "block.Marshal()")
+
+		config := &Config{GenesisBlock: hex.EncodeToString(b)}
+
+		decodedBlock, err := config.GetGenesisBlock()
+		assert.NoError(t, err, "config.GetGenesisBlock()")
+
+		assert.Equal(t, block, decodedBlock, "decodedMinerID")
 	})
 }

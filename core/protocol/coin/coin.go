@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -111,7 +109,7 @@ func NewCoin(
 
 // Run starts the coin.
 func (c *Coin) Run(ctx context.Context) error {
-	if err := c.checkGenesisBlock(ctx); err != nil {
+	if err := c.processGenesisBlock(ctx); err != nil {
 		return err
 	}
 
@@ -122,31 +120,22 @@ func (c *Coin) Run(ctx context.Context) error {
 	return c.StartBlockGossip(ctx)
 }
 
-// checkGenesisBlock checks if the chain has the genesis block and add it if not.
-func (c *Coin) checkGenesisBlock(ctx context.Context) error {
-	var genBlock *pb.Block
-	var genHash []byte
-	var err error
+// processGenesisBlock checks that the genesis block is in the chain and adds it if not.
+func (c *Coin) processGenesisBlock(ctx context.Context) error {
+	e := log.EventBegin(ctx, "ProcessGenesisBlock")
+	defer e.Done()
 
-	if c.genesisBlock != nil {
-		genBlock = c.genesisBlock
-		genHash, err = coinutil.HashHeader(genBlock.Header)
-		if err != nil {
-			return err
-		}
-	} else {
-		genBlock, genHash, err = GetGenesisBlock()
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = c.chain.GetBlockByHash(genHash)
+	_, err := c.chain.CurrentBlock()
 	if err == chain.ErrBlockNotFound {
-		return c.processor.Process(ctx, genBlock, c.state, c.chain)
+		return c.processor.Process(ctx, c.genesisBlock, c.state, c.chain)
+	}
+	if err != nil {
+		e.SetError(err)
+		return err
 	}
 
-	return err
+	e.SetError(errors.New("chain already initialized"))
+	return nil
 }
 
 // StreamHandler handles incoming messages from peers.

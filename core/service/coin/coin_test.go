@@ -50,7 +50,7 @@ func TestCoinConfig(t *testing.T) {
 		assert.EqualError(t, err, ErrMissingMinerID.Error())
 	})
 
-	t.Run("decode-genesis-block", func(t *testing.T) {
+	t.Run("custom-genesis-block", func(t *testing.T) {
 		block := &pb.Block{
 			Header: &pb.Header{Nonce: 42, Version: 24},
 			Transactions: []*pb.Transaction{
@@ -67,5 +67,17 @@ func TestCoinConfig(t *testing.T) {
 		assert.NoError(t, err, "config.GetGenesisBlock()")
 
 		assert.Equal(t, block, decodedBlock, "decodedMinerID")
+	})
+
+	t.Run("default-genesis-block", func(t *testing.T) {
+		config := &Config{GenesisBlock: ""}
+
+		block, err := config.GetGenesisBlock()
+		assert.NoError(t, err, "config.GetGenesisBlock()")
+
+		gen, err := GetGenesisBlock()
+		assert.NoError(t, err, "GetGenesisBlock()")
+
+		assert.Equal(t, gen, block, "genesisBlock")
 	})
 }

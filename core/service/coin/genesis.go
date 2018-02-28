@@ -21,15 +21,14 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
 
-	multihash "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
-// GetGenesisBlock returns the genesis block and its hash.
-func GetGenesisBlock() (*pb.Block, multihash.Multihash, error) {
+// GetGenesisBlock returns the default genesis block.
+func GetGenesisBlock() (*pb.Block, error) {
 	pid, err := peer.IDB58Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	txs := []*pb.Transaction{
@@ -53,13 +52,13 @@ func GetGenesisBlock() (*pb.Block, multihash.Multihash, error) {
 
 	merkleRoot, err := coinutil.TransactionRoot(txs)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// 2018-02-23 10:00:00
 	ts, err := ptypes.TimestampProto(time.Unix(1519376400, 0))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// GenesisBlock is the genesis block.
@@ -73,11 +72,5 @@ func GetGenesisBlock() (*pb.Block, multihash.Multihash, error) {
 		Transactions: txs,
 	}
 
-	// GenesisBlockHash is the hash of the genesis block
-	genesisBlockHash, err := coinutil.HashHeader(genesisBlock.Header)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return genesisBlock, genesisBlockHash, nil
+	return genesisBlock, nil
 }

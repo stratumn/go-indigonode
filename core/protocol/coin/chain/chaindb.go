@@ -53,8 +53,8 @@ type chainDB struct {
 	// mainChain is a lazy loaded cache that will contain refs to main branch's blocks
 	// We generate it only once requested.
 	// If there is a reorg, we just erase it and wait for next request.
-	mainBranch   map[uint64][]byte
 	muMainBranch sync.RWMutex
+	mainBranch   map[uint64][]byte
 }
 
 // Opt is an option for Chain

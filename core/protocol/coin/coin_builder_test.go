@@ -33,6 +33,8 @@ import (
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 )
 
+var CoinBuilderDefaultGen = &pb.Block{Header: &pb.Header{Nonce: 42, Version: 32}}
+
 // CoinBuilder is a utility to create a coin protocol with custom mocks
 // to simulate a wide variety of configurations.
 type CoinBuilder struct {
@@ -156,7 +158,7 @@ func (c *CoinBuilder) WithSynchronizer(synchronizer synchronizer.Synchronizer) *
 	return c
 }
 
-// WithGenesisBlock configures the builder to use the given synchronizer.
+// WithGenesisBlock configures the builder to use the given genesis block.
 func (c *CoinBuilder) WithGenesisBlock(b *pb.Block) *CoinBuilder {
 	c.genesisBlock = b
 	return c
@@ -194,6 +196,10 @@ func (c *CoinBuilder) Build(t *testing.T) *Coin {
 	if c.synchronizer == nil {
 		// TODO: something smart, a mock or a dummy sync.
 		c.synchronizer = nil
+	}
+
+	if c.genesisBlock == nil {
+		c.genesisBlock = CoinBuilderDefaultGen
 	}
 
 	return NewCoin(

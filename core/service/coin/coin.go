@@ -130,7 +130,7 @@ func (c *Config) GetMinerID() (peer.ID, error) {
 func (c *Config) GetGenesisBlock() (*pb.Block, error) {
 	// If no genesis block passed in the config, we will use the default one.
 	if len(c.GenesisBlock) == 0 {
-		return nil, nil
+		return GetGenesisBlock()
 	}
 
 	b, err := hex.DecodeString(c.GenesisBlock)

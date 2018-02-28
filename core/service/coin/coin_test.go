@@ -66,7 +66,7 @@ func TestCoinConfig(t *testing.T) {
 		decodedBlock, err := config.GetGenesisBlock()
 		assert.NoError(t, err, "config.GetGenesisBlock()")
 
-		assert.Equal(t, block, decodedBlock, "decodedMinerID")
+		assert.Equal(t, block, decodedBlock, "decodedGenesisBlock")
 	})
 
 	t.Run("default-genesis-block", func(t *testing.T) {
@@ -78,6 +78,6 @@ func TestCoinConfig(t *testing.T) {
 		gen, err := GetGenesisBlock()
 		assert.NoError(t, err, "GetGenesisBlock()")
 
-		assert.Equal(t, gen, block, "genesisBlock")
+		assert.Equal(t, gen, block, "decodedGenesisBlock")
 	})
 }

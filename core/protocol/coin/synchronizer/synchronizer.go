@@ -172,6 +172,7 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 			return resCh, errCh
 		}
 		num = head.BlockNumber + 1
+		log.Event(ctx, "CommonAncestor", logging.Metadata{"header": head.Loggable()})
 	}
 
 	go s.fetchBlocks(ctx, pid, num, resCh, errCh)

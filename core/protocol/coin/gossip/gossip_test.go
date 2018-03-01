@@ -21,9 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/core/protocol/coin/chain"
-
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
@@ -39,10 +38,6 @@ import (
 	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
-var (
-	mockValidator *mockvalidator.MockValidator
-)
-
 type msg struct {
 	topic string
 	data  interface{}
@@ -53,21 +48,47 @@ func newHost(ctx context.Context, t *testing.T) host.Host {
 	return bhost.NewBlankHost(ntw)
 }
 
-func newGossip(ctx context.Context, t *testing.T, h host.Host) (Gossip, error) {
-	p, err := floodsub.NewFloodSub(ctx, h)
-	if err != nil {
-		return nil, err
+type GossipBuilder struct {
+	h  host.Host
+	db db.DB
+
+	chain     chain.Chain
+	pubsub    *floodsub.PubSub
+	state     state.State
+	validator validator.Validator
+}
+
+func NewGossipBuilder(h host.Host) *GossipBuilder {
+	return &GossipBuilder{h: h}
+}
+
+func (g *GossipBuilder) WithValidator(v validator.Validator) *GossipBuilder {
+	g.validator = v
+	return g
+}
+
+func (g *GossipBuilder) Build(ctx context.Context, t *testing.T) Gossip {
+	if g.pubsub == nil {
+		p, err := floodsub.NewFloodSub(ctx, g.h)
+		require.NoError(t, err, "floodsub.NewFloodSub()")
+		g.pubsub = p
+	}
+	if g.db == nil {
+		db, err := db.NewMemDB(nil)
+		require.NoError(t, err, "db.NewMemDB()")
+		g.db = db
+	}
+	if g.chain == nil {
+		g.chain = chain.NewChainDB(g.db)
+	}
+	if g.state == nil {
+		g.state = state.NewState(g.db)
+	}
+	if g.validator == nil {
+		g.validator = validator.NewGossipValidator(2, nil, g.chain)
 	}
 
-	db, err := db.NewMemDB(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	s := state.NewState(db)
-	c := chain.NewChainDB(db)
-
-	return NewGossip(h, p, s, c, mockValidator), nil
+	return NewGossip(g.h, g.pubsub, g.state, g.chain, g.validator)
 }
 
 func TestGossip(t *testing.T) {
@@ -77,16 +98,13 @@ func TestGossip(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockValidator = mockvalidator.NewMockValidator(mockCtrl)
+	v := mockvalidator.NewMockValidator(mockCtrl)
 
 	h1 := newHost(ctx, t)
 	h2 := newHost(ctx, t)
 
-	g1, err := newGossip(ctx, t, h1)
-	require.NoError(t, err)
-
-	g2, err := newGossip(ctx, t, h2)
-	require.NoError(t, err)
+	g1 := NewGossipBuilder(h1).WithValidator(v).Build(ctx, t)
+	g2 := NewGossipBuilder(h2).WithValidator(v).Build(ctx, t)
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
@@ -187,10 +205,9 @@ func TestGossip(t *testing.T) {
 
 	t.Run("PublishTx", func(t *testing.T) {
 		tx := &pb.Transaction{}
-		mockValidator.EXPECT().ValidateTx(tx, gomock.Any()).Return(nil).Times(2)
+		v.EXPECT().ValidateTx(tx, gomock.Any()).Return(nil).Times(2)
 
-		err = g1.PublishTx(tx)
-
+		err := g1.PublishTx(tx)
 		assert.NoError(t, err)
 
 		assertNotReceive(t, c1)
@@ -199,10 +216,9 @@ func TestGossip(t *testing.T) {
 
 	t.Run("PublishInvalidTx", func(t *testing.T) {
 		tx := &pb.Transaction{}
-		mockValidator.EXPECT().ValidateTx(tx, gomock.Any()).Return(validator.ErrEmptyTx)
+		v.EXPECT().ValidateTx(tx, gomock.Any()).Return(validator.ErrEmptyTx)
 
-		err = g1.PublishTx(tx)
-
+		err := g1.PublishTx(tx)
 		assert.NoError(t, err)
 
 		assertNotReceive(t, c1)
@@ -228,10 +244,9 @@ func TestGossip(t *testing.T) {
 
 	t.Run("PublishBlock", func(t *testing.T) {
 		b := &pb.Block{Header: &pb.Header{PreviousHash: []byte("prev")}}
-		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
+		v.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
 
-		err = g2.PublishBlock(b)
-
+		err := g2.PublishBlock(b)
 		assert.NoError(t, err)
 
 		assertReceive(t, c1, b)
@@ -246,10 +261,9 @@ func TestGossip(t *testing.T) {
 
 	t.Run("PublishInvalidBlock", func(t *testing.T) {
 		b := &pb.Block{Header: &pb.Header{PreviousHash: []byte("prev")}}
-		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(validator.ErrTooManyTxs)
+		v.EXPECT().ValidateBlock(b, gomock.Any()).Return(validator.ErrTooManyTxs)
 
-		err = g1.PublishBlock(b)
-
+		err := g1.PublishBlock(b)
 		assert.NoError(t, err)
 
 		assertNotReceive(t, c1)
@@ -275,13 +289,12 @@ func TestGossip(t *testing.T) {
 
 	t.Run("NotifyBlockListeners", func(t *testing.T) {
 		b := &pb.Block{Header: &pb.Header{BlockNumber: 42}}
-		mockValidator.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
+		v.EXPECT().ValidateBlock(b, gomock.Any()).Return(nil).Times(2)
 
 		l1 := g2.AddBlockListener()
 		l2 := g2.AddBlockListener()
 
-		err = g1.PublishBlock(b)
-
+		err := g1.PublishBlock(b)
 		assert.NoError(t, err)
 
 		assertReceive(t, c2, b)
@@ -303,11 +316,10 @@ func TestGossip(t *testing.T) {
 	})
 
 	t.Run("Close", func(t *testing.T) {
-		g, err := newGossip(ctx, t, h1)
-		require.NoError(t, err)
+		g := NewGossipBuilder(h1).Build(ctx, t)
 
 		gg := g.(*gossip)
-		err = gg.subscribe("topic1", func(ctx context.Context, m *floodsub.Message) bool { return true })
+		err := gg.subscribe("topic1", func(ctx context.Context, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 
 		err = gg.subscribe("topic2", func(ctx context.Context, m *floodsub.Message) bool { return true })

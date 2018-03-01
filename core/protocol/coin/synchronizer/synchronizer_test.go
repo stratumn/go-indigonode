@@ -35,37 +35,16 @@ import (
 )
 
 func TestSynchronize(t *testing.T) {
-	/*
-		the node starts with
-				block0 -> block1 -> block2
 
-		after the sync we have
-				block0 -> block1 -> block2
-							\-> block1bis -> block2bis -> block3bis
-	*/
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	c := &testutil.SimpleChain{}
 	block0 := &pb.Block{Header: &pb.Header{BlockNumber: 0}}
 	hash0, err := coinutil.HashHeader(block0.Header)
 	assert.NoError(t, err, "HashHeader()")
-	c.AddBlock(block0)
-	c.SetHead(block0)
 
 	block1 := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: hash0}}
 	hash1, err := coinutil.HashHeader(block1.Header)
 	assert.NoError(t, err, "HashHeader()")
-	c.AddBlock(block1)
-	c.SetHead(block1)
 
 	block2 := &pb.Block{Header: &pb.Header{BlockNumber: 2, PreviousHash: hash1}}
-	c.AddBlock(block2)
-	c.SetHead(block2)
-
-	p2p := mockp2p.NewMockP2P(ctrl)
-	dht := mocksynchronizer.NewMockContentProviderFinder(ctrl)
-	sync := NewSynchronizer(p2p, dht, OptMaxBatchSizes(2))
 
 	block1bis := &pb.Block{Header: &pb.Header{BlockNumber: 1, PreviousHash: hash0, Nonce: 42}}
 	hash1bis, err := coinutil.HashHeader(block1bis.Header)
@@ -79,49 +58,133 @@ func TestSynchronize(t *testing.T) {
 	hash3bis, err := coinutil.HashHeader(block3bis.Header)
 	assert.NoError(t, err, "HashHeader()")
 
-	assert.NoError(t, err, "hex.DecodeString()")
 	cid, err := cid.Cast(hash3bis)
 	assert.NoError(t, err, "cid.Cast()")
-
 	pid1 := peer.ID("yankee")
 	pid2 := peer.ID("zoulou")
 
-	// Called to get the list of peers who have the block.
-	dht.EXPECT().FindProviders(gomock.Any(), cid).Return([]pstore.PeerInfo{pstore.PeerInfo{ID: pid1}, pstore.PeerInfo{ID: pid2}}, nil).Times(1)
+	t.Run("synchronize-genesis-chain", func(t *testing.T) {
+		/*
+			the node starts with only the genesis block:
+					block0
 
-	// Get the block from the peer to check if he really has it.
-	// First peer fails => call the second one.
-	p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid1, []byte(hash3bis)).Return(nil, errors.New("")).Times(1)
-	p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid2, []byte(hash3bis)).Return(block2bis, nil).Times(1)
+			after the sync we have:
+					block0 -> block1bis -> block2bis -> block3bis
+		*/
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	// Get the common ancestor.
-	p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Header{block1bis.Header, block2bis.Header}, nil).Times(1)
+		c := &testutil.SimpleChain{}
 
-	// Get the blocks from that peer.
-	p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Block{block1bis, block2bis}, nil).Times(1)
-	p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(3), uint64(2)).Return([]*pb.Block{block3bis}, nil).Times(1)
+		c.AddBlock(block0)
+		c.SetHead(block0)
 
-	resCh, errCh := sync.Synchronize(context.Background(), hash3bis, c)
+		p2p := mockp2p.NewMockP2P(ctrl)
+		dht := mocksynchronizer.NewMockContentProviderFinder(ctrl)
+		sync := NewSynchronizer(p2p, dht, OptMaxBatchSizes(2))
 
-	tassert.WaitUntil(t, func() bool {
-		// Check that we receive the blocks in this order.
-		blocks := []*pb.Block{block1bis, block2bis, block3bis, nil}
-		i := 0
-		for {
-			select {
-			case b := <-resCh:
-				assert.Equal(t, blocks[i], b, "resCh")
-				i++
-				if i == 3 {
-					return true
+		// Called to get the list of peers who have the block.
+		dht.EXPECT().FindProviders(gomock.Any(), cid).Return([]pstore.PeerInfo{pstore.PeerInfo{ID: pid1}, pstore.PeerInfo{ID: pid2}}, nil).Times(1)
+
+		// Get the block from the peer to check if he really has it.
+		// First peer fails => call the second one.
+		p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid1, []byte(hash3bis)).Return(nil, errors.New("")).Times(1)
+		p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid2, []byte(hash3bis)).Return(block2bis, nil).Times(1)
+
+		// Get the common ancestor.
+		p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(0), uint64(1)).Return([]*pb.Header{block0.Header}, nil).Times(1)
+
+		// Get the blocks from that peer.
+		p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Block{block1bis, block2bis}, nil).Times(1)
+		p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(3), uint64(2)).Return([]*pb.Block{block3bis}, nil).Times(1)
+
+		resCh, errCh := sync.Synchronize(context.Background(), hash3bis, c)
+
+		tassert.WaitUntil(t, func() bool {
+			// Check that we receive the blocks in this order.
+			blocks := []*pb.Block{block1bis, block2bis, block3bis, nil}
+			i := 0
+			for {
+				select {
+				case b := <-resCh:
+					assert.Equal(t, blocks[i], b, "resCh")
+					i++
+					if i == 3 {
+						return true
+					}
+				case err := <-errCh:
+					assert.NoError(t, err, "errCh")
+					return false
+
 				}
-			case err := <-errCh:
-				assert.NoError(t, err, "errCh")
-				return false
-
 			}
-		}
-	}, "channels")
+		}, "channels")
+	})
+
+	t.Run("synchronize-long-chain", func(t *testing.T) {
+		/*
+			the node starts with:
+					block0 -> block1 -> block2
+
+			after the sync we have:
+					block0 -> block1 -> block2
+								\-> block1bis -> block2bis -> block3bis
+		*/
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		c := &testutil.SimpleChain{}
+
+		c.AddBlock(block0)
+		c.SetHead(block0)
+
+		c.AddBlock(block1)
+		c.SetHead(block1)
+
+		c.AddBlock(block2)
+		c.SetHead(block2)
+
+		p2p := mockp2p.NewMockP2P(ctrl)
+		dht := mocksynchronizer.NewMockContentProviderFinder(ctrl)
+		sync := NewSynchronizer(p2p, dht, OptMaxBatchSizes(2))
+
+		// Called to get the list of peers who have the block.
+		dht.EXPECT().FindProviders(gomock.Any(), cid).Return([]pstore.PeerInfo{pstore.PeerInfo{ID: pid1}, pstore.PeerInfo{ID: pid2}}, nil).Times(1)
+
+		// Get the block from the peer to check if he really has it.
+		// First peer fails => call the second one.
+		p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid1, []byte(hash3bis)).Return(nil, errors.New("")).Times(1)
+		p2p.EXPECT().RequestBlockByHash(gomock.Any(), pid2, []byte(hash3bis)).Return(block2bis, nil).Times(1)
+
+		// Get the common ancestor.
+		p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Header{block1bis.Header, block2bis.Header}, nil).Times(1)
+
+		// Get the blocks from that peer.
+		p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Block{block1bis, block2bis}, nil).Times(1)
+		p2p.EXPECT().RequestBlocksByNumber(gomock.Any(), pid2, uint64(3), uint64(2)).Return([]*pb.Block{block3bis}, nil).Times(1)
+
+		resCh, errCh := sync.Synchronize(context.Background(), hash3bis, c)
+
+		tassert.WaitUntil(t, func() bool {
+			// Check that we receive the blocks in this order.
+			blocks := []*pb.Block{block1bis, block2bis, block3bis, nil}
+			i := 0
+			for {
+				select {
+				case b := <-resCh:
+					assert.Equal(t, blocks[i], b, "resCh")
+					i++
+					if i == 3 {
+						return true
+					}
+				case err := <-errCh:
+					assert.NoError(t, err, "errCh")
+					return false
+
+				}
+			}
+		}, "channels")
+	})
 
 }
 func TestImpossibleSynchronize(t *testing.T) {
@@ -190,7 +253,7 @@ func TestImpossibleSynchronize(t *testing.T) {
 
 	// Get the common ancestor.
 	p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(1), uint64(2)).Return([]*pb.Header{block1bis.Header, block2bis.Header}, nil).Times(1)
-	p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(0), uint64(2)).Return([]*pb.Header{block0bis.Header, block1bis.Header}, nil).Times(1)
+	p2p.EXPECT().RequestHeadersByNumber(gomock.Any(), pid2, uint64(0), uint64(1)).Return([]*pb.Header{block0bis.Header, block1bis.Header}, nil).Times(1)
 
 	resCh, errCh := sync.Synchronize(context.Background(), hash3bis, c)
 

@@ -22,16 +22,21 @@ import (
 	"context"
 	"time"
 
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
+
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/p2p"
 
 	pb "github.com/stratumn/alice/pb/coin"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
 	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
 	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 )
+
+var log = logging.Logger("coin.synchronizer")
 
 const (
 	// MaxHeadersPerBatch is the number of headers to be retrieved per batch.
@@ -167,6 +172,7 @@ func (s *synchronizer) Synchronize(ctx context.Context, hash []byte, chainReader
 			return resCh, errCh
 		}
 		num = head.BlockNumber + 1
+		log.Event(ctx, "CommonAncestor", logging.Metadata{"header": head.Loggable()})
 	}
 
 	go s.fetchBlocks(ctx, pid, num, resCh, errCh)
@@ -209,17 +215,33 @@ func (s *synchronizer) fetchBlocks(ctx context.Context, pid peer.ID, from uint64
 // findCommonAncestor finds and returns the header of the first common ancestor
 // between a node's main chain and a given local header.
 func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, peerID peer.ID, chain chain.Reader) (*pb.Header, error) {
-	var ancestorHash []byte
 	// The common ancestor is necessarily below height.
-	// Get the 64 blocks before height.
+	// Iterate per batches of size s.maxHeadersPerBatch to find it.
+	// This could be optimized by doing some binary search if the ancestor is not in the first batch.
+
+	// cursor is a pointer to the block right after the ancestor.
+	// We do this to leverage the fact that a block's hash is already computed in
+	// his successor's header.
+	var cursor *pb.Header
+
+	// In case the local chain has nothing more than a genesis block,
+	// we can't use the cursor (no successor). In that case, we will compute the
+	// hashes and keep the equality result in sameGenesisBlock.
+	sameGenesisBlock := false
+
 	for {
-		var cursor *pb.Header
+
 		from := uint64(0)
+		amount := s.maxHeadersPerBatch
 		if height >= s.maxHeadersPerBatch {
 			from = height - s.maxHeadersPerBatch + 1
+		} else {
+			// e.g. if height = 10, we want all the blocks from 0 to 10,
+			// i.e. from = 0 and amount = 11.
+			amount = height + 1
 		}
 
-		headers, err := s.p2p.RequestHeadersByNumber(ctx, peerID, from, s.maxHeadersPerBatch)
+		headers, err := s.p2p.RequestHeadersByNumber(ctx, peerID, from, amount)
 		if err != nil {
 			return nil, err
 		}
@@ -234,22 +256,41 @@ func (s *synchronizer) findCommonAncestor(ctx context.Context, height uint64, pe
 			if err != nil {
 				return nil, err
 			}
-			if bytes.Equal(h.PreviousHash, localHeader.PreviousHash) {
+
+			if h.BlockNumber == 0 {
+				// PreviousHash is nil at this point so we have to hash the blocks.
+				rh, err := coinutil.HashHeader(h)
+				if err != nil {
+					return nil, err
+				}
+				lh, err := coinutil.HashHeader(localHeader)
+				if err != nil {
+					return nil, err
+				}
+				if bytes.Equal(rh, lh) {
+					sameGenesisBlock = true
+				}
+			} else if bytes.Equal(h.PreviousHash, localHeader.PreviousHash) {
+				// Otherwise, we can compare previous hashes and set the cursor.
 				cursor = h
-				ancestorHash = h.PreviousHash
 			}
 		}
-
-		if ancestorHash != nil || height < s.maxHeadersPerBatch {
+		if cursor != nil || height < s.maxHeadersPerBatch {
 			break
 		}
 
 		height -= s.maxHeadersPerBatch
 	}
 
-	if ancestorHash == nil {
-		return nil, ErrNoCommonAncestor
+	// Cursor should be on the first block that is after the common ancestor.
+	if cursor != nil {
+		return chain.GetHeaderByHash(cursor.PreviousHash)
 	}
+	// If the local chain actually has nothing more than a genesis block,
+	// cursor will be nil => we return the genesis block if it is the same.
+	if sameGenesisBlock {
+		return chain.GetHeaderByNumber(0)
+	}
+	return nil, ErrNoCommonAncestor
 
-	return chain.GetHeaderByHash(ancestorHash)
 }

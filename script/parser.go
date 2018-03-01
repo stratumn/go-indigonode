@@ -103,7 +103,7 @@ func (p *Parser) List(in string) (SExp, error) {
 }
 
 func (p *Parser) script() (SExp, error) {
-	head, err := p.inBodyHead()
+	head, err := p.inBody()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (p *Parser) script() (SExp, error) {
 	return head, nil
 }
 
-func (p *Parser) inBodyHead() (SExp, error) {
+func (p *Parser) inBody() (SExp, error) {
 	meta := Meta{Line: p.tok.Line, Offset: p.tok.Offset}
 
 	car, err := p.instr()
@@ -278,6 +278,10 @@ func (p *Parser) sexp() (SExp, error) {
 	switch p.tok.Type {
 	case TokQuote:
 		return p.quotedSExp()
+	case TokQuasiquote:
+		return p.quasiquotedSExp()
+	case TokUnquote:
+		return p.unquotedSExp()
 	case TokLBrace:
 		return p.body()
 	case TokLParen:
@@ -309,12 +313,52 @@ func (p *Parser) quotedSExp() (SExp, error) {
 	return Cons(Symbol(QuoteSymbol, meta), Cons(exp, nil, meta), meta), nil
 }
 
+func (p *Parser) quasiquotedSExp() (SExp, error) {
+	tok := p.consume(TokQuasiquote)
+	if tok == nil {
+		// This actually never happens because the caller checks the
+		// token.
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	p.skipLines()
+
+	exp, err := p.sexp()
+	if err != nil {
+		return nil, err
+	}
+
+	meta := Meta{Line: tok.Line, Offset: tok.Offset}
+
+	return Cons(Symbol(QuasiquoteSymbol, meta), Cons(exp, nil, meta), meta), nil
+}
+
+func (p *Parser) unquotedSExp() (SExp, error) {
+	tok := p.consume(TokUnquote)
+	if tok == nil {
+		// This actually never happens because the caller checks the
+		// token.
+		return nil, errors.WithStack(ParseError{p.tok})
+	}
+
+	p.skipLines()
+
+	exp, err := p.sexp()
+	if err != nil {
+		return nil, err
+	}
+
+	meta := Meta{Line: tok.Line, Offset: tok.Offset}
+
+	return Cons(Symbol(UnquoteSymbol, meta), Cons(exp, nil, meta), meta), nil
+}
+
 func (p *Parser) body() (SExp, error) {
 	if p.consume(TokLBrace) == nil {
 		return nil, errors.WithStack(ParseError{p.tok})
 	}
 
-	head, err := p.inBodyHead()
+	head, err := p.inBody()
 	if err != nil {
 		return nil, err
 	}

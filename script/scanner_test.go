@@ -57,12 +57,16 @@ var scanTests = []scanTest{{
 	},
 	nil,
 }, {
-	"a 'b",
+	"a 'b `c ,d",
 	[]Token{
 		{TokSymbol, "a", 1, 1},
 		{TokQuote, "", 1, 3},
 		{TokSymbol, "b", 1, 4},
-		{TokEOF, "", 1, 5},
+		{TokQuasiquote, "", 1, 6},
+		{TokSymbol, "c", 1, 7},
+		{TokUnquote, "", 1, 9},
+		{TokSymbol, "d", 1, 10},
+		{TokEOF, "", 1, 11},
 	},
 	nil,
 }, {

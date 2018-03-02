@@ -19,6 +19,7 @@ package processor
 import (
 	"bytes"
 	"context"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -58,6 +59,9 @@ type ContentProvider interface {
 type processor struct {
 	// provider is used to let the network know we have a block once we added it to the local chain.
 	provider ContentProvider
+
+	// mu is used to process only one block at a time.
+	mu sync.Mutex
 }
 
 // NewProcessor creates a new processor.
@@ -66,6 +70,9 @@ func NewProcessor(provider ContentProvider) Processor {
 }
 
 func (p *processor) Process(ctx context.Context, block *pb.Block, state state.State, ch chain.Chain) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	mh, err := coinutil.HashHeader(block.Header)
 	if err != nil {
 		return err

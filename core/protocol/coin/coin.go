@@ -341,7 +341,7 @@ func (c *Coin) StartBlockGossip(ctx context.Context) error {
 
 // synchronize synchronizes the local chain.
 func (c *Coin) synchronize(ctx context.Context, hash []byte) error {
-	event := log.EventBegin(ctx, "Synchronize local chain", logging.Metadata{"hash": hex.EncodeToString(hash)})
+	event := log.EventBegin(ctx, "Synchronize", logging.Metadata{"hash": hex.EncodeToString(hash)})
 	defer event.Done()
 
 	resCh, errCh := c.synchronizer.Synchronize(ctx, hash, c.chain)

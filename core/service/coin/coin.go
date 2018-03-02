@@ -328,6 +328,9 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			if s.coin == nil {
 				return ErrUnavailable
 			}
+			if err := s.coin.AddTransaction(tx); err != nil {
+				return err
+			}
 
 			return s.coin.PublishTransaction(tx)
 		},

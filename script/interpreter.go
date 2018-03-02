@@ -91,10 +91,11 @@ type InterpreterFuncHandler func(*InterpreterContext) (SExp, error)
 type InterpreterContext struct {
 	Ctx context.Context
 
-	Name    string
-	Closure *Closure
-	Args    SExp
-	Meta    Meta
+	Name            string
+	Closure         *Closure
+	Args            SExp
+	Meta            Meta
+	QuasiquoteLevel int
 
 	IsTail bool
 
@@ -300,6 +301,7 @@ func (itr *Interpreter) evalCall(
 		Closure:           ctx.Closure,
 		Args:              args,
 		Meta:              call.Meta(),
+		QuasiquoteLevel:   ctx.QuasiquoteLevel,
 		IsTail:            isTail,
 		Eval:              itr.eval,
 		EvalList:          itr.evalList,

@@ -161,6 +161,16 @@ var evalTests = []evalTest{{
 	`(lambda (l) ((let reverse-rec-1 (lambda (l tail) ((if (nil? l) tail (reverse-rec-2 (cdr l) (cons (car l) tail)))))) (let reverse-rec-2 (lambda (l tail) ((if (nil? l) tail (reverse-rec-1 (cdr l) (cons (car l) tail)))))) (reverse-rec-1 l ())))
 (10 9 8 7 6 5 4 3 2 1)`,
 	"",
+}, {
+	"echo `(2 ,(+ 1 2) 4)",
+	`"(2 3 4)"`,
+	"",
+}, {
+	"let letter `a\n" +
+		"echo `(letter ,letter ',letter)",
+	`a
+"(letter a (quote a))"`,
+	"",
 }}
 
 func testEcho(ctx *InterpreterContext) (SExp, error) {

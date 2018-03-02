@@ -105,6 +105,10 @@ var parseTests = []parserTest{{
 	"((echo (quote (true false))))",
 	"",
 }, {
+	"echo ''(true false)",
+	"((echo (quote (quote (true false)))))",
+	"",
+}, {
 	"echo `(true false)",
 	"((echo (quasiquote (true false))))",
 	"",

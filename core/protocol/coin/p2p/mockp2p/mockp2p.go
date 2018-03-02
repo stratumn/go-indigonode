@@ -13,7 +13,7 @@ import (
 	p2p "github.com/stratumn/alice/core/protocol/coin/p2p"
 	coin "github.com/stratumn/alice/pb/coin"
 
-	go_libp2p_peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	go_libp2p_peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 // MockP2P is a mock of P2P interface

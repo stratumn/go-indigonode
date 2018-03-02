@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -48,8 +48,8 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 func expectHost(net *mockpubsub.MockNetwork, host *mockpubsub.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
-	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.ID), gomock.Any())
-	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.ID))
+	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
+	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.FloodSubID))
 }
 
 func TestService_strings(t *testing.T) {

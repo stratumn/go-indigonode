@@ -23,9 +23,17 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
+	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/core/protocol/coin/engine/mockengine"
+	"github.com/stratumn/alice/core/protocol/coin/p2p/mockp2p"
+	"github.com/stratumn/alice/core/protocol/coin/processor"
 	"github.com/stratumn/alice/core/protocol/coin/state"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
+	"github.com/stratumn/alice/core/protocol/coin/synchronizer/mocksynchronizer"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
+	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
+	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	"github.com/stratumn/alice/core/protocol/coin/validator/mockvalidator"
 	pb "github.com/stratumn/alice/pb/coin"
@@ -35,6 +43,8 @@ import (
 	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
 	netutil "gx/ipfs/QmWUugnJBbcuin8qdfiCYKAsNkG8NeDLhzoBqRaqXhAHd4/go-libp2p-netutil"
 	bhost "gx/ipfs/QmZ15dDSCo4DKn4o4GnqqLExKATBeeo3oNyQ5FBKtNjEQT/go-libp2p-blankhost"
+	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
+	pstore "gx/ipfs/QmeZVQzUrXqaszo24DAoHfGzcmCptN9JyngLkGAiEfk2x7/go-libp2p-peerstore"
 	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
 )
 
@@ -62,6 +72,16 @@ func NewGossipBuilder(h host.Host) *GossipBuilder {
 	return &GossipBuilder{h: h}
 }
 
+func (g *GossipBuilder) WithChain(c chain.Chain) *GossipBuilder {
+	g.chain = c
+	return g
+}
+
+func (g *GossipBuilder) WithState(s state.State) *GossipBuilder {
+	g.state = s
+	return g
+}
+
 func (g *GossipBuilder) WithValidator(v validator.Validator) *GossipBuilder {
 	g.validator = v
 	return g
@@ -85,7 +105,9 @@ func (g *GossipBuilder) Build(ctx context.Context, t *testing.T) Gossip {
 		g.state = state.NewState(g.db)
 	}
 	if g.validator == nil {
-		g.validator = validator.NewGossipValidator(2, nil, g.chain)
+		e := mockengine.NewMockPoW(gomock.NewController(t))
+		e.EXPECT().VerifyHeader(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		g.validator = validator.NewGossipValidator(2, e, g.chain)
 	}
 
 	return NewGossip(g.h, g.pubsub, g.state, g.chain, g.validator)
@@ -334,6 +356,155 @@ func TestGossip(t *testing.T) {
 		assert.Len(t, gg.pubsub.GetTopics(), 0)
 		assert.Len(t, gg.blockListeners, 0)
 	})
+}
+
+func TestGossipWithSync(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	/***** Setup two nodes with diverging chains *****/
+
+	// block0 --- block1
+	//        \-- block1bis --- block2bis
+
+	block0 := blocktest.NewBlock(t, []*pb.Transaction{
+		&pb.Transaction{To: []byte(txtest.TxSenderPID), Value: 42},
+	})
+	block0.Header.BlockNumber = 0
+	block0Hash, err := coinutil.HashHeader(block0.Header)
+	require.NoError(t, err, "coinutil.HashHeader()")
+
+	block1 := blocktest.NewBlock(t, []*pb.Transaction{txtest.NewTransaction(t, 7, 2, 2)})
+	block1.Header.BlockNumber = 1
+	block1.Header.PreviousHash = block0Hash
+
+	block1bis := blocktest.NewBlock(t, []*pb.Transaction{txtest.NewTransaction(t, 5, 2, 2)})
+	block1bis.Header.BlockNumber = 1
+	block1bis.Header.PreviousHash = block0Hash
+	block1bisHash, err := coinutil.HashHeader(block1bis.Header)
+	require.NoError(t, err, "coinutil.HashHeader()")
+
+	block2bis := blocktest.NewBlock(t, []*pb.Transaction{txtest.NewTransaction(t, 3, 2, 3)})
+	block2bis.Header.BlockNumber = 2
+	block2bis.Header.PreviousHash = block1bisHash
+
+	p := processor.NewProcessor(nil)
+
+	// Host1's chain contains block0 -> block1
+	h1 := newHost(ctx, t)
+	db1, err := db.NewMemDB(nil)
+	require.NoError(t, err, "db.NewMemDB()")
+
+	chain1 := chain.NewChainDB(db1)
+	state1 := state.NewState(db1)
+	require.NoError(t, p.Process(ctx, block0, state1, chain1), "p.Process()")
+	require.NoError(t, p.Process(ctx, block1, state1, chain1), "p.Process()")
+
+	g1 := NewGossipBuilder(h1).WithChain(chain1).WithState(state1).Build(ctx, t)
+
+	// Host2's chain contains block0 -> block1bis -> block2bis
+	h2 := newHost(ctx, t)
+	db2, err := db.NewMemDB(nil)
+	require.NoError(t, err, "db.NewMemDB()")
+
+	chain2 := chain.NewChainDB(db2)
+	state2 := state.NewState(db2)
+	require.NoError(t, p.Process(ctx, block0, state2, chain2), "p.Process()")
+	require.NoError(t, p.Process(ctx, block1bis, state2, chain2), "p.Process()")
+	require.NoError(t, p.Process(ctx, block2bis, state2, chain2), "p.Process()")
+
+	g2 := NewGossipBuilder(h2).WithChain(chain2).WithState(state2).Build(ctx, t)
+
+	/***** Connect the two nodes *****/
+
+	h2pi := h2.Peerstore().PeerInfo(h2.ID())
+	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
+
+	/***** Set synchronize expectations *****/
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	p2p := mockp2p.NewMockP2P(ctrl)
+	dht := mocksynchronizer.NewMockContentProviderFinder(ctrl)
+	sync := synchronizer.NewSynchronizer(p2p, dht, synchronizer.OptMaxBatchSizes(2))
+
+	// The sync should request the missing blocks from h2.
+	cid1, _ := cid.Cast(block1bisHash)
+	dht.EXPECT().
+		FindProviders(gomock.Any(), cid1).
+		Return([]pstore.PeerInfo{h2pi}, nil).
+		Times(1)
+
+	p2p.EXPECT().
+		RequestBlockByHash(gomock.Any(), h2.ID(), []byte(block1bisHash)).
+		Return(block1bis, nil).
+		Times(1)
+
+	p2p.EXPECT().
+		RequestHeadersByNumber(gomock.Any(), h2.ID(), uint64(0), uint64(2)).
+		Return([]*pb.Header{block0.Header, block1bis.Header}, nil).
+		Times(1)
+
+	p2p.EXPECT().
+		RequestBlocksByNumber(gomock.Any(), h2.ID(), uint64(1), uint64(2)).
+		Return([]*pb.Block{block1bis, block2bis}, nil).
+		Times(1)
+
+	p2p.EXPECT().
+		RequestBlocksByNumber(gomock.Any(), h2.ID(), uint64(3), uint64(2)).
+		Return(nil, nil).
+		Times(1)
+
+	/***** Listen to blocks and synchronize *****/
+
+	err = g1.ListenBlock(ctx, func(b *pb.Block) error {
+		return p.Process(ctx, b, state1, chain1)
+	}, func(h []byte) error {
+		resCh, errCh := sync.Synchronize(ctx, h, chain1)
+
+		for {
+			select {
+			case b, ok := <-resCh:
+				if !ok {
+					// No more blocks to process.
+					return nil
+				}
+				if err := p.Process(ctx, b, state1, chain1); err != nil {
+					return err
+				}
+			case err := <-errCh:
+				return err
+			}
+		}
+	})
+	assert.NoError(t, err, "g1.ListenBlock()")
+
+	err = g2.ListenBlock(ctx, func(*pb.Block) error { return nil }, func([]byte) error { return nil })
+	assert.NoError(t, err, "g2.ListenBlock()")
+
+	tassert.WaitUntil(t, func() bool {
+		return len(g1.(*gossip).pubsub.ListPeers(BlockTopicName)) == 1
+	}, "ListPeers(topic) should have length of 1")
+
+	err = g2.PublishBlock(block2bis)
+	assert.NoError(t, err, "g2.PublishBlock()")
+
+	tassert.WaitUntil(t, func() bool {
+		b, err := chain1.CurrentHeader()
+		assert.NoError(t, err, "chain.CurrentHeader()")
+		return b.BlockNumber == 2
+	}, "chain not synchronized")
+
+	a1, err := state1.GetAccount([]byte(txtest.TxSenderPID))
+	assert.NoError(t, err, "state1.GetAccount()")
+	a2, err := state2.GetAccount([]byte(txtest.TxSenderPID))
+	assert.NoError(t, err, "state2.GetAccount()")
+
+	assert.Equal(t, uint64(30), a1.Balance, "a1.Balance")
+	assert.Equal(t, uint64(30), a1.Balance, "a2.Balance")
+	assert.Equal(t, uint64(3), a1.Nonce, "a1.Nonce")
+	assert.Equal(t, uint64(3), a2.Nonce, "a2.Nonce")
 }
 
 func assertReceive(t *testing.T, c chan msg, want interface{}) {

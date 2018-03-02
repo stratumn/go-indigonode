@@ -302,6 +302,42 @@ func NewTestNodeSet(dir string, n int, config cfg.ConfigSet) (TestNodeSet, error
 	return nodes, nil
 }
 
+// NewTestNodeSetWithConfigs creates a new set of test nodes with different configs.
+func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (TestNodeSet, error) {
+	if len(configs) < n {
+		return nil, errors.Errorf("There are %d configs, expected at least %d", len(configs), n)
+	}
+	var err error
+
+	if dir, err = filepath.Abs(dir); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	nodes, errs := make(TestNodeSet, n), make([]error, n)
+
+	PerCPU(func(i int) {
+		name := fmt.Sprintf("node%d", i)
+		dir := filepath.Join(dir, name)
+		node, err := NewTestNode(dir, configs[i])
+		nodes[i], errs[i] = node, errors.Wrap(err, name)
+	}, n)
+
+	if err = NewMultiErr(errs); err != nil {
+		return nil, err
+	}
+
+	nodes.randSeeds()
+
+	for _, node := range nodes {
+		confFile := filepath.Join(node.dir, "alice.core.toml")
+		if err := node.conf.Save(confFile, 0600, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return nodes, nil
+}
+
 // Up launches the set of nodes.
 func (s TestNodeSet) Up(ctx context.Context) error {
 	errs := make([]error, len(s))

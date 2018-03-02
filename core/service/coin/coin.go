@@ -19,6 +19,8 @@ package coin
 import (
 	"context"
 	"encoding/hex"
+	"math/rand"
+	"time"
 
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
@@ -41,6 +43,7 @@ import (
 	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	kaddht "gx/ipfs/QmZcitfGoJ1JCwF9zdQvczfmwzLKugqtEGvTMXYcX23zbU/go-libp2p-kad-dht"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
@@ -250,6 +253,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	s.host.SetStreamHandler(protocol.ProtocolID, handler)
 
+	go s.genTxs()
+
 	running()
 	<-ctx.Done()
 	stopping()
@@ -356,4 +361,78 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			return s.coin.GetTransactionPool(count)
 		},
 	})
+}
+
+func (s *Service) genTxs() {
+	miners := make([][]byte, 4)
+	miner0, _ := peer.IDB58Decode("QmQnYf23kQ7SvuPZ3mQcg3RuJMr9E39fBvm89Nz4bevJdt")
+	miners[0] = []byte(miner0)
+	miner1, _ := peer.IDB58Decode("QmYxjwtGm1mKL61Cc6NhBRgMWFz39r3k5tRRqWWiQoux7V")
+	miners[1] = []byte(miner1)
+	miner2, _ := peer.IDB58Decode("QmcqyMD1UrnqtVgoG5rHaXmQfqg8LK6Wk6NUpvdUmf78Rv")
+	miners[2] = []byte(miner2)
+	miner3, _ := peer.IDB58Decode("QmNnP696qYWjwyiqoepYauwpdZp62NoKEjBV4Q1MJVhMUC")
+	miners[3] = []byte(miner3)
+
+	pubKeys := make([][]byte, 4)
+	privKeys := make([]ic.PrivKey, 4)
+
+	miner0KeyBytes, _ := ic.ConfigDecodeKey("CAESYE53i0HQ1GuPegCRNgLOObZYe4zPV14nYTTNZ60+wM8q/jnmvcWtU8wnGcpwhfVqBs0aFPpIn0z3Tunw+tmkpyX+Oea9xa1TzCcZynCF9WoGzRoU+kifTPdO6fD62aSnJQ==")
+	miner0Key, _ := ic.UnmarshalPrivateKey(miner0KeyBytes)
+	miner0PubKey, _ := miner0Key.GetPublic().Bytes()
+	pubKeys[0] = miner0PubKey
+	privKeys[0] = miner0Key
+
+	miner1KeyBytes, _ := ic.ConfigDecodeKey("CAESYKUMPQcudYkJcdhZnnidF8vjesrPyIFO7hw18QaDfq0v1DVxc8WTp+XQIbaMTooGqthRWNK89DmpJ7R/W8MVqNLUNXFzxZOn5dAhtoxOigaq2FFY0rz0OakntH9bwxWo0g==")
+	miner1Key, _ := ic.UnmarshalPrivateKey(miner1KeyBytes)
+	miner1PubKey, _ := miner1Key.GetPublic().Bytes()
+	pubKeys[1] = miner1PubKey
+	privKeys[1] = miner1Key
+
+	miner2KeyBytes, _ := ic.ConfigDecodeKey("CAESYFKsxpr3ZqpsW5GEPngFnHPOhehbz3ZXWITZ1uXcjt+6MC26htfs4o7NwRLTh6o5ddRvNhU7LxY4074ctTHHENIwLbqG1+zijs3BEtOHqjl11G82FTsvFjjTvhy1MccQ0g==")
+	miner2Key, _ := ic.UnmarshalPrivateKey(miner2KeyBytes)
+	miner2PubKey, _ := miner2Key.GetPublic().Bytes()
+	pubKeys[2] = miner2PubKey
+	privKeys[2] = miner2Key
+
+	miner3KeyBytes, _ := ic.ConfigDecodeKey("CAESYF/pw0CjTfxADsQSPTz0JPb8EtK76sR13dXIgv0J3/DjNFjaBhPYAb6V/jw2oQbL89VKYz0qcIeoCYVh3/ywkog0WNoGE9gBvpX+PDahBsvz1UpjPSpwh6gJhWHf/LCSiA==")
+	miner3Key, _ := ic.UnmarshalPrivateKey(miner3KeyBytes)
+	miner3PubKey, _ := miner3Key.GetPublic().Bytes()
+	pubKeys[3] = miner3PubKey
+	privKeys[3] = miner3Key
+
+	// Every 30s gen a random tx.
+	for _ = range time.NewTicker(time.Second * 30).C {
+		from := rand.Intn(4)
+		to := rand.Intn(4)
+		for from == to {
+			to = rand.Intn(4)
+		}
+		val := rand.Intn(12)
+		for val == 0 {
+			val = rand.Intn(4)
+		}
+
+		tx := &pb.Transaction{
+			From:  []byte(miners[from]),
+			To:    []byte(miners[to]),
+			Nonce: uint64(time.Now().UnixNano()),
+			Value: uint64(val),
+		}
+
+		txb, _ := tx.Marshal()
+
+		sig, _ := privKeys[from].Sign(txb)
+		tx.Signature = &pb.Signature{
+			KeyType:   pb.KeyType_Ed25519,
+			PublicKey: pubKeys[from],
+			Signature: sig,
+		}
+
+		s.coin.AddTransaction(tx)
+
+		s.coin.PublishTransaction(tx)
+
+	}
+
 }

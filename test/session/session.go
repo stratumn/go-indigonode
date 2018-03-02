@@ -211,6 +211,36 @@ func Run(ctx context.Context, dir string, numNodes int, config cfg.ConfigSet, fn
 	if err != nil {
 		return err
 	}
+	return run(ctx, dir, set, fn)
+}
+
+// RunWithConfigs launches a test network and calls a user defined function that can
+// interact with the nodes via API clients.
+// Each node has a specific config.
+//
+// The configuration files, data files, and logs will be saved in a directory
+// within the given directory.
+func RunWithConfigs(ctx context.Context, dir string, numNodes int, configs []cfg.ConfigSet, fn Tester) error {
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return errors.WithStack(err)
+	}
+
+	prefix := time.Now().UTC().Format(time.RFC3339) + "--"
+	dir, err := ioutil.TempDir(dir, prefix)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Create the test network.
+	set, err := NewTestNodeSetWithConfigs(dir, numNodes, configs)
+	if err != nil {
+		return err
+	}
+
+	return run(ctx, dir, set, fn)
+}
+
+func run(ctx context.Context, dir string, set TestNodeSet, fn Tester) error {
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

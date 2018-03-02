@@ -47,48 +47,48 @@ func TestCoin(t *testing.T) {
 	assert.NoError(t, err, "GenerateKeyPair()")
 	minerID0, err := peer.IDFromPublicKey(pubKey0)
 	assert.NoError(t, err, "IDFromPublicKey()")
-	bal0 := uint64(42)
+	balance0 := uint64(42)
 
 	_, pubKey1, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "GenerateKeyPair()")
 	minerID1, err := peer.IDFromPublicKey(pubKey1)
 	assert.NoError(t, err, "IDFromPublicKey()")
-	bal1 := uint64(0)
+	balance1 := uint64(0)
 
 	_, pubKey2, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "GenerateKeyPair()")
 	minerID2, err := peer.IDFromPublicKey(pubKey2)
 	assert.NoError(t, err, "IDFromPublicKey()")
-	bal2 := uint64(0)
+	balance2 := uint64(0)
 
 	_, pubKey3, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "GenerateKeyPair()")
 	minerID3, err := peer.IDFromPublicKey(pubKey3)
 	assert.NoError(t, err, "IDFromPublicKey()")
-	bal3 := uint64(43)
+	balance3 := uint64(43)
 
 	privKey, pubKey, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "GenerateKeyPair()")
 	someGuyID, err := peer.IDFromPublicKey(pubKey)
 	assert.NoError(t, err, "IDFromPublicKey()")
-	balGuy := uint64(44)
+	balanceGuy := uint64(44)
 
 	txs := []*pb.Transaction{
 		&pb.Transaction{
 			To:    []byte(minerID0),
-			Value: bal0,
+			Value: balance0,
 		},
 		&pb.Transaction{
 			To:    []byte(minerID3),
-			Value: bal3,
+			Value: balance3,
 		},
 		&pb.Transaction{
 			To:    []byte(someGuyID),
-			Value: balGuy,
+			Value: balanceGuy,
 		},
 	}
 
-	mr, err := coinutil.TransactionRoot(txs)
+	txsMerkleRoot, err := coinutil.TransactionRoot(txs)
 	assert.NoError(t, err, "TransactionRoot()")
 	ts, err := ptypes.TimestampProto(time.Now())
 	assert.NoError(t, err)
@@ -97,7 +97,7 @@ func TestCoin(t *testing.T) {
 		Header: &pb.Header{
 			Nonce:      42,
 			Version:    2,
-			MerkleRoot: mr,
+			MerkleRoot: txsMerkleRoot,
 			Timestamp:  ts,
 		},
 		Transactions: txs,
@@ -127,23 +127,23 @@ func TestCoin(t *testing.T) {
 
 		// Check initialization.
 		// node3 has not been initialized with the same genesis block.
-		assertAccount(ctx, t, clients[0], minerID0, bal0, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID1, bal1, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID2, bal2, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID3, bal3, uint64(0))
-		assertAccount(ctx, t, clients[0], someGuyID, balGuy, uint64(0))
+		assertAccount(ctx, t, clients[0], minerID0, balance0, uint64(0))
+		assertAccount(ctx, t, clients[0], minerID1, balance1, uint64(0))
+		assertAccount(ctx, t, clients[0], minerID2, balance2, uint64(0))
+		assertAccount(ctx, t, clients[0], minerID3, balance3, uint64(0))
+		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, uint64(0))
 
-		assertAccount(ctx, t, clients[1], minerID0, bal0, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID1, bal1, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID2, bal2, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID3, bal3, uint64(0))
-		assertAccount(ctx, t, clients[1], someGuyID, balGuy, uint64(0))
+		assertAccount(ctx, t, clients[1], minerID0, balance0, uint64(0))
+		assertAccount(ctx, t, clients[1], minerID1, balance1, uint64(0))
+		assertAccount(ctx, t, clients[1], minerID2, balance2, uint64(0))
+		assertAccount(ctx, t, clients[1], minerID3, balance3, uint64(0))
+		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, uint64(0))
 
-		assertAccount(ctx, t, clients[2], minerID0, bal0, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID1, bal1, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID2, bal2, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID3, bal3, uint64(0))
-		assertAccount(ctx, t, clients[2], someGuyID, balGuy, uint64(0))
+		assertAccount(ctx, t, clients[2], minerID0, balance0, uint64(0))
+		assertAccount(ctx, t, clients[2], minerID1, balance1, uint64(0))
+		assertAccount(ctx, t, clients[2], minerID2, balance2, uint64(0))
+		assertAccount(ctx, t, clients[2], minerID3, balance3, uint64(0))
+		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, uint64(0))
 
 		assertAccount(ctx, t, clients[3], minerID0, uint64(0), uint64(0))
 		assertAccount(ctx, t, clients[3], minerID1, uint64(0), uint64(0))
@@ -160,15 +160,15 @@ func TestCoin(t *testing.T) {
 			Fee:   2,
 		}
 		doTransaction(ctx, t, clients[0], privKey, tx)
-		balGuy -= 12 + 2
+		balanceGuy -= 12 + 2
 
 		// Check that a new block has been accepted.
 		assertHeight(ctx, t, clients[0], 1)
 		assertHeight(ctx, t, clients[1], 1)
 
-		assertAccount(ctx, t, clients[0], someGuyID, balGuy, uint64(1))
-		assertAccount(ctx, t, clients[1], someGuyID, balGuy, uint64(1))
-		assertAccount(ctx, t, clients[2], someGuyID, balGuy, uint64(1))
+		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, uint64(1))
+		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, uint64(1))
+		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, uint64(1))
 		assertAccount(ctx, t, clients[3], someGuyID, uint64(0), uint64(0))
 
 		// Stop node2.
@@ -186,7 +186,7 @@ func TestCoin(t *testing.T) {
 			Value: 2,
 			Fee:   1,
 		})
-		balGuy -= 2 + 1
+		balanceGuy -= 2 + 1
 		assertHeight(ctx, t, clients[0], 2)
 		assertHeight(ctx, t, clients[1], 2)
 
@@ -204,7 +204,7 @@ func TestCoin(t *testing.T) {
 			Value: 7,
 			Fee:   1,
 		})
-		balGuy -= 7 + 1
+		balanceGuy -= 7 + 1
 		assertHeight(ctx, t, clients[0], 3)
 		assertHeight(ctx, t, clients[1], 3)
 
@@ -258,16 +258,16 @@ func TestCoin(t *testing.T) {
 			Value: 4,
 			Fee:   3,
 		})
-		balGuy -= 4 + 3
+		balanceGuy -= 4 + 3
 
 		assertHeight(ctx, t, clients[0], 4)
-		assertAccount(ctx, t, clients[0], someGuyID, balGuy, 9001)
+		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, 9001)
 
 		assertHeight(ctx, t, clients[1], 4)
-		assertAccount(ctx, t, clients[1], someGuyID, balGuy, 9001)
+		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, 9001)
 
 		assertHeight(ctx, t, clients[2], 4)
-		assertAccount(ctx, t, clients[2], someGuyID, balGuy, 9001)
+		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, 9001)
 
 	}
 
@@ -318,11 +318,11 @@ func assertHeight(ctx context.Context, t *testing.T, c coinpb.CoinClient, num ui
 	}, "blockChain should update")
 }
 
-func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid peer.ID, bal, nonce uint64) {
+func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid peer.ID, balance, nonce uint64) {
 	acc, err := c.Account(ctx, &coinpb.AccountReq{PeerId: []byte(pid)})
 	assert.NoError(t, err, "Account()")
 	if acc != nil {
-		assert.Equal(t, bal, acc.Balance, "account.Balance")
+		assert.Equal(t, balance, acc.Balance, "account.Balance")
 		assert.Equal(t, nonce, acc.Nonce, "account.Balance")
 	}
 }

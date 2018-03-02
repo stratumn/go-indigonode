@@ -159,7 +159,7 @@ const (
 	// UnquoteSymbol is the symbol used to unquote expressions.
 	UnquoteSymbol = "unquote"
 
-	// ElseSymbol is the name of the optional "else" symbol in "if" and "unless"
-	// statements.
+	// ElseSymbol is the name of the optional "else" symbol in "if" and
+	// "unless" statements.
 	ElseSymbol = "else"
 )

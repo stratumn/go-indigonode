@@ -29,35 +29,38 @@ type libTest struct {
 
 func testLib(t *testing.T, lib map[string]InterpreterFuncHandler, tests []libTest) {
 	for _, tt := range tests {
-		var got string
+		t.Run(tt.input, func(t *testing.T) {
+			var got string
 
-		itr := NewInterpreter(
-			InterpreterOptFuncHandlers(LibMeta),
-			InterpreterOptFuncHandlers(lib),
-			InterpreterOptErrorHandler(func(error) {}),
-			InterpreterOptValueHandler(func(exp SExp) {
-				if exp == nil {
-					return
-				}
-				if got != "" {
-					got += "\n"
-				}
-				got += exp.String()
-			}),
-		)
+			itr := NewInterpreter(
+				InterpreterOptFuncHandlers(LibOp),
+				InterpreterOptFuncHandlers(LibMeta),
+				InterpreterOptFuncHandlers(lib),
+				InterpreterOptErrorHandler(func(error) {}),
+				InterpreterOptValueHandler(func(exp SExp) {
+					if exp == nil {
+						return
+					}
+					if got != "" {
+						got += "\n"
+					}
+					got += exp.String()
+				}),
+			)
 
-		err := itr.EvalInput(context.Background(), tt.input)
-		if err != nil {
-			if tt.err != "" {
-				assert.Equal(t, tt.err, err.Error())
-			} else {
-				assert.NoError(t, err)
+			err := itr.EvalInput(context.Background(), tt.input)
+			if err != nil {
+				if tt.err != "" {
+					assert.Equal(t, tt.err, err.Error())
+				} else {
+					assert.NoError(t, err)
+				}
+				return
+			} else if tt.err != "" {
+				assert.Fail(t, tt.err)
 			}
-			continue
-		} else if tt.err != "" {
-			assert.Fail(t, tt.err)
-		}
 
-		assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

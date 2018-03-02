@@ -16,12 +16,10 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 import "google/protobuf/timestamp.proto";
-// import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 package stratumn.alice.pb.coin;
 
 option go_package = "github.com/stratumn/alice/pb/coin;coin";
-// option (gogoproto.stable_marshaler_all) = true;
 
 
 // A coin transaction.

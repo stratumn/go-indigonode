@@ -210,10 +210,10 @@ func (rsp *Response) GetBlocks() ([]*Block, error) {
 }
 
 // NewBlocksResponse returns a response object of type BlocksRsp.
-func NewBlocksResponse(headers []*Block) *Response {
+func NewBlocksResponse(blocks []*Block) *Response {
 	return &Response{
 		Msg: &Response_BlocksRsp{
-			BlocksRsp: &Blocks{Blocks: headers},
+			BlocksRsp: &Blocks{Blocks: blocks},
 		},
 	}
 }

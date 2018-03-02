@@ -139,12 +139,12 @@ func evalCellUnquoted(ctx *InterpreterContext, exp SExp, isTail bool) (SExp, err
 		return nil, err
 	}
 
-	tailVal, err := evalUnquoted(ctx, cdr, isTail)
+	cdrVal, err := evalUnquoted(ctx, cdr, isTail)
 	if err != nil {
 		return nil, err
 	}
 
-	return Cons(carVal, tailVal, exp.Meta()), nil
+	return Cons(carVal, cdrVal, exp.Meta()), nil
 }
 
 // LibMetaEval evaluates an expression.

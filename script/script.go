@@ -114,7 +114,7 @@
 // The reason you don't need to use parenthesis at the top-level is because it
 // uses the same rules as inside braces.
 //
-// There a a few limitations to using braces -- currently all top-level
+// There are a few limitations to using braces -- currently all top-level
 // instructions have to be function calls, otherwise the grammar would be
 // ambiguous.
 package script

@@ -56,6 +56,15 @@ func InterpreterOptValueHandler(h func(SExp)) InterpreterOpt {
 	}
 }
 
+// InterpreterOptPreprocessHandlers adds preprocess handlers.
+func InterpreterOptPreprocessHandlers(m map[string]InterpreterFuncHandler) InterpreterOpt {
+	return func(itr *Interpreter) {
+		for k, h := range m {
+			itr.preprocessHandlers[k] = h
+		}
+	}
+}
+
 // InterpreterOptFuncHandlers adds function handlers.
 func InterpreterOptFuncHandlers(m map[string]InterpreterFuncHandler) InterpreterOpt {
 	return func(itr *Interpreter) {
@@ -63,6 +72,10 @@ func InterpreterOptFuncHandlers(m map[string]InterpreterFuncHandler) Interpreter
 			itr.funcHandlers[k] = h
 		}
 	}
+}
+
+var preprocessLibs = []map[string]InterpreterFuncHandler{
+	LibMacro,
 }
 
 var libs = []map[string]InterpreterFuncHandler{
@@ -75,8 +88,15 @@ var libs = []map[string]InterpreterFuncHandler{
 	LibMeta,
 }
 
-// InterpreterOptBuiltinLibs adds all the builtin function libraries.
+// InterpreterOptBuiltinLibs adds all the builtin precocessor and function
+// libraries.
 func InterpreterOptBuiltinLibs(itr *Interpreter) {
+	for _, l := range preprocessLibs {
+		for k, h := range l {
+			itr.preprocessHandlers[k] = h
+		}
+	}
+
 	for _, l := range libs {
 		for k, h := range l {
 			itr.funcHandlers[k] = h
@@ -119,6 +139,10 @@ type InterpreterContext struct {
 type FuncData struct {
 	// ParentClosure is the closure the function was defined within.
 	ParentClosure *Closure
+
+	// EvalArgs is whether to evaluate the arguments before calling the
+	// function
+	EvalArgs bool
 }
 
 // LazyCall contains information about a call to a lambda function. It is
@@ -134,16 +158,18 @@ type Interpreter struct {
 
 	tailOptimize bool
 
-	funcHandlers map[string]InterpreterFuncHandler
-	errHandler   func(error)
-	valHandler   func(SExp)
+	preprocessHandlers map[string]InterpreterFuncHandler
+	funcHandlers       map[string]InterpreterFuncHandler
+	errHandler         func(error)
+	valHandler         func(SExp)
 }
 
 // NewInterpreter creates a new interpreter.
 func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
 	itr := &Interpreter{
-		tailOptimize: true,
-		funcHandlers: map[string]InterpreterFuncHandler{},
+		tailOptimize:       true,
+		preprocessHandlers: map[string]InterpreterFuncHandler{},
+		funcHandlers:       map[string]InterpreterFuncHandler{},
 	}
 
 	for _, o := range opts {
@@ -167,6 +193,16 @@ func NewInterpreter(opts ...InterpreterOpt) *Interpreter {
 	}
 
 	return itr
+}
+
+// AddPreprocessHandler adds a preprocess handler.
+func (itr *Interpreter) AddPreprocessHandler(name string, handler InterpreterFuncHandler) {
+	itr.preprocessHandlers[name] = handler
+}
+
+// DeletePreprocessHandler removes a preprocess handler.
+func (itr *Interpreter) DeletePreprocessHandler(name string) {
+	delete(itr.preprocessHandlers, name)
 }
 
 // AddFuncHandler adds a function handler.
@@ -217,7 +253,14 @@ func (itr *Interpreter) EvalInstrs(ctx context.Context, instrs SExp) error {
 		return nil
 	}
 
-	car := instrs.Car()
+	car, err := itr.preprocess(&InterpreterContext{
+		Ctx:     ctx,
+		Closure: NewClosure(),
+	}, instrs.Car(), false)
+
+	if err != nil {
+		return err
+	}
 
 	val, err := itr.eval(&InterpreterContext{
 		Ctx:     ctx,
@@ -236,6 +279,105 @@ func (itr *Interpreter) EvalInstrs(ctx context.Context, instrs SExp) error {
 	}
 
 	return itr.EvalInstrs(ctx, cdr)
+}
+
+// preprocess preprocesses an expression.
+func (itr *Interpreter) preprocess(
+	ctx *InterpreterContext,
+	exp SExp,
+	isTail bool,
+) (SExp, error) {
+	if exp.UnderlyingType() != SExpCell {
+		return exp, nil
+	}
+
+	cell, err := itr.preprocessCell(ctx, exp, isTail)
+	if err != nil {
+		return nil, err
+	}
+
+	if !IsList(cell) {
+		return cell, nil
+	}
+
+	car := cell.Car()
+
+	name, ok := car.SymbolVal()
+	if !ok {
+		return cell, nil
+	}
+
+	args := cell.Cdr()
+
+	funcCtx := &InterpreterContext{
+		Ctx:               ctx.Ctx,
+		Name:              name,
+		Closure:           ctx.Closure,
+		Args:              args,
+		Meta:              cell.Meta(),
+		QuasiquoteLevel:   ctx.QuasiquoteLevel,
+		IsTail:            isTail,
+		Eval:              itr.eval,
+		EvalList:          itr.evalList,
+		EvalListToSlice:   itr.evalListToSlice,
+		EvalListToStrings: itr.evalListToStrings,
+		EvalBody:          itr.evalBody,
+		funcIDs:           ctx.funcIDs,
+	}
+
+	lambda, ok := ctx.Closure.Get(name)
+	if ok {
+		val, err := itr.execFunc(funcCtx, lambda)
+		if err != nil {
+			return nil, WrapError(err, car.Meta(), name)
+		}
+
+		return itr.preprocess(ctx, val, isTail)
+	}
+
+	handler, ok := itr.preprocessHandlers[name]
+	if !ok {
+		return cell, nil
+	}
+
+	val, err := handler(funcCtx)
+	if err != nil {
+		return nil, WrapError(err, car.Meta(), name)
+	}
+
+	return itr.preprocess(ctx, val, isTail)
+}
+
+// preprocessCell preprocesses a cell.
+func (itr *Interpreter) preprocessCell(
+	ctx *InterpreterContext,
+	cell SExp,
+	isTail bool,
+) (SExp, error) {
+	if cell.IsNil() {
+		return Nil(), nil
+	}
+
+	cdr := cell.Cdr()
+
+	carVal, err := itr.preprocess(ctx, cell.Car(), isTail && cdr.IsNil())
+	if err != nil {
+		return nil, err
+	}
+
+	var cdrVal SExp
+
+	if cdr.UnderlyingType() == SExpCell {
+		cdrVal, err = itr.preprocessCell(ctx, cdr, ctx.IsTail)
+	} else {
+		cdrVal, err = itr.preprocess(ctx, cdr, ctx.IsTail)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return Cons(carVal, cdrVal, cell.Meta()), nil
 }
 
 // eval evaluates an expression.
@@ -497,9 +639,16 @@ func (itr *Interpreter) execFunc(ctx *InterpreterContext, lambda SExp) (SExp, er
 	cadrSlice := ToSlice(cadr)
 
 	// Evalute the arguments.
-	args, err := itr.evalListToSlice(ctx, ctx.Args, false)
-	if err != nil {
-		return nil, err
+	var args SExpSlice
+	var err error
+
+	if data.EvalArgs {
+		args, err = itr.evalListToSlice(ctx, ctx.Args, false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		args = ToSlice(ctx.Args)
 	}
 
 	// If this is a tail call and optimizations are enabled, check if this

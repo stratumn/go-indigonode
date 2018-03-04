@@ -48,9 +48,7 @@ func LibClosureLet(ctx *InterpreterContext) (SExp, error) {
 		cadr = cdr.Car()
 	}
 
-	//	3. a value isn't already bound to symbol in the current
-	//	   closure
-
+	//	3. a value isn't already bound to symbol in the current closure
 	if _, ok := ctx.Closure.Local(carSymbol); ok {
 		return nil, Error(
 			"a value is already bound to the symbol",

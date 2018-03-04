@@ -137,7 +137,7 @@ func evalCellUnquoted(ctx *InterpreterContext, cell SExp, isTail bool) (SExp, er
 	var cdrVal SExp
 
 	if cdr.UnderlyingType() == SExpCell {
-		cdrVal, err = evalUnquoted(ctx, cdr, ctx.IsTail)
+		cdrVal, err = evalCellUnquoted(ctx, cdr, ctx.IsTail)
 	} else {
 		cdrVal, err = evalUnquoted(ctx, cdr, ctx.IsTail)
 	}

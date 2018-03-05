@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	identify "gx/ipfs/QmNRN4eZGmY89CRC4T5PC4xDYRx6GkDKEfRnvrT65fVeio/go-libp2p/p2p/protocol/identify"
-	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
+	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	identify "gx/ipfs/QmXGfPjhnro8tgANHDUg4gGgLGYnAz1zcDPAgNeUkzbsN1/go-libp2p/p2p/protocol/identify"
 )
 
 var (

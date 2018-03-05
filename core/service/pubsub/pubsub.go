@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
-	ihost "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
+	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
 var (
@@ -121,7 +121,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	<-ctx.Done()
 	stopping()
 
-	s.host.RemoveStreamHandler(floodsub.ID)
+	s.host.RemoveStreamHandler(floodsub.FloodSubID)
 	s.pubsub = nil
 
 	return errors.WithStack(ctx.Err())

@@ -19,7 +19,6 @@ package gossip
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -29,9 +28,9 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/validator"
 	pb "github.com/stratumn/alice/pb/coin"
 
-	floodsub "gx/ipfs/QmSjoxpBJV71bpSojnUY1K382Ly3Up55EspnDx6EKAmQX4/go-libp2p-floodsub"
+	host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	host "gx/ipfs/QmfCtHMCd9xFvehvHeVxtKVXJTMVTuHhyPRVHEXetn87vL/go-libp2p-host"
+	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
 const (
@@ -117,6 +116,11 @@ func (g *gossip) Close() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	for _, s := range g.subs {
+
+		err := g.pubsub.UnregisterTopicValidator(s.Topic())
+		if err != nil {
+			return errors.WithStack(err)
+		}
 		s.Cancel()
 	}
 
@@ -127,9 +131,6 @@ func (g *gossip) Close() error {
 	}
 
 	g.blockListeners = nil
-
-	// TODO: Remove topic validators once it is possible.
-	// https://github.com/libp2p/go-floodsub/issues/68
 
 	return nil
 }
@@ -174,7 +175,16 @@ func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) e
 		defer g.listenersMu.RUnlock()
 
 		for _, c := range g.blockListeners {
-			go func(c chan *pb.Header) { c <- block.Header }(c)
+			go func(c chan *pb.Header) {
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case c <- block.Header:
+						return
+					}
+				}
+			}(c)
 		}
 
 		return nil
@@ -271,13 +281,11 @@ func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
 
 	g.subs[topic] = sub
 
-	// We can't remove a topic validator for now...
-	// https://github.com/libp2p/go-floodsub/issues/68
 	err = g.pubsub.RegisterTopicValidator(topic, validator)
-	if err != nil && err.Error() == fmt.Sprintf("Duplicate validator for topic %s", topic) {
-		return nil
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	return errors.WithStack(err)
+	return nil
 }
 
 func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *floodsub.Message) error) error {

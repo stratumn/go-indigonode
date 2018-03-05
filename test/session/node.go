@@ -43,7 +43,7 @@ import (
 
 	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -283,6 +283,42 @@ func NewTestNodeSet(dir string, n int, config cfg.ConfigSet) (TestNodeSet, error
 		name := fmt.Sprintf("node%d", i)
 		dir := filepath.Join(dir, name)
 		node, err := NewTestNode(dir, config)
+		nodes[i], errs[i] = node, errors.Wrap(err, name)
+	}, n)
+
+	if err = NewMultiErr(errs); err != nil {
+		return nil, err
+	}
+
+	nodes.randSeeds()
+
+	for _, node := range nodes {
+		confFile := filepath.Join(node.dir, "alice.core.toml")
+		if err := node.conf.Save(confFile, 0600, true); err != nil {
+			return nil, err
+		}
+	}
+
+	return nodes, nil
+}
+
+// NewTestNodeSetWithConfigs creates a new set of test nodes with different configs.
+func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (TestNodeSet, error) {
+	if len(configs) < n {
+		return nil, errors.Errorf("There are %d configs, expected at least %d", len(configs), n)
+	}
+	var err error
+
+	if dir, err = filepath.Abs(dir); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	nodes, errs := make(TestNodeSet, n), make([]error, n)
+
+	PerCPU(func(i int) {
+		name := fmt.Sprintf("node%d", i)
+		dir := filepath.Join(dir, name)
+		node, err := NewTestNode(dir, configs[i])
 		nodes[i], errs[i] = node, errors.Wrap(err, name)
 	}, n)
 

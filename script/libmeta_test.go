@@ -66,6 +66,50 @@ var libMetaTests = []libTest{{
 	`eval (quote ("hello world"))`,
 	``,
 	`1:1: eval: 1:14: function name is not a symbol`,
+}, {
+	"quasiquote (hello world)",
+	"(hello world)",
+	"",
+}, {
+	"quasiquote (quote (quasiquote hello))",
+	"(quote (quasiquote hello))",
+	"",
+}, {
+	"quasiquote (unquote (+ 1 2))",
+	"3",
+	"",
+}, {
+	"quasiquote ((unquote (+ 1 2)))",
+	"(3)",
+	"",
+}, {
+	"quasiquote (a b (unquote (+ 1 2)) c)",
+	"(a b 3 c)",
+	"",
+}, {
+	"quasiquote (quasiquote (unquote (+ 1 2)))",
+	"(quasiquote (unquote (+ 1 2)))",
+	"",
+}, {
+	"quasiquote (quasiquote (unquote (unquote (+ 1 2))))",
+	"(quasiquote (unquote 3))",
+	"",
+}, {
+	"quasiquote",
+	"",
+	"1:1: quasiquote: expected a single expression",
+}, {
+	"quasiquote hello world",
+	"",
+	"1:1: quasiquote: expected a single expression",
+}, {
+	"unquote",
+	"",
+	"1:1: unquote: expected a single expression",
+}, {
+	"(quasiquote (unquote (unquote a)))",
+	"",
+	"1:2: quasiquote: 1:14: unquote: 1:23: unquote: outside of quasiquote",
 }}
 
 func TestLibMeta(t *testing.T) {

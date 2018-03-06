@@ -36,6 +36,8 @@ const (
 	TokLBrace
 	TokRBrace
 	TokQuote
+	TokQuasiquote
+	TokUnquote
 	TokSymbol
 	TokString
 	TokInt
@@ -44,19 +46,21 @@ const (
 )
 
 var tokToStr = map[TokenType]string{
-	TokInvalid: "<invalid>",
-	TokLine:    "<line>",
-	TokEOF:     "<EOF>",
-	TokLParen:  "(",
-	TokRParen:  ")",
-	TokLBrace:  "{",
-	TokRBrace:  "}",
-	TokQuote:   "'",
-	TokSymbol:  "<sym>",
-	TokString:  "<string>",
-	TokInt:     "<int>",
-	TokTrue:    "true",
-	TokFalse:   "false",
+	TokInvalid:    "<invalid>",
+	TokLine:       "<line>",
+	TokEOF:        "<EOF>",
+	TokLParen:     "(",
+	TokRParen:     ")",
+	TokLBrace:     "{",
+	TokRBrace:     "}",
+	TokQuote:      "'",
+	TokQuasiquote: "`",
+	TokUnquote:    ",",
+	TokSymbol:     "<sym>",
+	TokString:     "<string>",
+	TokInt:        "<int>",
+	TokTrue:       "true",
+	TokFalse:      "false",
 }
 
 // String returns a string representation of a token type.
@@ -72,8 +76,7 @@ var keywords = map[string]TokenType{
 
 // Characters reserved for future syntax.
 var reserved = map[rune]struct{}{
-	'`':  struct{}{},
-	',':  struct{}{},
+	'@':  struct{}{},
 	'[':  struct{}{},
 	']':  struct{}{},
 	'\\': struct{}{},
@@ -199,6 +202,10 @@ func (s *Scanner) Emit() Token {
 		return Token{TokRBrace, "", s.line, s.offset}
 	case '\'':
 		return Token{TokQuote, "", s.line, s.offset}
+	case '`':
+		return Token{TokQuasiquote, "", s.line, s.offset}
+	case ',':
+		return Token{TokUnquote, "", s.line, s.offset}
 	}
 
 	return s.atom()

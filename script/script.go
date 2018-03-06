@@ -44,9 +44,9 @@
 //
 // The EBNF syntax is:
 //
-//	Script          = [ BodyHead ] { NewLine } EOF
-//	BodyHead        = [ Instr ] [ ScriptTail ]
-//	BodyTail        = { NewLine { NewLine } Instr }
+//	Script          = [ InBody ] { NewLine } EOF
+//	InBody          = [ Instr ] [ InBodyTail ]
+//	InBodyTail      = { NewLine { NewLine } Instr }
 //	Instr           = ( Call | InCall )
 //	Call            = "(" InCallInParen { NewLine } ")"
 //	InCallInParen   = { NewLine } Symbol SExpListInParen
@@ -56,7 +56,9 @@
 //	SExpInParen     = { NewLine } SExp
 //	SExp            = QuotedSExp | Body | List | Atom
 //	QuotedSExp      = "'" { NewLine } SExp
-//	Body            = "{" [ BodyHead ] { NewLine } "}"
+//	QuasiquotedSExp = "`" { NewLine } SExp
+//	UnquotedSExp    = "," { NewLine } SExp
+//	Body            = "{" [ InBody ] { NewLine } "}"
 //	List            = "(" SExpListInParen { NewLine } ")"
 //	Atom            = symbol | string | int | true | false
 //
@@ -112,7 +114,7 @@
 // The reason you don't need to use parenthesis at the top-level is because it
 // uses the same rules as inside braces.
 //
-// There a a few limitations to using brances -- currently all top-level
+// There are a few limitations to using braces -- currently all top-level
 // instructions have to be function calls, otherwise the grammar would be
 // ambiguous.
 package script
@@ -144,12 +146,20 @@ var (
 	ErrDivByZero = errors.New("division by zero")
 )
 
-// LambdaSymbol is the symbol used to declare lambda functions.
-const LambdaSymbol = "lambda"
+const (
+	// LambdaSymbol is the symbol used to declare lambda functions.
+	LambdaSymbol = "lambda"
 
-// QuoteSymbol is the symbol used to quote expressions.
-const QuoteSymbol = "quote"
+	// QuoteSymbol is the symbol used to quote expressions.
+	QuoteSymbol = "quote"
 
-// ElseSymbol is the name of the optional "else" symbol in "if" and "unless"
-// statements.
-const ElseSymbol = "else"
+	// QuasiquoteSymbol is the symbol used to quasiquote expressions.
+	QuasiquoteSymbol = "quasiquote"
+
+	// UnquoteSymbol is the symbol used to unquote expressions.
+	UnquoteSymbol = "unquote"
+
+	// ElseSymbol is the name of the optional "else" symbol in "if" and
+	// "unless" statements.
+	ElseSymbol = "else"
+)

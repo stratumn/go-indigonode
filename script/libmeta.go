@@ -100,9 +100,6 @@ func evalUnquoted(ctx *InterpreterContext, exp SExp, isTail bool) (SExp, error) 
 				return nil, err
 			}
 
-			// If there were no unquotes at the same level, transform to a
-			// regular quote.
-
 			return val, nil
 		}
 
@@ -125,26 +122,31 @@ func evalUnquoted(ctx *InterpreterContext, exp SExp, isTail bool) (SExp, error) 
 
 // evalCellUnquoted evaluates unquoted expressions within the car and cdr of
 // a cell.
-func evalCellUnquoted(ctx *InterpreterContext, exp SExp, isTail bool) (SExp, error) {
-	if exp.IsNil() {
+func evalCellUnquoted(ctx *InterpreterContext, cell SExp, isTail bool) (SExp, error) {
+	if cell.IsNil() {
 		return Nil(), nil
 	}
 
-	cdr := exp.Cdr()
+	cdr := cell.Cdr()
 
-	isTail = isTail && cdr.IsNil()
-
-	carVal, err := evalUnquoted(ctx, exp.Car(), isTail)
+	carVal, err := evalUnquoted(ctx, cell.Car(), isTail && cdr.IsNil())
 	if err != nil {
 		return nil, err
 	}
 
-	cdrVal, err := evalUnquoted(ctx, cdr, isTail)
+	var cdrVal SExp
+
+	if cdr.UnderlyingType() == SExpCell {
+		cdrVal, err = evalUnquoted(ctx, cdr, ctx.IsTail)
+	} else {
+		cdrVal, err = evalUnquoted(ctx, cdr, ctx.IsTail)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return Cons(carVal, cdrVal, exp.Meta()), nil
+	return Cons(carVal, cdrVal, cell.Meta()), nil
 }
 
 // LibMetaEval evaluates an expression.

@@ -17,8 +17,7 @@ package coinutil
 import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/coin"
-	"github.com/stratumn/sdk/merkle"
-	"github.com/stratumn/sdk/types"
+	"github.com/stratumn/merkle"
 
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
@@ -49,14 +48,14 @@ func HashTransaction(tx *pb.Transaction) (multihash.Multihash, error) {
 
 // TransactionRoot computes the merkle root of a set of transactions.
 func TransactionRoot(txs []*pb.Transaction) ([]byte, error) {
-	var leaves []types.Bytes32
+	var leaves [][]byte
 	for _, tx := range txs {
 		txHash, err := HashTransaction(tx)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 
-		leaves = append(leaves, *types.NewBytes32FromBytes(txHash))
+		leaves = append(leaves, txHash)
 	}
 
 	tree, err := merkle.NewStaticTree(leaves)
@@ -64,5 +63,5 @@ func TransactionRoot(txs []*pb.Transaction) ([]byte, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return tree.Root()[:], nil
+	return tree.Root(), nil
 }

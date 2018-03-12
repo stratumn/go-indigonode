@@ -60,7 +60,3 @@
 [[constraint]]
   name = "github.com/golang/mock"
   branch = "master"
-
-[[constraint]]
-  name = "github.com/stratumn/sdk"
-  version = "0.2.0"

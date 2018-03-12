@@ -50,7 +50,8 @@ func Test_TransactionRoot(t *testing.T) {
 	txs := []*pb.Transaction{tx1, tx2, tx3}
 
 	tr, err := TransactionRoot(txs)
-	expected, _ := hex.DecodeString("e1bb422f51063ab9f4583bf25683e88d22debdd04a81e3710ac841f9706721df")
+
+	expected, _ := hex.DecodeString("80cc5e94aa7c0face84f77261516435047fc84e53cd8cf4bde57c8c8de56582c")
 	assert.NoError(t, err, "TransactionRoot()")
 	assert.Equal(t, expected, tr, "TransactionRoot()")
 }

@@ -296,13 +296,13 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/stratumn/sdk"
+  branch = "master"
+  name = "github.com/stratumn/merkle"
   packages = [
-    "merkle",
+    ".",
     "types"
   ]
-  revision = "10b1902c83d64440da140393335c0856879d5559"
-  version = "v0.2.0"
+  revision = "b637554c3514b4b1a4a6de1eeb4ce0c1f2b91c37"
 
 [[projects]]
   name = "github.com/stretchr/testify"
@@ -442,6 +442,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7b62d927c1bec6c834c5776aef10094770f6a0f32cbd8d36557cde79b8efe1a2"
+  inputs-digest = "c9075b7606523572cce1abb672bf7d63493b6f0e5d2d7974d358be38ba01cf2e"
   solver-name = "gps-cdcl"
   solver-version = 1

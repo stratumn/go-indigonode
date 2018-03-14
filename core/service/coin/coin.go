@@ -80,7 +80,7 @@ type Service struct {
 	coin    *protocol.Coin
 	pubsub  *floodsub.PubSub
 	kaddht  *kaddht.IpfsDHT
-	metrics *metrics.Metrics
+	metrics metrics.MetricSink
 }
 
 // Config contains configuration options for the Coin service.
@@ -230,7 +230,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.config.Metrics != "" {
 		mtrx := exposed[s.config.Metrics]
-		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
+		if s.metrics, ok = mtrx.(metrics.MetricSink); !ok {
 			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
 		}
 	}
@@ -299,9 +299,14 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	stateDBPrefix := []byte("s")
 	chainDBPrefix := []byte("c")
 
+	labels := []metrics.Label{{
+		Name:  "service",
+		Value: s.ID(),
+	}}
+
 	txpool := &state.GreedyInMemoryTxPool{}
 	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
-	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix))
+	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix), chain.OptMetrics(s.metrics, labels))
 
 	minerID, err := s.config.GetMinerID()
 	if err != nil {

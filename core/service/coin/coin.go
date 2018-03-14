@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/hex"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
@@ -54,6 +55,10 @@ var (
 	// ErrNotKadDHT is returned when the connected service is not a pubsub.
 	ErrNotKadDHT = errors.New("connected service is not a kaddht")
 
+	// ErrNotMetrics is returned when a specified service is not of type
+	// metrics.
+	ErrNotMetrics = errors.New("connected service is not of type metrics")
+
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
@@ -70,18 +75,16 @@ type Host = ihost.Host
 
 // Service is the Coin service.
 type Service struct {
-	config *Config
-	host   Host
-	coin   *protocol.Coin
-	pubsub *floodsub.PubSub
-	kaddht *kaddht.IpfsDHT
+	config  *Config
+	host    Host
+	coin    *protocol.Coin
+	pubsub  *floodsub.PubSub
+	kaddht  *kaddht.IpfsDHT
+	metrics *metrics.Metrics
 }
 
 // Config contains configuration options for the Coin service.
 type Config struct {
-	// Host is the name of the host service.
-	Host string `toml:"host" comment:"The name of the host service."`
-
 	// Version is the version of the coin service.
 	Version int `toml:"version" comment:"The version of the coin service."`
 
@@ -97,19 +100,25 @@ type Config struct {
 	// DbPath is the path to the database used for the state and the chain..
 	DbPath string `toml:"db_path" comment:"The path to the database used for the state and the chain."`
 
-	// PubSub is the name of the pubsub service.
-	PubSub string `toml:"pubsub" comment:"The name of the pubsub service."`
-
 	// MinerID is the peer ID of the miner.
 	// Block rewards will be sent to this peer.
 	// Note that a miner can generate as many peer IDs as it wants and use any of them.
 	MinerID string `toml:"miner_id" comment:"The peer ID of the miner."`
 
+	// GenesisBlock is the genesis block in hex. If none given, we use the default one in protocol/coin.
+	GenesisBlock string `toml:"genesis_block" comment:"The genesis block in hex."`
+
+	// Host is the name of the host service.
+	Host string `toml:"host" comment:"The name of the host service."`
+
 	// KadDHT is the name of the kaddht service.
 	KadDHT string `toml:"kaddht" comment:"The name of the kaddht service."`
 
-	// GenesisBlock is the genesis block in hex. If none given, we use the default one in protocol/coin.
-	GenesisBlock string `toml:"genesis_block" comment:"The genesis block in hex."`
+	// PubSub is the name of the pubsub service.
+	PubSub string `toml:"pubsub" comment:"The name of the pubsub service."`
+
+	// Metrics is the name of the metrics service.
+	Metrics string `toml:"metrics" comment:"The name of the metrics service (blank = disabled)."`
 }
 
 // GetMinerID reads the miner's peer ID from the configuration.
@@ -170,14 +179,15 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:            "host",
 		Version:         1,
 		MaxTxPerBlock:   100,
 		MinerReward:     10,
 		BlockDifficulty: 42,
 		DbPath:          "data/coin/db",
-		PubSub:          "pubsub",
+		Host:            "host",
 		KadDHT:          "kaddht",
+		PubSub:          "pubsub",
+		Metrics:         "metrics",
 	}
 }
 
@@ -192,8 +202,12 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
-	needs[s.config.PubSub] = struct{}{}
 	needs[s.config.KadDHT] = struct{}{}
+	needs[s.config.PubSub] = struct{}{}
+
+	if s.config.Metrics != "" {
+		needs[s.config.Metrics] = struct{}{}
+	}
 
 	return needs
 }
@@ -206,12 +220,19 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
+	if s.kaddht, ok = exposed[s.config.KadDHT].(*kaddht.IpfsDHT); !ok {
+		return errors.Wrap(ErrNotKadDHT, s.config.KadDHT)
+	}
+
 	if s.pubsub, ok = exposed[s.config.PubSub].(*floodsub.PubSub); !ok {
 		return errors.Wrap(ErrNotPubSub, s.config.PubSub)
 	}
 
-	if s.kaddht, ok = exposed[s.config.KadDHT].(*kaddht.IpfsDHT); !ok {
-		return errors.Wrap(ErrNotKadDHT, s.config.KadDHT)
+	if s.config.Metrics != "" {
+		mtrx := exposed[s.config.Metrics]
+		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
+			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
+		}
 	}
 
 	return nil
@@ -300,7 +321,18 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	sync := synchronizer.NewSynchronizer(p2p, s.kaddht)
 	gossip := gossip.NewGossip(s.host, s.pubsub, state, chain, gossipValidator)
 
-	s.coin = protocol.NewCoin(genesisBlock, txpool, engine, state, chain, gossip, balanceValidator, processor, p2p, sync)
+	s.coin = protocol.NewCoin(
+		genesisBlock,
+		txpool,
+		engine,
+		state,
+		chain,
+		gossip,
+		balanceValidator,
+		processor,
+		p2p,
+		sync,
+	)
 
 	close := func() {
 		if err := gossip.Close(); err != nil {

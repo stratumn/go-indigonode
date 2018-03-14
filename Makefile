@@ -74,7 +74,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers prometheus $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -293,6 +293,13 @@ docker_push:
 # == license_headers ==========================================================
 license_headers:
 	./update-license-headers.sh
+
+# == prometheus ===============================================================
+prometheus:
+	docker run \
+	  --net host \
+	  -v $(shell pwd)/prometheus.yml:/etc/prometheus/prometheus.yml \
+	  prom/prometheus
 
 # == clean ====================================================================
 clean: $(CLEAN_LIST)

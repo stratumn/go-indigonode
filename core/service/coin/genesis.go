@@ -42,6 +42,10 @@ func GetGenesisBlock() (*pb.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	alex, err := peer.IDB58Decode("QmTJBbyuh3EFeoiYQF6FWU17og7YG52UfnBwTEcbigGhgW")
+	if err != nil {
+		return nil, err
+	}
 
 	txs := []*pb.Transaction{
 		&pb.Transaction{
@@ -54,6 +58,10 @@ func GetGenesisBlock() (*pb.Block, error) {
 		},
 		&pb.Transaction{
 			To:    []byte(bejito),
+			Value: uint64(42000),
+		},
+		&pb.Transaction{
+			To:    []byte(alex),
 			Value: uint64(42000),
 		},
 		&pb.Transaction{

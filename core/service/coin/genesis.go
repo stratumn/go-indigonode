@@ -26,27 +26,79 @@ import (
 
 // GetGenesisBlock returns the default genesis block.
 func GetGenesisBlock() (*pb.Block, error) {
-	pid, err := peer.IDB58Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU")
+	stefan, err := peer.IDB58Decode("QmYabPJqc6WQWPdE46ttToyuWEwMhxupMQa65p5FBR1BRv")
+	if err != nil {
+		return nil, err
+	}
+	tbast, err := peer.IDB58Decode("QmQnYf23kQ7SvuPZ3mQcg3RuJMr9E39fBvm89Nz4bevJdt")
+	if err != nil {
+		return nil, err
+	}
+	bejito, err := peer.IDB58Decode("QmaYTBbpANr4gooRRJXBhxnfS9sC8ChQCYnMqwX8cPTHqH")
+	if err != nil {
+		return nil, err
+	}
+	simon, err := peer.IDB58Decode("QmUpqc24f4RViYmmXxXrLrFQ6vzDW1M3dsu65KCa7ZJ159")
+	if err != nil {
+		return nil, err
+	}
+	alex, err := peer.IDB58Decode("QmTJBbyuh3EFeoiYQF6FWU17og7YG52UfnBwTEcbigGhgW")
+	if err != nil {
+		return nil, err
+	}
+	such, err := peer.IDB58Decode("Qmcso1m2v6r9jZv8swVD7LCDPNzRoX8RohHWYqG8dP8cxr")
+	if err != nil {
+		return nil, err
+	}
+	jeremie, err := peer.IDB58Decode("QmfM51csY6bXJZXsuiFocV8nEVM11UKX6yyCwQPKCTeqQ9")
+	if err != nil {
+		return nil, err
+	}
+	conor, err := peer.IDB58Decode("QmYgntWu4v6JJPDd2Luw8V6pQRh7SaKAMRSFbQaKFRb7ra")
+	if err != nil {
+		return nil, err
+	}
+	pierre, err := peer.IDB58Decode("QmbsW6Rs9cpcupQk3kzHUsLRGA3c6eroenoAWwRuRMFMur")
 	if err != nil {
 		return nil, err
 	}
 
 	txs := []*pb.Transaction{
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(9000),
+			To:    []byte(stefan),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(10000),
+			To:    []byte(tbast),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(11000),
+			To:    []byte(bejito),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(12000),
+			To:    []byte(alex),
+			Value: uint64(42000),
+		},
+		&pb.Transaction{
+			To:    []byte(such),
+			Value: uint64(42000),
+		},
+		&pb.Transaction{
+			To:    []byte(simon),
+			Value: uint64(42001),
+		},
+		&pb.Transaction{
+			To:    []byte(conor),
+			Value: uint64(42000),
+		},
+		&pb.Transaction{
+			To:    []byte(jeremie),
+			Value: uint64(42000),
+		},
+		&pb.Transaction{
+			To:    []byte(pierre),
+			Value: uint64(42000),
 		},
 	}
 

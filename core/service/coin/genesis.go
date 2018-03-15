@@ -26,27 +26,39 @@ import (
 
 // GetGenesisBlock returns the default genesis block.
 func GetGenesisBlock() (*pb.Block, error) {
-	pid, err := peer.IDB58Decode("QmXivMekek9JBn3fLTuQBwUuUqiCZYkzkw2uU5ZEFFEmhU")
+	stefan, err := peer.IDB58Decode("QmYabPJqc6WQWPdE46ttToyuWEwMhxupMQa65p5FBR1BRv")
+	if err != nil {
+		return nil, err
+	}
+	tbast, err := peer.IDB58Decode("QmQnYf23kQ7SvuPZ3mQcg3RuJMr9E39fBvm89Nz4bevJdt")
+	if err != nil {
+		return nil, err
+	}
+	bejito, err := peer.IDB58Decode("QmaYTBbpANr4gooRRJXBhxnfS9sC8ChQCYnMqwX8cPTHqH")
+	if err != nil {
+		return nil, err
+	}
+	simon, err := peer.IDB58Decode("QmUpqc24f4RViYmmXxXrLrFQ6vzDW1M3dsu65KCa7ZJ159")
 	if err != nil {
 		return nil, err
 	}
 
 	txs := []*pb.Transaction{
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(9000),
+			To:    []byte(stefan),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(10000),
+			To:    []byte(tbast),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(11000),
+			To:    []byte(bejito),
+			Value: uint64(42000),
 		},
 		&pb.Transaction{
-			To:    []byte(pid),
-			Value: uint64(12000),
+			To:    []byte(simon),
+			Value: uint64(41999),
 		},
 	}
 

@@ -174,7 +174,7 @@ func (s *Service) Config() interface{} {
 		Version:         1,
 		MaxTxPerBlock:   100,
 		MinerReward:     10,
-		BlockDifficulty: 42,
+		BlockDifficulty: 29,
 		DbPath:          "data/coin/db",
 		PubSub:          "pubsub",
 		KadDHT:          "kaddht",

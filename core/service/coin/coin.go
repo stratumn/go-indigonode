@@ -305,7 +305,7 @@ func (s *Service) createCoin(ctx context.Context) (func(), error) {
 	}}
 
 	txpool := &state.GreedyInMemoryTxPool{}
-	state := state.NewState(db, state.OptPrefix(stateDBPrefix))
+	state := state.NewState(db, state.OptPrefix(stateDBPrefix), state.OptMetrics(s.metrics, labels))
 	chain := chain.NewChainDB(db, chain.OptPrefix(chainDBPrefix), chain.OptMetrics(s.metrics, labels))
 
 	minerID, err := s.config.GetMinerID()

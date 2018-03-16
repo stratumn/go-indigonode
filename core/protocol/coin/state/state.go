@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"sync"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/db"
@@ -99,10 +100,12 @@ type stateDB struct {
 	//	3. Do other modifications to diff (like saving nonces)
 	//	4. Atomically apply changes from diff to underlying DB
 	//	5. Reset accountsTrie and diff changes in case an error occured
-	mu           sync.RWMutex
-	diff         *db.Diff
-	accountsTrie *trie.Trie
-	prefix       []byte
+	mu            sync.RWMutex
+	diff          *db.Diff
+	accountsTrie  *trie.Trie
+	prefix        []byte
+	metrics       metrics.MetricSink
+	metricsLabels []metrics.Label
 }
 
 // Opt is an option for state.
@@ -115,6 +118,14 @@ var OptPrefix = func(prefix []byte) Opt {
 
 	return func(s *stateDB) {
 		s.prefix = prefix[:l:l]
+	}
+}
+
+// OptMetrics sets the metrics sink.
+func OptMetrics(m metrics.MetricSink, l []metrics.Label) Opt {
+	return func(s *stateDB) {
+		s.metrics = m
+		s.metricsLabels = l
 	}
 }
 
@@ -261,6 +272,10 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
 	// Eight bytes per transaction.
 	nonces := make([]byte, len(txs)*8)
 
+	coinsMinted := float32(0)
+	coinsExchanged := float32(0)
+	fees := float32(0)
+
 	for i, tx := range txs {
 		// Substract amount for sender, except for reward transaction.
 		if tx.From != nil {
@@ -291,6 +306,11 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
 			if err != nil {
 				return err
 			}
+
+			coinsExchanged += float32(tx.Value)
+			fees += float32(tx.Fee)
+		} else {
+			coinsMinted += float32(tx.Value)
 		}
 
 		// Add amount to receiver.
@@ -329,7 +349,23 @@ func (s *stateDB) ProcessBlock(blk *pb.Block) (err error) {
 	}
 
 	// Commit diff changes to database.
-	return s.diff.Apply()
+	if err := s.diff.Apply(); err != nil {
+		return err
+	}
+
+	if s.metrics != nil {
+		txCount := float32(len(blk.GetTransactions()))
+		s.metrics.AddSampleWithLabels([]string{"transactionsAdded"}, txCount, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"transactionsTotal"}, txCount, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"supplyAdded"}, coinsMinted, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"supplyTotal"}, coinsMinted, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"volumeAdded"}, coinsExchanged, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"volumeTotal"}, coinsExchanged, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"feesAdded"}, fees, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"totalFees"}, fees, s.metricsLabels)
+	}
+
+	return nil
 }
 
 func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
@@ -364,6 +400,10 @@ func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
 		return ErrInconsistentTransactions
 	}
 
+	coinsMinted := float32(0)
+	coinsExchanged := float32(0)
+	fees := float32(0)
+
 	for i := len(txs) - 1; i >= 0; i-- {
 		tx := txs[i]
 		if err != nil {
@@ -391,6 +431,11 @@ func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
 			if err != nil {
 				return err
 			}
+
+			coinsExchanged += float32(tx.Value)
+			fees += float32(tx.Fee)
+		} else {
+			coinsMinted += float32(tx.Value)
 		}
 
 		// Subtract amount from received.
@@ -423,7 +468,23 @@ func (s *stateDB) RollbackBlock(blk *pb.Block) (err error) {
 	}
 
 	// Commit diff changes to database.
-	return s.diff.Apply()
+	if err := s.diff.Apply(); err != nil {
+		return err
+	}
+
+	if s.metrics != nil {
+		txCount := float32(len(blk.GetTransactions()))
+		s.metrics.AddSampleWithLabels([]string{"transactionsRemoved"}, txCount, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"transactionsTotal"}, -txCount, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"supplyRemoved"}, coinsMinted, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"supplyTotal"}, -coinsMinted, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"volumeRemoved"}, coinsExchanged, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"volumeTotal"}, -coinsExchanged, s.metricsLabels)
+		s.metrics.AddSampleWithLabels([]string{"feesRemoved"}, fees, s.metricsLabels)
+		s.metrics.IncrCounterWithLabels([]string{"totalFees"}, -fees, s.metricsLabels)
+	}
+
+	return nil
 }
 
 func (s *stateDB) addTxKey(pubKey []byte, txIdx int, blk *pb.Block) error {

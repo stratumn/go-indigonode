@@ -16,7 +16,7 @@ package trie
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/lib/db"
 )
 
 // nodeDB deals with storing trie nodes.

@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/lib/db"
 )
 
 func BenchmarkNode_MarshalBinary(b *testing.B) {

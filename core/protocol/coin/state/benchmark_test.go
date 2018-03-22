@@ -21,8 +21,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	db "github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
+	db "github.com/stratumn/alice/lib/db"
 	pb "github.com/stratumn/alice/pb/coin"
 )
 

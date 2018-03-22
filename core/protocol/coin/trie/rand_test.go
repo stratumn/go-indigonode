@@ -19,7 +19,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/coin/db"
+	"github.com/stratumn/alice/lib/db"
 	"github.com/stretchr/testify/require"
 )
 

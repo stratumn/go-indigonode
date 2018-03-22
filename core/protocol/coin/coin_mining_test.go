@@ -20,12 +20,12 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"
 	txtest "github.com/stratumn/alice/core/protocol/coin/testutil/transaction"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
+	"github.com/stratumn/alice/lib/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -20,9 +20,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"github.com/stratumn/alice/core/protocol/coin/trie"
-	"github.com/stratumn/alice/lib/db"
 	pb "github.com/stratumn/alice/pb/coin"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

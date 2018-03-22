@@ -21,9 +21,9 @@ import (
 	"encoding/hex"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/db"
 	protocol "github.com/stratumn/alice/core/protocol/coin"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/lib/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/p2p"

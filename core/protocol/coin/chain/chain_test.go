@@ -17,8 +17,8 @@ package chain
 import (
 	"testing"
 
+	db "github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	db "github.com/stratumn/alice/lib/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

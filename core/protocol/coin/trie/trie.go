@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/lib/db"
+	"github.com/stratumn/alice/core/db"
 
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )

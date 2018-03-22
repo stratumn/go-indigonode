@@ -17,6 +17,7 @@ package coin
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
@@ -26,7 +27,6 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/synchronizer"
 	"github.com/stratumn/alice/core/protocol/coin/testutil"
 	"github.com/stratumn/alice/core/protocol/coin/validator"
-	"github.com/stratumn/alice/lib/db"
 	pb "github.com/stratumn/alice/pb/coin"
 	"github.com/stretchr/testify/require"
 

@@ -19,7 +19,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	pb "github.com/stratumn/alice/grpc/chat"
+	mockpb "github.com/stratumn/alice/grpc/chat/mockchat"
 	"github.com/stretchr/testify/assert"
 
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
@@ -87,7 +89,7 @@ func TestGRPCServer(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			server := &grpcServer{tt.connect, tt.send}
+			server := &grpcServer{Connect: tt.connect, Send: tt.send}
 			_, err := server.Message(
 				context.Background(),
 				&pb.ChatMessage{
@@ -97,4 +99,22 @@ func TestGRPCServer(t *testing.T) {
 			tt.validate(err)
 		})
 	}
+}
+
+func TestGRPCServer_GetHistory(t *testing.T) {
+	msg := pb.NewDatedMessageReceived(testPID, "Test")
+
+	server := &grpcServer{GetPeerHistory: func(peerID peer.ID) (ph PeerHistory, err error) {
+		ph = append(ph, *msg)
+		return
+	}}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	req, ss := &pb.HistoryReq{PeerId: []byte(testPID)}, mockpb.NewMockChat_GetHistoryServer(ctrl)
+
+	ss.EXPECT().Send(msg)
+
+	assert.NoError(t, server.GetHistory(req, ss))
 }

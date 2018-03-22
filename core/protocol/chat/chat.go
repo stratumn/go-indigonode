@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/service/event"
+	pbchat "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
 	pb "github.com/stratumn/alice/pb/chat"
 
@@ -42,15 +43,17 @@ var log = logging.Logger("chat")
 
 // Chat implements the chat protocol.
 type Chat struct {
-	host         Host
-	eventEmitter event.Emitter
+	host          Host
+	eventEmitter  event.Emitter
+	msgReceivedCh chan *pbchat.DatedMessage
 }
 
 // NewChat creates a new chat server.
-func NewChat(host Host, eventEmitter event.Emitter) *Chat {
+func NewChat(host Host, eventEmitter event.Emitter, msgReceivedCh chan *pbchat.DatedMessage) *Chat {
 	return &Chat{
-		host:         host,
-		eventEmitter: eventEmitter,
+		host:          host,
+		eventEmitter:  eventEmitter,
+		msgReceivedCh: msgReceivedCh,
 	}
 }
 
@@ -91,6 +94,10 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	event.Append(logging.Metadata{
 		"message": message.Message,
 	})
+
+	go func() {
+		c.msgReceivedCh <- pbchat.NewDatedMessageReceived(stream.Conn().RemotePeer(), message.Message)
+	}()
 
 	chatEvent := &pbevent.Event{
 		Message: fmt.Sprintf("[%s] %s", from, message.Message),

@@ -22,6 +22,7 @@ import (
 
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/event"
+	pbchat "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,14 +41,16 @@ func TestChat(t *testing.T) {
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
 	require.NoError(t, h1.Connect(ctx, h2pi), "Connect()")
 
-	chat1 := NewChat(h1, event.NewEmitter(event.DefaultTimeout))
+	msgReceivedCh := make(chan *pbchat.DatedMessage)
+
+	chat1 := NewChat(h1, event.NewEmitter(event.DefaultTimeout), msgReceivedCh)
 
 	t.Run("Send and receive message", func(t *testing.T) {
 		eventEmitter := event.NewEmitter(event.DefaultTimeout)
 		receiveChan, err := eventEmitter.AddListener("chat.*")
 		assert.NoError(t, err, "eventEmitter.AddListener(chat.*)")
 
-		chat2 := NewChat(h2, eventEmitter)
+		chat2 := NewChat(h2, eventEmitter, msgReceivedCh)
 
 		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
 			chat2.StreamHandler(ctx, stream)
@@ -68,7 +71,7 @@ func TestChat(t *testing.T) {
 
 	t.Run("Send message without listeners on the receiving end doesn't block", func(t *testing.T) {
 		// We don't register a listener on chat2's end.
-		chat2 := NewChat(h2, event.NewEmitter(event.DefaultTimeout))
+		chat2 := NewChat(h2, event.NewEmitter(event.DefaultTimeout), msgReceivedCh)
 
 		receiveChan := make(chan struct{})
 
@@ -85,6 +88,25 @@ func TestChat(t *testing.T) {
 			assert.Fail(t, "chat.Send() did not send message")
 		case <-receiveChan:
 			break
+		}
+	})
+
+	t.Run("Notify received messages", func(t *testing.T) {
+		chat2 := NewChat(h2, event.NewEmitter(event.DefaultTimeout), msgReceivedCh)
+
+		h2.SetStreamHandler(ProtocolID, func(stream inet.Stream) {
+			chat2.StreamHandler(ctx, stream)
+		})
+
+		err := chat1.Send(ctx, h2.ID(), "hello world!")
+		require.NoError(t, err, "chat.Send()")
+
+		select {
+		case <-time.After(1 * time.Second):
+			assert.Fail(t, "chat.Send() did not send message")
+		case msg := <-msgReceivedCh:
+			assert.Contains(t, msg.Content, "hello world!", "event.Message")
+			assert.Equal(t, msg.From, []byte(h1.ID()))
 		}
 	})
 }

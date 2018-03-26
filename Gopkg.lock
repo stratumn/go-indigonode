@@ -146,8 +146,8 @@
     "watch",
     "winfile"
   ]
-  revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
-  version = "v1.0.0"
+  revision = "000912af8de2d2b9d184786b4cf4c3542b7884e5"
+  source = "https://github.com/vsco/tail.git"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -416,10 +416,10 @@
   version = "v1.8.2"
 
 [[projects]]
-  name = "gopkg.in/fsnotify.v1"
+  name = "gopkg.in/fsnotify/fsnotify.v1"
   packages = ["."]
-  revision = "629574ca2a5df945712d3079857300b5e4da0236"
-  version = "v1.4.2"
+  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
+  version = "v1.4.7"
 
 [[projects]]
   name = "gopkg.in/natefinch/lumberjack.v2"
@@ -442,6 +442,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d86c713ea178fa265ff746ba47de84391a00aef626e9100ca3ac332a0ab77595"
+  inputs-digest = "68f55281c4f743e215f43190f6684fa90c0e30ce6df35f2d1490b82ccfc88b90"
   solver-name = "gps-cdcl"
   solver-version = 1

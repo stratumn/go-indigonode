@@ -20,8 +20,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/trie"
 	pb "github.com/stratumn/alice/pb/coin"
 

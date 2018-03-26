@@ -172,7 +172,7 @@
 <!-- N46 -->
 <g id="node9" class="node"><title>N46</title>
 <polygon fill="none" stroke="black" points="5846,-180 5566,-180 5566,-144 5846,-144 5846,-180"/>
-<text text-anchor="middle" x="5706" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/db</text>
+<text text-anchor="middle" x="5706" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/db</text>
 </g>
 <!-- N47 -->
 <g id="node10" class="node"><title>N47</title>

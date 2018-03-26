@@ -17,7 +17,7 @@ package testutil
 import (
 	"testing"
 
-	db "github.com/stratumn/alice/core/protocol/coin/db"
+	db "github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	"github.com/stretchr/testify/require"
 )

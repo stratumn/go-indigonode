@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
-	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	tassert "github.com/stratumn/alice/core/protocol/coin/testutil/assert"
 	"github.com/stratumn/alice/core/protocol/coin/testutil/blocktest"

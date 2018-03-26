@@ -60,3 +60,8 @@
 [[constraint]]
   name = "github.com/golang/mock"
   branch = "master"
+
+[[override]]
+  name = "github.com/hpcloud/tail"
+  source = "https://github.com/vsco/tail.git"
+  revision = "000912af8de2d2b9d184786b4cf4c3542b7884e5"

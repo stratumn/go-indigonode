@@ -17,8 +17,8 @@ package coin
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/chain"
-	"github.com/stratumn/alice/core/protocol/coin/db"
 	"github.com/stratumn/alice/core/protocol/coin/engine"
 	"github.com/stratumn/alice/core/protocol/coin/gossip"
 	"github.com/stratumn/alice/core/protocol/coin/p2p"

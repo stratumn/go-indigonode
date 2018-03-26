@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
@@ -50,6 +51,9 @@ type chainDB struct {
 	db     db.DB
 	prefix []byte
 
+	metrics       metrics.MetricSink
+	metricsLabels []metrics.Label
+
 	// mainChain is a lazy loaded cache that will contain refs to main branch's blocks
 	// We generate it only once requested.
 	// If there is a reorg, we just erase it and wait for next request.
@@ -61,14 +65,14 @@ type chainDB struct {
 type Opt func(*chainDB)
 
 // OptPrefix sets a prefix for all the database keys.
-var OptPrefix = func(prefix []byte) Opt {
+func OptPrefix(prefix []byte) Opt {
 	return func(c *chainDB) {
 		c.prefix = prefix
 	}
 }
 
 // OptGenesisBlock sets the genesis block for the chain.
-var OptGenesisBlock = func(genesis *pb.Block) Opt {
+func OptGenesisBlock(genesis *pb.Block) Opt {
 	if genesis.BlockNumber() != 0 {
 		panic("Genesis block should have number 0")
 	}
@@ -81,6 +85,14 @@ var OptGenesisBlock = func(genesis *pb.Block) Opt {
 		if err := c.SetHead(genesis); err != nil {
 			panic(err)
 		}
+	}
+}
+
+// OptMetrics sets the metrics sink.
+func OptMetrics(m metrics.MetricSink, l []metrics.Label) Opt {
+	return func(c *chainDB) {
+		c.metrics = m
+		c.metricsLabels = l
 	}
 }
 
@@ -298,6 +310,8 @@ func (c *chainDB) SetHead(block *pb.Block) (err error) {
 	defer func() {
 		if err != nil {
 			e.SetError(err)
+		} else if c.metrics != nil {
+			c.metrics.SetGaugeWithLabels([]string{"blockHeight"}, float32(block.BlockNumber()), c.metricsLabels)
 		}
 
 		e.Done()

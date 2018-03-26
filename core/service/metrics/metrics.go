@@ -55,7 +55,9 @@ var promSink metrics.MetricSink
 
 // Creates the global sink.
 func init() {
-	sink, err := prometheus.NewPrometheusSink()
+	sink, err := prometheus.NewPrometheusSinkFrom(prometheus.PrometheusOpts{
+		Expiration: 0,
+	})
 	if err != nil {
 		panic(err)
 	}

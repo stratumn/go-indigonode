@@ -24,11 +24,6 @@ import (
 	pb "github.com/stratumn/alice/grpc/chat"
 )
 
-// collection is a slice of records in a TOML file.
-type collection struct {
-	Records map[string]PeerHistory `toml:"chat"`
-}
-
 // PeerHistory represents a list of messages
 type PeerHistory []pb.DatedMessage
 

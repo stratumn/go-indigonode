@@ -24,22 +24,26 @@ import (
 
 // NewDatedMessageReceived creates a new DatedMessage with a From field
 func NewDatedMessageReceived(from peer.ID, content string) *DatedMessage {
+	t := time.Now()
 	return &DatedMessage{
 		From:    []byte(from),
 		Content: content,
 		Time: &types.Timestamp{
-			Seconds: time.Now().Unix(),
+			Seconds: t.Unix(),
+			Nanos:   int32(t.Nanosecond()),
 		},
 	}
 }
 
 // NewDatedMessageSent creates a new DatedMessage with a to field
 func NewDatedMessageSent(to peer.ID, content string) *DatedMessage {
+	t := time.Now()
 	return &DatedMessage{
 		To:      []byte(to),
 		Content: content,
 		Time: &types.Timestamp{
-			Seconds: time.Now().Unix(),
+			Seconds: t.Unix(),
+			Nanos:   int32(t.Nanosecond()),
 		},
 	}
 }

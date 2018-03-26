@@ -150,11 +150,11 @@ var migrations = []cfg.MigrateHandler{
 			return err
 		}
 
-		filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat.toml"))
+		filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat-history.db"))
 		if err != nil {
 			return err
 		}
-		return tree.Set("chat.filename", filename)
+		return tree.Set("chat.history_db_path", filename)
 	},
 }
 

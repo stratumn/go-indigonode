@@ -69,8 +69,8 @@ type Config struct {
 	// Event is the name of the event service.
 	Event string `toml:"event" comment:"The name of the event service."`
 
-	// Filename is the filename of the chat history file.
-	Filename string `toml:"filename" comment:"The filename of the chat history file."`
+	// HistoryDBPath is the path of the chat history db file.
+	HistoryDBPath string `toml:"history_db_path" comment:"The path of the chat history db file."`
 }
 
 // ID returns the unique identifier of the service.
@@ -100,16 +100,16 @@ func (s *Service) Config() interface{} {
 		panic(errors.WithStack(err))
 	}
 
-	filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat.toml"))
+	filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat-history.db"))
 	if err != nil {
 		panic(errors.WithStack(err))
 	}
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:     "host",
-		Event:    "event",
-		Filename: filename,
+		Host:          "host",
+		Event:         "event",
+		HistoryDBPath: filename,
 	}
 }
 
@@ -154,7 +154,7 @@ func (s *Service) Expose() interface{} {
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	msgReceivedCh := make(chan *pb.DatedMessage)
 	s.chat = chat.NewChat(s.host, s.eventEmitter, msgReceivedCh)
-	mgr, err := NewManager(s.config.Filename)
+	mgr, err := NewManager(s.config.HistoryDBPath)
 	if err != nil {
 		return nil
 	}

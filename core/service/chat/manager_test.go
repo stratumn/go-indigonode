@@ -50,9 +50,9 @@ func TestManager(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
 	require.NoError(t, err, `ioutil.TempDir("", "")`)
 
-	filename := filepath.Join(dir, "chat.toml")
+	dbPath := filepath.Join(dir, "chat-history.db")
 
-	mgr, err := NewManager(filename)
+	mgr, err := NewManager(dbPath)
 	require.NoError(t, err)
 	require.NotNil(t, mgr)
 

@@ -15,16 +15,12 @@
 package chat
 
 import (
-	"context"
-	"os"
-	"sync"
-
-	"github.com/pelletier/go-toml"
-	"github.com/pkg/errors"
-
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"encoding/binary"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	"time"
 
+	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/db"
 	pb "github.com/stratumn/alice/grpc/chat"
 )
 
@@ -38,118 +34,66 @@ type PeerHistory []pb.DatedMessage
 
 // Manager manages a chat history.
 type Manager struct {
-	filename string
-
-	mu      sync.RWMutex
-	history map[peer.ID]PeerHistory
+	hdb db.DB
 }
 
 // NewManager creates a new contact manager.
-func NewManager(filename string) (*Manager, error) {
-	history, err := load(filename)
+func NewManager(dbPath string) (*Manager, error) {
+	hdb, err := db.NewFileDB(dbPath, nil)
 	if err != nil {
-		if !os.IsNotExist(errors.Cause(err)) {
-			return nil, err
-		}
-
-		history = map[peer.ID]PeerHistory{}
+		return nil, err
 	}
 
-	return &Manager{
-		filename: filename,
-		history:  history,
-	}, nil
+	return &Manager{hdb}, nil
 }
 
 // Get returns the chat history with a peer.
 func (m *Manager) Get(peerID peer.ID) (PeerHistory, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	var result PeerHistory
 
-	chatHistory := m.history[peerID]
+	iter := m.hdb.IteratePrefix([]byte(peerID))
 
-	return chatHistory, nil
+	for {
+		next, err := iter.Next()
+		if err != nil {
+			return nil, err
+		}
+		if !next {
+			break
+		}
+		msg := pb.DatedMessage{}
+		err = msg.Unmarshal(iter.Value())
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, msg)
+	}
+
+	return result, nil
 }
 
 // Add adds a message to the history of a peer.
 func (m *Manager) Add(peerID peer.ID, message *pb.DatedMessage) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// Clone values in case saving fails.
-	history := map[peer.ID]PeerHistory{}
-	for k, v := range m.history {
-		ch := make(PeerHistory, len(v))
-		copy(ch, v)
-		history[k] = ch
-	}
-
-	history[peerID] = append(history[peerID], *message)
-
-	if err := save(history, m.filename); err != nil {
-		return err
-	}
-
-	m.history = history
-
-	return nil
-}
-
-// load loads chat history from a file.
-func load(filename string) (map[peer.ID]PeerHistory, error) {
-	mode := os.O_RDONLY
-	f, err := os.OpenFile(filename, mode, 0600)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Event(context.Background(), "closeError", logging.Metadata{
-				"error": err.Error(),
-			})
-		}
-	}()
-
-	col := collection{}
-	if err := toml.NewDecoder(f).Decode(&col); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	history := map[peer.ID]PeerHistory{}
-
-	for id, records := range col.Records {
-		pid, err := peer.IDB58Decode(id)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		history[pid] = records
-	}
-
-	return history, nil
-}
-
-// save saves history to a file.
-func save(history map[peer.ID]PeerHistory, filename string) error {
-	mode := os.O_WRONLY | os.O_TRUNC | os.O_CREATE
-	f, err := os.OpenFile(filename, mode, 0600)
+	buf, err := message.Marshal()
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Event(context.Background(), "closeError", logging.Metadata{
-				"error": err.Error(),
-			})
-		}
-	}()
+	return m.hdb.Put(msgKey(peerID, message), buf)
+}
 
-	recordsMap := make(map[string]PeerHistory)
+// msgKey builds the key for a message. Adding the time to the key allows us
+// to prevent duplicated keys and to retrieve messages in the right order.
+func msgKey(peerID peer.ID, message *pb.DatedMessage) []byte {
+	t := time.Unix(message.Time.Seconds, int64(message.Time.Nanos))
+	return append([]byte(peerID), encodeUint64(uint64(t.UnixNano()))...)
+}
 
-	for peerID, peerHistory := range history {
-		recordsMap[peerID.Pretty()] = peerHistory
-	}
+// encodeUint64 encodes an uint64 to a BigEndian buffer.
+func encodeUint64(value uint64) []byte {
+	v := make([]byte, 8)
+	binary.BigEndian.PutUint64(v, value)
 
-	return errors.WithStack(toml.NewEncoder(f).Encode(collection{recordsMap}))
+	return v
 }

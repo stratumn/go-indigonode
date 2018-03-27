@@ -142,7 +142,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	}
 	defer func() {
 		err := db.Close()
-		log.Event(ctx, "ErrorClosingDB", logging.Metadata{"error": err.Error()})
+		if err != nil {
+			log.Event(ctx, "ErrorClosingDB", logging.Metadata{"error": err.Error()})
+		}
 	}()
 
 	s.storage = storage.NewStorage(s.host, db)

@@ -114,9 +114,11 @@ func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte)
 	authorizedPeers := authorizedPeersMap{}
 	ap, err := s.db.Get(append(prefixAuthorizedPeers, fileHash...))
 	if err != nil && errors.Cause(err) != db.ErrNotFound {
+		event.SetError(err)
 		return err
 	} else if errors.Cause(err) != db.ErrNotFound {
 		if err = json.Unmarshal(ap, &authorizedPeers); err != nil {
+			event.SetError(err)
 			return err
 		}
 	}
@@ -127,10 +129,12 @@ func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte)
 
 	newAp, err := json.Marshal(authorizedPeers)
 	if err != nil {
+		event.SetError(err)
 		return err
 	}
 
 	if err = s.db.Put(append(prefixAuthorizedPeers, fileHash...), newAp); err != nil {
+		event.SetError(err)
 		return err
 	}
 

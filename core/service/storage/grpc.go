@@ -122,7 +122,7 @@ func (s grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 	return
 }
 
-// AuthorizePeer gives access for a peer to a resource.
+// AuthorizePeers gives access for a list of peers to a resource.
 func (s grpcServer) AuthorizePeers(ctx context.Context, req *pb.AuthRequest) (*pb.Ack, error) {
 	if err := s.authorize(ctx, req.PeerIds, req.FileHash); err != nil {
 		return nil, err

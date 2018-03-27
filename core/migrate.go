@@ -144,6 +144,18 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.block_difficulty", int64(29))
 	},
+	func(tree *cfg.Tree) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
+		filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat-history.db"))
+		if err != nil {
+			return err
+		}
+		return tree.Set("chat.history_db_path", filename)
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

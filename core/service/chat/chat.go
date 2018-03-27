@@ -17,6 +17,8 @@ package chat
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/chat"
@@ -52,6 +54,7 @@ type Service struct {
 	host         Host
 	eventEmitter event.Emitter
 	chat         *chat.Chat
+	mgr          *Manager
 }
 
 // Config contains configuration options for the Chat service.
@@ -61,6 +64,9 @@ type Config struct {
 
 	// Event is the name of the event service.
 	Event string `toml:"event" comment:"The name of the event service."`
+
+	// HistoryDBPath is the path of the chat history db file.
+	HistoryDBPath string `toml:"history_db_path" comment:"The path of the chat history db file."`
 }
 
 // ID returns the unique identifier of the service.
@@ -85,10 +91,21 @@ func (s *Service) Config() interface{} {
 		return *s.config
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
+	filename, err := filepath.Abs(filepath.Join(cwd, "data", "chat-history.db"))
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:  "host",
-		Event: "event",
+		Host:          "host",
+		Event:         "event",
+		HistoryDBPath: filename,
 	}
 }
 
@@ -131,7 +148,14 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.chat = chat.NewChat(s.host, s.eventEmitter)
+	msgReceivedCh := make(chan *pb.DatedMessage)
+	s.chat = chat.NewChat(s.host, s.eventEmitter, msgReceivedCh)
+	mgr, err := NewManager(s.config.HistoryDBPath)
+	if err != nil {
+		return nil
+	}
+
+	s.mgr = mgr
 
 	// Wrap the stream handler with the context.
 	s.host.SetStreamHandler(chat.ProtocolID, func(stream inet.Stream) {
@@ -139,7 +163,22 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	})
 
 	running()
-	<-ctx.Done()
+LOOP:
+	for {
+		select {
+		case m := <-msgReceivedCh:
+			from, err := m.FromPeer()
+			if err != nil {
+				return err
+			}
+			err = s.mgr.Add(from, m)
+			if err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			break LOOP
+		}
+	}
 	stopping()
 
 	// Stop accepting streams.
@@ -160,7 +199,14 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			return s.host.Connect(ctx, pi)
 		},
 		Send: func(ctx context.Context, pid peer.ID, message string) error {
-			return s.chat.Send(ctx, pid, message)
+			err := s.chat.Send(ctx, pid, message)
+			if err != nil {
+				return err
+			}
+			return s.mgr.Add(pid, pb.NewDatedMessageSent(pid, message))
+		},
+		GetPeerHistory: func(pid peer.ID) (PeerHistory, error) {
+			return s.mgr.Get(pid)
 		},
 	})
 }

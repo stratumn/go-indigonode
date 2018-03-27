@@ -14,6 +14,8 @@
 
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
 package stratumn.alice.grpc.chat;
@@ -25,6 +27,11 @@ service Chat {
   // Sends a message to a peer.
   rpc Message (ChatMessage) returns (Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Send a message to a peer";
+  }
+
+  // Gets the chat history with a peer.
+  rpc GetHistory (HistoryReq) returns (stream DatedMessage) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Gets the chat history with a peer";
   }
 }
 
@@ -43,3 +50,33 @@ message ChatMessage {
 // An empty ack.
 message Ack {
 }
+
+// The request message to get the chat history with a peer.
+message HistoryReq {
+  bytes peer_id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+}
+
+message DatedMessage {
+  bytes from = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Message sender",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  bytes to = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Message recipient",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  string content = 3 [
+    (stratumn.alice.grpc.ext.field_desc) = "Message content",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+  google.protobuf.Timestamp time = 4 [
+    (stratumn.alice.grpc.ext.field_desc) = "Message received time",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+

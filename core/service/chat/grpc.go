@@ -26,8 +26,9 @@ import (
 
 // grpcServer is a gRPC server for the chat service.
 type grpcServer struct {
-	Connect func(context.Context, pstore.PeerInfo) error
-	Send    func(context.Context, peer.ID, string) error
+	Connect        func(context.Context, pstore.PeerInfo) error
+	Send           func(context.Context, peer.ID, string) error
+	GetPeerHistory func(peer.ID) (PeerHistory, error)
 }
 
 // Message sends a message to the specified peer.
@@ -51,4 +52,24 @@ func (s grpcServer) Message(ctx context.Context, req *pb.ChatMessage) (response 
 	}
 
 	return
+}
+
+func (s grpcServer) GetHistory(req *pb.HistoryReq, ss pb.Chat_GetHistoryServer) error {
+	id, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	msgs, err := s.GetPeerHistory(id)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for _, msg := range msgs {
+		err := ss.Send(&msg)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
 }

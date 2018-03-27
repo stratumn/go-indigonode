@@ -43,6 +43,7 @@ func TestStorageProtocol_IndexFile(t *testing.T) {
 
 	content := []byte("I love storing stuff")
 	hash, err := multihash.Sum(content, multihash.SHA2_256, -1)
+	assert.NoError(t, err, "Sum()")
 	_, err = file.Write(content)
 	assert.NoError(t, err, "file.Write()")
 

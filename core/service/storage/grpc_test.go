@@ -69,7 +69,7 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 
 	// Check that file has the right content.
 	f, err := os.Open(fmt.Sprintf("/tmp/%s", filename))
-	// content, err := ioutil.ReadFile(fmt.Sprintf("/tmp/%s", filename))
+	assert.NoError(t, err, "os.Open()")
 	expected := []byte("coucou, tu veux voir mon fichier ?")
 	content := make([]byte, 42)
 	zeros := make([]byte, 42-len(expected))

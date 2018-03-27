@@ -140,7 +140,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		err := db.Close()
+		log.Event(ctx, "ErrorClosingDB", logging.Metadata{"error": err.Error()})
+	}()
 
 	s.storage = storage.NewStorage(s.host, db)
 
@@ -166,16 +169,5 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 		storagePath: s.config.LocalStorage,
 		indexFile:   s.storage.IndexFile,
 		authorize:   s.storage.Authorize,
-
-		// Connect: func(ctx context.Context, pi pstore.PeerInfo) error {
-		// 	if s.host == nil {
-		// 		return ErrUnavailable
-		// 	}
-
-		// 	return s.host.Connect(ctx, pi)
-		// },
-		// Send: func(ctx context.Context, pid peer.ID, path string) error {
-		// 	return s.storage.Send(ctx, pid, path)
-		// },
 	})
 }

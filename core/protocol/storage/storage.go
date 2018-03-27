@@ -68,7 +68,10 @@ func NewStorage(host Host, db db.DB) *Storage {
 // IndexFile adds the file hash and name to the db.
 func (s *Storage) IndexFile(ctx context.Context, file *os.File) error {
 	// go back to the beginning of the file.
-	file.Seek(0, 0)
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
 		return err

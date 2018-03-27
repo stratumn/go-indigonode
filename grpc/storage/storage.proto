@@ -1,0 +1,75 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
+package stratumn.alice.grpc.storage;
+
+option go_package = "github.com/stratumn/alice/grpc/storage;storage";
+
+// The storage service definition.
+service Storage {
+  // // Sends a message to a peer.
+  // rpc SendFile (File) returns (Ack) {
+  // }
+  
+  // Upload a file to the alice node.
+  rpc Upload (stream FileChunk) returns (Ack) {}
+  
+  // Give peers access to a file.
+  rpc AuthorizePeers (AuthRequest) returns (Ack) {}
+}
+
+// // A file storage.
+// message File {
+//   bytes peer_id = 1 [
+//     (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+//     (stratumn.alice.grpc.ext.field_required) = true,
+//     (stratumn.alice.grpc.ext.field_base58) = true
+//   ];
+//   string path = 2 [
+//     (stratumn.alice.grpc.ext.field_desc) = "Path to the file",
+//     (stratumn.alice.grpc.ext.field_required) = true
+//   ];
+// }
+
+message FileChunk {
+  // file name is required only on first message.
+  string file_name = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Name of the file",
+    (stratumn.alice.grpc.ext.field_required) = false
+  ];
+  bytes data = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+message AuthRequest {
+  repeated bytes peer_ids = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer IDs",
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  bytes file_hash = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Path to the file",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+// An empty ack.
+message Ack {
+}

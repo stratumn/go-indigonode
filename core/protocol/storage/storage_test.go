@@ -22,10 +22,11 @@ import (
 	"testing"
 	"time"
 
-	peer "github.com/libp2p/go-libp2p-peer"
 	multihash "github.com/multiformats/go-multihash"
 	"github.com/stratumn/alice/core/db"
 	"github.com/stretchr/testify/assert"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 func TestStorageProtocol_IndexFile(t *testing.T) {

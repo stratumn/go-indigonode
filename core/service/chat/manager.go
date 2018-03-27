@@ -32,7 +32,7 @@ type Manager struct {
 	hdb db.DB
 }
 
-// NewManager creates a new contact manager.
+// NewManager creates a new chat manager.
 func NewManager(dbPath string) (*Manager, error) {
 	hdb, err := db.NewFileDB(dbPath, nil)
 	if err != nil {

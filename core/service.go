@@ -36,6 +36,7 @@ import (
 	"github.com/stratumn/alice/core/service/raft"
 	"github.com/stratumn/alice/core/service/relay"
 	"github.com/stratumn/alice/core/service/signal"
+	"github.com/stratumn/alice/core/service/storage"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/core/service/yamux"
 )
@@ -64,6 +65,7 @@ func BuiltinServices() []manager.Service {
 		&relay.Service{},
 		&signal.Service{},
 		&swarm.Service{},
+		&storage.Service{},
 		&yamux.Service{},
 	}
 }

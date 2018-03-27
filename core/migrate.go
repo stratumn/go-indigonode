@@ -144,6 +144,15 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("coin.block_difficulty", int64(29))
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("storage.host", "host"); err != nil {
+			return err
+		}
+		if err := tree.Set("storage.db_path", "data/storage/db"); err != nil {
+			return err
+		}
+		return tree.Set("storage.local_storage", "data/storage/files")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

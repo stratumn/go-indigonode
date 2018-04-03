@@ -169,7 +169,11 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterStorageServer(gs, grpcServer{
 		storagePath: s.config.LocalStorage,
-		indexFile:   s.storage.IndexFile,
-		authorize:   s.storage.Authorize,
+		indexFile: func(ctx context.Context, file *os.File) (fileHash []byte, err error) {
+			return s.storage.IndexFile(ctx, file)
+		},
+		authorize: func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+			return s.storage.Authorize(ctx, peerIds, fileHash)
+		},
 	})
 }

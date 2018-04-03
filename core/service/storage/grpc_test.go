@@ -35,9 +35,9 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 
 	var indexedFile *os.File
 	server := &grpcServer{
-		indexFile: func(ctx context.Context, file *os.File) error {
+		indexFile: func(ctx context.Context, file *os.File) ([]byte, error) {
 			indexedFile = file
-			return nil
+			return []byte("123"), nil
 		},
 		storagePath: "/tmp",
 	}
@@ -61,7 +61,7 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 		stream.EXPECT().Recv().Return(chunk2, nil),
 		stream.EXPECT().Recv().Return(chunk3, nil),
 		stream.EXPECT().Recv().Return(nil, io.EOF),
-		stream.EXPECT().SendAndClose(&pb.Ack{}).Return(nil),
+		stream.EXPECT().SendAndClose(&pb.UploadAck{FileHash: []byte("123")}).Return(nil),
 	)
 
 	err := server.Upload(stream)

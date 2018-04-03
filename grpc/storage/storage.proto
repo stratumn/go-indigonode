@@ -27,7 +27,7 @@ service Storage {
   // }
   
   // Upload a file to the alice node.
-  rpc Upload (stream FileChunk) returns (Ack) {}
+  rpc Upload (stream FileChunk) returns (UploadAck) {}
   
   // Give peers access to a file.
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
@@ -65,11 +65,18 @@ message AuthRequest {
     (stratumn.alice.grpc.ext.field_base58) = true
   ];
   bytes file_hash = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Path to the file",
+    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file",
     (stratumn.alice.grpc.ext.field_required) = true
   ];
 }
 
 // An empty ack.
 message Ack {
+}
+
+message UploadAck {
+  bytes file_hash = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file that was uploaded",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
 }

@@ -33,7 +33,7 @@ var (
 
 // grpcServer is a gRPC server for the storage service.
 type grpcServer struct {
-	indexFile   func(context.Context, *os.File) error
+	indexFile   func(context.Context, *os.File) (fileHash []byte, err error)
 	authorize   func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
 	storagePath string
 }
@@ -113,12 +113,12 @@ func (s grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 	// TODO: Do we want to index the files with their hash ?
 	// This would be needed at some point to check file integrity
 	// and to be able to handle multiple providers for a file.
-
-	if err = s.indexFile(ctx, file); err != nil {
+	var fileHash []byte
+	if fileHash, err = s.indexFile(ctx, file); err != nil {
 		return
 	}
 
-	err = stream.SendAndClose(&pb.Ack{})
+	err = stream.SendAndClose(&pb.UploadAck{FileHash: fileHash})
 	return
 }
 

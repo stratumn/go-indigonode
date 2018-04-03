@@ -66,27 +66,27 @@ func NewStorage(host Host, db db.DB) *Storage {
 }
 
 // IndexFile adds the file hash and name to the db.
-func (s *Storage) IndexFile(ctx context.Context, file *os.File) error {
+func (s *Storage) IndexFile(ctx context.Context, file *os.File) (fileHash []byte, err error) {
 	// go back to the beginning of the file.
 	if _, err := file.Seek(0, 0); err != nil {
-		return err
+		return nil, err
 	}
 
 	h := sha256.New()
-	if _, err := io.Copy(h, file); err != nil {
-		return err
+	if _, err = io.Copy(h, file); err != nil {
+		return
 	}
 
-	hash, err := mh.Encode(h.Sum(nil), mh.SHA2_256)
+	fileHash, err = mh.Encode(h.Sum(nil), mh.SHA2_256)
 	if err != nil {
-		return err
+		return
 	}
 
-	if err = s.db.Put(append(prefixFilesHashes, []byte(file.Name())...), hash); err != nil {
-		return err
+	if err = s.db.Put(append(prefixFilesHashes, []byte(file.Name())...), fileHash); err != nil {
+		return
 	}
 
-	return nil
+	return
 }
 
 // Keep track of the authorized peers in a map

@@ -74,7 +74,7 @@ func (mr *MockStorage_UploadServerMockRecorder) RecvMsg(arg0 interface{}) *gomoc
 }
 
 // SendAndClose mocks base method
-func (m *MockStorage_UploadServer) SendAndClose(arg0 *storage.Ack) error {
+func (m *MockStorage_UploadServer) SendAndClose(arg0 *storage.UploadAck) error {
 	ret := m.ctrl.Call(m, "SendAndClose", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0

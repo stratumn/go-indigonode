@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package grpcapi
+package grpcweb
 
 import (
 	"context"
@@ -20,22 +20,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/netutil"
-	"github.com/stratumn/alice/core/service/grpcapi/mockgrpcapi"
-	pb "github.com/stratumn/alice/grpc/grpcapi"
-	"github.com/stratumn/alice/release"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
-
-	testutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
 )
 
-func testService(ctx context.Context, t *testing.T, mgr Manager) *Service {
+func testService(ctx context.Context, t *testing.T) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 	config.Address = fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
@@ -43,7 +36,7 @@ func testService(ctx context.Context, t *testing.T, mgr Manager) *Service {
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"manager": mgr,
+		"grpcapi": grpc.NewServer(),
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -59,13 +52,7 @@ func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mgr := mockgrpcapi.NewMockManager(ctrl)
-	mgr.EXPECT().List().Return([]string{})
-
-	serv := testService(ctx, t, mgr)
+	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
 
@@ -104,9 +91,9 @@ func TestService_Needs(t *testing.T) {
 		set   func(*Config)
 		needs []string
 	}{{
-		"manager",
-		func(c *Config) { c.Manager = "mymgr" },
-		[]string{"mymgr"},
+		"grpcapi",
+		func(c *Config) { c.Grpcapi = "mygrpcapi" },
+		[]string{"mygrpcapi"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -129,12 +116,8 @@ func TestService_Needs(t *testing.T) {
 		})
 	}
 }
-
 func TestService_Plug(t *testing.T) {
 	errAny := errors.New("any error")
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	tests := []struct {
 		name string
@@ -142,21 +125,19 @@ func TestService_Plug(t *testing.T) {
 		deps map[string]interface{}
 		err  error
 	}{{
-		"valid manager",
-		func(c *Config) { c.Manager = "mymgr" },
+		"valid gRPC server",
+		func(c *Config) { c.Grpcapi = "mygrpcapi" },
 		map[string]interface{}{
-			"mymgr": mockgrpcapi.NewMockManager(ctrl),
-			"swarm": testutil.GenSwarmNetwork(t, context.Background()),
+			"mygrpcapi": grpc.NewServer(),
 		},
 		nil,
 	}, {
-		"invalid manager",
-		func(c *Config) { c.Manager = "mymgr" },
+		"invalid gRPC server",
+		func(c *Config) { c.Grpcapi = "mygrpcapi" },
 		map[string]interface{}{
-			"mymgr": struct{}{},
-			"swarm": testutil.GenSwarmNetwork(t, context.Background()),
+			"mygrpcapi": struct{}{},
 		},
-		ErrNotManager,
+		ErrNotGrpcServer,
 	}}
 
 	for _, tt := range tests {
@@ -175,82 +156,4 @@ func TestService_Plug(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestService_Expose(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mgr := mockgrpcapi.NewMockManager(ctrl)
-	mgr.EXPECT().List().Return([]string{})
-
-	serv := testService(ctx, t, mgr)
-	exposed := testservice.Expose(ctx, t, serv, time.Second)
-
-	assert.IsType(t, &grpc.Server{}, exposed, "exposed type")
-}
-
-type dummyService struct {
-	id string
-}
-
-func (s dummyService) ID() string {
-	return s.id
-}
-
-func (s dummyService) Name() string {
-	return s.id
-}
-
-func (s dummyService) Desc() string {
-	return s.id
-}
-
-func mockRegistrable(id string, reg Registrable) manager.Service {
-	return struct {
-		manager.Service
-		Registrable
-	}{
-		dummyService{id},
-		reg,
-	}
-}
-
-func TestService_Registrable(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	p2p := mockgrpcapi.NewMockRegistrable(ctrl)
-	p2pServ := mockRegistrable("p2p", p2p)
-
-	mgr := mockgrpcapi.NewMockManager(ctrl)
-	mgr.EXPECT().List().Return([]string{"p2p"})
-	mgr.EXPECT().Find("p2p").Return(p2pServ, nil)
-	p2p.EXPECT().AddToGRPCServer(gomock.Any())
-
-	serv := testService(ctx, t, mgr)
-	testservice.TestRun(ctx, t, serv, time.Second)
-}
-
-func TestService_Inform(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mgr := mockgrpcapi.NewMockManager(ctrl)
-	serv := testService(ctx, t, mgr)
-
-	req := &pb.InformReq{}
-	res, err := serv.Inform(ctx, req)
-
-	require.NoError(t, err)
-	assert.Equal(t, release.Protocol, res.Protocol)
 }

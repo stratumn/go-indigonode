@@ -165,6 +165,16 @@ var migrations = []cfg.MigrateHandler{
 		}
 		return tree.Set("storage.local_storage", "data/storage/files")
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("grpcweb.grpcapi", "grpcapi"); err != nil {
+			return err
+		}
+		if err := tree.Set("grpcweb.address", "/ip4/127.0.0.1/tcp/8906"); err != nil {
+			return err
+		}
+
+		return addServiceToGroup(tree, "api", "p2p")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

@@ -77,6 +77,7 @@ type Service struct {
 	config *Config
 	mgr    Manager
 	ctx    context.Context
+	server *grpc.Server
 }
 
 // Config contains configuration options for the gRPC API service.
@@ -85,7 +86,6 @@ type Config struct {
 	Manager string `toml:"manager" comment:"The name of the manager service."`
 
 	// Address is the address to bind to.
-
 	Address string `toml:"address" comment:"Address to bind to."`
 
 	// TLSCertificateFile is a path to a TLS certificate.
@@ -158,6 +158,15 @@ func (s *Service) Plug(handlers map[string]interface{}) error {
 	return nil
 }
 
+// Expose exposes the service to other services.
+//
+// It exposes the type:
+//
+//	google.golang.org/grpc.Host
+func (s *Service) Expose() interface{} {
+	return s.server
+}
+
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	s.ctx = ctx
@@ -174,22 +183,22 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	gs := grpc.NewServer(opts...)
+	s.server = grpc.NewServer(opts...)
 
 	// Add the API service.
-	pb.RegisterAPIServer(gs, s)
+	pb.RegisterAPIServer(s.server, s)
 
 	// Register reflection service on gRPC server, which is used by the CLI
 	// to reflect commands.
-	reflection.Register(gs)
+	reflection.Register(s.server)
 
 	// Add all registerable services to the server.
-	s.addRegistrables(gs)
+	s.addRegistrables(s.server)
 
 	// Launch a goroutine for the gRPC server.
 	done := make(chan error, 1)
 	go func() {
-		done <- errors.WithStack(gs.Serve(lis))
+		done <- errors.WithStack(s.server.Serve(lis))
 	}()
 
 	running()
@@ -201,7 +210,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	case <-ctx.Done():
 		stopping()
-		gs.GracefulStop()
+		s.server.GracefulStop()
 		err = <-done
 	}
 

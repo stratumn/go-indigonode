@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/service/contacts"
 	"github.com/stratumn/alice/core/service/event"
 	"github.com/stratumn/alice/core/service/grpcapi"
+	"github.com/stratumn/alice/core/service/grpcweb"
 	"github.com/stratumn/alice/core/service/host"
 	"github.com/stratumn/alice/core/service/identify"
 	"github.com/stratumn/alice/core/service/kaddht"
@@ -52,6 +53,7 @@ func BuiltinServices() []manager.Service {
 		&contacts.Service{},
 		&event.Service{},
 		&grpcapi.Service{},
+		&grpcweb.Service{},
 		&host.Service{},
 		&identify.Service{},
 		&kaddht.Service{},

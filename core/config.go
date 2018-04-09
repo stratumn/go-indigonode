@@ -52,7 +52,7 @@ var DefaultConfig = Config{
 		ID:       "api",
 		Name:     "API Services",
 		Desc:     "Starts API services.",
-		Services: []string{"grpcapi"},
+		Services: []string{"grpcapi", "grpcweb"},
 	}, {
 		ID:       "util",
 		Name:     "Utility Services",

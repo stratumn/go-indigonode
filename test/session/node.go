@@ -34,6 +34,7 @@ import (
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/grpcapi"
+	"github.com/stratumn/alice/core/service/grpcweb"
 	"github.com/stratumn/alice/core/service/kaddht"
 	"github.com/stratumn/alice/core/service/swarm"
 	grpcapipb "github.com/stratumn/alice/grpc/grpcapi"
@@ -82,6 +83,7 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 
 	swarmAddr := fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", netutil.RandomPort())
 	apiAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
+	grpcwebAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
 
 	// Don't mutate the given config.
 	config = deepcopy.Copy(config).(cfg.ConfigSet)
@@ -95,6 +97,10 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 	apiConf := config["grpcapi"].(grpcapi.Config)
 	apiConf.Address = apiAddr
 	config["grpcapi"] = apiConf
+
+	grpcwebConf := config["grpcweb"].(grpcweb.Config)
+	grpcwebConf.Address = grpcwebAddr
+	config["grpcweb"] = grpcwebConf
 
 	dhtConf := config["kaddht"].(kaddht.Config)
 	dhtConf.LevelDBPath = filepath.Join(dir, "data", "kaddht")

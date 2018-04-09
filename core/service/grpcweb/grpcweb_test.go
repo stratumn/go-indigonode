@@ -67,6 +67,10 @@ func TestService_SetConfig(t *testing.T) {
 		"invalid address",
 		func(c *Config) { c.Address = "http://example.com" },
 		errAny,
+	}, {
+		"valid address",
+		func(c *Config) { c.Address = "/ip4/127.0.0.1/tcp/8906" },
+		nil,
 	}}
 
 	for _, tt := range tests {

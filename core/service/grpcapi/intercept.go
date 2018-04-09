@@ -50,7 +50,7 @@ func logRequest(
 	event.Append(logging.Metadata{"netaddr": addr})
 
 	ma, err := manet.FromNetAddr(pr.Addr)
-	// With grpcweb, the request does not necessarily come from a multiaddres
+	// With grpcweb, the request does not necessarily come from a multiaddr.
 	if err == nil {
 		event.Append(logging.Metadata{"multiaddr": ma})
 	}
@@ -93,7 +93,7 @@ func logStream(
 	event.Append(logging.Metadata{"netaddr": addr})
 
 	ma, err := manet.FromNetAddr(pr.Addr)
-	// With grpcweb, the request does not necessarily come from a multiaddres
+	// With grpcweb, the request does not necessarily come from a multiaddr.
 	if err == nil {
 		event.Append(logging.Metadata{"multiaddr": ma})
 	}

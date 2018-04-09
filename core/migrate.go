@@ -173,7 +173,7 @@ var migrations = []cfg.MigrateHandler{
 			return err
 		}
 
-		return addServiceToGroup(tree, "api", "p2p")
+		return addServiceToGroup(tree, "grpcweb", "api")
 	},
 }
 

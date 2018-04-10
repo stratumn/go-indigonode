@@ -39,12 +39,12 @@ func TestGRPCServer_GetAccount(t *testing.T) {
 	}
 
 	server := &grpcServer{
-		GetAccount: func([]byte) (*pb.Account, error) {
+		DoGetAccount: func([]byte) (*pb.Account, error) {
 			return account, nil
 		},
 	}
 
-	res, err := server.Account(context.Background(), &rpcpb.AccountReq{
+	res, err := server.GetAccount(context.Background(), &rpcpb.AccountReq{
 		PeerId: []byte(pid),
 	})
 	require.NoError(t, err, "server.GetAccount()")
@@ -60,7 +60,7 @@ func TestGRPCServer_Transaction(t *testing.T) {
 		},
 	}
 
-	txResp, err := server.Transaction(
+	txResp, err := server.SendTransaction(
 		context.Background(),
 		&pb.Transaction{
 			Value: 42,

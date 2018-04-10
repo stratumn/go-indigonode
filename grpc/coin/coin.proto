@@ -24,12 +24,12 @@ option go_package = "github.com/stratumn/alice/grpc/coin;coin";
 // The coin service definition.
 service Coin {
     // Get an account.
-    rpc Account(AccountReq) returns (stratumn.alice.pb.coin.Account) {
+    rpc GetAccount(AccountReq) returns (stratumn.alice.pb.coin.Account) {
         option (stratumn.alice.grpc.ext.method_desc) = "Display an account";
     }
 
     // Send a coin transaction to the consensus engine.
-    rpc Transaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
+    rpc SendTransaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
         option (stratumn.alice.grpc.ext.method_no_cli) = true;
     }
@@ -41,7 +41,7 @@ service Coin {
 
     // View transaction pool.
     rpc TransactionPool (TransactionPoolReq) returns (TransactionPoolResp) {
-        option (stratumn.alice.grpc.ext.method_desc) = "View transaction pool";        
+        option (stratumn.alice.grpc.ext.method_desc) = "View transaction pool";
     }
 
     // Get blocks from the blockchain.
@@ -65,8 +65,8 @@ message BlockchainReq {
         (stratumn.alice.grpc.ext.field_desc) = "Block number to lookup. If ommitted, defaults to the last block."
     ];
     bytes header_hash = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Header hash to lookup. If ommitted, defaults to the last block."    
-    ];  
+        (stratumn.alice.grpc.ext.field_desc) = "Header hash to lookup. If ommitted, defaults to the last block."
+    ];
     uint32 count = 3 [
       (stratumn.alice.grpc.ext.field_desc) = "Number of blocks returned. If ommitted, defaults to one."
     ];

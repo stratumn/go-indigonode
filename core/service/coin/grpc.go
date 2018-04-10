@@ -27,7 +27,7 @@ import (
 
 // grpcServer is a gRPC server for the coin service.
 type grpcServer struct {
-	GetAccount             func([]byte) (*pb.Account, error)
+	DoGetAccount           func([]byte) (*pb.Account, error)
 	AddTransaction         func(*pb.Transaction) error
 	GetAccountTransactions func([]byte) ([]*pb.Transaction, error)
 	GetBlockchain          func(uint64, []byte, uint32) ([]*pb.Block, error)
@@ -35,18 +35,18 @@ type grpcServer struct {
 }
 
 // Account returns an account.
-func (s grpcServer) Account(ctx context.Context, req *rpcpb.AccountReq) (*pb.Account, error) {
+func (s grpcServer) GetAccount(ctx context.Context, req *rpcpb.AccountReq) (*pb.Account, error) {
 	// Just for validation.
 	_, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return s.GetAccount(req.PeerId)
+	return s.DoGetAccount(req.PeerId)
 }
 
 // Transaction sends a coin transaction to the consensus engine.
-func (s grpcServer) Transaction(ctx context.Context, req *pb.Transaction) (response *rpcpb.TransactionResp, err error) {
+func (s grpcServer) SendTransaction(ctx context.Context, req *pb.Transaction) (response *rpcpb.TransactionResp, err error) {
 	err = s.AddTransaction(req)
 	if err != nil {
 		return nil, err

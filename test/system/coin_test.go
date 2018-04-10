@@ -297,7 +297,7 @@ func doTransaction(ctx context.Context, t *testing.T, c coinpb.CoinClient, priv 
 		Signature: sig,
 	}
 
-	_, err = c.Transaction(ctx, tx)
+	_, err = c.SendTransaction(ctx, tx)
 	assert.NoError(t, err, "client.Transaction()")
 }
 
@@ -319,7 +319,7 @@ func assertHeight(ctx context.Context, t *testing.T, c coinpb.CoinClient, num ui
 }
 
 func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid peer.ID, balance, nonce uint64) {
-	acc, err := c.Account(ctx, &coinpb.AccountReq{PeerId: []byte(pid)})
+	acc, err := c.GetAccount(ctx, &coinpb.AccountReq{PeerId: []byte(pid)})
 	assert.NoError(t, err, "Account()")
 	if acc != nil {
 		assert.Equal(t, balance, acc.Balance, "account.Balance")

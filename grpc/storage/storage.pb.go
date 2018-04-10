@@ -8,6 +8,9 @@
 		github.com/stratumn/alice/grpc/storage/storage.proto
 
 	It has these top-level messages:
+		StreamFileChunk
+		UploadReq
+		UploadSession
 		FileChunk
 		AuthRequest
 		Ack
@@ -36,22 +39,78 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type FileChunk struct {
+type StreamFileChunk struct {
 	// file name is required only on first message.
 	FileName string `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
 	Data     []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 }
 
-func (m *FileChunk) Reset()                    { *m = FileChunk{} }
-func (m *FileChunk) String() string            { return proto.CompactTextString(m) }
-func (*FileChunk) ProtoMessage()               {}
-func (*FileChunk) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{0} }
+func (m *StreamFileChunk) Reset()                    { *m = StreamFileChunk{} }
+func (m *StreamFileChunk) String() string            { return proto.CompactTextString(m) }
+func (*StreamFileChunk) ProtoMessage()               {}
+func (*StreamFileChunk) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{0} }
 
-func (m *FileChunk) GetFileName() string {
+func (m *StreamFileChunk) GetFileName() string {
 	if m != nil {
 		return m.FileName
 	}
 	return ""
+}
+
+func (m *StreamFileChunk) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+type UploadReq struct {
+	FileName string `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"`
+}
+
+func (m *UploadReq) Reset()                    { *m = UploadReq{} }
+func (m *UploadReq) String() string            { return proto.CompactTextString(m) }
+func (*UploadReq) ProtoMessage()               {}
+func (*UploadReq) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{1} }
+
+func (m *UploadReq) GetFileName() string {
+	if m != nil {
+		return m.FileName
+	}
+	return ""
+}
+
+type UploadSession struct {
+	Id []byte `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (m *UploadSession) Reset()                    { *m = UploadSession{} }
+func (m *UploadSession) String() string            { return proto.CompactTextString(m) }
+func (*UploadSession) ProtoMessage()               {}
+func (*UploadSession) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{2} }
+
+func (m *UploadSession) GetId() []byte {
+	if m != nil {
+		return m.Id
+	}
+	return nil
+}
+
+type FileChunk struct {
+	Id   []byte `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (m *FileChunk) Reset()                    { *m = FileChunk{} }
+func (m *FileChunk) String() string            { return proto.CompactTextString(m) }
+func (*FileChunk) ProtoMessage()               {}
+func (*FileChunk) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{3} }
+
+func (m *FileChunk) GetId() []byte {
+	if m != nil {
+		return m.Id
+	}
+	return nil
 }
 
 func (m *FileChunk) GetData() []byte {
@@ -69,7 +128,7 @@ type AuthRequest struct {
 func (m *AuthRequest) Reset()                    { *m = AuthRequest{} }
 func (m *AuthRequest) String() string            { return proto.CompactTextString(m) }
 func (*AuthRequest) ProtoMessage()               {}
-func (*AuthRequest) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{1} }
+func (*AuthRequest) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{4} }
 
 func (m *AuthRequest) GetPeerIds() [][]byte {
 	if m != nil {
@@ -92,7 +151,7 @@ type Ack struct {
 func (m *Ack) Reset()                    { *m = Ack{} }
 func (m *Ack) String() string            { return proto.CompactTextString(m) }
 func (*Ack) ProtoMessage()               {}
-func (*Ack) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{2} }
+func (*Ack) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{5} }
 
 type UploadAck struct {
 	FileHash []byte `protobuf:"bytes,1,opt,name=file_hash,json=fileHash,proto3" json:"file_hash,omitempty"`
@@ -101,7 +160,7 @@ type UploadAck struct {
 func (m *UploadAck) Reset()                    { *m = UploadAck{} }
 func (m *UploadAck) String() string            { return proto.CompactTextString(m) }
 func (*UploadAck) ProtoMessage()               {}
-func (*UploadAck) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{3} }
+func (*UploadAck) Descriptor() ([]byte, []int) { return fileDescriptorStorage, []int{6} }
 
 func (m *UploadAck) GetFileHash() []byte {
 	if m != nil {
@@ -111,6 +170,9 @@ func (m *UploadAck) GetFileHash() []byte {
 }
 
 func init() {
+	proto.RegisterType((*StreamFileChunk)(nil), "stratumn.alice.grpc.storage.StreamFileChunk")
+	proto.RegisterType((*UploadReq)(nil), "stratumn.alice.grpc.storage.UploadReq")
+	proto.RegisterType((*UploadSession)(nil), "stratumn.alice.grpc.storage.UploadSession")
 	proto.RegisterType((*FileChunk)(nil), "stratumn.alice.grpc.storage.FileChunk")
 	proto.RegisterType((*AuthRequest)(nil), "stratumn.alice.grpc.storage.AuthRequest")
 	proto.RegisterType((*Ack)(nil), "stratumn.alice.grpc.storage.Ack")
@@ -128,8 +190,14 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Storage service
 
 type StorageClient interface {
-	// Upload a file to the alice node.
+	// Upload a file to the alice node with client side streaming.
 	Upload(ctx context.Context, opts ...grpc.CallOption) (Storage_UploadClient, error)
+	// Sends a request to the server to start a new upload.
+	StartUpload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadSession, error)
+	// Upload a single chunk of a file to the server.
+	UploadChunk(ctx context.Context, in *FileChunk, opts ...grpc.CallOption) (*Ack, error)
+	// Notifies the server that the current has been entirely sent.
+	EndUpload(ctx context.Context, in *UploadSession, opts ...grpc.CallOption) (*UploadAck, error)
 	// Give peers access to a file.
 	AuthorizePeers(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*Ack, error)
 }
@@ -152,7 +220,7 @@ func (c *storageClient) Upload(ctx context.Context, opts ...grpc.CallOption) (St
 }
 
 type Storage_UploadClient interface {
-	Send(*FileChunk) error
+	Send(*StreamFileChunk) error
 	CloseAndRecv() (*UploadAck, error)
 	grpc.ClientStream
 }
@@ -161,7 +229,7 @@ type storageUploadClient struct {
 	grpc.ClientStream
 }
 
-func (x *storageUploadClient) Send(m *FileChunk) error {
+func (x *storageUploadClient) Send(m *StreamFileChunk) error {
 	return x.ClientStream.SendMsg(m)
 }
 
@@ -176,6 +244,33 @@ func (x *storageUploadClient) CloseAndRecv() (*UploadAck, error) {
 	return m, nil
 }
 
+func (c *storageClient) StartUpload(ctx context.Context, in *UploadReq, opts ...grpc.CallOption) (*UploadSession, error) {
+	out := new(UploadSession)
+	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.storage.Storage/StartUpload", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageClient) UploadChunk(ctx context.Context, in *FileChunk, opts ...grpc.CallOption) (*Ack, error) {
+	out := new(Ack)
+	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.storage.Storage/UploadChunk", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *storageClient) EndUpload(ctx context.Context, in *UploadSession, opts ...grpc.CallOption) (*UploadAck, error) {
+	out := new(UploadAck)
+	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.storage.Storage/EndUpload", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *storageClient) AuthorizePeers(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*Ack, error) {
 	out := new(Ack)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.storage.Storage/AuthorizePeers", in, out, c.cc, opts...)
@@ -188,8 +283,14 @@ func (c *storageClient) AuthorizePeers(ctx context.Context, in *AuthRequest, opt
 // Server API for Storage service
 
 type StorageServer interface {
-	// Upload a file to the alice node.
+	// Upload a file to the alice node with client side streaming.
 	Upload(Storage_UploadServer) error
+	// Sends a request to the server to start a new upload.
+	StartUpload(context.Context, *UploadReq) (*UploadSession, error)
+	// Upload a single chunk of a file to the server.
+	UploadChunk(context.Context, *FileChunk) (*Ack, error)
+	// Notifies the server that the current has been entirely sent.
+	EndUpload(context.Context, *UploadSession) (*UploadAck, error)
 	// Give peers access to a file.
 	AuthorizePeers(context.Context, *AuthRequest) (*Ack, error)
 }
@@ -204,7 +305,7 @@ func _Storage_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
 
 type Storage_UploadServer interface {
 	SendAndClose(*UploadAck) error
-	Recv() (*FileChunk, error)
+	Recv() (*StreamFileChunk, error)
 	grpc.ServerStream
 }
 
@@ -216,12 +317,66 @@ func (x *storageUploadServer) SendAndClose(m *UploadAck) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *storageUploadServer) Recv() (*FileChunk, error) {
-	m := new(FileChunk)
+func (x *storageUploadServer) Recv() (*StreamFileChunk, error) {
+	m := new(StreamFileChunk)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func _Storage_StartUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).StartUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/stratumn.alice.grpc.storage.Storage/StartUpload",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).StartUpload(ctx, req.(*UploadReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_UploadChunk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FileChunk)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).UploadChunk(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/stratumn.alice.grpc.storage.Storage/UploadChunk",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).UploadChunk(ctx, req.(*FileChunk))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Storage_EndUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadSession)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StorageServer).EndUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/stratumn.alice.grpc.storage.Storage/EndUpload",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StorageServer).EndUpload(ctx, req.(*UploadSession))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Storage_AuthorizePeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -247,6 +402,18 @@ var _Storage_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*StorageServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "StartUpload",
+			Handler:    _Storage_StartUpload_Handler,
+		},
+		{
+			MethodName: "UploadChunk",
+			Handler:    _Storage_UploadChunk_Handler,
+		},
+		{
+			MethodName: "EndUpload",
+			Handler:    _Storage_EndUpload_Handler,
+		},
+		{
 			MethodName: "AuthorizePeers",
 			Handler:    _Storage_AuthorizePeers_Handler,
 		},
@@ -259,6 +426,84 @@ var _Storage_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Metadata: "github.com/stratumn/alice/grpc/storage/storage.proto",
+}
+
+func (m *StreamFileChunk) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StreamFileChunk) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.FileName) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStorage(dAtA, i, uint64(len(m.FileName)))
+		i += copy(dAtA[i:], m.FileName)
+	}
+	if len(m.Data) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintStorage(dAtA, i, uint64(len(m.Data)))
+		i += copy(dAtA[i:], m.Data)
+	}
+	return i, nil
+}
+
+func (m *UploadReq) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UploadReq) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.FileName) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStorage(dAtA, i, uint64(len(m.FileName)))
+		i += copy(dAtA[i:], m.FileName)
+	}
+	return i, nil
+}
+
+func (m *UploadSession) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UploadSession) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Id) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintStorage(dAtA, i, uint64(len(m.Id)))
+		i += copy(dAtA[i:], m.Id)
+	}
+	return i, nil
 }
 
 func (m *FileChunk) Marshal() (dAtA []byte, err error) {
@@ -276,11 +521,11 @@ func (m *FileChunk) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.FileName) > 0 {
+	if len(m.Id) > 0 {
 		dAtA[i] = 0xa
 		i++
-		i = encodeVarintStorage(dAtA, i, uint64(len(m.FileName)))
-		i += copy(dAtA[i:], m.FileName)
+		i = encodeVarintStorage(dAtA, i, uint64(len(m.Id)))
+		i += copy(dAtA[i:], m.Id)
 	}
 	if len(m.Data) > 0 {
 		dAtA[i] = 0x12
@@ -374,10 +619,44 @@ func encodeVarintStorage(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *FileChunk) Size() (n int) {
+func (m *StreamFileChunk) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.FileName)
+	if l > 0 {
+		n += 1 + l + sovStorage(uint64(l))
+	}
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + sovStorage(uint64(l))
+	}
+	return n
+}
+
+func (m *UploadReq) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.FileName)
+	if l > 0 {
+		n += 1 + l + sovStorage(uint64(l))
+	}
+	return n
+}
+
+func (m *UploadSession) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Id)
+	if l > 0 {
+		n += 1 + l + sovStorage(uint64(l))
+	}
+	return n
+}
+
+func (m *FileChunk) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Id)
 	if l > 0 {
 		n += 1 + l + sovStorage(uint64(l))
 	}
@@ -433,6 +712,276 @@ func sovStorage(x uint64) (n int) {
 func sozStorage(x uint64) (n int) {
 	return sovStorage(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *StreamFileChunk) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStorage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StreamFileChunk: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StreamFileChunk: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStorage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthStorage
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FileName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStorage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStorage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStorage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStorage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UploadReq) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStorage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UploadReq: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UploadReq: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FileName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStorage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthStorage
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FileName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStorage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStorage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UploadSession) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStorage
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UploadSession: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UploadSession: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStorage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStorage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Id = append(m.Id[:0], dAtA[iNdEx:postIndex]...)
+			if m.Id == nil {
+				m.Id = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStorage(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStorage
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *FileChunk) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -464,9 +1013,9 @@ func (m *FileChunk) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FileName", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
 			}
-			var stringLen uint64
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowStorage
@@ -476,20 +1025,22 @@ func (m *FileChunk) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthStorage
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + byteLen
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.FileName = string(dAtA[iNdEx:postIndex])
+			m.Id = append(m.Id[:0], dAtA[iNdEx:postIndex]...)
+			if m.Id == nil {
+				m.Id = []byte{}
+			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -894,31 +1445,38 @@ func init() {
 }
 
 var fileDescriptorStorage = []byte{
-	// 415 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0xc1, 0xaa, 0xd3, 0x40,
-	0x18, 0x85, 0x3b, 0x5e, 0xbd, 0xb7, 0x19, 0x2f, 0x22, 0x83, 0xe0, 0x50, 0x21, 0x0e, 0x59, 0x48,
-	0x10, 0x99, 0x80, 0x57, 0x57, 0x6e, 0x6c, 0x14, 0xf5, 0x6e, 0x44, 0xaa, 0x6e, 0x44, 0xbc, 0x4c,
-	0x93, 0xbf, 0x9d, 0xd0, 0x24, 0x13, 0x33, 0x13, 0xaa, 0x3e, 0x89, 0xeb, 0xac, 0xfa, 0x0e, 0x79,
-	0x00, 0x5d, 0xfa, 0x08, 0x52, 0x5f, 0xc0, 0x47, 0x90, 0x49, 0xda, 0x52, 0xbb, 0x88, 0x2e, 0xc2,
-	0x04, 0xe6, 0x3b, 0xe7, 0x3f, 0x9c, 0xf9, 0xf1, 0x83, 0x79, 0x62, 0x64, 0x35, 0xe5, 0x91, 0xca,
-	0x02, 0x6d, 0x4a, 0x61, 0xaa, 0x2c, 0x0f, 0x44, 0x9a, 0x44, 0x10, 0xcc, 0xcb, 0x22, 0x0a, 0xb4,
-	0x51, 0xa5, 0x98, 0xc3, 0xf6, 0xe4, 0x45, 0xa9, 0x8c, 0x22, 0xb7, 0xb6, 0x28, 0x6f, 0x51, 0x6e,
-	0x51, 0xbe, 0x41, 0x46, 0xf7, 0xfe, 0x61, 0x09, 0x9f, 0x8c, 0xfd, 0x3a, 0x2b, 0x6f, 0x89, 0x9d,
-	0x67, 0x49, 0x0a, 0x4f, 0x64, 0x95, 0x2f, 0xc8, 0x43, 0xec, 0xcc, 0x92, 0x14, 0x2e, 0x72, 0x91,
-	0x01, 0x45, 0x0c, 0xf9, 0x4e, 0x48, 0xeb, 0x86, 0x5e, 0x7f, 0x29, 0x32, 0x60, 0x6a, 0xc6, 0x8c,
-	0x04, 0x66, 0x81, 0x55, 0x43, 0x07, 0x93, 0xa1, 0xfd, 0xb3, 0x37, 0xe4, 0x0c, 0x5f, 0x8e, 0x85,
-	0x11, 0xf4, 0x12, 0x43, 0xfe, 0x69, 0x78, 0xbb, 0x6e, 0xe8, 0xcd, 0xf0, 0xb3, 0x01, 0x6d, 0x25,
-	0x2a, 0xef, 0x24, 0x2c, 0xb2, 0x13, 0x56, 0x0d, 0x45, 0x93, 0x16, 0xf6, 0x2a, 0x7c, 0x75, 0x5c,
-	0x19, 0x39, 0x81, 0x8f, 0x15, 0x68, 0x43, 0x02, 0x3c, 0x2c, 0x00, 0xca, 0x8b, 0x24, 0xd6, 0x14,
-	0xb1, 0x23, 0xff, 0x34, 0xbc, 0x51, 0x37, 0x74, 0xf8, 0x0a, 0xa0, 0x64, 0xe7, 0x4f, 0xb5, 0x15,
-	0xfe, 0xb6, 0xe2, 0x13, 0x4b, 0x9d, 0xc7, 0x7a, 0x97, 0x55, 0x0a, 0x2d, 0x37, 0x93, 0xdb, 0xac,
-	0x2f, 0x84, 0x96, 0x07, 0x59, 0x51, 0x97, 0xd5, 0xde, 0x78, 0x57, 0xf0, 0xd1, 0x38, 0x5a, 0x78,
-	0x6f, 0xb0, 0xf3, 0xb6, 0x48, 0x95, 0x88, 0xc7, 0xd1, 0x82, 0x3c, 0xdf, 0xb7, 0x42, 0xad, 0xd5,
-	0xdd, 0xba, 0xa1, 0xde, 0xa1, 0x15, 0x33, 0x52, 0x18, 0xb6, 0x14, 0x9a, 0x55, 0xad, 0x16, 0xe2,
-	0xbf, 0xcd, 0xef, 0x7f, 0x43, 0xf8, 0xe4, 0x75, 0xf7, 0x0c, 0xe4, 0x3d, 0x3e, 0xee, 0x26, 0x90,
-	0x3b, 0xbc, 0xe7, 0xb9, 0xf8, 0xae, 0xfd, 0x51, 0x3f, 0xb7, 0x8b, 0xeb, 0x0d, 0x7c, 0x44, 0x3e,
-	0xe0, 0x6b, 0xb6, 0x3d, 0x55, 0x26, 0x5f, 0xc0, 0x76, 0xa4, 0x89, 0xdf, 0xab, 0xde, 0xab, 0x7a,
-	0xc4, 0xfa, 0x49, 0x3b, 0x21, 0x7c, 0xfc, 0x7d, 0xed, 0xa2, 0x1f, 0x6b, 0x17, 0xfd, 0x5c, 0xbb,
-	0xe8, 0xeb, 0x2f, 0x77, 0xf0, 0x8e, 0xff, 0xdf, 0xa6, 0x3e, 0xda, 0x9c, 0xd3, 0xe3, 0x76, 0xbf,
-	0xce, 0xfe, 0x04, 0x00, 0x00, 0xff, 0xff, 0xfb, 0x69, 0xc5, 0x18, 0xe2, 0x02, 0x00, 0x00,
+	// 524 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0x4b, 0x8e, 0xd3, 0x30,
+	0x18, 0xae, 0x5b, 0x98, 0x69, 0xdd, 0xf2, 0x90, 0x85, 0x84, 0x55, 0xa4, 0x62, 0x65, 0x81, 0xaa,
+	0xd1, 0x28, 0x41, 0x0c, 0xac, 0xd8, 0xd0, 0xf0, 0xec, 0x06, 0xa1, 0x14, 0x16, 0xb0, 0x60, 0xe4,
+	0x26, 0xff, 0x34, 0x51, 0x9b, 0xa4, 0xb5, 0x1d, 0xf1, 0x90, 0xb8, 0x07, 0xeb, 0xac, 0xe6, 0x0e,
+	0xb9, 0x00, 0x4b, 0x8e, 0x80, 0xca, 0x05, 0xe6, 0x08, 0xc8, 0x49, 0x3a, 0x85, 0x11, 0x0a, 0x29,
+	0x8b, 0xca, 0x55, 0xfc, 0x3d, 0xfe, 0xff, 0xd3, 0x27, 0xe3, 0xfb, 0xb3, 0x40, 0xf9, 0xc9, 0xd4,
+	0x74, 0xe3, 0xd0, 0x92, 0x4a, 0x70, 0x95, 0x84, 0x91, 0xc5, 0x17, 0x81, 0x0b, 0xd6, 0x4c, 0x2c,
+	0x5d, 0x4b, 0xaa, 0x58, 0xf0, 0x19, 0x6c, 0x4e, 0x73, 0x29, 0x62, 0x15, 0x93, 0x5b, 0x1b, 0xa8,
+	0x99, 0x43, 0x4d, 0x0d, 0x35, 0x4b, 0x48, 0xff, 0xf0, 0x1f, 0x92, 0xf0, 0x51, 0xe9, 0x5f, 0x21,
+	0x65, 0x7c, 0xc1, 0xd7, 0x26, 0x4a, 0x00, 0x0f, 0x9f, 0x05, 0x0b, 0x78, 0xec, 0x27, 0xd1, 0x9c,
+	0x3c, 0xc0, 0x9d, 0x93, 0x60, 0x01, 0xc7, 0x11, 0x0f, 0x81, 0x22, 0x86, 0x86, 0x1d, 0x9b, 0xa6,
+	0x19, 0xbd, 0xfe, 0x92, 0x87, 0xc0, 0xe2, 0x13, 0xa6, 0x7c, 0x60, 0x1a, 0x70, 0x9a, 0xd1, 0x86,
+	0xd3, 0xd6, 0xff, 0xf4, 0x0d, 0x39, 0xc2, 0x97, 0x3c, 0xae, 0x38, 0x6d, 0x32, 0x34, 0xec, 0xd9,
+	0xb7, 0xd3, 0x8c, 0xde, 0xb4, 0x3f, 0x29, 0x90, 0x9a, 0x12, 0x47, 0x05, 0x85, 0xb9, 0xda, 0xe1,
+	0x34, 0xa3, 0xc8, 0xc9, 0xc1, 0x86, 0x8d, 0x3b, 0x6f, 0x96, 0x8b, 0x98, 0x7b, 0x0e, 0xac, 0x76,
+	0x31, 0x46, 0x5b, 0x63, 0x63, 0x84, 0xaf, 0x14, 0x1a, 0x13, 0x90, 0x32, 0x88, 0x23, 0x72, 0x17,
+	0x37, 0x03, 0x2f, 0x17, 0xe8, 0xd9, 0x2c, 0xcd, 0x28, 0x1d, 0x7b, 0x1b, 0x7a, 0x92, 0x03, 0x99,
+	0x2c, 0x90, 0xb9, 0x50, 0x33, 0xf0, 0x0c, 0x81, 0x3b, 0xdb, 0xfd, 0x77, 0xa6, 0xff, 0xdf, 0xea,
+	0x09, 0xee, 0x8e, 0x12, 0xe5, 0x3b, 0xb0, 0x4a, 0x40, 0x2a, 0x62, 0xe1, 0xf6, 0x12, 0x40, 0x1c,
+	0x07, 0x9e, 0xa4, 0x88, 0xb5, 0x86, 0x3d, 0xfb, 0x46, 0x9a, 0xd1, 0xf6, 0x2b, 0x00, 0xc1, 0xc6,
+	0x4f, 0xa4, 0x26, 0x9e, 0x69, 0xf2, 0xbe, 0x46, 0x8d, 0x3d, 0x79, 0x9e, 0x96, 0xcf, 0xa5, 0x5f,
+	0x3a, 0xe7, 0x69, 0xbd, 0xe0, 0xd2, 0xff, 0x7b, 0x5a, 0xfa, 0xc6, 0xb8, 0x8c, 0x5b, 0x23, 0x77,
+	0x6e, 0xbc, 0xde, 0x04, 0x3f, 0x72, 0xe7, 0xe4, 0xf9, 0xef, 0x52, 0xc5, 0xe2, 0x07, 0x69, 0x46,
+	0x8d, 0x8b, 0x52, 0x4c, 0xf9, 0x5c, 0xb1, 0x0f, 0x5c, 0x96, 0x41, 0x80, 0xf7, 0xa7, 0xf8, 0xbd,
+	0xb3, 0x16, 0xde, 0x9f, 0x14, 0x3d, 0x24, 0x53, 0xbc, 0x57, 0x38, 0x90, 0x43, 0xb3, 0xa2, 0xaf,
+	0xe6, 0x85, 0xfa, 0xf5, 0xef, 0x54, 0xa2, 0xcf, 0x87, 0x36, 0x1a, 0x43, 0x44, 0x5c, 0xdc, 0x9d,
+	0x28, 0x2e, 0x54, 0x69, 0x54, 0x87, 0xea, 0xc0, 0xaa, 0x7f, 0x50, 0x03, 0x57, 0x96, 0xc9, 0x68,
+	0x90, 0xb7, 0xb8, 0x5b, 0x7c, 0x2a, 0xea, 0x51, 0x6d, 0xb2, 0xdd, 0x83, 0x55, 0xe2, 0xf2, 0x0d,
+	0x08, 0xc7, 0x9d, 0xa7, 0x91, 0x57, 0x4e, 0xbf, 0xc3, 0x54, 0xf5, 0x43, 0x22, 0xef, 0xf1, 0x55,
+	0x5d, 0xb3, 0x58, 0x04, 0x9f, 0x41, 0x97, 0x49, 0x92, 0x61, 0xf5, 0x60, 0xdb, 0x4e, 0xd6, 0x59,
+	0xc1, 0x7e, 0xf4, 0x6d, 0x3d, 0x40, 0xdf, 0xd7, 0x03, 0xf4, 0x63, 0x3d, 0x40, 0x5f, 0x7f, 0x0e,
+	0x1a, 0xef, 0xcc, 0x7a, 0x6f, 0xda, 0xc3, 0xf2, 0x9c, 0xee, 0xe5, 0x2f, 0xd1, 0xd1, 0xaf, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0xe7, 0x12, 0xce, 0xe6, 0x0c, 0x05, 0x00, 0x00,
 }

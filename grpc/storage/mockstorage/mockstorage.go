@@ -6,11 +6,10 @@ package mockstorage
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	storage "github.com/stratumn/alice/grpc/storage"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockStorage_UploadServer is a mock of Storage_UploadServer interface
@@ -49,9 +48,9 @@ func (mr *MockStorage_UploadServerMockRecorder) Context() *gomock.Call {
 }
 
 // Recv mocks base method
-func (m *MockStorage_UploadServer) Recv() (*storage.FileChunk, error) {
+func (m *MockStorage_UploadServer) Recv() (*storage.StreamFileChunk, error) {
 	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*storage.FileChunk)
+	ret0, _ := ret[0].(*storage.StreamFileChunk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

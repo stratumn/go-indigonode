@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package storage is a simple service that allows one peer to storage a file to another peer.
+// Package storage is a simple service that allows one peer to share a file to another peer.
 package storage
 
 import (
@@ -167,7 +167,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterStorageServer(gs, grpcServer{
+	pb.RegisterStorageServer(gs, &grpcServer{
 		storagePath: s.config.LocalStorage,
 		indexFile: func(ctx context.Context, file *os.File) (fileHash []byte, err error) {
 			return s.storage.IndexFile(ctx, file)

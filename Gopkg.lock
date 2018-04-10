@@ -9,6 +9,13 @@
 
 [[projects]]
   branch = "master"
+  name = "git.apache.org/thrift.git"
+  packages = ["lib/go/thrift"]
+  revision = "606f1ef31447526b908244933d5b716397a6bad8"
+  source = "github.com/apache/thrift"
+
+[[projects]]
+  branch = "master"
   name = "github.com/armon/go-metrics"
   packages = [
     ".",
@@ -54,6 +61,12 @@
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
   version = "v1.4.2"
+
+[[projects]]
+  name = "github.com/gibson042/canonicaljson-go"
+  packages = ["."]
+  revision = "81f5327eb8367be6f106cd62f136b6f25b4c1678"
+  version = "v1.0.3"
 
 [[projects]]
   name = "github.com/gobwas/glob"
@@ -179,6 +192,12 @@
     "internal"
   ]
   revision = "188696596f4d1b33a3b350d14b126f665ddd681e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -315,6 +334,30 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/stratumn/go-crypto"
+  packages = [
+    "encoding",
+    "keys",
+    "signatures"
+  ]
+  revision = "1a5009b67d6c88d46ff009712da69481d56ddbbe"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/stratumn/go-indigocore"
+  packages = [
+    "bufferedbatch",
+    "cs",
+    "dummystore",
+    "fossilizer",
+    "monitoring",
+    "store",
+    "types"
+  ]
+  revision = "c547125fa0e051604246c8956609d9ada8bbb58f"
+
+[[projects]]
+  branch = "master"
   name = "github.com/stratumn/merkle"
   packages = [
     ".",
@@ -358,6 +401,33 @@
 
 [[projects]]
   branch = "master"
+  name = "go.opencensus.io"
+  packages = [
+    "exporter/jaeger",
+    "exporter/jaeger/internal/gen-go/jaeger",
+    "exporter/prometheus",
+    "internal",
+    "internal/tagencoding",
+    "stats",
+    "stats/internal",
+    "stats/view",
+    "tag",
+    "trace",
+    "trace/internal"
+  ]
+  revision = "5710257e78ab540a7c6f0e203009abea60eb97b7"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = [
+    "ed25519",
+    "ed25519/internal/edwards25519"
+  ]
+  revision = "beb2a9779c3b677077c41673505f150149fce895"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -369,6 +439,12 @@
     "trace"
   ]
   revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   branch = "master"
@@ -396,6 +472,12 @@
     "unicode/rangetable"
   ]
   revision = "eb22672bea55af56d225d4e35405f4d2e9f062a0"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = ["support/bundler"]
+  revision = "9f7560f3b05bd90f33f9d56a449e5afd4dab15b3"
 
 [[projects]]
   branch = "master"
@@ -460,6 +542,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "915c52b1a633059655f2a6310ddd37f1ea0f3cec87be36f726d367cd4497cce9"
+  inputs-digest = "1c06cdebab615b363baa008bbad82b396c057a28ced034a7bddfab847e762937"
   solver-name = "gps-cdcl"
   solver-version = 1

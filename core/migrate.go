@@ -175,6 +175,19 @@ var migrations = []cfg.MigrateHandler{
 
 		return addServiceToGroup(tree, "grpcweb", "api")
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("indigostore.host", "host"); err != nil {
+			return err
+		}
+		if err := tree.Set("indigostore.version", "0.1.0"); err != nil {
+			return err
+		}
+		if err := tree.Set("indigostore.network_id", ""); err != nil {
+			return err
+		}
+
+		return addServiceToGroup(tree, "indigostore", "indigo")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

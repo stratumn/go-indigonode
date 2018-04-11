@@ -35,7 +35,7 @@ service Storage {
   // Upload a single chunk of a file to the server.
   rpc UploadChunk(FileChunk) returns (Ack) {}
 
-  // Notifies the server that the current has been entirely sent.
+  // Notifies the server that the session's file has been entirely sent.
   rpc EndUpload(UploadSession) returns (UploadAck) {}
 
   // Give peers access to a file.

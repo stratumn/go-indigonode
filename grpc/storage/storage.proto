@@ -25,10 +25,19 @@ service Storage {
   // // Sends a message to a peer.
   // rpc SendFile (File) returns (Ack) {
   // }
-  
-  // Upload a file to the alice node.
-  rpc Upload (stream FileChunk) returns (UploadAck) {}
-  
+
+  // Upload a file to the alice node with client side streaming.
+  rpc Upload (stream StreamFileChunk) returns (UploadAck) {}
+
+  // Sends a request to the server to start a new upload.
+  rpc StartUpload(UploadReq) returns (UploadSession) {}
+
+  // Upload a single chunk of a file to the server.
+  rpc UploadChunk(FileChunk) returns (Ack) {}
+
+  // Notifies the server that the session's file has been entirely sent.
+  rpc EndUpload(UploadSession) returns (UploadAck) {}
+
   // Give peers access to a file.
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
 }
@@ -46,11 +55,36 @@ service Storage {
 //   ];
 // }
 
-message FileChunk {
+message StreamFileChunk {
   // file name is required only on first message.
   string file_name = 1 [
     (stratumn.alice.grpc.ext.field_desc) = "Name of the file",
     (stratumn.alice.grpc.ext.field_required) = false
+  ];
+  bytes data = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+message UploadReq {
+  string file_name = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Name of the file",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+message UploadSession {
+  bytes id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+message FileChunk {
+  bytes id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
+    (stratumn.alice.grpc.ext.field_required) = true
   ];
   bytes data = 2 [
     (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",

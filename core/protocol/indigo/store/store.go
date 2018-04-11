@@ -17,7 +17,9 @@ package store
 import (
 	"context"
 
+	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/dummystore"
+	"github.com/stratumn/go-indigocore/types"
 )
 
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
@@ -33,4 +35,19 @@ func New() *Store {
 // GetInfo returns information about the underlying store.
 func (store *Store) GetInfo(ctx context.Context) (interface{}, error) {
 	return store.s.GetInfo(ctx)
+}
+
+// CreateLink forwards the request to the underlying store.
+func (store *Store) CreateLink(ctx context.Context, link *cs.Link) (*types.Bytes32, error) {
+	err := link.Validate(ctx, store.GetSegment)
+	if err != nil {
+		return nil, err
+	}
+
+	return store.s.CreateLink(ctx, link)
+}
+
+// GetSegment forwards the request to the underlying store.
+func (store *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
+	return store.s.GetSegment(ctx, linkHash)
 }

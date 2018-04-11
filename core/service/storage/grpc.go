@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/storage"
@@ -44,6 +45,7 @@ type grpcServer struct {
 	indexFile   func(context.Context, *os.File) (fileHash []byte, err error)
 	authorize   func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
 	storagePath string
+	sessionsMu  sync.RWMutex
 	sessions    map[uuid.UUID]*os.File
 }
 
@@ -135,6 +137,9 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.Up
 	event := log.EventBegin(ctx, "StartUpload")
 	defer event.Done()
 
+	s.sessionsMu.Lock()
+	defer s.sessionsMu.Unlock()
+
 	sessionID := uuid.NewV4()
 	event.Append(logging.Metadata{"sessionID": sessionID})
 
@@ -163,6 +168,9 @@ func (s *grpcServer) UploadChunk(ctx context.Context, req *pb.FileChunk) (*pb.Ac
 	event := log.EventBegin(ctx, "UploadChunk")
 	defer event.Done()
 
+	s.sessionsMu.RLock()
+	defer s.sessionsMu.RUnlock()
+
 	// TODO: handling of out of order chunks
 	u, err := uuid.FromBytes(req.Id)
 	if err != nil {
@@ -186,6 +194,9 @@ func (s *grpcServer) UploadChunk(ctx context.Context, req *pb.FileChunk) (*pb.Ac
 func (s *grpcServer) EndUpload(ctx context.Context, req *pb.UploadSession) (*pb.UploadAck, error) {
 	event := log.EventBegin(ctx, "EndUpload")
 	defer event.Done()
+
+	s.sessionsMu.RLock()
+	defer s.sessionsMu.RUnlock()
 
 	u, err := uuid.FromBytes(req.Id)
 	if err != nil {

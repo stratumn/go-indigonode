@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/alice/core/service/indigo/store Host
+
 // Package store contains the Indigo Store service.
 package store
 
@@ -21,6 +23,8 @@ import (
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/types"
 
 	"google.golang.org/grpc"
 
@@ -129,6 +133,20 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			}
 
 			return s.store.GetInfo(context.Background())
+		},
+		DoCreateLink: func(ctx context.Context, link *cs.Link) (*types.Bytes32, error) {
+			if s.store == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.store.CreateLink(ctx, link)
+		},
+		DoGetSegment: func(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
+			if s.store == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.store.GetSegment(ctx, linkHash)
 		},
 	})
 }

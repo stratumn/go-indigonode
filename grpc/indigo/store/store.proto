@@ -26,13 +26,41 @@ service IndigoStore {
     rpc GetInfo(InfoReq) returns (InfoResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Get information about the Indigo Store service";
     }
+
+    // Create a link.
+    rpc CreateLink(Link) returns (LinkHash) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Create a new link";        
+    }
+
+    // Get a segment.
+    rpc GetSegment(LinkHash) returns (Segment) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Get an existing segment from its link hash";                
+    }
 }
 
 message InfoReq {
 }
 
 message InfoResp {
-    bytes store_info = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Indigo Store information"
+    bytes data = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded store information"
+    ];
+}
+
+message Link {
+    bytes data = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded link bytes"
+    ];
+}
+
+message LinkHash {
+    bytes data = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "32-bytes link hash"
+    ];
+}
+
+message Segment {
+    bytes data = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segment bytes"
     ];
 }

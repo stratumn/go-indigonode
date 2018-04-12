@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -80,7 +81,7 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 
 	assert.True(t, os.SameFile(expect, got), "SameFile")
 
-	err = os.Remove(fmt.Sprintf("%s/%s", storagePath, filename))
+	err = os.Remove(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "Remove()")
 }
 
@@ -100,7 +101,7 @@ func TestGRPCServer_StartUpload(t *testing.T) {
 	_, err = uuid.FromBytes(session.Id)
 	assert.NoError(t, err, "server.StartUpload()")
 
-	err = os.Remove(fmt.Sprintf("%s/%s", storagePath, filename))
+	err = os.Remove(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "Remove()")
 }
 
@@ -108,7 +109,7 @@ func TestGRPCServer_UploadChunk(t *testing.T) {
 	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
 	u := uuid.NewV4()
 
-	file, err := os.Create(fmt.Sprintf("%s/%s", storagePath, filename))
+	file, err := os.Create(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "os.Create()")
 
 	server := &grpcServer{
@@ -129,7 +130,7 @@ func TestGRPCServer_UploadChunk(t *testing.T) {
 
 		checkFileContent(t, filename, []byte("coucou, "))
 
-		err = os.Remove(fmt.Sprintf("%s/%s", storagePath, filename))
+		err = os.Remove(filepath.Join(storagePath, filename))
 		assert.NoError(t, err, " Remove()")
 	})
 
@@ -159,7 +160,7 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
 	u := uuid.NewV4()
 
-	file, err := os.Create(fmt.Sprintf("%s/%s", storagePath, filename))
+	file, err := os.Create(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "os.Create()")
 
 	var indexedFile *os.File
@@ -191,14 +192,14 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 		got, err := indexedFile.Stat()
 		assert.NoError(t, err, "indexedFile.Stat()")
 
-		f, err := os.Open(fmt.Sprintf("%s/%s", storagePath, filename))
+		f, err := os.Open(filepath.Join(storagePath, filename))
 		assert.NoError(t, err, "os.Open()")
 
 		expect, err := f.Stat()
 		assert.NoError(t, err, "f.Stat()")
 		assert.True(t, os.SameFile(expect, got), "SameFile")
 
-		err = os.Remove(fmt.Sprintf("%s/%s", storagePath, filename))
+		err = os.Remove(filepath.Join(storagePath, filename))
 		assert.NoError(t, err, " Remove()")
 	})
 
@@ -250,7 +251,7 @@ func TestGRPCServer_AuthorizePeers(t *testing.T) {
 }
 
 func checkFileContent(t *testing.T, filename string, expected []byte) *os.File {
-	f, err := os.Open(fmt.Sprintf("%s/%s", storagePath, filename))
+	f, err := os.Open(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "os.Open()")
 
 	content := make([]byte, 42)

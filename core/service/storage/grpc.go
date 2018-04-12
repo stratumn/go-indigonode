@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -82,7 +83,7 @@ func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 		if err != nil {
 			// Delete the partially written file.
 			if file != nil {
-				if err2 := os.Remove(fmt.Sprintf("%s/%s", s.storagePath, file.Name())); err != nil {
+				if err2 := os.Remove(filepath.Join(s.storagePath, file.Name())); err != nil {
 					err = fmt.Errorf("error uploading file (%v); error deleting partially uploaded file (%v)", err, err2)
 				}
 			}
@@ -108,7 +109,7 @@ func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 		}
 
 		if file == nil {
-			file, err = os.Create(fmt.Sprintf("%s/%s", s.storagePath, chunk.FileName))
+			file, err = os.Create(filepath.Join(s.storagePath, chunk.FileName))
 			if err != nil {
 				return
 			}
@@ -149,7 +150,7 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.Up
 	}
 	// TODO: handle files that have the same name.
 	// TODO: start a goroutine that will delete the file after a timeout.
-	file, err := os.Create(fmt.Sprintf("%s/%s", s.storagePath, req.FileName))
+	file, err := os.Create(filepath.Join(s.storagePath, req.FileName))
 	if err != nil {
 		event.SetError(err)
 		return nil, err

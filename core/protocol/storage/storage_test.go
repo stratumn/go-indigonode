@@ -47,14 +47,14 @@ func TestStorageProtocol_IndexFile(t *testing.T) {
 	_, err = file.Write(content)
 	assert.NoError(t, err, "file.Write()")
 
-	fh, err := storage.IndexFile(context.Background(), file)
+	fh, err := storage.IndexFile(context.Background(), file, "abc")
 	assert.NoError(t, err, "IndexFile")
 	assert.Equal(t, []byte(hash), fh, "IndexFile")
 
 	// Check that the file name and hash are in the db.
-	got, err := db.Get(append(prefixFilesHashes, []byte(filepath)...))
+	got, err := db.Get(append(prefixFilesHashes, []byte(fh)...))
 	assert.NoError(t, err, "db.Get()")
-	assert.Equal(t, []byte(hash), got, "hash")
+	assert.Equal(t, []byte("abc"), got, "hash")
 }
 
 func TestStorageProtocol_Authorize(t *testing.T) {

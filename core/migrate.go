@@ -176,6 +176,10 @@ var migrations = []cfg.MigrateHandler{
 		return addServiceToGroup(tree, "grpcweb", "api")
 	},
 	func(tree *cfg.Tree) error {
+		if err := addGroup(tree, "indigo", "Stratumn Indigo Services", "Starts Stratumn Indigo services for Proof-of-Process networks."); err != nil {
+			return err
+		}
+
 		if err := tree.Set("indigostore.host", "host"); err != nil {
 			return err
 		}

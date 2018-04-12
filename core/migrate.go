@@ -175,6 +175,9 @@ var migrations = []cfg.MigrateHandler{
 
 		return addServiceToGroup(tree, "grpcweb", "api")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("storage.upload_timeout", "10m")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

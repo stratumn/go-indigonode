@@ -18,6 +18,7 @@ package storage
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
@@ -47,9 +48,10 @@ type Host = ihost.Host
 
 // Service is the Storage service.
 type Service struct {
-	config  *Config
-	host    Host
-	storage *storage.Storage
+	config        *Config
+	host          Host
+	storage       *storage.Storage
+	uploadTimeout time.Duration
 }
 
 // Config contains configuration options for the Storage service.
@@ -62,6 +64,9 @@ type Config struct {
 
 	// DbPath is the path to the database used for file hashes and permissions.
 	DbPath string `toml:"db_path" comment:"The path to the database used for the state and the chain."`
+
+	// UploadTimeout is the time after which an upload session will be reset (and the partial file deleted).
+	UploadTimeout string `toml:"upload_timeout" comment:"The time after which an upload session will be reset (and the partial file deleted)"`
 }
 
 // ID returns the unique identifier of the service.
@@ -88,15 +93,23 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:         "host",
-		LocalStorage: "data/storage/files",
-		DbPath:       "data/storage/db",
+		Host:          "host",
+		LocalStorage:  "data/storage/files",
+		DbPath:        "data/storage/db",
+		UploadTimeout: "10m",
 	}
 }
 
 // SetConfig configures the service handler.
 func (s *Service) SetConfig(config interface{}) error {
 	conf := config.(Config)
+
+	timeout, err := time.ParseDuration(conf.UploadTimeout)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	s.uploadTimeout = timeout
+
 	s.config = &conf
 	return nil
 }
@@ -167,13 +180,15 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterStorageServer(gs, &grpcServer{
-		storagePath: s.config.LocalStorage,
-		indexFile: func(ctx context.Context, file *os.File) (fileHash []byte, err error) {
-			return s.storage.IndexFile(ctx, file)
-		},
-		authorize: func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
-			return s.storage.Authorize(ctx, peerIds, fileHash)
-		},
-	})
+	pb.RegisterStorageServer(
+		gs,
+		newGrpcServer(
+			func(ctx context.Context, file *os.File, fileName string) (fileHash []byte, err error) {
+				return s.storage.IndexFile(ctx, file, fileName)
+			},
+			func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+				return s.storage.Authorize(ctx, peerIds, fileHash)
+			},
+			s.config.LocalStorage,
+			s.uploadTimeout))
 }

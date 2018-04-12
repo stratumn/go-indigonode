@@ -66,7 +66,7 @@ func NewStorage(host Host, db db.DB) *Storage {
 }
 
 // IndexFile adds the file hash and name to the db.
-func (s *Storage) IndexFile(ctx context.Context, file *os.File) (fileHash []byte, err error) {
+func (s *Storage) IndexFile(ctx context.Context, file *os.File, fileName string) (fileHash []byte, err error) {
 	// go back to the beginning of the file.
 	if _, err := file.Seek(0, 0); err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (s *Storage) IndexFile(ctx context.Context, file *os.File) (fileHash []byte
 		return
 	}
 
-	if err = s.db.Put(append(prefixFilesHashes, []byte(file.Name())...), fileHash); err != nil {
+	if err = s.db.Put(append(prefixFilesHashes, fileHash...), []byte(fileName)); err != nil {
 		return
 	}
 

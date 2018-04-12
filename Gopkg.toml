@@ -65,3 +65,12 @@
   name = "github.com/hpcloud/tail"
   source = "https://github.com/vsco/tail.git"
   revision = "000912af8de2d2b9d184786b4cf4c3542b7884e5"
+
+[[constraint]]
+  name = "github.com/stratumn/go-indigocore"
+  branch = "master"
+
+[[override]]
+  branch = "master"
+  name = "git.apache.org/thrift.git"
+  source = "github.com/apache/thrift"

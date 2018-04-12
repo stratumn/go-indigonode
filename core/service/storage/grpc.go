@@ -79,8 +79,14 @@ func newGrpcServer(indexFile func(context.Context, *os.File, string) (fileHash [
 	uploadTimeout time.Duration) *grpcServer {
 	tmpStoragePath := filepath.Join(storagePath, tmpStorageSubdir)
 
-	os.RemoveAll(tmpStoragePath)
-	os.MkdirAll(tmpStoragePath, 0777)
+	err := os.RemoveAll(tmpStoragePath)
+	if err != nil {
+		log.Error(err)
+	}
+	err = os.MkdirAll(tmpStoragePath, 0777)
+	if err != nil {
+		log.Error(err)
+	}
 
 	return &grpcServer{
 		indexFile:      indexFile,

@@ -214,7 +214,10 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.Up
 			return
 		case <-time.After(s.uploadTimeout):
 			// Delete the partially written file.
-			os.Remove(file.Name())
+			err := os.Remove(file.Name())
+			if err != nil {
+				log.Errorf("Temporary file could not be removed: %s", err)
+			}
 		}
 	}()
 

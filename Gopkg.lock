@@ -348,10 +348,12 @@
   packages = [
     "bufferedbatch",
     "cs",
+    "cs/cstesting",
     "dummystore",
     "fossilizer",
     "monitoring",
     "store",
+    "testutil",
     "types"
   ]
   revision = "c547125fa0e051604246c8956609d9ada8bbb58f"
@@ -542,6 +544,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1c06cdebab615b363baa008bbad82b396c057a28ced034a7bddfab847e762937"
+  inputs-digest = "99c2cc1a87dbbe06496f85ed50c950521db6d938658e7dda96ef9495cb5865c6"
   solver-name = "gps-cdcl"
   solver-version = 1

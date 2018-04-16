@@ -29,12 +29,12 @@ service IndigoStore {
 
     // Create a link.
     rpc CreateLink(Link) returns (LinkHash) {
-        option (stratumn.alice.grpc.ext.method_desc) = "Create a new link";        
+        option (stratumn.alice.grpc.ext.method_desc) = "Create a new link";
     }
 
     // Get a segment.
     rpc GetSegment(LinkHash) returns (Segment) {
-        option (stratumn.alice.grpc.ext.method_desc) = "Get an existing segment from its link hash";                
+        option (stratumn.alice.grpc.ext.method_desc) = "Get an existing segment from its link hash";
     }
 }
 

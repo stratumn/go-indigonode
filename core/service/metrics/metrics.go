@@ -21,7 +21,6 @@ package metrics
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
@@ -31,7 +30,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/stratumn/alice/core/netutil"
+	"github.com/stratumn/alice/core/httputil"
 	pb "github.com/stratumn/alice/grpc/metrics"
 	"google.golang.org/grpc"
 
@@ -158,13 +157,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	promDone := make(chan error, 1)
 	if s.config.PrometheusEndpoint != "" {
-		lis, err := netutil.Listen(s.config.PrometheusEndpoint)
-		if err != nil {
-			return err
-		}
-
 		go func() {
-			promDone <- s.startProm(promCtx, lis)
+			promDone <- httputil.StartServer(promCtx, s.config.PrometheusEndpoint, promHandler{ctx})
 		}()
 	}
 
@@ -199,58 +193,6 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterMetricsServer(gs, grpcServer{func() *Metrics { return s.metrics }})
-}
-
-// startProm starts exposing Prometheus metrics on an HTTP endpoint.
-func (s *Service) startProm(ctx context.Context, lis net.Listener) error {
-	srv := http.Server{Handler: promHandler{ctx}}
-
-	done := make(chan error, 1)
-	go func() {
-		err := srv.Serve(lis)
-		if err != nil && err != http.ErrServerClosed {
-			done <- err
-			return
-		}
-
-		close(done)
-	}()
-
-	shutdown := func() error {
-		shutdownCtx, cancelShutdown := context.WithTimeout(
-			context.Background(),
-			time.Second/2,
-		)
-		defer cancelShutdown()
-
-		return srv.Shutdown(shutdownCtx)
-	}
-
-	select {
-	case err := <-done:
-		return errors.WithStack(err)
-
-	case <-ctx.Done():
-		for {
-			if err := shutdown(); err != nil {
-				return errors.WithStack(err)
-			}
-
-			select {
-			case err := <-done:
-				if err != nil {
-					return errors.WithStack(err)
-				}
-			case <-time.After(time.Second / 2):
-				// Serve will not stop if we call Shutdown
-				// before Serve, so in case this happens we
-				// try again (for instance during tests.).
-				continue
-			}
-
-			return errors.WithStack(ctx.Err())
-		}
-	}
 }
 
 // Metrics embeds a libp2p reporter and a metrics sink.

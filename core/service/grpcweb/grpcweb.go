@@ -17,17 +17,14 @@ package grpcweb
 
 import (
 	"context"
-	"net"
-	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/netutil"
 	"google.golang.org/grpc"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/stratumn/alice/core/httputil"
 )
 
 var (
@@ -117,18 +114,14 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	lis, err := netutil.Listen(s.config.Address)
-	if err != nil {
-		return err
-	}
-
+	var err error
 	serverCtx, cancelServer := context.WithCancel(ctx)
 	defer cancelServer()
 
 	serverDone := make(chan error, 1)
 
 	go func() {
-		serverDone <- s.startServer(serverCtx, lis)
+		serverDone <- httputil.StartServer(serverCtx, s.config.Address, s.server)
 	}()
 
 	running()
@@ -150,56 +143,4 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	}
 
 	return err
-}
-
-// startServer starts exposing gRPC-Web API on an HTTP endpoint.
-func (s *Service) startServer(ctx context.Context, lis net.Listener) error {
-	srv := http.Server{Handler: s.server}
-
-	done := make(chan error, 1)
-	go func() {
-		err := srv.Serve(lis)
-		if err != nil && err != http.ErrServerClosed {
-			done <- err
-			return
-		}
-
-		close(done)
-	}()
-
-	shutdown := func() error {
-		shutdownCtx, cancelShutdown := context.WithTimeout(
-			context.Background(),
-			time.Second/2,
-		)
-		defer cancelShutdown()
-
-		return srv.Shutdown(shutdownCtx)
-	}
-
-	select {
-	case err := <-done:
-		return errors.WithStack(err)
-
-	case <-ctx.Done():
-		for {
-			if err := shutdown(); err != nil {
-				return errors.WithStack(err)
-			}
-
-			select {
-			case err := <-done:
-				if err != nil {
-					return errors.WithStack(err)
-				}
-			case <-time.After(time.Second / 2):
-				// Serve will not stop if we call Shutdown
-				// before Serve, so in case this happens we
-				// try again (for instance during tests.).
-				continue
-			}
-
-			return errors.WithStack(ctx.Err())
-		}
-	}
 }

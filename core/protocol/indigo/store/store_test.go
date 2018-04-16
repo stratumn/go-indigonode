@@ -18,12 +18,14 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	pb "github.com/stratumn/alice/pb/indigo/store"
-	"github.com/stratumn/alice/test/helpers"
+	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/types"
 	"github.com/stretchr/testify/assert"
@@ -97,12 +99,19 @@ func TestReceiveLinks(t *testing.T) {
 
 			// Network segments are handled in a separate goroutine,
 			// so there is a race condition unless we wait.
-			helpers.WaitUntil(
+			test.WaitUntil(
 				t,
-				func() bool {
+				100*time.Millisecond,
+				10*time.Millisecond,
+				func() error {
 					seg, err := testStore.GetSegment(context.Background(), linkHash)
 					require.NoError(t, err, "testStore.GetSegment()")
-					return seg != nil
+
+					if seg == nil {
+						return errors.New("segment missing")
+					}
+
+					return nil
 				},
 				"link wasn't added to store",
 			)

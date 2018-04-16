@@ -25,6 +25,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/httputil/mockhttputil"
 	"github.com/stratumn/alice/core/netutil"
+	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -56,11 +57,18 @@ func TestStartServer_Starts(t *testing.T) {
 		serverDone <- StartServer(ctx, address, mockHandler)
 	}()
 
-	res, err := http.Get(fmt.Sprintf("http://%s", addr.String()))
-	require.NoError(t, err, "http.Get")
-	body, err := ioutil.ReadAll(res.Body)
-	require.NoError(t, err, "ioutil.ReadAll(res.Body)")
-	assert.Equal(t, "ok", string(body), "Unexpected body")
+	test.WaitUntil(t, 20*time.Millisecond, 5*time.Millisecond, func() error {
+		res, err := http.Get(fmt.Sprintf("http://%s", addr.String()))
+		if err != nil {
+			return err
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		require.NoError(t, err, "ioutil.ReadAll(res.Body)")
+		assert.Equal(t, "ok", string(body), "Unexpected body")
+
+		return nil
+	}, "HTTP server did not start fast enough")
 
 	cancel()
 	select {

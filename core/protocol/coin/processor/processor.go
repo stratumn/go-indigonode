@@ -143,7 +143,13 @@ func (p *processor) Process(ctx context.Context, block *pb.Block, state state.St
 	}
 
 	// Update state.
-	return state.ProcessBlock(block)
+	err = state.ProcessBlock(block)
+	if err != nil {
+		log.Event(ctx, "ProcessBlockFailed")
+		return ch.SetHead(head)
+	}
+
+	return nil
 }
 
 // Update the state to follow the new main branch.

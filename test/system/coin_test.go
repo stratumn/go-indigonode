@@ -21,6 +21,7 @@ import (
 	"time"
 
 	ptypes "github.com/gogo/protobuf/types"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	"google.golang.org/grpc"
 
@@ -43,7 +44,7 @@ func TestCoin(t *testing.T) {
 
 	// SETUP.
 
-	privKey0, pubKey0, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
+	_, pubKey0, err := crypto.GenerateKeyPair(crypto.Ed25519, 0)
 	assert.NoError(t, err, "GenerateKeyPair()")
 	minerID0, err := peer.IDFromPublicKey(pubKey0)
 	assert.NoError(t, err, "IDFromPublicKey()")
@@ -124,26 +125,15 @@ func TestCoin(t *testing.T) {
 		for i := range conns {
 			clients[i] = coinpb.NewCoinClient(conns[i])
 		}
+		goodClients := clients[0:2]
 
 		// Check initialization.
 		// node3 has not been initialized with the same genesis block.
-		assertAccount(ctx, t, clients[0], minerID0, balance0, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID1, balance1, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID2, balance2, uint64(0))
-		assertAccount(ctx, t, clients[0], minerID3, balance3, uint64(0))
-		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, uint64(0))
-
-		assertAccount(ctx, t, clients[1], minerID0, balance0, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID1, balance1, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID2, balance2, uint64(0))
-		assertAccount(ctx, t, clients[1], minerID3, balance3, uint64(0))
-		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, uint64(0))
-
-		assertAccount(ctx, t, clients[2], minerID0, balance0, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID1, balance1, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID2, balance2, uint64(0))
-		assertAccount(ctx, t, clients[2], minerID3, balance3, uint64(0))
-		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, uint64(0))
+		assertAllAccount(ctx, t, goodClients, minerID0, balance0, uint64(0))
+		assertAllAccount(ctx, t, goodClients, minerID1, balance1, uint64(0))
+		assertAllAccount(ctx, t, goodClients, minerID2, balance2, uint64(0))
+		assertAllAccount(ctx, t, goodClients, minerID3, balance3, uint64(0))
+		assertAllAccount(ctx, t, goodClients, someGuyID, balanceGuy, uint64(0))
 
 		assertAccount(ctx, t, clients[3], minerID0, uint64(0), uint64(0))
 		assertAccount(ctx, t, clients[3], minerID1, uint64(0), uint64(0))
@@ -163,12 +153,9 @@ func TestCoin(t *testing.T) {
 		balanceGuy -= 12 + 2
 
 		// Check that a new block has been accepted.
-		assertHeight(ctx, t, clients[0], 1)
-		assertHeight(ctx, t, clients[1], 1)
+		assertAllHeight(ctx, t, goodClients, 1)
 
-		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, uint64(1))
-		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, uint64(1))
-		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, uint64(1))
+		assertAllAccount(ctx, t, goodClients, someGuyID, balanceGuy, uint64(1))
 		assertAccount(ctx, t, clients[3], someGuyID, uint64(0), uint64(0))
 
 		// Stop node2.
@@ -190,13 +177,6 @@ func TestCoin(t *testing.T) {
 		assertHeight(ctx, t, clients[0], 2)
 		assertHeight(ctx, t, clients[1], 2)
 
-		doTransaction(ctx, t, clients[0], privKey0, &pb.Transaction{
-			From:  []byte(minerID0),
-			To:    []byte(minerID2),
-			Nonce: 4,
-			Value: 9,
-			Fee:   2,
-		})
 		doTransaction(ctx, t, clients[0], privKey, &pb.Transaction{
 			From:  []byte(someGuyID),
 			To:    []byte(minerID0),
@@ -260,15 +240,8 @@ func TestCoin(t *testing.T) {
 		})
 		balanceGuy -= 4 + 3
 
-		assertHeight(ctx, t, clients[0], 4)
-		assertAccount(ctx, t, clients[0], someGuyID, balanceGuy, 9001)
-
-		assertHeight(ctx, t, clients[1], 4)
-		assertAccount(ctx, t, clients[1], someGuyID, balanceGuy, 9001)
-
-		assertHeight(ctx, t, clients[2], 4)
-		assertAccount(ctx, t, clients[2], someGuyID, balanceGuy, 9001)
-
+		assertAllHeight(ctx, t, goodClients, 4)
+		assertAllAccount(ctx, t, goodClients, someGuyID, balanceGuy, 9001)
 	}
 
 	err = session.RunWithConfigs(ctx, SessionDir, 4, configs, testFn)
@@ -303,19 +276,29 @@ func doTransaction(ctx context.Context, t *testing.T, c coinpb.CoinClient, priv 
 
 // assertHeight checks the height of the chain is num.
 func assertHeight(ctx context.Context, t *testing.T, c coinpb.CoinClient, num uint64) {
-	waitUntil(t, time.Second*2, time.Millisecond*250, func() bool {
+	waitUntil(t, time.Second*2, time.Millisecond*250, func() error {
 		// We have the block of height num
 		bcn, _ := c.Blockchain(ctx, &coinpb.BlockchainReq{BlockNumber: num})
-		if bcn == nil || bcn.Blocks[0].BlockNumber() != num {
-			return false
+		if bcn == nil {
+			return errors.New("Got nil blockchain")
+		}
+		if bcn.Blocks[0].BlockNumber() != num {
+			return errors.Errorf("Block had number %d, expected %d", bcn.Blocks[0].BlockNumber(), num)
 		}
 		// We don't have the block of height num + 1.
-		_, err := c.Blockchain(ctx, &coinpb.BlockchainReq{BlockNumber: num + 1})
+		bcn, err := c.Blockchain(ctx, &coinpb.BlockchainReq{BlockNumber: num + 1})
 		if err == nil {
-			return false
+			bcn, _ := c.Blockchain(ctx, &coinpb.BlockchainReq{BlockNumber: num + 1, Count: uint32(num + 1)})
+			return errors.Errorf("Expected block %d not to exist: %v", num+1, bcn)
 		}
-		return true
-	}, "blockChain should update")
+		return nil
+	}, "blockChain should update: %s")
+}
+
+func assertAllHeight(ctx context.Context, t *testing.T, cs []coinpb.CoinClient, num uint64) {
+	for _, c := range cs {
+		assertHeight(ctx, t, c, num)
+	}
 }
 
 func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid peer.ID, balance, nonce uint64) {
@@ -327,11 +310,18 @@ func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid p
 	}
 }
 
-func waitUntil(t *testing.T, duration time.Duration, interval time.Duration, cond func() bool, message string) {
+func assertAllAccount(ctx context.Context, t *testing.T, cs []coinpb.CoinClient, pid peer.ID, balance, nonce uint64) {
+	for _, c := range cs {
+		assertAccount(ctx, t, c, pid, balance, nonce)
+	}
+}
+
+func waitUntil(t *testing.T, duration time.Duration, interval time.Duration, cond func() error, message string) {
 	condChan := make(chan struct{})
+	var err error
 	go func() {
 		for {
-			if cond() {
+			if err = cond(); err == nil {
 				condChan <- struct{}{}
 				return
 			}
@@ -343,7 +333,7 @@ func waitUntil(t *testing.T, duration time.Duration, interval time.Duration, con
 	select {
 	case <-condChan:
 	case <-time.After(duration):
-		assert.Fail(t, "waitUntil() condition failed:", message)
+		assert.Fail(t, "waitUntil() condition failed:", message, err)
 	}
 }
 
@@ -353,7 +343,7 @@ func withCoinConfig(config cfg.ConfigSet, minerID peer.ID, genesis string) cfg.C
 	coinConf := conf["coin"].(coin.Config)
 	coinConf.MinerID = peer.IDB58Encode(minerID)
 	coinConf.GenesisBlock = genesis
-	coinConf.BlockDifficulty = 12
+	coinConf.BlockDifficulty = 6
 	conf["coin"] = coinConf
 
 	return conf

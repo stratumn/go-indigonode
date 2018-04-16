@@ -113,13 +113,39 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	s.store = protocol.New()
+	// We can't use the input context as a parent because it is cancelled
+	// before we do the cleanup (see the <-ctx.Done() line).
+	// For part of the floodsub cleanup, we need an active context.
+	networkCtx, cancelNetwork := context.WithCancel(context.Background())
+	defer cancelNetwork()
+
+	networkMgr := protocol.NewNetworkManager()
+	if err := networkMgr.Join(networkCtx, s.config.NetworkID, s.host); err != nil {
+		return err
+	}
+
+	s.store = protocol.New(networkMgr)
+
+	errChan := make(chan error)
+	listenCtx, cancelListen := context.WithCancel(networkCtx)
+	go func() { errChan <- networkMgr.Listen(listenCtx) }()
 
 	running()
 	<-ctx.Done()
 	stopping()
 
+	// First close the store that uses the PoP network.
+	s.store.Close(networkCtx)
 	s.store = nil
+
+	// Then leave the PoP network.
+	cancelListen()
+	<-errChan
+
+	err := networkMgr.Leave(networkCtx, s.config.NetworkID)
+	if err != nil {
+		return err
+	}
 
 	return errors.WithStack(ctx.Err())
 }

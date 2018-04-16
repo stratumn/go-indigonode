@@ -16,38 +16,124 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/dummystore"
+	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
+
+var log = logging.Logger("indigo.store")
 
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
 type Store struct {
-	s *dummystore.DummyStore
+	store      store.Adapter
+	networkMgr NetworkManager
+	linksChan  <-chan *pb.SignedLink
 }
 
 // New creates a new Indigo store.
-func New() *Store {
-	return &Store{s: dummystore.New(&dummystore.Config{})}
+// It expects a NetworkManager connected to a PoP network.
+func New(networkMgr NetworkManager) *Store {
+	store := &Store{
+		store:      dummystore.New(&dummystore.Config{}),
+		networkMgr: networkMgr,
+	}
+
+	store.linksChan = networkMgr.AddListener()
+	go store.listenNetwork()
+
+	return store
+}
+
+// listenNetwork listens to incoming links and stores them.
+// If invalid links are received, they are kept for auditing.
+func (s *Store) listenNetwork() {
+	for {
+		ctx := context.Background()
+		remoteLink, ok := <-s.linksChan
+		if !ok {
+			log.Event(ctx, "ListenChanClosed")
+			return
+		}
+
+		s.storeNetworkLink(ctx, remoteLink)
+	}
+}
+
+func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink) {
+	event := log.EventBegin(ctx, "NetworkNewLink")
+	defer event.Done()
+
+	// TODO: verify signature and validate link.
+	// If not valid, add to store of shame.
+
+	var link cs.Link
+	err := json.Unmarshal(remoteLink.Link, &link)
+	if err != nil {
+		event.SetError(err)
+		// TODO: add to store of shame.
+		return
+	}
+
+	_, err = s.store.CreateLink(context.Background(), &link)
+	if err != nil {
+		event.SetError(err)
+		return
+	}
+}
+
+// Close cleans up the store and stops it.
+func (s *Store) Close(ctx context.Context) {
+	log.Event(ctx, "Close")
+	s.networkMgr.RemoveListener(s.linksChan)
 }
 
 // GetInfo returns information about the underlying store.
-func (store *Store) GetInfo(ctx context.Context) (interface{}, error) {
-	return store.s.GetInfo(ctx)
+func (s *Store) GetInfo(ctx context.Context) (interface{}, error) {
+	log.Event(ctx, "GetInfo")
+	return s.store.GetInfo(ctx)
 }
 
 // CreateLink forwards the request to the underlying store.
-func (store *Store) CreateLink(ctx context.Context, link *cs.Link) (*types.Bytes32, error) {
-	err := link.Validate(ctx, store.GetSegment)
+func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes32, err error) {
+	event := log.EventBegin(ctx, "CreateLink")
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+		} else {
+			event.Append(logging.Metadata{"link_hash": lh.String()})
+		}
+
+		event.Done()
+	}()
+
+	err = link.Validate(ctx, s.GetSegment)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return store.s.CreateLink(ctx, link)
+	lh, err = s.store.CreateLink(ctx, link)
+	if err != nil {
+		return
+	}
+
+	if err = s.networkMgr.Publish(ctx, link); err != nil {
+		return
+	}
+
+	return
 }
 
 // GetSegment forwards the request to the underlying store.
-func (store *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
-	return store.s.GetSegment(ctx, linkHash)
+func (s *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
+	log.Event(ctx, "GetSegment", logging.Metadata{
+		"link_hash": linkHash.String(),
+	})
+
+	return s.store.GetSegment(ctx, linkHash)
 }

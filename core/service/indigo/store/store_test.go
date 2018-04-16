@@ -23,7 +23,11 @@ import (
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
+	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
 	"github.com/stretchr/testify/require"
+
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
 func testService(ctx context.Context, t *testing.T, host *mockstore.MockHost) *store.Service {
@@ -47,6 +51,16 @@ func TestService_Strings(t *testing.T) {
 	testservice.CheckStrings(t, &store.Service{})
 }
 
+// expectHostNetwork verifies that the service joins a PoP network via floodsub.
+func expectHostNetwork(ctrl *gomock.Controller, host *mockstore.MockHost) {
+	net := mockpubsub.NewMockNetwork(ctrl)
+
+	host.EXPECT().Network().Return(net)
+	net.EXPECT().Notify(gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
+	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.FloodSubID))
+}
+
 func TestService_Run(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -55,7 +69,7 @@ func TestService_Run(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mockstore.NewMockHost(ctrl)
-	// We don't use host yet, no expectations are needed for now.
+	expectHostNetwork(ctrl, host)
 
 	serv := testService(ctx, t, host)
 	testservice.TestRun(ctx, t, serv, time.Second)

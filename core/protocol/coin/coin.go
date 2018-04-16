@@ -151,6 +151,10 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 
 	for {
+		if err := ctx.Err(); err != nil {
+			break
+		}
+
 		var gossip pb.Request
 		err := dec.Decode(&gossip)
 		if err == io.EOF {

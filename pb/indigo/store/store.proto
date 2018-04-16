@@ -23,7 +23,7 @@ option go_package = "github.com/stratumn/alice/pb/indigo/store;store";
 
 message SignedLink {
     bytes from = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Sender Peer ID",
+        (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the peer that produced the link",
         (stratumn.alice.grpc.ext.field_required) = true,
         (stratumn.alice.grpc.ext.field_base58) = true
     ];
@@ -33,7 +33,7 @@ message SignedLink {
         (stratumn.alice.grpc.ext.field_base58) = true
     ];
     stratumn.alice.pb.crypto.Signature signature = 3 [
-        (stratumn.alice.grpc.ext.field_desc) = "Signature of the original sender",
+        (stratumn.alice.grpc.ext.field_desc) = "Signature of peer that produced the link",
         (stratumn.alice.grpc.ext.field_required) = true
     ];
 }

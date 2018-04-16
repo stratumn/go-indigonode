@@ -1,3 +1,4 @@
 * @stephan83
 /core/protocol/coin/ @t-bast
-
+/core/service/indigo/ @t-bast
+/core/protocol/indigo/ @t-bast

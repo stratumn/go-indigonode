@@ -145,7 +145,7 @@ func TestProcessor_Process(t *testing.T) {
 	assert.True(t, dht.resources[cid2.String()], "dht.Provide()")
 }
 
-func TestProcessor_ProcessWithReorg(t *testing.T) {
+func TestProcessor_ProcessWithReorgs(t *testing.T) {
 	/* Test a chain reorg
 	In this case, we start with a chain containing block1->block21->block31 (same as above).
 	We then add other blocks forking the chain from block1 until it is higher that the main chain:
@@ -158,7 +158,8 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	and that transactions from block22, block32 and block4 are applied to the state.
 	*/
 
-	p := processor.NewProcessor(nil)
+	dht := &provider{}
+	p := processor.NewProcessor(dht)
 	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
 	c := &testutil.SimpleChain{}
 
@@ -335,6 +336,70 @@ func TestProcessor_ProcessWithReorg(t *testing.T) {
 	assert.Equal(t, block4.Header, header, "CurrentHeader()")
 
 	checkState(t, accounts, []*pb.Block{block1, block22, block32, block4}, s)
+}
+
+func TestProcessor_ProcessWithInvalidState(t *testing.T) {
+	dht := &provider{}
+	p := processor.NewProcessor(dht)
+	s := testutil.NewSimpleState(t, state.OptPrefix([]byte("s")))
+	c := &testutil.SimpleChain{}
+
+	for user, account := range accounts {
+		err := s.UpdateAccount([]byte(user), account)
+		assert.NoError(t, err, fmt.Sprintf("s.UpdateAccount(%v)", user))
+	}
+
+	block1 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber: 0,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  alice,
+			To:    bob,
+			Value: 10,
+			Nonce: 1,
+		}},
+	}
+	h1, err := coinutil.HashHeader(block1.Header)
+	assert.NoError(t, err, "HashHeader(block1)")
+
+	// block2 is invalid because of the transaction nonce.
+	block2 := &pb.Block{
+		Header: &pb.Header{
+			BlockNumber:  1,
+			PreviousHash: h1,
+		},
+		Transactions: []*pb.Transaction{{
+			From:  alice,
+			To:    bob,
+			Value: 5,
+			Nonce: 1,
+		}},
+	}
+	h2, err := coinutil.HashHeader(block2.Header)
+	assert.NoError(t, err, "coinutil.HashHeader()")
+
+	ctx := context.Background()
+
+	assert.NoError(t, p.Process(ctx, block1, s, c))
+	checkState(t, accounts, []*pb.Block{block1}, s)
+
+	assert.NoError(t, p.Process(ctx, block2, s, c))
+	checkState(t, accounts, []*pb.Block{block1}, s)
+
+	// Check chain
+	b, err := c.GetBlock(h1, 0)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block1, b, "GetBlock()")
+
+	b, err = c.GetBlock(h2, 1)
+	assert.NoError(t, err, "GetBlock()")
+	assert.Equal(t, block2, b, "GetBlock()")
+
+	header, err := c.CurrentHeader()
+	assert.NoError(t, err, "CurrentHeader()")
+	assert.Equal(t, block1.Header, header, "CurrentHeader()")
+
 }
 
 func checkState(t *testing.T, accounts map[string]*pb.Account, blocks []*pb.Block, s state.Reader) {

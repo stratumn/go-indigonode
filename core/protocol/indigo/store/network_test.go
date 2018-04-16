@@ -16,6 +16,7 @@ package store_test
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"testing"
 	"time"
@@ -30,7 +31,13 @@ import (
 
 	bhost "gx/ipfs/QmQr1j6UvdhpponAaqSdswqRpdzsFwNop2N8kXLNw8afem/go-libp2p-blankhost"
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
+
+func genPeerPrivateKey() ic.PrivKey {
+	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
+	return sk
+}
 
 func genNetworkID() string {
 	return uuid.NewV4().String()
@@ -44,7 +51,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 
 		assert.EqualError(t, networkMgr.Join(ctx, "", h), store.ErrInvalidNetworkID.Error())
 	})
@@ -59,7 +66,7 @@ func TestJoinLeave(t *testing.T) {
 		defer h2.Close()
 
 		networkID := genNetworkID()
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 
 		assert.NoError(t, networkMgr.Join(ctx, networkID, h1))
 		// Subsequent joins should be no-ops.
@@ -75,7 +82,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 		networkID1 := genNetworkID()
 		networkID2 := genNetworkID()
 
@@ -90,7 +97,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 		networkID := genNetworkID()
 
 		assert.NoError(t, networkMgr.Join(ctx, networkID, h))
@@ -116,7 +123,7 @@ func TestPublishListen(t *testing.T) {
 	listenChans := make([]chan error, nodeCount)
 	listeners := make([]<-chan *pb.SignedLink, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		networkMgrs[i] = store.NewNetworkManager()
+		networkMgrs[i] = store.NewNetworkManager(genPeerPrivateKey())
 		listeners[i] = networkMgrs[i].AddListener()
 
 		listenChans[i] = make(chan error)
@@ -171,7 +178,7 @@ func TestPublishListen(t *testing.T) {
 
 func TestAddRemoveListeners(t *testing.T) {
 	t.Run("remove-closes-channel", func(t *testing.T) {
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 		testChan := networkMgr.AddListener()
 		networkMgr.RemoveListener(testChan)
 
@@ -180,7 +187,7 @@ func TestAddRemoveListeners(t *testing.T) {
 	})
 
 	t.Run("remove-unknown-channel", func(t *testing.T) {
-		networkMgr := store.NewNetworkManager()
+		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
 		privateChan := make(chan *pb.SignedLink)
 		networkMgr.RemoveListener(privateChan)
 

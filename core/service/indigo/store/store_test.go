@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
 	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -35,6 +36,7 @@ func testService(ctx context.Context, t *testing.T, host *mockstore.MockHost) *s
 	config := serv.Config().(store.Config)
 	config.Version = "1.0.0"
 	config.NetworkID = "42"
+	config.PrivateKey = "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g=="
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
@@ -73,4 +75,34 @@ func TestService_Run(t *testing.T) {
 
 	serv := testService(ctx, t, host)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_Run_Error(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	tests := []struct {
+		name   string
+		config store.Config
+	}{{
+		"missing-network-id",
+		store.Config{
+			Version:    "1.0.0",
+			PrivateKey: "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
+		},
+	}, {
+		"missing-private-key",
+		store.Config{
+			Version:   "1.0.0",
+			NetworkID: "42",
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serv := &store.Service{}
+			require.NoError(t, serv.SetConfig(tt.config), "serv.SetConfig(config)")
+			assert.Error(t, serv.Run(ctx, func() {}, func() {}))
+		})
+	}
 }

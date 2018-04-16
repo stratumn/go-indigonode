@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/dummystore"
@@ -69,8 +70,11 @@ func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink)
 	event := log.EventBegin(ctx, "NetworkNewLink")
 	defer event.Done()
 
-	// TODO: verify signature and validate link.
-	// If not valid, add to store of shame.
+	if !remoteLink.VerifySignature() {
+		event.SetError(errors.New("invalid link signature"))
+		// TODO: add to store of shame.
+		return
+	}
 
 	var link cs.Link
 	err := json.Unmarshal(remoteLink.Link, &link)
@@ -80,7 +84,13 @@ func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink)
 		return
 	}
 
-	_, err = s.store.CreateLink(context.Background(), &link)
+	if err = link.Validate(ctx, s.GetSegment); err != nil {
+		event.SetError(err)
+		// TODO: add to store of shame.
+		return
+	}
+
+	_, err = s.store.CreateLink(ctx, &link)
 	if err != nil {
 		event.SetError(err)
 		return

@@ -14,6 +14,12 @@
 
 package store
 
+import (
+	"github.com/pkg/errors"
+
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+)
+
 // Config contains configuration options for the Indigo service.
 type Config struct {
 	// Host is the name of the host service.
@@ -24,4 +30,22 @@ type Config struct {
 
 	// NetworkId is the id of your Indigo PoP network.
 	NetworkID string `toml:"network_id" comment:"The id of your Indigo PoP network."`
+
+	// PrivateKey is the private key of the node.
+	PrivateKey string `toml:"private_key" comment:"The private key of the host."`
+}
+
+// UnmarshalPrivateKey unmarshals the configured private key.
+func (c *Config) UnmarshalPrivateKey() (ic.PrivKey, error) {
+	keyBytes, err := ic.ConfigDecodeKey(c.PrivateKey)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	key, err := ic.UnmarshalPrivateKey(keyBytes)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return key, nil
 }

@@ -16,7 +16,7 @@ package store_test
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/rand"
 	"testing"
 	"time"
 
@@ -30,6 +30,8 @@ import (
 	"github.com/stratumn/go-indigocore/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 func createTestStore(ctrl *gomock.Controller) (*store.Store, *mocknetworkmanager.MockNetworkManager) {
@@ -76,6 +78,8 @@ func TestReceiveLinks(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
+
 	listenChan := make(chan *pb.SignedLink)
 	testStore := createTestStoreWithChan(ctrl, listenChan)
 
@@ -90,12 +94,45 @@ func TestReceiveLinks(t *testing.T) {
 			// TODO: verify that the link is added to the store of shame.
 		},
 	}, {
+		"invalid-link-signature",
+		func(t *testing.T) {
+			link := cstesting.RandomLink()
+			linkHash, _ := link.Hash()
+			signedLink, _ := pb.NewSignedLink(sk, link)
+			signedLink.Signature.PublicKey = nil
+
+			listenChan <- signedLink
+
+			// TODO: verify that the link is added to the store of shame.
+
+			seg, err := testStore.GetSegment(context.Background(), linkHash)
+			assert.NoError(t, err, "testStore.GetSegment()")
+			assert.Nil(t, seg, "testStore.GetSegment()")
+		},
+	}, {
+		"invalid-link",
+		func(t *testing.T) {
+			link := cstesting.RandomLink()
+			link.Meta.MapID = ""
+			linkHash, _ := link.Hash()
+			signedLink, _ := pb.NewSignedLink(sk, link)
+
+			listenChan <- signedLink
+
+			// TODO: verify that the link is added to the store of shame.
+
+			seg, err := testStore.GetSegment(context.Background(), linkHash)
+			assert.NoError(t, err, "testStore.GetSegment()")
+			assert.Nil(t, seg, "testStore.GetSegment()")
+		},
+	}, {
 		"valid-link",
 		func(t *testing.T) {
 			link := cstesting.RandomLink()
 			linkHash, _ := link.Hash()
-			linkBytes, _ := json.Marshal(link)
-			listenChan <- &pb.SignedLink{Link: linkBytes}
+			signedLink, _ := pb.NewSignedLink(sk, link)
+
+			listenChan <- signedLink
 
 			// Network segments are handled in a separate goroutine,
 			// so there is a race condition unless we wait.

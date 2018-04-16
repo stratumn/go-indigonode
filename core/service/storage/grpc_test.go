@@ -27,6 +27,7 @@ import (
 	"github.com/satori/go.uuid"
 	pb "github.com/stratumn/alice/grpc/storage"
 	"github.com/stratumn/alice/grpc/storage/mockstorage"
+	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,16 +37,22 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stream := mockstorage.NewMockStorage_UploadServer(ctrl)
+	indexFuncCalled := false
 
-	var indexedFile *os.File
-	server := &grpcServer{
-		indexFile: func(ctx context.Context, file *os.File) ([]byte, error) {
-			indexedFile = file
+	server := newGrpcServer(
+		func(ctx context.Context, file *os.File, fileName string) ([]byte, error) {
+			checkFileContent(t, file.Name(), []byte("coucou, tu veux voir mon fichier ?"))
+
+			err := os.Remove(file.Name())
+			assert.NoError(t, err, "Remove()")
+			indexFuncCalled = true
 			return []byte("123"), nil
 		},
-		storagePath: storagePath,
-	}
-	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
+		nil,
+		storagePath,
+		1*time.Second)
+
+	filename := "grpc_test"
 
 	chunk1 := &pb.StreamFileChunk{
 		FileName: filename,
@@ -71,38 +78,70 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 	err := server.Upload(stream)
 	assert.NoError(t, err, "server.Upload()")
 
-	f := checkFileContent(t, filename, []byte("coucou, tu veux voir mon fichier ?"))
+	assert.True(t, indexFuncCalled, "Index function was not called")
+}
 
-	// Check that the file was correctly sent to be indexed.
-	expect, err := f.Stat()
-	assert.NoError(t, err, "f.Stat()")
-	got, err := indexedFile.Stat()
-	assert.NoError(t, err, "indexedFile.Stat()")
+func TestGRPCServer_NewGrpcServer(t *testing.T) {
+	file, err := os.Create(filepath.Join(storagePath, tmpStorageSubdir, "abc"))
+	assert.NoError(t, err, "os.Create()")
 
-	assert.True(t, os.SameFile(expect, got), "SameFile")
+	_, err = os.Stat(file.Name())
+	assert.NoError(t, err, "Temporary file could not be found.")
 
-	err = os.Remove(filepath.Join(storagePath, filename))
-	assert.NoError(t, err, "Remove()")
+	newGrpcServer(
+		nil,
+		nil,
+		storagePath,
+		10*time.Millisecond)
+
+	_, err = os.Stat(file.Name())
+	assert.True(t, os.IsNotExist(err))
 }
 
 func TestGRPCServer_StartUpload(t *testing.T) {
-	server := &grpcServer{
-		storagePath: storagePath,
-	}
-	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
+	server := newGrpcServer(
+		nil,
+		nil,
+		storagePath,
+		10*time.Millisecond)
 
 	uploadReq := &pb.UploadReq{
-		FileName: filename,
+		FileName: "grpc_test",
 	}
 
 	session, err := server.StartUpload(context.Background(), uploadReq)
 	assert.NoError(t, err, "server.StartUpload()")
 
-	_, err = uuid.FromBytes(session.Id)
+	u, err := uuid.FromBytes(session.Id)
 	assert.NoError(t, err, "server.StartUpload()")
 
-	err = os.Remove(filepath.Join(storagePath, filename))
-	assert.NoError(t, err, "Remove()")
+	tmpFilePath := filepath.Join(storagePath, tmpStorageSubdir, server.sessions[u].storageFileName)
+
+	_, err = os.Stat(tmpFilePath)
+	assert.NoError(t, err, "Temporary file could not be found.")
+
+	test.WaitUntil(t, 2*server.uploadTimeout, time.Millisecond*1, func() error {
+		_, err := os.Stat(tmpFilePath)
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}, "Temporary file was not deleted.")
+}
+
+func TestGRPCServer_StartUpload_FileNameMissing(t *testing.T) {
+	server := newGrpcServer(
+		nil,
+		nil,
+		storagePath,
+		10*time.Millisecond)
+
+	uploadReq := &pb.UploadReq{
+		FileName: "",
+	}
+
+	_, err := server.StartUpload(context.Background(), uploadReq)
+	assert.EqualError(t, err, ErrFileNameMissing.Error())
 }
 
 func TestGRPCServer_UploadChunk(t *testing.T) {
@@ -112,12 +151,12 @@ func TestGRPCServer_UploadChunk(t *testing.T) {
 	file, err := os.Create(filepath.Join(storagePath, filename))
 	assert.NoError(t, err, "os.Create()")
 
-	server := &grpcServer{
-		storagePath: storagePath,
-		sessions: map[uuid.UUID]*os.File{
-			u: file,
-		},
-	}
+	s := newSession(filename)
+	s.file = file
+
+	server := newGrpcServer(nil, nil, storagePath, 1*time.Second)
+
+	server.sessions[u] = s
 
 	t.Run("With a valid session ID", func(t *testing.T) {
 		chunk := &pb.FileChunk{
@@ -128,7 +167,7 @@ func TestGRPCServer_UploadChunk(t *testing.T) {
 		_, err = server.UploadChunk(context.Background(), chunk)
 		assert.NoError(t, err, "server.UploadChunk()")
 
-		checkFileContent(t, filename, []byte("coucou, "))
+		checkFileContent(t, filepath.Join(storagePath, filename), []byte("coucou, "))
 
 		err = os.Remove(filepath.Join(storagePath, filename))
 		assert.NoError(t, err, " Remove()")
@@ -169,16 +208,18 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 	_, err = file.Write(content)
 	assert.NoError(t, err, "file.Write()")
 
-	server := &grpcServer{
-		indexFile: func(ctx context.Context, file *os.File) ([]byte, error) {
+	server := newGrpcServer(
+		func(ctx context.Context, file *os.File, filename string) ([]byte, error) {
 			indexedFile = file
 			return []byte("123"), nil
 		},
-		storagePath: storagePath,
-		sessions: map[uuid.UUID]*os.File{
-			u: file,
-		},
-	}
+		nil,
+		storagePath,
+		1*time.Second)
+
+	session := newSession(filename)
+	session.file = file
+	server.sessions[u] = session
 
 	t.Run("With a valid session ID", func(t *testing.T) {
 		req := &pb.UploadSession{
@@ -192,14 +233,14 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 		got, err := indexedFile.Stat()
 		assert.NoError(t, err, "indexedFile.Stat()")
 
-		f, err := os.Open(filepath.Join(storagePath, filename))
+		f, err := os.Open(filepath.Join(storagePath, session.storageFileName))
 		assert.NoError(t, err, "os.Open()")
 
 		expect, err := f.Stat()
 		assert.NoError(t, err, "f.Stat()")
 		assert.True(t, os.SameFile(expect, got), "SameFile")
 
-		err = os.Remove(filepath.Join(storagePath, filename))
+		err = os.Remove(filepath.Join(storagePath, session.storageFileName))
 		assert.NoError(t, err, " Remove()")
 	})
 
@@ -251,7 +292,7 @@ func TestGRPCServer_AuthorizePeers(t *testing.T) {
 }
 
 func checkFileContent(t *testing.T, filename string, expected []byte) *os.File {
-	f, err := os.Open(filepath.Join(storagePath, filename))
+	f, err := os.Open(filename)
 	assert.NoError(t, err, "os.Open()")
 
 	content := make([]byte, 42)

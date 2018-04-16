@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/grpc/storage"
@@ -29,6 +30,8 @@ import (
 
 	"github.com/satori/go.uuid"
 )
+
+const tmpStorageSubdir = "tmp"
 
 var (
 	// ErrFileNameMissing is returned when no file name was given.
@@ -41,13 +44,58 @@ var (
 	ErrInvalidUploadSession = errors.New("the given session could not be parsed")
 )
 
+type session struct {
+	file            *os.File
+	fileName        string
+	storageFileName string
+	id              uuid.UUID
+	done            chan (struct{})
+}
+
+func newSession(fileName string) *session {
+	id := uuid.NewV4()
+	return &session{
+		fileName:        fileName,
+		storageFileName: id.String() + fileName,
+		done:            make(chan (struct{})),
+		id:              id,
+	}
+}
+
 // grpcServer is a gRPC server for the storage service.
 type grpcServer struct {
-	indexFile   func(context.Context, *os.File) (fileHash []byte, err error)
-	authorize   func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
-	storagePath string
-	sessionsMu  sync.RWMutex
-	sessions    map[uuid.UUID]*os.File
+	indexFile      func(context.Context, *os.File, string) (fileHash []byte, err error)
+	authorize      func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
+	storagePath    string
+	tmpStoragePath string
+	sessionsMu     sync.RWMutex
+	sessions       map[uuid.UUID]*session
+	uploadTimeout  time.Duration
+}
+
+func newGrpcServer(indexFile func(context.Context, *os.File, string) (fileHash []byte, err error),
+	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error,
+	storagePath string,
+	uploadTimeout time.Duration) *grpcServer {
+	tmpStoragePath := filepath.Join(storagePath, tmpStorageSubdir)
+
+	err := os.RemoveAll(tmpStoragePath)
+	if err != nil {
+		log.Error(err)
+	}
+	err = os.MkdirAll(tmpStoragePath, 0777)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return &grpcServer{
+		indexFile:      indexFile,
+		authorize:      authorize,
+		storagePath:    storagePath,
+		tmpStoragePath: tmpStoragePath,
+		sessions:       make(map[uuid.UUID]*session),
+		uploadTimeout:  uploadTimeout,
+	}
 }
 
 // // SendFile sends a file to the specified peer.
@@ -78,12 +126,13 @@ func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "UploadFile")
 	var file *os.File
+	var fileName string
 
 	defer func() {
 		if err != nil {
 			// Delete the partially written file.
 			if file != nil {
-				if err2 := os.Remove(filepath.Join(s.storagePath, file.Name())); err != nil {
+				if err2 := os.Remove(file.Name()); err != nil {
 					err = fmt.Errorf("error uploading file (%v); error deleting partially uploaded file (%v)", err, err2)
 				}
 			}
@@ -109,7 +158,8 @@ func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 		}
 
 		if file == nil {
-			file, err = os.Create(filepath.Join(s.storagePath, chunk.FileName))
+			fileName = chunk.FileName
+			file, err = os.Create(filepath.Join(s.storagePath, uuid.NewV4().String()+fileName))
 			if err != nil {
 				return
 			}
@@ -126,7 +176,7 @@ func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
 	// This would be needed at some point to check file integrity
 	// and to be able to handle multiple providers for a file.
 	var fileHash []byte
-	if fileHash, err = s.indexFile(ctx, file); err != nil {
+	if fileHash, err = s.indexFile(ctx, file, fileName); err != nil {
 		return
 	}
 
@@ -141,27 +191,40 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.Up
 	s.sessionsMu.Lock()
 	defer s.sessionsMu.Unlock()
 
-	sessionID := uuid.NewV4()
-	event.Append(logging.Metadata{"sessionID": sessionID})
-
 	if req.FileName == "" {
 		event.SetError(ErrFileNameMissing)
 		return nil, ErrFileNameMissing
 	}
-	// TODO: handle files that have the same name.
-	// TODO: start a goroutine that will delete the file after a timeout.
-	file, err := os.Create(filepath.Join(s.storagePath, req.FileName))
+
+	session := newSession(req.FileName)
+
+	event.Append(logging.Metadata{"sessionID": session.id})
+
+	file, err := os.Create(filepath.Join(s.tmpStoragePath, session.storageFileName))
 	if err != nil {
 		event.SetError(err)
 		return nil, err
 	}
-	if s.sessions == nil {
-		s.sessions = make(map[uuid.UUID]*os.File)
-	}
-	s.sessions[sessionID] = file
+
+	session.file = file
+
+	go func() {
+		select {
+		case <-session.done:
+			return
+		case <-time.After(s.uploadTimeout):
+			// Delete the partially written file.
+			err := os.Remove(file.Name())
+			if err != nil {
+				log.Errorf("Temporary file could not be removed: %s", err)
+			}
+		}
+	}()
+
+	s.sessions[session.id] = session
 
 	return &pb.UploadSession{
-		Id: sessionID.Bytes(),
+		Id: session.id.Bytes(),
 	}, nil
 }
 
@@ -179,13 +242,13 @@ func (s *grpcServer) UploadChunk(ctx context.Context, req *pb.FileChunk) (*pb.Ac
 		return nil, ErrInvalidUploadSession
 	}
 	event.Append(logging.Metadata{"sessionID": u})
-	file, ok := s.sessions[u]
+	session, ok := s.sessions[u]
 	if !ok {
 		event.SetError(ErrUploadSessionNotFound)
 		return nil, ErrUploadSessionNotFound
 	}
 
-	if _, err = file.Write(req.Data); err != nil {
+	if _, err = session.file.Write(req.Data); err != nil {
 		event.SetError(err)
 		return nil, err
 	}
@@ -205,12 +268,23 @@ func (s *grpcServer) EndUpload(ctx context.Context, req *pb.UploadSession) (*pb.
 	}
 	event.Append(logging.Metadata{"sessionID": u})
 
-	file, ok := s.sessions[u]
+	session, ok := s.sessions[u]
 	if !ok {
 		return nil, ErrUploadSessionNotFound
 	}
+	go func() { session.done <- struct{}{} }()
 
-	fileHash, err := s.indexFile(ctx, file)
+	finalPath := filepath.Join(s.storagePath, session.storageFileName)
+	err = os.Rename(session.file.Name(), finalPath)
+	if err != nil {
+		return nil, err
+	}
+	file, err := os.Open(finalPath)
+	if err != nil {
+		return nil, err
+	}
+
+	fileHash, err := s.indexFile(ctx, file, session.fileName)
 	event.Append(logging.Metadata{"fileHash": fileHash})
 
 	return &pb.UploadAck{

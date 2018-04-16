@@ -23,6 +23,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
+	"github.com/stratumn/alice/test"
 	"google.golang.org/grpc"
 
 	"github.com/mohae/deepcopy"
@@ -276,7 +277,7 @@ func doTransaction(ctx context.Context, t *testing.T, c coinpb.CoinClient, priv 
 
 // assertHeight checks the height of the chain is num.
 func assertHeight(ctx context.Context, t *testing.T, c coinpb.CoinClient, num uint64) {
-	waitUntil(t, time.Second*2, time.Millisecond*250, func() error {
+	test.WaitUntil(t, time.Second*2, time.Millisecond*250, func() error {
 		// We have the block of height num
 		bcn, _ := c.Blockchain(ctx, &coinpb.BlockchainReq{BlockNumber: num})
 		if bcn == nil {
@@ -313,27 +314,6 @@ func assertAccount(ctx context.Context, t *testing.T, c coinpb.CoinClient, pid p
 func assertAllAccount(ctx context.Context, t *testing.T, cs []coinpb.CoinClient, pid peer.ID, balance, nonce uint64) {
 	for _, c := range cs {
 		assertAccount(ctx, t, c, pid, balance, nonce)
-	}
-}
-
-func waitUntil(t *testing.T, duration time.Duration, interval time.Duration, cond func() error, message string) {
-	condChan := make(chan struct{})
-	var err error
-	go func() {
-		for {
-			if err = cond(); err == nil {
-				condChan <- struct{}{}
-				return
-			}
-
-			<-time.After(interval)
-		}
-	}()
-
-	select {
-	case <-condChan:
-	case <-time.After(duration):
-		assert.Fail(t, "waitUntil() condition failed:", message, err)
 	}
 }
 

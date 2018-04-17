@@ -23,7 +23,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit/mockaudit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
+	"github.com/stratumn/alice/pb/crypto"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
@@ -31,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -38,14 +41,19 @@ func createTestStore(ctrl *gomock.Controller) (*store.Store, *mocknetworkmanager
 	networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 	networkMgr.EXPECT().AddListener().Times(1)
 
-	return store.New(networkMgr), networkMgr
+	auditStore := mockaudit.NewMockStore(ctrl)
+	auditStore.EXPECT().AddLink(gomock.Any(), gomock.Any()).AnyTimes()
+
+	return store.New(networkMgr, auditStore), networkMgr
 }
 
-func createTestStoreWithChan(ctrl *gomock.Controller, listenChan chan *pb.SignedLink) *store.Store {
+func createTestStoreWithChan(ctrl *gomock.Controller, listenChan chan *pb.SignedLink) (*store.Store, *mockaudit.MockStore) {
 	networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 	networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 
-	return store.New(networkMgr)
+	auditStore := mockaudit.NewMockStore(ctrl)
+
+	return store.New(networkMgr, auditStore), auditStore
 }
 
 func TestNewStore(t *testing.T) {
@@ -67,7 +75,7 @@ func TestClose(t *testing.T) {
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 
-		s := store.New(networkMgr)
+		s := store.New(networkMgr, nil)
 
 		networkMgr.EXPECT().RemoveListener(listenChan).Times(1)
 		s.Close(context.Background())
@@ -79,9 +87,10 @@ func TestReceiveLinks(t *testing.T) {
 	defer ctrl.Finish()
 
 	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
+	peerID, _ := peer.IDFromPrivateKey(sk)
 
 	listenChan := make(chan *pb.SignedLink)
-	testStore := createTestStoreWithChan(ctrl, listenChan)
+	testStore, auditStore := createTestStoreWithChan(ctrl, listenChan)
 
 	tests := []struct {
 		name string
@@ -89,9 +98,12 @@ func TestReceiveLinks(t *testing.T) {
 	}{{
 		"malformed-link",
 		func(t *testing.T) {
-			listenChan <- &pb.SignedLink{Link: []byte("I'm not a valid JSON link")}
+			malformed := &pb.SignedLink{Link: []byte("I'm not a valid JSON link")}
+			malformed.From = []byte(peerID)
+			malformed.Signature, _ = crypto.Sign(sk, malformed.Link)
 
-			// TODO: verify that the link is added to the store of shame.
+			auditStore.EXPECT().AddLink(gomock.Any(), malformed)
+			listenChan <- malformed
 		},
 	}, {
 		"invalid-link-signature",
@@ -102,8 +114,6 @@ func TestReceiveLinks(t *testing.T) {
 			signedLink.Signature.PublicKey = nil
 
 			listenChan <- signedLink
-
-			// TODO: verify that the link is added to the store of shame.
 
 			seg, err := testStore.GetSegment(context.Background(), linkHash)
 			assert.NoError(t, err, "testStore.GetSegment()")
@@ -117,9 +127,8 @@ func TestReceiveLinks(t *testing.T) {
 			linkHash, _ := link.Hash()
 			signedLink, _ := pb.NewSignedLink(sk, link)
 
+			auditStore.EXPECT().AddLink(gomock.Any(), signedLink)
 			listenChan <- signedLink
-
-			// TODO: verify that the link is added to the store of shame.
 
 			seg, err := testStore.GetSegment(context.Background(), linkHash)
 			assert.NoError(t, err, "testStore.GetSegment()")

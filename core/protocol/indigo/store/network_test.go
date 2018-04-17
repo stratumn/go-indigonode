@@ -17,10 +17,10 @@ package store_test
 import (
 	"context"
 	"crypto/rand"
-	"encoding/json"
 	"testing"
 	"time"
 
+	json "github.com/gibson042/canonicaljson-go"
 	"github.com/satori/go.uuid"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/indigo/store"

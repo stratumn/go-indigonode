@@ -16,8 +16,8 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 
+	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
@@ -72,7 +72,6 @@ func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink)
 
 	if !remoteLink.VerifySignature() {
 		event.SetError(errors.New("invalid link signature"))
-		// TODO: add to store of shame.
 		return
 	}
 

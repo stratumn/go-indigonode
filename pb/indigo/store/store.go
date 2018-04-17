@@ -15,8 +15,7 @@
 package store
 
 import (
-	"encoding/json"
-
+	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/pb/crypto"
 	"github.com/stratumn/go-indigocore/cs"

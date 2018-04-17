@@ -29,6 +29,7 @@ import (
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
+	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func createTestStore(ctrl *gomock.Controller) (*store.Store, *mocknetworkmanager
 	auditStore := mockaudit.NewMockStore(ctrl)
 	auditStore.EXPECT().AddLink(gomock.Any(), gomock.Any()).AnyTimes()
 
-	return store.New(networkMgr, auditStore), networkMgr
+	return store.New(networkMgr, dummystore.New(&dummystore.Config{}), auditStore), networkMgr
 }
 
 func createTestStoreWithChan(ctrl *gomock.Controller, listenChan chan *pb.SignedLink) (*store.Store, *mockaudit.MockStore) {
@@ -53,7 +54,7 @@ func createTestStoreWithChan(ctrl *gomock.Controller, listenChan chan *pb.Signed
 
 	auditStore := mockaudit.NewMockStore(ctrl)
 
-	return store.New(networkMgr, auditStore), auditStore
+	return store.New(networkMgr, dummystore.New(&dummystore.Config{}), auditStore), auditStore
 }
 
 func TestNewStore(t *testing.T) {
@@ -75,7 +76,7 @@ func TestClose(t *testing.T) {
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 
-		s := store.New(networkMgr, nil)
+		s := store.New(networkMgr, nil, nil)
 
 		networkMgr.EXPECT().RemoveListener(listenChan).Times(1)
 		s.Close(context.Background())

@@ -22,7 +22,6 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
@@ -41,9 +40,9 @@ type Store struct {
 
 // New creates a new Indigo store.
 // It expects a NetworkManager connected to a PoP network.
-func New(networkMgr NetworkManager, auditStore audit.Store) *Store {
+func New(networkMgr NetworkManager, adapter store.Adapter, auditStore audit.Store) *Store {
 	store := &Store{
-		store:      dummystore.New(&dummystore.Config{}),
+		store:      adapter,
 		auditStore: auditStore,
 		networkMgr: networkMgr,
 	}

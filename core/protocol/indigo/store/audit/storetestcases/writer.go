@@ -46,5 +46,5 @@ func (f Factory) TestAddLink(t *testing.T) {
 	links, err := store.GetByPeer(context.Background(), peerID, audit.Pagination{})
 	assert.NoError(t, err, "store.GetByPeer()")
 	assert.Len(t, links, 1)
-	assert.Equal(t, l, links)
+	assert.Equal(t, *l, links[0])
 }

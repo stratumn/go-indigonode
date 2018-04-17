@@ -85,7 +85,7 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 		func(t *testing.T) {
 			links, err := store.GetByPeer(context.Background(), peer2, audit.Pagination{Top: 10})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Nil(t, links, "store.GetByPeer()")
+			assert.NotNil(t, links, "store.GetByPeer()")
 			assert.Len(t, links, 5, "store.GetByPeer()")
 		},
 	}, {

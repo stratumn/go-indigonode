@@ -48,9 +48,9 @@ func (_mr *MockStoreMockRecorder) AddLink(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // GetByPeer mocks base method
-func (_m *MockStore) GetByPeer(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 audit.Pagination) ([]*store.SignedLink, error) {
+func (_m *MockStore) GetByPeer(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 audit.Pagination) ([]store.SignedLink, error) {
 	ret := _m.ctrl.Call(_m, "GetByPeer", _param0, _param1, _param2)
-	ret0, _ := ret[0].([]*store.SignedLink)
+	ret0, _ := ret[0].([]store.SignedLink)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

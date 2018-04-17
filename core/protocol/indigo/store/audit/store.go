@@ -32,7 +32,7 @@ type Pagination struct {
 
 // Reader defines operations to read from the store.
 type Reader interface {
-	GetByPeer(context.Context, peer.ID, Pagination) ([]*pb.SignedLink, error)
+	GetByPeer(context.Context, peer.ID, Pagination) ([]pb.SignedLink, error)
 }
 
 // Writer defines operations to add to the store.

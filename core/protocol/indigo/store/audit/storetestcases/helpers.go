@@ -22,7 +22,7 @@ import (
 
 // ContainsLink returns true if the list contains the given link.
 // It only compares the link bytes, not the From and Signature.
-func ContainsLink(links []*pb.SignedLink, link *pb.SignedLink) bool {
+func ContainsLink(links []pb.SignedLink, link pb.SignedLink) bool {
 	if len(links) == 0 {
 		return false
 	}

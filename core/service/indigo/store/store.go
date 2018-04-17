@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
@@ -74,9 +75,10 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:      "host",
-		Version:   "0.1.0",
-		NetworkID: "",
+		Host:       "host",
+		Version:    "0.1.0",
+		NetworkID:  "",
+		PrivateKey: cfg.ConfZeroPK,
 	}
 }
 

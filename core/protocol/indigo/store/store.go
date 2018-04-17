@@ -19,9 +19,9 @@ import (
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
@@ -33,15 +33,17 @@ var log = logging.Logger("indigo.store")
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
 type Store struct {
 	store      store.Adapter
+	auditStore audit.Store
 	networkMgr NetworkManager
 	linksChan  <-chan *pb.SignedLink
 }
 
 // New creates a new Indigo store.
 // It expects a NetworkManager connected to a PoP network.
-func New(networkMgr NetworkManager) *Store {
+func New(networkMgr NetworkManager, adapter store.Adapter, auditStore audit.Store) *Store {
 	store := &Store{
-		store:      dummystore.New(&dummystore.Config{}),
+		store:      adapter,
+		auditStore: auditStore,
 		networkMgr: networkMgr,
 	}
 
@@ -75,17 +77,23 @@ func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink)
 		return
 	}
 
+	addAuditTrail := func(err error) {
+		event.SetError(errors.WithStack(err))
+
+		if err := s.auditStore.AddLink(ctx, remoteLink); err != nil {
+			event.Append(logging.Metadata{"auditError": err.Error()})
+		}
+	}
+
 	var link cs.Link
 	err := json.Unmarshal(remoteLink.Link, &link)
 	if err != nil {
-		event.SetError(err)
-		// TODO: add to store of shame.
+		addAuditTrail(err)
 		return
 	}
 
 	if err = link.Validate(ctx, s.GetSegment); err != nil {
-		event.SetError(err)
-		// TODO: add to store of shame.
+		addAuditTrail(err)
 		return
 	}
 

@@ -23,8 +23,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/types"
 
 	"google.golang.org/grpc"
@@ -131,7 +133,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	s.store = protocol.New(networkMgr)
+	// TODO: audit store and indigo store should be built from configuration choices.
+	s.store = protocol.New(
+		networkMgr,
+		dummystore.New(&dummystore.Config{}),
+		dummyauditstore.NewDummyAuditStore(),
+	)
 
 	errChan := make(chan error)
 	listenCtx, cancelListen := context.WithCancel(networkCtx)

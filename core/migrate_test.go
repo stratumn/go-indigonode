@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/pelletier/go-toml"
+	"github.com/stratumn/alice/core/cfg"
 	logger "github.com/stratumn/alice/core/log"
 	"github.com/stratumn/alice/core/service/kaddht"
 	"github.com/stratumn/alice/core/service/swarm"
@@ -52,8 +53,8 @@ func TestMigrations(t *testing.T) {
 	// Make sure both configs use the same private key and point to the
 	// same files.
 	swarmCfg := defConf["swarm"].(swarm.Config)
-	swarmCfg.PeerID = confZeroPID
-	swarmCfg.PrivateKey = confZeroPK
+	swarmCfg.PeerID = cfg.ConfZeroPID
+	swarmCfg.PrivateKey = cfg.ConfZeroPK
 	defConf["swarm"] = swarmCfg
 	dhtCfg := defConf["kaddht"].(kaddht.Config)
 	dhtCfg.LevelDBPath = "data/kaddht"
@@ -84,10 +85,6 @@ func TestMigrations(t *testing.T) {
 		assert.Equalf(t, wantBuf.String(), gotBuf.String(), "%s", k)
 	}
 }
-
-const confZeroPID = "QmRK6DGwgkzpHRG5rCgWUxTSKvQtmhZeMa5jdeHYTtxnNq"
-
-const confZeroPK = "CAASpwkwggSjAgEAAoIBAQCss3uW+aVGR5JLd3uw2Wubwm6nGV3/R2DFG8meu4NKB3PvmmmsngjCok++h0J6/jkqKE6o4uDubbP891GqjSOB9U/NrL8WYJV0xOKzuLgaJ3+alv3Fltg/hFH38GsMycI/3elBQpGWz56xYk/Jd+kUFxUdC9IaqC6oVdDDQHM5ItmCvDygTWTazPh1OFeqFfYjjH0GHFFHOhzRQvAA/CWFll6it7ZM+Oca/MLWwGxiiMvNKkwhZnL7oYJh4NIqAnJBSwHSAusKIBNLpo28gDbvMKuaCDLp97qqLB0tzD0wFVBsBOYbdRwyuKnR30TTIYmcunIIz6xjt2W76IzHiXIHAgMBAAECggEAHoihKkE7ImDXEbavTMY0C1bl/28xukehaVgPXpwiiz0kF1HCqz1JqTfPR41ciKhX7QcxWRS71gvZTblgW/oWNAzuLhwDsO4knn+M4V+gVSd0nR1jAsM3uosnfuGn25v0Vxxh+CLP4M0WbqBGIQWtVNr75aXIYOQpU6PQhCTp+kjPs0ibIqpc+KEHSwQvHNbE7N0oeoikQGhkX8lKGvPw0Q7jvuEr/C/S8vzciv6GyFkw2LncpvXOIBGNlXT5ZrPzLP1QrGMp3DxxTAWK0IzIwkjYahsURRQFbWxJkqcbKw1sLT/hwMAvMMuT4O5z79RwoJR/ril3r6vptXWZV5lH2QKBgQDXFGQU8LEVsmWhOpYEaqQCGMjjSWWzSGm7Yd60eJydEUpvf4l3VlZs+8JjFKJGyMyp/eRo+7J3A0JcsOgrJLaR/faaTSIIh3FDcOVez6Yl4bqQUlTVwBH4AhkwTkqK1QQ2hNThbvXbv093AhxsY3f3SGg8fkuN2ziFeKzq/Wh3FQKBgQDNjwOjI8S0Xo4u6DEdNMEezS/f00S058zZtZziHTIMEQ7fFJQZ3DFVAjkgBWRBVLb1NEq9U6XdTpD/lFNUBY3DH2qjWv4LBYPk5kqFgiuKnFmoD/gnzchGs2+4EgUdODZB/QPPBCqXA7XN/JT7VoiTWGIzAf7lv84YgUmT2BQLqwKBgCdSlRG3B8ldunMF0ROxo5a2jVPwwWVL4fjeZec8/fVBighkmu90m4yFYv7WcOzcHX8e6jm/etuDfwiPV4M7zR1X/1QqsgQ5Lx4Tb/wrnsbiREfKpbQGz8I2MADC76H+XCzTkFA/BzhL++1YN3YhoXdWh6g3tvySjfzpGURFXGoZAoGAGJS6jZ6wXhVUkV1oyiJN2b4VtIFSHQP/JiWmng95taGwkpKmZzVCnPTIGgErDPjxa/8V1PAUzJMhmb6F/G0xl5zBJsmxyWWecRfs32xCgq/RtNw8A56DDZlVicB15hmbu2ZjNzU7VpW1/uzub+PYLy6Jh6n8bkLyhVGol8pmE0MCgYEArcC+amAbHBU5DExuoXCP6pF/5Q6o13tFuG3PwWoJMCFgIGDcckBl4Hs102tkdhkH+KVmwhUFPIUp8Dg9GiEkhZi8PkkhVhAJwJEIZaNSNyOja1b5K8i7wm9xJWVumLD7wPz2I/dHv/jfHFZ1KsCb9yZg4aqGWVIRt8+vgIb97mI="
 
 // Original configuration before migrations.
 const confZero = `
@@ -380,10 +377,10 @@ const confZero = `
   metrics = "metrics"
 
   # The peer ID of the host.
-  peer_id = "` + confZeroPID + `"
+  peer_id = "` + cfg.ConfZeroPID + `"
 
   # The private key of the host.
-    private_key = "` + confZeroPK + `"
+    private_key = "` + cfg.ConfZeroPK + `"
 
   # The name of the stream muxer service.
   stream_muxer = "mssmux"

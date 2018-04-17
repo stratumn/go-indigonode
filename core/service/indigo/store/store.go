@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
@@ -74,9 +75,10 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:      "host",
-		Version:   "0.1.0",
-		NetworkID: "",
+		Host:       "host",
+		Version:    "0.1.0",
+		NetworkID:  "",
+		PrivateKey: cfg.ConfZeroPK,
 	}
 }
 
@@ -113,13 +115,18 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
+	hostPrivateKey, err := s.config.UnmarshalPrivateKey()
+	if err != nil {
+		return err
+	}
+
 	// We can't use the input context as a parent because it is cancelled
 	// before we do the cleanup (see the <-ctx.Done() line).
 	// For part of the floodsub cleanup, we need an active context.
 	networkCtx, cancelNetwork := context.WithCancel(context.Background())
 	defer cancelNetwork()
 
-	networkMgr := protocol.NewNetworkManager()
+	networkMgr := protocol.NewNetworkManager(hostPrivateKey)
 	if err := networkMgr.Join(networkCtx, s.config.NetworkID, s.host); err != nil {
 		return err
 	}
@@ -142,7 +149,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	cancelListen()
 	<-errChan
 
-	err := networkMgr.Leave(networkCtx, s.config.NetworkID)
+	err = networkMgr.Leave(networkCtx, s.config.NetworkID)
 	if err != nil {
 		return err
 	}

@@ -195,6 +195,9 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("storage.upload_timeout", "10m")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("indigostore.private_key", tree.Get("swarm.private_key"))
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

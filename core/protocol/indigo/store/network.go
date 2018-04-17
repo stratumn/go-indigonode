@@ -18,7 +18,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -27,6 +26,7 @@ import (
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
 
@@ -59,6 +59,8 @@ type NetworkManager interface {
 
 // PubSubNetworkManager implements the NetworkManager interface.
 type PubSubNetworkManager struct {
+	peerKey ic.PrivKey
+
 	networkMutex sync.Mutex
 	networkID    string
 	host         Host
@@ -70,8 +72,8 @@ type PubSubNetworkManager struct {
 }
 
 // NewNetworkManager creates a new NetworkManager.
-func NewNetworkManager() NetworkManager {
-	return &PubSubNetworkManager{}
+func NewNetworkManager(peerKey ic.PrivKey) NetworkManager {
+	return &PubSubNetworkManager{peerKey: peerKey}
 }
 
 // Join joins a PoP network that uses floodsub to share links.
@@ -173,16 +175,10 @@ func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err 
 		event.Done()
 	}()
 
-	linkBytes, err := json.Marshal(link)
+	signedLink, err := pb.NewSignedLink(m.peerKey, link)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
-
-	signedLink := &pb.SignedLink{
-		Link: linkBytes,
-	}
-
-	// TODO: sign link and provide my PeerID
 
 	signedLinkBytes, err := signedLink.Marshal()
 	if err != nil {

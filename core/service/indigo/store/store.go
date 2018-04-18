@@ -27,6 +27,7 @@ import (
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/dummystore"
+	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
 	"google.golang.org/grpc"
@@ -187,6 +188,34 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			}
 
 			return s.store.GetSegment(ctx, linkHash)
+		},
+		DoFindSegments: func(ctx context.Context, filter *indigostore.SegmentFilter) (cs.SegmentSlice, error) {
+			if s.store == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.store.FindSegments(ctx, filter)
+		},
+		DoGetMapIDs: func(ctx context.Context, filter *indigostore.MapFilter) ([]string, error) {
+			if s.store == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.store.GetMapIDs(ctx, filter)
+		},
+		DoAddEvidence: func(ctx context.Context, linkHash *types.Bytes32, evidence *cs.Evidence) error {
+			if s.store == nil {
+				return ErrUnavailable
+			}
+
+			return s.store.AddEvidence(ctx, linkHash, evidence)
+		},
+		DoGetEvidences: func(ctx context.Context, linkHash *types.Bytes32) (*cs.Evidences, error) {
+			if s.store == nil {
+				return nil, ErrUnavailable
+			}
+
+			return s.store.GetEvidences(ctx, linkHash)
 		},
 	})
 }

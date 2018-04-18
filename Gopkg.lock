@@ -12,7 +12,6 @@
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
   revision = "606f1ef31447526b908244933d5b716397a6bad8"
-  source = "github.com/apache/thrift"
 
 [[projects]]
   branch = "master"
@@ -346,17 +345,22 @@
   branch = "master"
   name = "github.com/stratumn/go-indigocore"
   packages = [
+    "batchfossilizer/evidences",
+    "bcbatchfossilizer/evidences",
     "bufferedbatch",
     "cs",
     "cs/cstesting",
+    "dummyfossilizer/evidences",
     "dummystore",
     "fossilizer",
+    "fossilizer/evidences",
     "monitoring",
     "store",
+    "store/storetestcases",
     "testutil",
     "types"
   ]
-  revision = "c547125fa0e051604246c8956609d9ada8bbb58f"
+  revision = "6c7458f5816f6bc69678213683a43b379b4429ff"
 
 [[projects]]
   branch = "master"
@@ -544,6 +548,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "99c2cc1a87dbbe06496f85ed50c950521db6d938658e7dda96ef9495cb5865c6"
+  inputs-digest = "cfa146173031884fc585d8db8ec2b0594384223a4452264fecd4cdce4c1332f1"
   solver-name = "gps-cdcl"
   solver-version = 1

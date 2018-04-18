@@ -154,3 +154,45 @@ func (s *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Se
 
 	return s.store.GetSegment(ctx, linkHash)
 }
+
+// FindSegments forwards the request to the underlying store.
+func (s *Store) FindSegments(ctx context.Context, filter *store.SegmentFilter) (cs.SegmentSlice, error) {
+	log.Event(ctx, "FindSegments")
+	return s.store.FindSegments(ctx, filter)
+}
+
+// GetMapIDs forwards the request to the underlying store.
+func (s *Store) GetMapIDs(ctx context.Context, filter *store.MapFilter) ([]string, error) {
+	log.Event(ctx, "GetMapIDs")
+	return s.store.GetMapIDs(ctx, filter)
+}
+
+// AddEvidence forwards the request to the underlying store.
+func (s *Store) AddEvidence(ctx context.Context, linkHash *types.Bytes32, evidence *cs.Evidence) error {
+	log.Event(ctx, "AddEvidence", logging.Metadata{
+		"link_hash": linkHash.String(),
+	})
+
+	return s.store.AddEvidence(ctx, linkHash, evidence)
+}
+
+// GetEvidences forwards the request to the underlying store.
+func (s *Store) GetEvidences(ctx context.Context, linkHash *types.Bytes32) (*cs.Evidences, error) {
+	log.Event(ctx, "GetEvidences", logging.Metadata{
+		"link_hash": linkHash.String(),
+	})
+
+	return s.store.GetEvidences(ctx, linkHash)
+}
+
+// AddStoreEventChannel forwards the request to the underlying store.
+func (s *Store) AddStoreEventChannel(c chan *store.Event) {
+	log.Event(context.Background(), "AddStoreEventChannel")
+	s.store.AddStoreEventChannel(c)
+}
+
+// NewBatch forwards the request to the underlying store.
+func (s *Store) NewBatch(ctx context.Context) (store.Batch, error) {
+	log.Event(ctx, "NewBatch")
+	return s.store.NewBatch(ctx)
+}

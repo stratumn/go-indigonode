@@ -17,7 +17,9 @@ package store_test
 import (
 	"testing"
 
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
 	"github.com/stratumn/alice/core/service/indigo/store"
+	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,4 +54,20 @@ func TestConfig_UnmarshalPrivateKey(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConfig_CreateStores(t *testing.T) {
+	config := &store.Config{StorageType: "in-memory"}
+
+	auditStore, err := config.CreateAuditStore()
+	assert.NoError(t, err)
+	assert.NotNil(t, auditStore)
+	_, ok := auditStore.(*dummyauditstore.DummyAuditStore)
+	assert.True(t, ok)
+
+	indigoStore, err := config.CreateIndigoStore()
+	assert.NoError(t, err)
+	assert.NotNil(t, indigoStore)
+	_, ok = indigoStore.(*dummystore.DummyStore)
+	assert.True(t, ok)
 }

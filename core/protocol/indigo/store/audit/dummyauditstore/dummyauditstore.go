@@ -34,8 +34,8 @@ type DummyAuditStore struct {
 	auditMap     map[peer.ID][]pb.SignedLink
 }
 
-// NewDummyAuditStore creates a new DummyAuditStore.
-func NewDummyAuditStore() audit.Store {
+// New creates a new DummyAuditStore.
+func New() audit.Store {
 	return &DummyAuditStore{
 		auditMap: make(map[peer.ID][]pb.SignedLink),
 	}

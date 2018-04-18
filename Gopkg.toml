@@ -51,7 +51,7 @@
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "1.2.0"
+  version = "^1.2.0"
 
 [[constraint]]
   name = "github.com/takama/daemon"
@@ -69,8 +69,3 @@
 [[constraint]]
   name = "github.com/stratumn/go-indigocore"
   branch = "master"
-
-[[override]]
-  branch = "master"
-  name = "git.apache.org/thrift.git"
-  source = "github.com/apache/thrift"

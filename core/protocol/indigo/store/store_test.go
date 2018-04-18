@@ -30,7 +30,8 @@ import (
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
-	"github.com/stratumn/go-indigocore/types"
+	indigostore "github.com/stratumn/go-indigocore/store"
+	"github.com/stratumn/go-indigocore/store/storetestcases"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -216,48 +217,16 @@ func TestCreateLink(t *testing.T) {
 	}
 }
 
-func TestGetSegment(t *testing.T) {
-	linkHashNotFound, _ := types.NewBytes32FromString("4242424242424242424242424242424242424242424242424242424242424242")
-	testLink := cstesting.RandomLink()
-	testLinkHash, _ := testLink.Hash()
+func TestIndigoStoreImpl(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	tests := []struct {
-		name    string
-		prepare func(*testing.T, *store.Store, *mocknetworkmanager.MockNetworkManager)
-		run     func(*testing.T, *store.Store)
-	}{{
-		"missing-link",
-		func(*testing.T, *store.Store, *mocknetworkmanager.MockNetworkManager) {},
-		func(t *testing.T, s *store.Store) {
-			seg, err := s.GetSegment(context.Background(), linkHashNotFound)
-			assert.NoError(t, err, "s.GetSegment()")
-			assert.Nil(t, seg, "s.GetSegment()")
+	storetestcases.Factory{
+		New: func() (indigostore.Adapter, error) {
+			store, networkMgr := createTestStore(ctrl)
+			networkMgr.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+
+			return store, nil
 		},
-	}, {
-		"valid-link",
-		func(t *testing.T, s *store.Store, n *mocknetworkmanager.MockNetworkManager) {
-			n.EXPECT().Publish(gomock.Any(), testLink).Times(1)
-
-			_, err := s.CreateLink(context.Background(), testLink)
-			assert.NoError(t, err, "s.CreateLink()")
-		},
-		func(t *testing.T, s *store.Store) {
-			seg, err := s.GetSegment(context.Background(), testLinkHash)
-			assert.NoError(t, err, "s.GetSegment()")
-			assert.NotNil(t, seg, "s.GetSegment()")
-
-			assert.Equal(t, testLink, &seg.Link, "seg.Link")
-		},
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			s, networkMgr := createTestStore(ctrl)
-			tt.prepare(t, s, networkMgr)
-			tt.run(t, s)
-		})
-	}
+	}.RunStoreTests(t)
 }

@@ -167,15 +167,6 @@ func (s *Store) GetMapIDs(ctx context.Context, filter *store.MapFilter) ([]strin
 	return s.store.GetMapIDs(ctx, filter)
 }
 
-// GetEvidences forwards the request to the underlying store.
-func (s *Store) GetEvidences(ctx context.Context, linkHash *types.Bytes32) (*cs.Evidences, error) {
-	log.Event(ctx, "GetEvidences", logging.Metadata{
-		"link_hash": linkHash.String(),
-	})
-
-	return s.store.GetEvidences(ctx, linkHash)
-}
-
 // AddEvidence forwards the request to the underlying store.
 func (s *Store) AddEvidence(ctx context.Context, linkHash *types.Bytes32, evidence *cs.Evidence) error {
 	log.Event(ctx, "AddEvidence", logging.Metadata{
@@ -183,6 +174,15 @@ func (s *Store) AddEvidence(ctx context.Context, linkHash *types.Bytes32, eviden
 	})
 
 	return s.store.AddEvidence(ctx, linkHash, evidence)
+}
+
+// GetEvidences forwards the request to the underlying store.
+func (s *Store) GetEvidences(ctx context.Context, linkHash *types.Bytes32) (*cs.Evidences, error) {
+	log.Event(ctx, "GetEvidences", logging.Metadata{
+		"link_hash": linkHash.String(),
+	})
+
+	return s.store.GetEvidences(ctx, linkHash)
 }
 
 // AddStoreEventChannel forwards the request to the underlying store.

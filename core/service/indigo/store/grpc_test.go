@@ -36,13 +36,13 @@ func TestGRPCServer_CreateLink(t *testing.T) {
 	t.Run("missing-input", func(t *testing.T) {
 		server := &grpcServer{}
 		_, err := server.CreateLink(context.Background(), nil)
-		assert.EqualError(t, err, ErrInvalidArgument.Error(), "server.CreateLink()")
+		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.CreateLink()")
 	})
 
 	t.Run("non-json-input", func(t *testing.T) {
 		server := &grpcServer{}
 		_, err := server.CreateLink(context.Background(), &rpcpb.Link{Data: []byte("{iAm_m4lf0rm3D")})
-		assert.EqualError(t, err, ErrInvalidArgument.Error(), "server.CreateLink()")
+		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.CreateLink()")
 	})
 
 	t.Run("store-error", func(t *testing.T) {
@@ -80,7 +80,7 @@ func TestGRPCServer_GetSegment(t *testing.T) {
 	t.Run("missing-input", func(t *testing.T) {
 		server := &grpcServer{}
 		_, err := server.GetSegment(context.Background(), nil)
-		assert.EqualError(t, err, ErrInvalidArgument.Error(), "server.GetSegment()")
+		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.GetSegment()")
 	})
 
 	t.Run("store-error", func(t *testing.T) {

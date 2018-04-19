@@ -25,7 +25,7 @@ import (
 func TestDummyAuditStore(t *testing.T) {
 	storetestcases.Factory{
 		New: func() (audit.Store, error) {
-			return dummyauditstore.NewDummyAuditStore(), nil
+			return dummyauditstore.New(), nil
 		},
 		Free: func(audit.Store) {},
 	}.RunTests(t)

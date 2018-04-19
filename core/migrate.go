@@ -198,6 +198,9 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("indigostore.private_key", tree.Get("swarm.private_key"))
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("indigostore.storage_type", "in-memory")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

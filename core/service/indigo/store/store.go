@@ -23,10 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
-	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/dummystore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
@@ -78,10 +76,11 @@ func (s *Service) Config() interface{} {
 
 	// Set the default configuration settings of your service here.
 	return Config{
-		Host:       "host",
-		Version:    "0.1.0",
-		NetworkID:  "",
-		PrivateKey: cfg.ConfZeroPK,
+		Host:        "host",
+		Version:     "0.1.0",
+		NetworkID:   "",
+		PrivateKey:  cfg.ConfZeroPK,
+		StorageType: "in-memory",
 	}
 }
 
@@ -123,6 +122,16 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
+	indigoStore, err := s.config.CreateIndigoStore()
+	if err != nil {
+		return err
+	}
+
+	auditStore, err := s.config.CreateAuditStore()
+	if err != nil {
+		return err
+	}
+
 	// We can't use the input context as a parent because it is cancelled
 	// before we do the cleanup (see the <-ctx.Done() line).
 	// For part of the floodsub cleanup, we need an active context.
@@ -134,12 +143,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	// TODO: audit store and indigo store should be built from configuration choices.
-	s.store = protocol.New(
-		networkMgr,
-		dummystore.New(&dummystore.Config{}),
-		dummyauditstore.NewDummyAuditStore(),
-	)
+	s.store = protocol.New(networkMgr, indigoStore, auditStore)
 
 	errChan := make(chan error)
 	listenCtx, cancelListen := context.WithCancel(networkCtx)

@@ -152,7 +152,6 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 		for _, l := range missedLinks {
 			_, err := b.CreateLink(ctx, l)
 			if err != nil {
-				s.addAuditTrail(ctx, remoteLink)
 				return err
 			}
 		}

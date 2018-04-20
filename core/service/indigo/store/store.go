@@ -143,7 +143,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	s.store = protocol.New(networkMgr, indigoStore, auditStore)
+	// TODO: initialize sync engine
+	s.store = protocol.New(networkMgr, nil, indigoStore, auditStore)
 
 	errChan := make(chan error)
 	listenCtx, cancelListen := context.WithCancel(networkCtx)

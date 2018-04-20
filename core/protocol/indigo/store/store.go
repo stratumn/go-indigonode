@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/go-indigocore/store Adapter
+
 package store
 
 import (
@@ -34,17 +36,24 @@ var log = logging.Logger("indigo.store")
 type Store struct {
 	store      store.Adapter
 	auditStore audit.Store
+	sync       SyncEngine
 	networkMgr NetworkManager
 	linksChan  <-chan *pb.SignedLink
 }
 
 // New creates a new Indigo store.
 // It expects a NetworkManager connected to a PoP network.
-func New(networkMgr NetworkManager, adapter store.Adapter, auditStore audit.Store) *Store {
+func New(
+	networkMgr NetworkManager,
+	sync SyncEngine,
+	adapter store.Adapter,
+	auditStore audit.Store,
+) *Store {
 	store := &Store{
 		store:      adapter,
 		auditStore: auditStore,
 		networkMgr: networkMgr,
+		sync:       sync,
 	}
 
 	store.linksChan = networkMgr.AddListener()
@@ -68,6 +77,15 @@ func (s *Store) listenNetwork() {
 	}
 }
 
+func (s *Store) addAuditTrail(ctx context.Context, remoteLink *pb.SignedLink) {
+	event := log.EventBegin(ctx, "AddAuditTrail", logging.Metadata{"sender": remoteLink.From})
+	defer event.Done()
+
+	if err := s.auditStore.AddLink(ctx, remoteLink); err != nil {
+		event.SetError(err)
+	}
+}
+
 func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink) {
 	event := log.EventBegin(ctx, "NetworkNewLink")
 	defer event.Done()
@@ -77,31 +95,81 @@ func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink)
 		return
 	}
 
-	addAuditTrail := func(err error) {
-		event.SetError(errors.WithStack(err))
-
-		if err := s.auditStore.AddLink(ctx, remoteLink); err != nil {
-			event.Append(logging.Metadata{"auditError": err.Error()})
-		}
-	}
-
 	var link cs.Link
 	err := json.Unmarshal(remoteLink.Link, &link)
 	if err != nil {
-		addAuditTrail(err)
+		event.SetError(errors.Wrap(err, "malformed link"))
+		s.addAuditTrail(ctx, remoteLink)
+		return
+	}
+
+	lh, _ := link.Hash()
+	seg, _ := s.store.GetSegment(ctx, lh)
+	if seg != nil {
+		event.Append(logging.Metadata{"already_stored": true})
+		return
+	}
+
+	if err = s.syncMissingLinks(ctx, &link, remoteLink); err != nil {
+		event.SetError(errors.Wrap(err, "could not sync missing links"))
 		return
 	}
 
 	if err = link.Validate(ctx, s.GetSegment); err != nil {
-		addAuditTrail(err)
+		event.SetError(errors.Wrap(err, "invalid link"))
+		s.addAuditTrail(ctx, remoteLink)
 		return
 	}
 
 	_, err = s.store.CreateLink(ctx, &link)
 	if err != nil {
-		event.SetError(err)
+		event.SetError(errors.Wrap(err, "could not add to store"))
 		return
 	}
+}
+
+func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink *pb.SignedLink) (err error) {
+	event := log.EventBegin(ctx, "SyncMissingLinks")
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+		}
+
+		event.Done()
+	}()
+
+	missedLinks, err := s.sync.GetMissingLinks(ctx, link, s.store)
+	if err != nil {
+		return err
+	}
+
+	if len(missedLinks) != 0 {
+		b, err := s.store.NewBatch(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, l := range missedLinks {
+			_, err := b.CreateLink(ctx, l)
+			if err != nil {
+				s.addAuditTrail(ctx, remoteLink)
+				return err
+			}
+		}
+
+		for _, l := range missedLinks {
+			if err = l.Validate(ctx, b.GetSegment); err != nil {
+				s.addAuditTrail(ctx, remoteLink)
+				return err
+			}
+		}
+
+		if err = b.Write(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Close cleans up the store and stops it.

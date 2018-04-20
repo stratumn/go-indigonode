@@ -19,3 +19,5 @@ For each Indigo service, you'll need to configure several values yourself.
 You'll need to configure the following values yourself in the `indigostore` section in `alice.core.toml`:
 
 * _network_id_: the unique id of your Indigo network
+* _storage_type_: the type of underlying storage used (in-memory or postgresql)
+* _storage_db_url_: if using postgresql, the url of the database

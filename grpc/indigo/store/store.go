@@ -58,6 +58,16 @@ func (l *Link) ToLink() (*cs.Link, error) {
 	return &link, nil
 }
 
+// FromLink converts from the Indigo-core type.
+func FromLink(l *cs.Link) (*Link, error) {
+	linkBytes, err := json.Marshal(l)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Link{Data: linkBytes}, nil
+}
+
 // FromSegment converts from the Indigo-core type.
 func FromSegment(s *cs.Segment) (*Segment, error) {
 	segmentBytes, err := json.Marshal(s)

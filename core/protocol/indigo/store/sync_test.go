@@ -105,7 +105,9 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 
 		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*cs.Link{prevLink, refLink1}, links)
+		assert.Len(t, links, 2)
+		assert.Contains(t, links, prevLink)
+		assert.Contains(t, links, refLink1)
 	})
 
 	t.Run("link-missing-from-all-peers", func(t *testing.T) {
@@ -149,8 +151,80 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		assert.EqualError(t, err, store.ErrLinkNotFound.Error())
 	})
 
-	// More complex case with 3 hosts and dependencies split between these hosts, recursion needed.
+	t.Run("recursive-multinode-sync", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h3 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+		defer h3.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+		assert.NoError(t, h1.Connect(ctx, h3.Peerstore().PeerInfo(h3.ID())))
+
+		prevPrevLink := cstesting.RandomLink()
+		prevPrevLink.Meta.PrevLinkHash = ""
+		prevPrevLinkHash, _ := prevPrevLink.Hash()
+
+		prevLink := cstesting.RandomLink()
+		prevLink.Meta.PrevLinkHash = ""
+		prevLink.Meta.Refs = []cs.SegmentReference{{LinkHash: prevPrevLinkHash.String()}}
+		prevLinkHash, _ := prevLink.Hash()
+
+		prevRefLink := cstesting.RandomLink()
+		prevRefLink.Meta.PrevLinkHash = ""
+		prevRefLinkHash, _ := prevRefLink.Hash()
+
+		refLink := cstesting.RandomLink()
+		refLink.Meta.PrevLinkHash = prevRefLinkHash.String()
+		refLinkHash, _ := refLink.Hash()
+
+		link := cstesting.RandomLink()
+		link.Meta.PrevLinkHash = prevLinkHash.String()
+		link.Meta.Refs = []cs.SegmentReference{{LinkHash: refLinkHash.String()}}
+
+		store1 := dummystore.New(&dummystore.Config{})
+		store1.CreateLink(ctx, prevRefLink)
+
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevLink)
+
+		store3 := dummystore.New(&dummystore.Config{})
+		store3.CreateLink(ctx, refLink)
+		store3.CreateLink(ctx, prevPrevLink)
+
+		engine1 := store.NewSynchronousSyncEngine(h1, store1)
+		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		engine3 := store.NewSynchronousSyncEngine(h3, store3)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+		defer engine3.Close(ctx)
+
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
+		assert.NoError(t, err)
+		assert.Len(t, links, 3)
+		assert.Contains(t, links, prevPrevLink)
+		assert.Contains(t, links, prevLink)
+		assert.Contains(t, links, refLink)
+
+		// To comply with dependency ordering, prevPrevLink should appear
+		// before prevLink.
+		assert.True(t, getLinkIndex(prevPrevLink, links) < getLinkIndex(prevLink, links))
+	})
+
 	// Test references including entire segment (with 3 hosts and split deps).
-	// Verify results dependency ordering.
-	// Unexpected errors cases (network, signatures, etc).
+}
+
+func getLinkIndex(link *cs.Link, links []*cs.Link) int {
+	linkHash, _ := link.HashString()
+	for i, l := range links {
+		lh, _ := l.HashString()
+		if linkHash == lh {
+			return i
+		}
+	}
+
+	return -1
 }

@@ -18,8 +18,7 @@ package store
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"io"
 
 	"github.com/pkg/errors"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
@@ -97,22 +96,25 @@ func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Li
 
 	event.Append(logging.Metadata{"link_hash": lh.String()})
 
-	toFetch, err := listMissingLinkHashes(ctx, link, reader)
-	if err != nil {
-		return nil, err
-	}
-
-	event.Append(logging.Metadata{"fetching": strings.Join(toFetch, ",")})
-
 	connectedPeers := s.host.Network().Peers()
 	if len(connectedPeers) == 0 {
 		return nil, ErrNoConnectedPeers
 	}
 
+	toFetch, err := listMissingLinkHashes(ctx, link, reader)
+	if err != nil {
+		return nil, err
+	}
+
 	var fetchedLinks []*cs.Link
 
-	for _, linkHashStr := range toFetch {
+	for len(toFetch) > 0 {
+		linkHashStr := toFetch[0]
+		toFetch = toFetch[1:]
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
+
+		event.Append(logging.Metadata{"fetching": linkHashStr})
+
 		found := false
 
 		// We currently test each peer one after the other.
@@ -123,18 +125,30 @@ func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Li
 		for _, pid := range s.host.Network().Peers() {
 			l, err := s.getLinkFromPeer(ctx, pid, linkHash)
 			if err != nil {
-				event.Append(logging.Metadata{
-					fmt.Sprintf("stream_error_%s", pid.Pretty()): err,
-				})
+				if err != io.EOF {
+					event.Append(logging.Metadata{
+						"peer":         pid.Pretty(),
+						"stream_error": err,
+					})
+				}
 				continue
 			}
 
-			fetchedLinks = append(fetchedLinks, l)
+			// We need to prepend to make sure links are correctly dependency-ordered.
+			fetchedLinks = append([]*cs.Link{l}, fetchedLinks...)
 			found = true
+
+			moreToFetch, err := listMissingLinkHashes(ctx, l, reader)
+			if err != nil {
+				return nil, err
+			}
+
+			toFetch = append(toFetch, moreToFetch...)
 			break
 		}
 
 		if !found {
+			event.SetError(errors.Wrap(ErrLinkNotFound, linkHashStr))
 			return nil, ErrLinkNotFound
 		}
 	}
@@ -170,7 +184,10 @@ func (s *SynchronousSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID
 // that can't be found in the local store.
 func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]string, error) {
 	var referencedLinkHashes []string
-	referencedLinkHashes = append(referencedLinkHashes, link.Meta.PrevLinkHash)
+
+	if link.Meta.PrevLinkHash != "" {
+		referencedLinkHashes = append(referencedLinkHashes, link.Meta.PrevLinkHash)
+	}
 
 	for _, ref := range link.Meta.Refs {
 		// TODO: deal with refs including full link (blindly add to the results list?)

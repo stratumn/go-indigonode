@@ -39,6 +39,9 @@ var (
 	// ErrNoConnectedPeers is returned when there are no connections to
 	// peers available.
 	ErrNoConnectedPeers = errors.New("not connected to any peer")
+
+	// ErrLinkNotFound is returned when a link cannot be synced from our peers.
+	ErrLinkNotFound = errors.New("link could not be synced from peers")
 )
 
 var (
@@ -110,6 +113,7 @@ func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Li
 
 	for _, linkHashStr := range toFetch {
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
+		found := false
 
 		// We currently test each peer one after the other.
 		// This wastes less bandwidth than trying all of them in parallel,
@@ -126,7 +130,12 @@ func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Li
 			}
 
 			fetchedLinks = append(fetchedLinks, l)
+			found = true
 			break
+		}
+
+		if !found {
+			return nil, ErrLinkNotFound
 		}
 	}
 
@@ -170,7 +179,10 @@ func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.Segm
 		}
 	}
 
-	storedSegments, err := reader.FindSegments(ctx, &store.SegmentFilter{LinkHashes: referencedLinkHashes})
+	storedSegments, err := reader.FindSegments(ctx, &store.SegmentFilter{
+		LinkHashes: referencedLinkHashes,
+		Pagination: store.Pagination{Limit: len(referencedLinkHashes)},
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't find segments")
 	}
@@ -193,43 +205,49 @@ func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.Segm
 
 func (s *SynchronousSyncEngine) syncHandler(stream inet.Stream) {
 	ctx := context.Background()
+	var err error
 	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
 		"from": stream.Conn().RemotePeer().Pretty(),
 	})
-	defer event.Done()
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+		}
+
+		event.Done()
+		stream.Close()
+	}()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var linkHash rpcpb.LinkHash
-	err := dec.Decode(&linkHash)
+	err = dec.Decode(&linkHash)
 	if err != nil {
-		event.SetError(err)
 		return
 	}
 
 	lh, err := linkHash.ToLinkHash()
 	if err != nil {
-		event.SetError(err)
 		return
 	}
 
 	event.Append(logging.Metadata{"link_hash": lh.String()})
 
 	seg, err := s.store.GetSegment(ctx, lh)
-	if err != nil || s == nil {
-		event.SetError(err)
+	if err != nil {
+		return
+	}
+	if seg == nil {
 		return
 	}
 
 	link, err := rpcpb.FromLink(&seg.Link)
 	if err != nil {
-		event.SetError(err)
 		return
 	}
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 	err = enc.Encode(link)
 	if err != nil {
-		event.SetError(err)
 		return
 	}
 }

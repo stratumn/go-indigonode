@@ -68,25 +68,35 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 
-		// prevLink <--- link
-		//                 |
-		// refLink <-------|
+		// prevLink <--------- link
+		// refLink1 <------|
+		// refLink2 <------|
 		prevLink := cstesting.RandomLink()
 		prevLink.Meta.PrevLinkHash = ""
 		prevLinkHash, _ := prevLink.Hash()
-		refLink := cstesting.RandomLink()
-		refLink.Meta.PrevLinkHash = ""
-		refLinkHash, _ := refLink.Hash()
+
+		refLink1 := cstesting.RandomLink()
+		refLink1.Meta.PrevLinkHash = ""
+		refLinkHash1, _ := refLink1.Hash()
+
+		refLink2 := cstesting.RandomLink()
+		refLink2.Meta.PrevLinkHash = ""
+		refLinkHash2, _ := refLink2.Hash()
+
 		link := cstesting.RandomLink()
 		link.Meta.PrevLinkHash = prevLinkHash.String()
-		link.Meta.Refs = []cs.SegmentReference{{LinkHash: refLinkHash.String()}}
+		link.Meta.Refs = []cs.SegmentReference{
+			{LinkHash: refLinkHash1.String()},
+			{LinkHash: refLinkHash2.String()},
+		}
 
-		// Node 1 doesn't have anything stored yet
+		// Node 1 has refLink2
 		store1 := dummystore.New(&dummystore.Config{})
-		// Node 2 contains all the references needed
+		store1.CreateLink(ctx, refLink2)
+		// Node 2 contains all references except one.
 		store2 := dummystore.New(&dummystore.Config{})
 		store2.CreateLink(ctx, prevLink)
-		store2.CreateLink(ctx, refLink)
+		store2.CreateLink(ctx, refLink1)
 
 		engine1 := store.NewSynchronousSyncEngine(h1, store1)
 		engine2 := store.NewSynchronousSyncEngine(h2, store2)
@@ -95,12 +105,52 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 
 		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
-		assert.Equal(t, []*cs.Link{prevLink, refLink}, links)
+		assert.Equal(t, []*cs.Link{prevLink, refLink1}, links)
+	})
+
+	t.Run("link-missing-from-all-peers", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		// prevLink <--------- link
+		// refLink <------|
+		prevLink := cstesting.RandomLink()
+		prevLink.Meta.PrevLinkHash = ""
+		prevLinkHash, _ := prevLink.Hash()
+
+		refLink := cstesting.RandomLink()
+		refLink.Meta.PrevLinkHash = ""
+		refLinkHash, _ := refLink.Hash()
+
+		link := cstesting.RandomLink()
+		link.Meta.PrevLinkHash = prevLinkHash.String()
+		link.Meta.Refs = []cs.SegmentReference{
+			{LinkHash: refLinkHash.String()},
+		}
+
+		// Node 1 has nothing locally.
+		store1 := dummystore.New(&dummystore.Config{})
+		// Node 2 contains all references except one.
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevLink)
+
+		engine1 := store.NewSynchronousSyncEngine(h1, store1)
+		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+
+		_, err := engine1.GetMissingLinks(ctx, link, store1)
+		assert.EqualError(t, err, store.ErrLinkNotFound.Error())
 	})
 
 	// More complex case with 3 hosts and dependencies split between these hosts, recursion needed.
-	// Test references including entire segment.
+	// Test references including entire segment (with 3 hosts and split deps).
 	// Verify results dependency ordering.
-	// Case where there is a missing link. Sync should error out.
 	// Unexpected errors cases (network, signatures, etc).
 }

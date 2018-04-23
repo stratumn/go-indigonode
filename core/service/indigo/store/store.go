@@ -143,7 +143,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	syncEngine := protocol.NewSynchronousSyncEngine(s.host, indigoStore)
+	syncEngine := protocol.NewMultiNodeSyncEngine(s.host, indigoStore)
 
 	s.store = protocol.New(networkMgr, syncEngine, indigoStore, auditStore)
 

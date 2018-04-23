@@ -30,20 +30,20 @@ import (
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
 )
 
-func TestSynchronousSyncEngine_New(t *testing.T) {
+func TestMultiNodeSyncEngine_New(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	h := mockstore.NewMockHost(ctrl)
-	h.EXPECT().SetStreamHandler(store.SynchronousSyncProtocolID, gomock.Any()).Times(1)
-	h.EXPECT().RemoveStreamHandler(store.SynchronousSyncProtocolID).Times(1)
+	h.EXPECT().SetStreamHandler(store.MultiNodeSyncProtocolID, gomock.Any()).Times(1)
+	h.EXPECT().RemoveStreamHandler(store.MultiNodeSyncProtocolID).Times(1)
 
-	engine := store.NewSynchronousSyncEngine(h, nil)
+	engine := store.NewMultiNodeSyncEngine(h, nil)
 	engine.Close(ctx)
 }
 
-func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
+func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 	t.Run("node-not-connected", func(t *testing.T) {
 		ctx := context.Background()
 
@@ -51,7 +51,7 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		defer h.Close()
 
 		indigoStore := dummystore.New(&dummystore.Config{})
-		engine := store.NewSynchronousSyncEngine(h, indigoStore)
+		engine := store.NewMultiNodeSyncEngine(h, indigoStore)
 		defer engine.Close(ctx)
 
 		_, err := engine.GetMissingLinks(ctx, cstesting.RandomLink(), indigoStore)
@@ -98,8 +98,8 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, prevLink)
 		store2.CreateLink(ctx, refLink1)
 
-		engine1 := store.NewSynchronousSyncEngine(h1, store1)
-		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		engine1 := store.NewMultiNodeSyncEngine(h1, store1)
+		engine2 := store.NewMultiNodeSyncEngine(h2, store2)
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -142,8 +142,8 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		store2 := dummystore.New(&dummystore.Config{})
 		store2.CreateLink(ctx, prevLink)
 
-		engine1 := store.NewSynchronousSyncEngine(h1, store1)
-		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		engine1 := store.NewMultiNodeSyncEngine(h1, store1)
+		engine2 := store.NewMultiNodeSyncEngine(h2, store2)
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -195,9 +195,9 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		store3.CreateLink(ctx, refLink)
 		store3.CreateLink(ctx, prevPrevLink)
 
-		engine1 := store.NewSynchronousSyncEngine(h1, store1)
-		engine2 := store.NewSynchronousSyncEngine(h2, store2)
-		engine3 := store.NewSynchronousSyncEngine(h3, store3)
+		engine1 := store.NewMultiNodeSyncEngine(h1, store1)
+		engine2 := store.NewMultiNodeSyncEngine(h2, store2)
+		engine3 := store.NewMultiNodeSyncEngine(h3, store3)
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 		defer engine3.Close(ctx)
@@ -248,8 +248,8 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, prevLink)
 		store2.CreateLink(ctx, prevRefLink)
 
-		engine1 := store.NewSynchronousSyncEngine(h1, store1)
-		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		engine1 := store.NewMultiNodeSyncEngine(h1, store1)
+		engine2 := store.NewMultiNodeSyncEngine(h2, store2)
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 

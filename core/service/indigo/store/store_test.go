@@ -61,9 +61,9 @@ func expectHostNetwork(ctrl *gomock.Controller, host *mockstore.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
-	host.EXPECT().SetStreamHandler(protocol.ID(storeprotocol.SynchronousSyncProtocolID), gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.ID(storeprotocol.MultiNodeSyncProtocolID), gomock.Any())
 	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.FloodSubID))
-	host.EXPECT().RemoveStreamHandler(protocol.ID(storeprotocol.SynchronousSyncProtocolID))
+	host.EXPECT().RemoveStreamHandler(protocol.ID(storeprotocol.MultiNodeSyncProtocolID))
 }
 
 func TestService_Run(t *testing.T) {

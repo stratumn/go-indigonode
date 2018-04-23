@@ -33,42 +33,43 @@ import (
 )
 
 var (
-	// SynchronousSyncProtocolID is the protocol ID of synchronous sync engine.
-	SynchronousSyncProtocolID = protocol.ID("/alice/indigo/store/sync/synchronous/v1.0.0")
+	// MultiNodeSyncProtocolID is the protocol ID of the sync engine
+	// that splits the sync load between several nodes.
+	MultiNodeSyncProtocolID = protocol.ID("/alice/indigo/store/sync/multinode/v1.0.0")
 )
 
-// SynchronousSyncEngine synchronously syncs with peers to get
+// MultiNodeSyncEngine synchronously syncs with peers to get
 // all missing links in one shot. It asks directly each of its
 // connected peers for those missing links. The connected peers
 // don't recursively ask their own peers if they don't have the link,
 // so this sync engine will not work if you aren't connected to
 // at least one peer having the link.
-type SynchronousSyncEngine struct {
+type MultiNodeSyncEngine struct {
 	host  ihost.Host
 	store store.SegmentReader
 }
 
-// NewSynchronousSyncEngine creates a new SynchronousSyncEngine
+// NewMultiNodeSyncEngine creates a new MultiNodeSyncEngine
 // and registers its handlers.
-func NewSynchronousSyncEngine(host ihost.Host, store store.SegmentReader) *SynchronousSyncEngine {
-	engine := &SynchronousSyncEngine{
+func NewMultiNodeSyncEngine(host ihost.Host, store store.SegmentReader) *MultiNodeSyncEngine {
+	engine := &MultiNodeSyncEngine{
 		host:  host,
 		store: store,
 	}
 
-	engine.host.SetStreamHandler(SynchronousSyncProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(MultiNodeSyncProtocolID, engine.syncHandler)
 
 	return engine
 }
 
 // Close cleans up resources and protocol handlers.
-func (s *SynchronousSyncEngine) Close(ctx context.Context) {
-	s.host.RemoveStreamHandler(SynchronousSyncProtocolID)
+func (s *MultiNodeSyncEngine) Close(ctx context.Context) {
+	s.host.RemoveStreamHandler(MultiNodeSyncProtocolID)
 }
 
 // GetMissingLinks will recursively walk the link graph and get all the missing
 // links in one pass. This might be a long operation.
-func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
+func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
 	event := log.EventBegin(ctx, "GetMissingLinks")
 	defer event.Done()
 
@@ -139,8 +140,8 @@ func (s *SynchronousSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Li
 }
 
 // getLinkFromPeer requests a link from a chosen peer.
-func (s *SynchronousSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *types.Bytes32) (*cs.Link, error) {
-	stream, err := s.host.NewStream(ctx, pid, SynchronousSyncProtocolID)
+func (s *MultiNodeSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *types.Bytes32) (*cs.Link, error) {
+	stream, err := s.host.NewStream(ctx, pid, MultiNodeSyncProtocolID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't start peer stream")
 	}
@@ -212,7 +213,7 @@ func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.Segm
 	return missingLinkHashes, referencedLinks, nil
 }
 
-func (s *SynchronousSyncEngine) syncHandler(stream inet.Stream) {
+func (s *MultiNodeSyncEngine) syncHandler(stream inet.Stream) {
 	ctx := context.Background()
 	var err error
 	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{

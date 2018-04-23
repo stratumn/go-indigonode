@@ -16,6 +16,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -75,6 +76,7 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 
 	lh, err := link.Hash()
 	if err != nil {
+		event.SetError(err)
 		return nil, errors.Wrap(err, "invalid link hash")
 	}
 
@@ -82,6 +84,7 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 
 	connectedPeers := s.host.Network().Peers()
 	if len(connectedPeers) == 0 {
+		event.SetError(ErrNoConnectedPeers)
 		return nil, ErrNoConnectedPeers
 	}
 
@@ -90,12 +93,14 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 		return nil, err
 	}
 
+	linksCount := 0
 	for len(toFetch) > 0 {
+		linksCount++
 		linkHashStr := toFetch[0]
 		toFetch = toFetch[1:]
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
 
-		event.Append(logging.Metadata{"fetching": linkHashStr})
+		event.Append(logging.Metadata{fmt.Sprintf("fetching_%d", linksCount): linkHashStr})
 
 		found := false
 

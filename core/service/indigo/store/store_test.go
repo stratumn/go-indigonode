@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/manager/testservice"
+	storeprotocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
 	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
@@ -60,7 +61,9 @@ func expectHostNetwork(ctrl *gomock.Controller, host *mockstore.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.ID(storeprotocol.MultiNodeSyncProtocolID), gomock.Any())
 	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.FloodSubID))
+	host.EXPECT().RemoveStreamHandler(protocol.ID(storeprotocol.MultiNodeSyncProtocolID))
 }
 
 func TestService_Run(t *testing.T) {

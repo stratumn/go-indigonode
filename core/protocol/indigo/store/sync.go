@@ -19,8 +19,18 @@ package store
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
+)
+
+var (
+	// ErrNoConnectedPeers is returned when there are no connections to
+	// peers available.
+	ErrNoConnectedPeers = errors.New("not connected to any peer")
+
+	// ErrLinkNotFound is returned when a link cannot be synced from our peers.
+	ErrLinkNotFound = errors.New("link could not be synced from peers")
 )
 
 // SyncEngine lets a node sync with other nodes to fetch

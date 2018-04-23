@@ -360,7 +360,7 @@
     "testutil",
     "types"
   ]
-  revision = "6c7458f5816f6bc69678213683a43b379b4429ff"
+  revision = "877be3ef261a0f7a3f2097f55b099d3592eacc2b"
 
 [[projects]]
   branch = "master"

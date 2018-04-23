@@ -143,8 +143,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	// TODO: initialize sync engine
-	s.store = protocol.New(networkMgr, nil, indigoStore, auditStore)
+	syncEngine := protocol.NewMultiNodeSyncEngine(s.host, indigoStore)
+
+	s.store = protocol.New(networkMgr, syncEngine, indigoStore, auditStore)
 
 	errChan := make(chan error)
 	listenCtx, cancelListen := context.WithCancel(networkCtx)
@@ -154,7 +155,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	<-ctx.Done()
 	stopping()
 
-	// First close the store that uses the PoP network.
+	// Stop responding to sync requests.
+	syncEngine.Close(networkCtx)
+
+	// Close the store that uses the PoP network.
 	s.store.Close(networkCtx)
 	s.store = nil
 

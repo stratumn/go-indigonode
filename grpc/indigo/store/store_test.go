@@ -46,8 +46,8 @@ func TestLink(t *testing.T) {
 	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
 
 	link := cstesting.RandomLink()
-	linkBytes, _ := json.Marshal(link)
-	l = &store.Link{Data: linkBytes}
+	l, err = store.FromLink(link)
+	assert.NoError(t, err)
 
 	link2, err := l.ToLink()
 	assert.NoError(t, err)

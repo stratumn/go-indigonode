@@ -150,7 +150,11 @@ func (s *MultiNodeSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, 
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't start peer stream")
 	}
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Event(ctx, "StreamCloseError", logging.Metadata{"err": err})
+		}
+	}()
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 	err = enc.Encode(rpcpb.FromLinkHash(lh))
@@ -229,8 +233,11 @@ func (s *MultiNodeSyncEngine) syncHandler(stream inet.Stream) {
 			event.SetError(err)
 		}
 
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"stream_close_err": err})
+		}
+
 		event.Done()
-		stream.Close()
 	}()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)

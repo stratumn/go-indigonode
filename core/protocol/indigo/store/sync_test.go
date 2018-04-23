@@ -214,7 +214,52 @@ func TestSynchronousSyncEngine_GetMissingLinks(t *testing.T) {
 		assert.True(t, getLinkIndex(prevPrevLink, links) < getLinkIndex(prevLink, links))
 	})
 
-	// Test references including entire segment (with 3 hosts and split deps).
+	t.Run("reference-segment-included", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		prevRefLink := cstesting.RandomLink()
+		prevRefLink.Meta.PrevLinkHash = ""
+		prevRefLinkHash, _ := prevRefLink.Hash()
+
+		// Referenced link fully included in prevLink.
+		// Will not be stored anywhere.
+		refLink := cstesting.RandomLink()
+		refLink.Meta.PrevLinkHash = prevRefLinkHash.String()
+
+		prevLink := cstesting.RandomLink()
+		prevLink.Meta.PrevLinkHash = ""
+		prevLink.Meta.Refs = []cs.SegmentReference{
+			{Segment: refLink.Segmentify()},
+		}
+		prevLinkHash, _ := prevLink.Hash()
+
+		link := cstesting.RandomLink()
+		link.Meta.PrevLinkHash = prevLinkHash.String()
+
+		store1 := dummystore.New(&dummystore.Config{})
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevLink)
+		store2.CreateLink(ctx, prevRefLink)
+
+		engine1 := store.NewSynchronousSyncEngine(h1, store1)
+		engine2 := store.NewSynchronousSyncEngine(h2, store2)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
+		assert.NoError(t, err)
+		assert.Len(t, links, 3)
+		assert.Equal(t, prevRefLink, links[0])
+		assert.Equal(t, refLink, links[1])
+		assert.Equal(t, prevLink, links[2])
+	})
 }
 
 func getLinkIndex(link *cs.Link, links []*cs.Link) int {

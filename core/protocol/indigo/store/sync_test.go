@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
+	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stretchr/testify/assert"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
@@ -31,6 +32,73 @@ import (
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
+
+func TestListMissingLinkHashes(t *testing.T) {
+	ctx := context.Background()
+
+	testCases := []struct {
+		name  string
+		setup func() (*cs.Link, indigostore.SegmentReader, []string)
+	}{{
+		"nothing-missing",
+		func() (*cs.Link, indigostore.SegmentReader, []string) {
+			prevLink := cstesting.NewLinkBuilder().Build()
+			refLink := cstesting.NewLinkBuilder().Build()
+			link := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(refLink).
+				Build()
+
+			s := dummystore.New(&dummystore.Config{})
+			s.CreateLink(ctx, prevLink)
+			s.CreateLink(ctx, refLink)
+
+			return link, s, []string{}
+		},
+	}, {
+		"some-missing",
+		func() (*cs.Link, indigostore.SegmentReader, []string) {
+			prevLink := cstesting.NewLinkBuilder().Build()
+			prevLinkHash, _ := prevLink.HashString()
+			refLink1 := cstesting.NewLinkBuilder().Build()
+			refLink2 := cstesting.NewLinkBuilder().Build()
+			refLinkHash2, _ := refLink2.HashString()
+			link := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(refLink1).
+				WithRef(refLink2).
+				Build()
+
+			s := dummystore.New(&dummystore.Config{})
+			s.CreateLink(ctx, refLink1)
+
+			return link, s, []string{prevLinkHash, refLinkHash2}
+		},
+	}, {
+		"duplicate-link-hash",
+		func() (*cs.Link, indigostore.SegmentReader, []string) {
+			prevLink := cstesting.NewLinkBuilder().Build()
+			prevLinkHash, _ := prevLink.HashString()
+			link := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(prevLink).
+				Build()
+
+			s := dummystore.New(&dummystore.Config{})
+
+			return link, s, []string{prevLinkHash}
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			link, reader, expected := tt.setup()
+			lhs, err := store.ListMissingLinkHashes(context.Background(), link, reader)
+			assert.NoError(t, err)
+			assert.ElementsMatch(t, expected, lhs)
+		})
+	}
+}
 
 func TestSyncEngine_New(t *testing.T) {
 	testCases := []struct {
@@ -97,9 +165,9 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 
-		// prevLink <--------- link
-		// refLink1 <------|
-		// refLink2 <------|
+		// link ---> prevLink
+		//   `-----> refLink1
+		//   `-----> refLink2
 		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
 		refLink1 := cstesting.NewLinkBuilder().WithoutParent().Build()
 		refLink2 := cstesting.NewLinkBuilder().WithoutParent().Build()
@@ -139,8 +207,8 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 
-		// prevLink <--------- link
-		// refLink <------|
+		// link ---> prevLink
+		//   `-----> refLink
 		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
 		refLink := cstesting.NewLinkBuilder().WithoutParent().Build()
 		link := cstesting.NewLinkBuilder().
@@ -163,7 +231,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		assert.EqualError(t, err, store.ErrLinkNotFound.Error())
 	})
 
-	t.Run("recursive-multinode-sync", func(t *testing.T) {
+	t.Run("recursive-sync", func(t *testing.T) {
 		ctx := context.Background()
 
 		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
@@ -176,6 +244,9 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 		assert.NoError(t, h1.Connect(ctx, h3.Peerstore().PeerInfo(h3.ID())))
 
+		// link ---> prevLink
+		//   |           `-------> prevPrevLink
+		//   `-----> refLink ----> prevRefLink
 		prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
 		prevLink := cstesting.NewLinkBuilder().
 			WithoutParent().
@@ -215,47 +286,6 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		// To comply with dependency ordering, prevPrevLink should appear
 		// before prevLink.
 		assert.True(t, getLinkIndex(prevPrevLink, links) < getLinkIndex(prevLink, links))
-	})
-
-	t.Run("reference-segment-included", func(t *testing.T) {
-		ctx := context.Background()
-
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		defer h1.Close()
-		defer h2.Close()
-
-		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
-
-		prevRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
-
-		// Referenced link fully included in prevLink.
-		// Will not be stored anywhere.
-		refLink := cstesting.NewLinkBuilder().WithParent(prevRefLink).Build()
-
-		prevLink := cstesting.NewLinkBuilder().
-			WithoutParent().
-			WithSegmentRef(refLink.Segmentify()).
-			Build()
-
-		link := cstesting.NewLinkBuilder().WithParent(prevLink).Build()
-
-		store1 := dummystore.New(&dummystore.Config{})
-		store2 := dummystore.New(&dummystore.Config{})
-		store2.CreateLink(ctx, prevLink)
-		store2.CreateLink(ctx, prevRefLink)
-
-		engine1 := store.NewMultiNodeSyncEngine(h1, store1)
-		engine2 := store.NewMultiNodeSyncEngine(h2, store2)
-		defer engine1.Close(ctx)
-		defer engine2.Close(ctx)
-
-		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
-		assert.NoError(t, err)
-		assert.Len(t, links, 3)
-		assert.Equal(t, prevRefLink, links[0])
-		assert.Equal(t, refLink, links[1])
-		assert.Equal(t, prevLink, links[2])
 	})
 }
 

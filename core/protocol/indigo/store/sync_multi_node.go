@@ -88,12 +88,14 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.I
 		return nil, ErrNoConnectedPeers
 	}
 
-	toFetch, fetchedLinks, err := listMissingLinkHashes(ctx, link, reader)
+	toFetch, err := ListMissingLinkHashes(ctx, link, reader)
 	if err != nil {
 		return nil, err
 	}
 
 	linksCount := 0
+	var fetchedLinks []*cs.Link
+
 	for len(toFetch) > 0 {
 		linksCount++
 		linkHashStr := toFetch[0]
@@ -121,16 +123,16 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.I
 				continue
 			}
 
-			moreToFetch, moreIncluded, err := listMissingLinkHashes(ctx, l, reader)
+			found = true
+			// We need to prepend to make sure links are correctly dependency-ordered.
+			fetchedLinks = append([]*cs.Link{l}, fetchedLinks...)
+
+			moreToFetch, err := ListMissingLinkHashes(ctx, l, reader)
 			if err != nil {
 				return nil, err
 			}
 
 			toFetch = append(toFetch, moreToFetch...)
-
-			// We need to prepend to make sure links are correctly dependency-ordered.
-			fetchedLinks = append(append(moreIncluded, l), fetchedLinks...)
-			found = true
 
 			break
 		}
@@ -170,56 +172,6 @@ func (s *MultiNodeSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, 
 	}
 
 	return link.ToLink()
-}
-
-// listMissingLinkHashes returns all the link hashes referenced by the given link
-// that can't be found in the local store.
-// It also returns links that are fully included in references.
-func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]string, []*cs.Link, error) {
-	var referencedLinkHashes []string
-	var referencedLinks []*cs.Link
-
-	if link.Meta.PrevLinkHash != "" {
-		referencedLinkHashes = append(referencedLinkHashes, link.Meta.PrevLinkHash)
-	}
-
-	for _, ref := range link.Meta.Refs {
-		if ref.Segment != nil {
-			lhs, ls, err := listMissingLinkHashes(ctx, &ref.Segment.Link, reader)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			referencedLinkHashes = append(referencedLinkHashes, lhs...)
-			referencedLinks = append(referencedLinks, ls...)
-			referencedLinks = append(referencedLinks, &ref.Segment.Link)
-		} else if ref.LinkHash != "" {
-			referencedLinkHashes = append(referencedLinkHashes, ref.LinkHash)
-		}
-	}
-
-	storedSegments, err := reader.FindSegments(ctx, &store.SegmentFilter{
-		LinkHashes: referencedLinkHashes,
-		Pagination: store.Pagination{Limit: len(referencedLinkHashes)},
-	})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't find segments")
-	}
-
-	storedLinkHashes := make(map[string]struct{})
-	for _, seg := range storedSegments {
-		storedLinkHashes[seg.GetLinkHashString()] = struct{}{}
-	}
-
-	var missingLinkHashes []string
-	for _, lh := range referencedLinkHashes {
-		_, ok := storedLinkHashes[lh]
-		if !ok {
-			missingLinkHashes = append(missingLinkHashes, lh)
-		}
-	}
-
-	return missingLinkHashes, referencedLinks, nil
 }
 
 func (s *MultiNodeSyncEngine) syncHandler(stream inet.Stream) {

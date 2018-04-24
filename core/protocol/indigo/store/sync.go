@@ -55,3 +55,43 @@ type SyncEngine interface {
 	// Close cleans up resources used by the sync engine before deletion.
 	Close(context.Context)
 }
+
+// ListMissingLinkHashes returns all the link hashes referenced by the given
+// link that are currently missing from the store.
+func ListMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]string, error) {
+	var referencedLinkHashes []string
+
+	if link.Meta.PrevLinkHash != "" {
+		referencedLinkHashes = append(referencedLinkHashes, link.Meta.PrevLinkHash)
+	}
+
+	for _, ref := range link.Meta.Refs {
+		if ref.LinkHash != "" {
+			referencedLinkHashes = append(referencedLinkHashes, ref.LinkHash)
+		}
+	}
+
+	storedSegments, err := reader.FindSegments(ctx, &store.SegmentFilter{
+		LinkHashes: referencedLinkHashes,
+		Pagination: store.Pagination{Limit: len(referencedLinkHashes)},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't find segments")
+	}
+
+	nonMissingLinkHashes := make(map[string]struct{})
+	for _, seg := range storedSegments {
+		nonMissingLinkHashes[seg.GetLinkHashString()] = struct{}{}
+	}
+
+	var missingLinkHashes []string
+	for _, lh := range referencedLinkHashes {
+		_, ok := nonMissingLinkHashes[lh]
+		if !ok {
+			missingLinkHashes = append(missingLinkHashes, lh)
+			nonMissingLinkHashes[lh] = struct{}{}
+		}
+	}
+
+	return missingLinkHashes, nil
+}

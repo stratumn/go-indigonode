@@ -52,7 +52,7 @@ type MultiNodeSyncEngine struct {
 
 // NewMultiNodeSyncEngine creates a new MultiNodeSyncEngine
 // and registers its handlers.
-func NewMultiNodeSyncEngine(host ihost.Host, store store.SegmentReader) *MultiNodeSyncEngine {
+func NewMultiNodeSyncEngine(host ihost.Host, store store.SegmentReader) SyncEngine {
 	engine := &MultiNodeSyncEngine{
 		host:  host,
 		store: store,

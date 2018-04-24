@@ -51,4 +51,7 @@ type SyncEngine interface {
 		link *cs.Link,
 		storeReader store.SegmentReader,
 	) ([]*cs.Link, error)
+
+	// Close cleans up resources used by the sync engine before deletion.
+	Close(context.Context)
 }

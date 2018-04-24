@@ -36,6 +36,16 @@ func (_m *MockSyncEngine) EXPECT() *MockSyncEngineMockRecorder {
 	return _m.recorder
 }
 
+// Close mocks base method
+func (_m *MockSyncEngine) Close(_param0 context.Context) {
+	_m.ctrl.Call(_m, "Close", _param0)
+}
+
+// Close indicates an expected call of Close
+func (_mr *MockSyncEngineMockRecorder) Close(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Close", reflect.TypeOf((*MockSyncEngine)(nil).Close), arg0)
+}
+
 // GetMissingLinks mocks base method
 func (_m *MockSyncEngine) GetMissingLinks(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 *cs.Link, _param3 store.SegmentReader) ([]*cs.Link, error) {
 	ret := _m.ctrl.Call(_m, "GetMissingLinks", _param0, _param1, _param2, _param3)

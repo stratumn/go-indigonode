@@ -79,6 +79,12 @@ message LinkHash {
     ];
 }
 
+message LinkHashes {
+    repeated LinkHash link_hashes = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Link hashes"
+    ];
+}
+
 message Segment {
     bytes data = 1 [
         (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segment bytes"

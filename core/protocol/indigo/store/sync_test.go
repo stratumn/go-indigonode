@@ -54,7 +54,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		engine := store.NewMultiNodeSyncEngine(h, indigoStore)
 		defer engine.Close(ctx)
 
-		_, err := engine.GetMissingLinks(ctx, cstesting.RandomLink(), indigoStore)
+		_, err := engine.GetMissingLinks(ctx, cstesting.NewLinkBuilder().Build(), indigoStore)
 		assert.EqualError(t, err, store.ErrNoConnectedPeers.Error())
 	})
 
@@ -71,24 +71,14 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		// prevLink <--------- link
 		// refLink1 <------|
 		// refLink2 <------|
-		prevLink := cstesting.RandomLink()
-		prevLink.Meta.PrevLinkHash = ""
-		prevLinkHash, _ := prevLink.Hash()
-
-		refLink1 := cstesting.RandomLink()
-		refLink1.Meta.PrevLinkHash = ""
-		refLinkHash1, _ := refLink1.Hash()
-
-		refLink2 := cstesting.RandomLink()
-		refLink2.Meta.PrevLinkHash = ""
-		refLinkHash2, _ := refLink2.Hash()
-
-		link := cstesting.RandomLink()
-		link.Meta.PrevLinkHash = prevLinkHash.String()
-		link.Meta.Refs = []cs.SegmentReference{
-			{LinkHash: refLinkHash1.String()},
-			{LinkHash: refLinkHash2.String()},
-		}
+		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		refLink1 := cstesting.NewLinkBuilder().WithoutParent().Build()
+		refLink2 := cstesting.NewLinkBuilder().WithoutParent().Build()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(refLink1).
+			WithRef(refLink2).
+			Build()
 
 		// Node 1 has refLink2
 		store1 := dummystore.New(&dummystore.Config{})
@@ -122,19 +112,12 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 
 		// prevLink <--------- link
 		// refLink <------|
-		prevLink := cstesting.RandomLink()
-		prevLink.Meta.PrevLinkHash = ""
-		prevLinkHash, _ := prevLink.Hash()
-
-		refLink := cstesting.RandomLink()
-		refLink.Meta.PrevLinkHash = ""
-		refLinkHash, _ := refLink.Hash()
-
-		link := cstesting.RandomLink()
-		link.Meta.PrevLinkHash = prevLinkHash.String()
-		link.Meta.Refs = []cs.SegmentReference{
-			{LinkHash: refLinkHash.String()},
-		}
+		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		refLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(refLink).
+			Build()
 
 		// Node 1 has nothing locally.
 		store1 := dummystore.New(&dummystore.Config{})
@@ -164,26 +147,17 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 		assert.NoError(t, h1.Connect(ctx, h3.Peerstore().PeerInfo(h3.ID())))
 
-		prevPrevLink := cstesting.RandomLink()
-		prevPrevLink.Meta.PrevLinkHash = ""
-		prevPrevLinkHash, _ := prevPrevLink.Hash()
-
-		prevLink := cstesting.RandomLink()
-		prevLink.Meta.PrevLinkHash = ""
-		prevLink.Meta.Refs = []cs.SegmentReference{{LinkHash: prevPrevLinkHash.String()}}
-		prevLinkHash, _ := prevLink.Hash()
-
-		prevRefLink := cstesting.RandomLink()
-		prevRefLink.Meta.PrevLinkHash = ""
-		prevRefLinkHash, _ := prevRefLink.Hash()
-
-		refLink := cstesting.RandomLink()
-		refLink.Meta.PrevLinkHash = prevRefLinkHash.String()
-		refLinkHash, _ := refLink.Hash()
-
-		link := cstesting.RandomLink()
-		link.Meta.PrevLinkHash = prevLinkHash.String()
-		link.Meta.Refs = []cs.SegmentReference{{LinkHash: refLinkHash.String()}}
+		prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLink := cstesting.NewLinkBuilder().
+			WithoutParent().
+			WithRef(prevPrevLink).
+			Build()
+		prevRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		refLink := cstesting.NewLinkBuilder().WithParent(prevRefLink).Build()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(refLink).
+			Build()
 
 		store1 := dummystore.New(&dummystore.Config{})
 		store1.CreateLink(ctx, prevRefLink)
@@ -224,24 +198,18 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 
 		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
 
-		prevRefLink := cstesting.RandomLink()
-		prevRefLink.Meta.PrevLinkHash = ""
-		prevRefLinkHash, _ := prevRefLink.Hash()
+		prevRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
 
 		// Referenced link fully included in prevLink.
 		// Will not be stored anywhere.
-		refLink := cstesting.RandomLink()
-		refLink.Meta.PrevLinkHash = prevRefLinkHash.String()
+		refLink := cstesting.NewLinkBuilder().WithParent(prevRefLink).Build()
 
-		prevLink := cstesting.RandomLink()
-		prevLink.Meta.PrevLinkHash = ""
-		prevLink.Meta.Refs = []cs.SegmentReference{
-			{Segment: refLink.Segmentify()},
-		}
-		prevLinkHash, _ := prevLink.Hash()
+		prevLink := cstesting.NewLinkBuilder().
+			WithoutParent().
+			WithSegmentRef(refLink.Segmentify()).
+			Build()
 
-		link := cstesting.RandomLink()
-		link.Meta.PrevLinkHash = prevLinkHash.String()
+		link := cstesting.NewLinkBuilder().WithParent(prevLink).Build()
 
 		store1 := dummystore.New(&dummystore.Config{})
 		store2 := dummystore.New(&dummystore.Config{})

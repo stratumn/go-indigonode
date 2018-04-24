@@ -16,7 +16,6 @@ package acl
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
@@ -29,7 +28,7 @@ import (
 var log = logging.Logger("storage.acl")
 
 var (
-	prefixAuthorizedPeers = []byte("ap") // prefixAuthorizedPeers + filehash -> [peerIDs...]
+	prefixFilePermission = []byte("ap") // prefixFilePermission + filehash + peerID -> byte
 )
 
 var (
@@ -71,32 +70,11 @@ func (a *acl) Authorize(ctx context.Context, peerIds []peer.ID, fileHash []byte)
 	})
 	defer event.Done()
 
-	// Get authorized peers from DB and update them.
-	authorizedPeers := authorizedPeersMap{}
-	ap, err := a.db.Get(append(prefixAuthorizedPeers, fileHash...))
-	if err != nil && errors.Cause(err) != db.ErrNotFound {
-		event.SetError(err)
-		return err
-	} else if errors.Cause(err) != db.ErrNotFound {
-		if err = json.Unmarshal(ap, &authorizedPeers); err != nil {
-			event.SetError(err)
+	for _, pid := range peerIds {
+		err := a.db.Put(append(append(prefixFilePermission, fileHash...), pid...), []byte{uint8(1)})
+		if err != nil {
 			return err
 		}
-	}
-
-	for _, p := range peerIds {
-		authorizedPeers[p.String()] = struct{}{}
-	}
-
-	newAp, err := json.Marshal(authorizedPeers)
-	if err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	if err = a.db.Put(append(prefixAuthorizedPeers, fileHash...), newAp); err != nil {
-		event.SetError(err)
-		return err
 	}
 
 	return nil
@@ -104,21 +82,11 @@ func (a *acl) Authorize(ctx context.Context, peerIds []peer.ID, fileHash []byte)
 
 // IsAuthorized checks if a peer is authorized for a file hash.
 func (a *acl) IsAuthorized(ctx context.Context, pid peer.ID, fileHash []byte) (bool, error) {
-
-	authorizedPeers := authorizedPeersMap{}
-	ap, err := a.db.Get(append(prefixAuthorizedPeers, fileHash...))
+	_, err := a.db.Get(append(append(prefixFilePermission, fileHash...), pid...))
 	if errors.Cause(err) == db.ErrNotFound {
 		return false, nil
 	} else if err != nil {
 		return false, errors.WithStack(err)
 	}
-
-	if err = json.Unmarshal(ap, &authorizedPeers); err != nil {
-		return false, err
-	}
-
-	_, ok := authorizedPeers[pid.String()]
-
-	return ok, nil
-
+	return true, nil
 }

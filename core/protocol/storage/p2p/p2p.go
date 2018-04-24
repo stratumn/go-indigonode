@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/core/protocol/storage/p2p Encoder
+
 package p2p
 
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -26,7 +27,6 @@ import (
 	pb "github.com/stratumn/alice/pb/storage"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
-	multicodec "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -39,13 +39,17 @@ var log = logging.Logger("storage.p2p")
 // ChunkSize size of a chunk of data
 const ChunkSize = 1024
 
-// P2P is where the p2p APIs are defined.
-type P2P interface {
-	PullFile(ctx context.Context, fileHash []byte, pid peer.ID) error
-	SendFile(ctx context.Context, enc multicodec.Encoder, path string) error
+// Encoder is an interface that implements an Encode method.
+type Encoder interface {
+	Encode(interface{}) error
 }
 
 // P2P is where the p2p APIs are defined.
+type P2P interface {
+	PullFile(ctx context.Context, fileHash []byte, pid peer.ID) error
+	SendFile(ctx context.Context, enc Encoder, path string) error
+}
+
 type p2p struct {
 	host       ihost.Host
 	protocolID protocol.ID
@@ -92,57 +96,59 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 	resCh := make(chan error)
 	go func() {
 		_, err := p.fileHandler.WriteFile(ctx, chunkCh)
+
 		resCh <- err
 	}()
 
 	for {
+		var chunk pb.FileChunk
+		if err = dec.Decode(&chunk); err != nil {
+			return errors.WithStack(err)
+		}
+
+		if len(chunk.Data) == 0 {
+			// End of file
+			close(chunkCh)
+			return nil
+		}
+
 		select {
 
 		case <-ctx.Done():
 			return errors.WithStack(ctx.Err())
 
 		case err = <-resCh:
-			fmt.Printf("\n%+v\n", err)
 			return err
 
-		default:
-			var chunk pb.FileChunk
-			if err = dec.Decode(&chunk); err != nil {
-				return errors.WithStack(err)
-			}
-
-			if len(chunk.Data) == 0 {
-				// End of file
-				close(chunkCh)
-				return nil
-			}
-
-			chunkCh <- &chunk
+		case chunkCh <- &chunk:
+			continue
 		}
 	}
 }
 
-func (p *p2p) SendFile(ctx context.Context, enc multicodec.Encoder, path string) error {
+func (p *p2p) SendFile(ctx context.Context, enc Encoder, path string) error {
 
-	successCh := make(chan struct{}, 1)
-	errCh := make(chan error, 1)
+	file, err := os.Open(path)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
-	go func() {
+	buf := make([]byte, p.chunkSize)
+	eof := false
+	first := true
 
-		file, err := os.Open(path)
-		if err != nil {
-			errCh <- errors.WithStack(err)
-			return
-		}
+	for !eof {
+		select {
+		case <-ctx.Done():
+			return errors.WithStack(ctx.Err())
 
-		buf := make([]byte, p.chunkSize)
-		eof := false
-		first := true
-
-		for !eof {
+		default:
 			// put as many bytes as `chunkSize` into the buf array.
 			// n is the actual number of bytes read in case we reached end of file.
 			n, err := file.Read(buf)
+			if err != nil {
+				return err
+			}
 
 			if n == 0 {
 				// No more bytes to send, break loop directly
@@ -158,32 +164,21 @@ func (p *p2p) SendFile(ctx context.Context, enc multicodec.Encoder, path string)
 			if first {
 				// Add the file name in the first message.
 				chunk.FileName = filepath.Base(path)
+				first = false
 
 			}
 
-			err = enc.Encode(chunk)
-			if err != nil {
-				errCh <- errors.WithStack(err)
-				return
+			if err = enc.Encode(chunk); err != nil {
+				return err
 			}
 		}
+	}
 
-		// Send an empty chunk to notify end of file.
-		err = enc.Encode(&pb.FileChunk{})
-		if err != nil {
-			errCh <- errors.WithStack(err)
-			return
-		}
-
-		successCh <- struct{}{}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return errors.WithStack(ctx.Err())
-	case <-successCh:
-		return nil
-	case err := <-errCh:
+	// Send an empty chunk to notify end of file.
+	err = enc.Encode(&pb.FileChunk{})
+	if err != nil {
 		return err
 	}
+
+	return nil
 }

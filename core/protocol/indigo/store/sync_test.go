@@ -26,21 +26,45 @@ import (
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stretchr/testify/assert"
 
+	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	bhost "gx/ipfs/QmQr1j6UvdhpponAaqSdswqRpdzsFwNop2N8kXLNw8afem/go-libp2p-blankhost"
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
-func TestMultiNodeSyncEngine_New(t *testing.T) {
-	ctx := context.Background()
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestSyncEngine_New(t *testing.T) {
+	testCases := []struct {
+		name      string
+		protocol  protocol.ID
+		newEngine func(ihost.Host) store.SyncEngine
+	}{{
+		"multi-node-sync",
+		store.MultiNodeSyncProtocolID,
+		func(h ihost.Host) store.SyncEngine {
+			return store.NewMultiNodeSyncEngine(h, nil)
+		},
+	}, {
+		"single-node-sync",
+		store.SingleNodeSyncProtocolID,
+		func(h ihost.Host) store.SyncEngine {
+			return store.NewSingleNodeSyncEngine(h, nil)
+		},
+	}}
 
-	h := mockstore.NewMockHost(ctrl)
-	h.EXPECT().SetStreamHandler(store.MultiNodeSyncProtocolID, gomock.Any()).Times(1)
-	h.EXPECT().RemoveStreamHandler(store.MultiNodeSyncProtocolID).Times(1)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	engine := store.NewMultiNodeSyncEngine(h, nil)
-	engine.Close(ctx)
+			h := mockstore.NewMockHost(ctrl)
+			h.EXPECT().SetStreamHandler(testCase.protocol, gomock.Any()).Times(1)
+			h.EXPECT().RemoveStreamHandler(testCase.protocol).Times(1)
+
+			engine := testCase.newEngine(h)
+			engine.Close(ctx)
+		})
+	}
 }
 
 func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {

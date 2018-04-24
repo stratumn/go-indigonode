@@ -85,7 +85,10 @@ func (b *TestStoreBuilder) Build() *store.Store {
 	if b.syncEngine == nil {
 		b.syncEngine = mocksync.NewMockSyncEngine(b.ctrl)
 		// No missing links to sync.
-		b.syncEngine.EXPECT().GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+		b.syncEngine.EXPECT().
+			GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(nil, nil)
 	}
 
 	if b.auditStore == nil {
@@ -288,7 +291,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			syncEngine := mocksync.NewMockSyncEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link3, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link3, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{link1, link2}, nil)
 
@@ -314,7 +317,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			syncEngine := mocksync.NewMockSyncEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).
 				Return(nil, errors.New("no more credits"))
 
@@ -352,7 +355,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			syncEngine := mocksync.NewMockSyncEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{invalidLink}, nil)
 

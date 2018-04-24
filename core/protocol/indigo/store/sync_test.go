@@ -54,7 +54,12 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		engine := store.NewMultiNodeSyncEngine(h, indigoStore)
 		defer engine.Close(ctx)
 
-		_, err := engine.GetMissingLinks(ctx, cstesting.NewLinkBuilder().Build(), indigoStore)
+		_, err := engine.GetMissingLinks(
+			ctx,
+			"some peer",
+			cstesting.NewLinkBuilder().Build(),
+			indigoStore,
+		)
 		assert.EqualError(t, err, store.ErrNoConnectedPeers.Error())
 	})
 
@@ -93,7 +98,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, link, store1)
+		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 2)
 		assert.Contains(t, links, prevLink)
@@ -130,7 +135,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		_, err := engine1.GetMissingLinks(ctx, link, store1)
+		_, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
 		assert.EqualError(t, err, store.ErrLinkNotFound.Error())
 	})
 
@@ -176,7 +181,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		defer engine2.Close(ctx)
 		defer engine3.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, link, store1)
+		links, err := engine1.GetMissingLinks(ctx, h3.ID(), link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 3)
 		assert.Contains(t, links, prevPrevLink)
@@ -221,7 +226,7 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, link, store1)
+		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 3)
 		assert.Equal(t, prevRefLink, links[0])

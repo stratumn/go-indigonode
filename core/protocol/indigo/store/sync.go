@@ -22,9 +22,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var (
+	// ErrInvalidLink is returned when an invalid link is provided.
+	ErrInvalidLink = errors.New("invalid input link")
+
 	// ErrNoConnectedPeers is returned when there are no connections to
 	// peers available.
 	ErrNoConnectedPeers = errors.New("not connected to any peer")
@@ -40,5 +45,10 @@ type SyncEngine interface {
 	// it finds all the dependency graph.
 	// The links returned will be properly ordered for inclusion in an Indigo store.
 	// If Link1 references Link2, Link2 will appear before Link1 in the results list.
-	GetMissingLinks(context.Context, *cs.Link, store.SegmentReader) ([]*cs.Link, error)
+	GetMissingLinks(
+		ctx context.Context,
+		sender peer.ID,
+		link *cs.Link,
+		storeReader store.SegmentReader,
+	) ([]*cs.Link, error)
 }

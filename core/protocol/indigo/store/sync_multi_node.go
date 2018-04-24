@@ -70,14 +70,14 @@ func (s *MultiNodeSyncEngine) Close(ctx context.Context) {
 
 // GetMissingLinks will recursively walk the link graph and get all the missing
 // links in one pass. This might be a long operation.
-func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
+func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
 	event := log.EventBegin(ctx, "GetMissingLinks")
 	defer event.Done()
 
 	lh, err := link.Hash()
 	if err != nil {
 		event.SetError(err)
-		return nil, errors.Wrap(err, "invalid link hash")
+		return nil, ErrInvalidLink
 	}
 
 	event.Append(logging.Metadata{"link_hash": lh.String()})

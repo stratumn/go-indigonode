@@ -28,6 +28,7 @@ import (
 	"github.com/stratumn/go-indigocore/types"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var log = logging.Logger("indigo.store")
@@ -138,7 +139,12 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 		event.Done()
 	}()
 
-	missedLinks, err := s.sync.GetMissingLinks(ctx, link, s.store)
+	from, err := peer.IDFromBytes(remoteLink.From)
+	if err != nil {
+		return errors.Wrap(err, "invalid peer ID")
+	}
+
+	missedLinks, err := s.sync.GetMissingLinks(ctx, from, link, s.store)
 	if err != nil {
 		return err
 	}

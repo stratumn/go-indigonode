@@ -152,7 +152,7 @@ func TestPublishListen(t *testing.T) {
 	}
 
 	t.Run("publish-valid-message", func(t *testing.T) {
-		link := cstesting.RandomLink()
+		link := cstesting.NewLinkBuilder().Build()
 		linkBytes, _ := json.Marshal(link)
 		assert.NoError(t, networkMgrs[0].Publish(context.Background(), link))
 

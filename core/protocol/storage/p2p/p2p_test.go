@@ -16,13 +16,17 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	p2pcore "github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/storage/file/mockhandler"
+	"github.com/stratumn/alice/core/protocol/storage/p2p/mockencoder"
 	pb "github.com/stratumn/alice/pb/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -96,6 +100,34 @@ func TestP2P_PullFile(t *testing.T) {
 
 func TestP2P_SendFile(t *testing.T) {
 
+	content := []byte("Who wants to download my juicy file ?")
+	storagePath := "/tmp/"
+	fileName := fmt.Sprintf("TestP2P_SendFile-%d", time.Now().UnixNano())
+	filePath := storagePath + fileName
+
+	f, err := os.Create(filePath)
+	require.NoError(t, err, "os.Create")
+
+	_, err = f.Write(content)
+	require.NoError(t, err, "f.Write")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	enc := mockencoder.NewMockEncoder(ctrl)
+
+	p2p := &p2p{
+		chunkSize: 10,
+	}
+
+	gomock.InOrder(
+		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: content[0:10]}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: content[10:20]}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: content[20:30]}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: content[30:37]}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
+	)
+
+	p2p.SendFile(context.Background(), enc, filePath)
 }
 
 // Returns a stream handler that streams the byte array.

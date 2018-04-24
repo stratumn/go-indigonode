@@ -17,13 +17,15 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/storage"
-	pb "github.com/stratumn/alice/grpc/storage"
+	grpcpb "github.com/stratumn/alice/grpc/storage"
+	pb "github.com/stratumn/alice/pb/storage"
 
 	"google.golang.org/grpc"
 
@@ -145,6 +147,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Create local folder if not exists.
 	if _, err := os.Stat(s.config.LocalStorage); os.IsNotExist(err) {
 		if err := os.MkdirAll(s.config.LocalStorage, 0766); err != nil {
+			fmt.Println(s.config.LocalStorage)
 			return err
 		}
 	}
@@ -160,7 +163,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}()
 
-	s.storage = storage.NewStorage(s.host, db)
+	s.storage = storage.NewStorage(s.host, db, s.config.LocalStorage)
 
 	// Wrap the stream handler with the context.
 	s.host.SetStreamHandler(storage.ProtocolID, func(stream inet.Stream) {
@@ -180,15 +183,52 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterStorageServer(
+	grpcpb.RegisterStorageServer(
 		gs,
 		newGrpcServer(
-			func(ctx context.Context, file *os.File, fileName string) (fileHash []byte, err error) {
-				return s.storage.IndexFile(ctx, file, fileName)
+			func(ctx context.Context, ch <-chan *pb.FileChunk) ([]byte, error) {
+				if s.storage == nil {
+					return nil, ErrUnavailable
+				}
+				return s.storage.SaveFile(ctx, ch)
 			},
 			func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
 				return s.storage.Authorize(ctx, peerIds, fileHash)
 			},
+			func(ctx context.Context, fileHash []byte, peerId []byte) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
+				return s.storage.PullFile(ctx, fileHash, peerId)
+			},
 			s.config.LocalStorage,
 			s.uploadTimeout))
+	// =======
+	// 	grpcpb.RegisterStorageServer(gs, grpcServer{
+	// 		saveFile: func(ctx context.Context, ch <-chan *pb.FileChunk) error {
+	// 			if s.storage == nil {
+	// 				return ErrUnavailable
+	// 			}
+	// 			return s.storage.SaveFile(ctx, ch)
+	// 		},
+	// 		indexFile: func(ctx context.Context, file *os.File) ([]byte, error) {
+	// 			if s.storage == nil {
+	// 				return nil, ErrUnavailable
+	// 			}
+	// 			return s.storage.IndexFile(ctx, file)
+	// 		},
+	// 		authorize: func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+	// 			if s.storage == nil {
+	// 				return ErrUnavailable
+	// 			}
+	// 			return s.storage.Authorize(ctx, peerIds, fileHash)
+	// 		},
+	// 		download: func(ctx context.Context, fileHash []byte, peerId []byte) error {
+	// 			if s.storage == nil {
+	// 				return ErrUnavailable
+	// 			}
+	// 			return s.storage.PullFile(ctx, fileHash, peerId)
+	// 		},
+	// 	})
+	// >>>>>>> Stashed changes
 }

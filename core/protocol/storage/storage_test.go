@@ -16,7 +16,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -25,7 +24,6 @@ import (
 	"github.com/stratumn/alice/core/db"
 	"github.com/stretchr/testify/assert"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	multihash "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )
 
@@ -47,47 +45,12 @@ func TestStorageProtocol_IndexFile(t *testing.T) {
 	_, err = file.Write(content)
 	assert.NoError(t, err, "file.Write()")
 
-	fh, err := storage.IndexFile(context.Background(), file, "abc")
+	fh, err := storage.IndexFile(context.Background(), file)
 	assert.NoError(t, err, "IndexFile")
 	assert.Equal(t, []byte(hash), fh, "IndexFile")
 
 	// Check that the file name and hash are in the db.
 	got, err := db.Get(append(prefixFilesHashes, []byte(fh)...))
 	assert.NoError(t, err, "db.Get()")
-	assert.Equal(t, []byte("abc"), got, "hash")
-}
-
-func TestStorageProtocol_Authorize(t *testing.T) {
-	db, err := db.NewMemDB(nil)
-	assert.NoError(t, err, "NewMemDB()")
-	storage := &Storage{
-		db: db,
-	}
-	hash := []byte("yolo")
-
-	t.Run("no-entry", func(t *testing.T) {
-		pid1, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGN11")
-		assert.NoError(t, err, "IDB58Decode")
-		pid2, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGN22")
-		assert.NoError(t, err, "IDB58Decode")
-		pid3, err := peer.IDB58Decode("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGN33")
-		assert.NoError(t, err, "IDB58Decode")
-		pids := [][]byte{[]byte(pid1), []byte(pid2), []byte(pid3)}
-
-		err = storage.Authorize(context.Background(), pids, hash)
-		assert.NoError(t, err, "Authorize()")
-
-		e, err := db.Get(append(prefixAuthorizedPeers, hash...))
-		assert.NoError(t, err, "db.Get")
-
-		aps := authorizedPeersMap{}
-		json.Unmarshal(e, &aps)
-
-		assert.Len(t, aps, len(pids), "len(aps")
-		for _, p := range pids {
-			pid, err := peer.IDFromBytes(p)
-			assert.NoError(t, err, "peer.IDFromBytes()")
-			assert.Equal(t, struct{}{}, aps[pid], "AuthorizedPeersMap[pid]")
-		}
-	})
+	assert.Equal(t, []byte(file.Name()), got, "hash")
 }

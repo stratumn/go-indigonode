@@ -16,19 +16,18 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/storage"
+	"github.com/satori/go.uuid"
+
+	grpcpb "github.com/stratumn/alice/grpc/storage"
+	pb "github.com/stratumn/alice/pb/storage"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-
-	"github.com/satori/go.uuid"
 )
 
 const tmpStorageSubdir = "tmp"
@@ -42,41 +41,30 @@ var (
 
 	// ErrInvalidUploadSession is returned when the session id could not be parsed.
 	ErrInvalidUploadSession = errors.New("the given session could not be parsed")
+	// UploadTimeout is the timeout diration for the upload.
+	// TODO: this per request.
+	UploadTimeout = time.Minute * 20
 )
-
-type session struct {
-	file            *os.File
-	fileName        string
-	storageFileName string
-	id              uuid.UUID
-	done            chan (struct{})
-}
-
-func newSession(fileName string) *session {
-	id := uuid.NewV4()
-	return &session{
-		fileName:        fileName,
-		storageFileName: id.String() + fileName,
-		done:            make(chan (struct{})),
-		id:              id,
-	}
-}
 
 // grpcServer is a gRPC server for the storage service.
 type grpcServer struct {
-	indexFile      func(context.Context, *os.File, string) (fileHash []byte, err error)
-	authorize      func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
+	saveFile  func(context.Context, <-chan *pb.FileChunk) ([]byte, error)
+	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
+	download  func(ctx context.Context, fileHash []byte, peerId []byte) error
+
 	storagePath    string
 	tmpStoragePath string
-	sessionsMu     sync.RWMutex
 	sessions       map[uuid.UUID]*session
 	uploadTimeout  time.Duration
 }
 
-func newGrpcServer(indexFile func(context.Context, *os.File, string) (fileHash []byte, err error),
+func newGrpcServer(
+	saveFile func(context.Context, <-chan *pb.FileChunk) ([]byte, error),
 	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error,
+	download func(ctx context.Context, fileHash []byte, peerId []byte) error,
 	storagePath string,
-	uploadTimeout time.Duration) *grpcServer {
+	uploadTimeout time.Duration,
+) *grpcServer {
 	tmpStoragePath := filepath.Join(storagePath, tmpStorageSubdir)
 
 	err := os.RemoveAll(tmpStoragePath)
@@ -89,8 +77,9 @@ func newGrpcServer(indexFile func(context.Context, *os.File, string) (fileHash [
 	}
 
 	return &grpcServer{
-		indexFile:      indexFile,
+		saveFile:       saveFile,
 		authorize:      authorize,
+		download:       download,
 		storagePath:    storagePath,
 		tmpStoragePath: tmpStoragePath,
 		sessions:       make(map[uuid.UUID]*session),
@@ -98,98 +87,124 @@ func newGrpcServer(indexFile func(context.Context, *os.File, string) (fileHash [
 	}
 }
 
-// // SendFile sends a file to the specified peer.
-// func (s grpcServer) SendFile(ctx context.Context, req *pb.File) (response *pb.Ack, err error) {
-// 	response = &pb.Ack{}
-// 	pid, err := peer.IDFromBytes(req.PeerId)
-// 	if err != nil {
-// 		err = errors.WithStack(err)
-// 		return
-// 	}
-
-// 	pi := pstore.PeerInfo{ID: pid}
-
-// 	// Make sure there is a connection to the peer.
-// 	if err = s.Connect(ctx, pi); err != nil {
-// 		return
-// 	}
-
-// 	if err = s.Send(ctx, pid, req.Path); err != nil {
-// 		return
-// 	}
-
-// 	return
-// }
-
 // Upload saves a file on the alice node.
-func (s *grpcServer) Upload(stream pb.Storage_UploadServer) (err error) {
-	ctx := context.Background()
+// The first message must contain the file name.
+func (s grpcServer) Upload(stream grpcpb.Storage_UploadServer) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), UploadTimeout)
 	event := log.EventBegin(ctx, "UploadFile")
-	var file *os.File
-	var fileName string
 
 	defer func() {
 		if err != nil {
-			// Delete the partially written file.
-			if file != nil {
-				if err2 := os.Remove(file.Name()); err != nil {
-					err = fmt.Errorf("error uploading file (%v); error deleting partially uploaded file (%v)", err, err2)
-				}
-			}
 			event.SetError(err)
 		}
 		event.Done()
+		cancel()
 	}()
 
-	// while there are messages coming process them.
-	for {
-		var chunk *pb.StreamFileChunk
-		chunk, err = stream.Recv()
-		if err == io.EOF {
-			break
-		}
+	// Save the file
+	chunkCh := make(chan *pb.FileChunk)
+	errCh := make(chan error)
+	resCh := make(chan []byte)
+	go func() {
+		hash, err := s.saveFile(ctx, chunkCh)
 		if err != nil {
+			errCh <- err
+		}
+		resCh <- hash
+	}()
+
+LOOP:
+	for {
+		select {
+
+		case hash := <-resCh:
+			err = stream.SendAndClose(&grpcpb.UploadAck{
+				FileHash: hash,
+			})
 			return
-		}
 
-		if file == nil && chunk.FileName == "" {
-			event.SetError(ErrFileNameMissing)
-			return ErrFileNameMissing
-		}
+		case err = <-errCh:
+			return
 
-		if file == nil {
-			fileName = chunk.FileName
-			file, err = os.Create(filepath.Join(s.storagePath, uuid.NewV4().String()+fileName))
+		default:
+			var chunk *pb.FileChunk
+			chunk, err = stream.Recv()
+			if err == nil {
+				chunkCh <- chunk
+			}
+
+			if err == io.EOF {
+				close(chunkCh)
+				err = nil
+				break LOOP
+			}
 			if err != nil {
 				return
 			}
-		}
 
-		event.Append(&logging.Metadata{"filename": file.Name()})
-
-		if _, err = file.Write(chunk.Data); err != nil {
-			return
 		}
 	}
 
-	// TODO: Do we want to index the files with their hash?
-	// This would be needed at some point to check file integrity
-	// and to be able to handle multiple providers for a file.
-	var fileHash []byte
-	if fileHash, err = s.indexFile(ctx, file, fileName); err != nil {
+	select {
+	case hash := <-resCh:
+		err = stream.SendAndClose(&grpcpb.UploadAck{
+			FileHash: hash,
+		})
+		return
+
+	case err = <-errCh:
 		return
 	}
-
-	err = stream.SendAndClose(&pb.UploadAck{FileHash: fileHash})
-	return
 }
 
-func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.UploadSession, error) {
+// AuthorizePeers gives access for a list of peers to a resource.
+func (s grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest) (*grpcpb.Ack, error) {
+
+	if err := s.authorize(ctx, req.PeerIds, req.FileHash); err != nil {
+		return nil, err
+	}
+
+	return &grpcpb.Ack{}, nil
+}
+
+func (s grpcServer) Download(ctx context.Context, req *grpcpb.DownloadRequest) (*grpcpb.Ack, error) {
+
+	if err := s.download(ctx, req.FileHash, req.PeerId); err != nil {
+		return nil, err
+	}
+
+	return &grpcpb.Ack{}, nil
+}
+
+// ####################################################################################################################
+// #####																		 Sequential upload protocol																						#####
+// ####################################################################################################################
+
+type session struct {
+	id       uuid.UUID
+	fileName string
+	errCh    chan error
+	doneCh   chan struct{}
+	chunkCh  chan *pb.FileChunk
+	// Returns the file hash when we are done writing the file.
+	resCh chan ([]byte)
+}
+
+func newSession(fileName string) *session {
+	id := uuid.NewV4()
+	return &session{
+		id:       id,
+		fileName: fileName,
+		chunkCh:  make(chan (*pb.FileChunk)),
+		doneCh:   make(chan struct{}),
+		errCh:    make(chan error),
+		resCh:    make(chan ([]byte)),
+	}
+}
+
+func (s *grpcServer) StartUpload(ctx context.Context, req *grpcpb.UploadReq) (*grpcpb.UploadSession, error) {
 	event := log.EventBegin(ctx, "StartUpload")
 	defer event.Done()
-
-	s.sessionsMu.Lock()
-	defer s.sessionsMu.Unlock()
 
 	if req.FileName == "" {
 		event.SetError(ErrFileNameMissing)
@@ -200,40 +215,38 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *pb.UploadReq) (*pb.Up
 
 	event.Append(logging.Metadata{"sessionID": session.id})
 
-	file, err := os.Create(filepath.Join(s.tmpStoragePath, session.storageFileName))
-	if err != nil {
-		event.SetError(err)
-		return nil, err
-	}
+	writeCtx, cancel := context.WithCancel(ctx)
 
-	session.file = file
+	go func() {
+		hash, err := s.saveFile(writeCtx, session.chunkCh)
+
+		if err != nil {
+			log.Errorf(err.Error())
+			session.errCh <- err
+		} else {
+			session.resCh <- hash
+		}
+	}()
 
 	go func() {
 		select {
-		case <-session.done:
-			return
+		case <-session.doneCh:
+			close(session.chunkCh)
 		case <-time.After(s.uploadTimeout):
-			// Delete the partially written file.
-			err := os.Remove(file.Name())
-			if err != nil {
-				log.Errorf("Temporary file could not be removed: %s", err)
-			}
+			cancel()
 		}
 	}()
 
 	s.sessions[session.id] = session
 
-	return &pb.UploadSession{
+	return &grpcpb.UploadSession{
 		Id: session.id.Bytes(),
 	}, nil
 }
 
-func (s *grpcServer) UploadChunk(ctx context.Context, req *pb.FileChunk) (*pb.Ack, error) {
+func (s *grpcServer) UploadChunk(ctx context.Context, req *grpcpb.SessionFileChunk) (*grpcpb.Ack, error) {
 	event := log.EventBegin(ctx, "UploadChunk")
 	defer event.Done()
-
-	s.sessionsMu.RLock()
-	defer s.sessionsMu.RUnlock()
 
 	// TODO: handling of out of order chunks
 	u, err := uuid.FromBytes(req.Id)
@@ -248,19 +261,17 @@ func (s *grpcServer) UploadChunk(ctx context.Context, req *pb.FileChunk) (*pb.Ac
 		return nil, ErrUploadSessionNotFound
 	}
 
-	if _, err = session.file.Write(req.Data); err != nil {
-		event.SetError(err)
-		return nil, err
+	session.chunkCh <- &pb.FileChunk{
+		Data:     req.Data,
+		FileName: session.fileName,
 	}
-	return &pb.Ack{}, nil
+
+	return &grpcpb.Ack{}, nil
 }
 
-func (s *grpcServer) EndUpload(ctx context.Context, req *pb.UploadSession) (*pb.UploadAck, error) {
+func (s *grpcServer) EndUpload(ctx context.Context, req *grpcpb.UploadSession) (*grpcpb.UploadAck, error) {
 	event := log.EventBegin(ctx, "EndUpload")
 	defer event.Done()
-
-	s.sessionsMu.RLock()
-	defer s.sessionsMu.RUnlock()
 
 	u, err := uuid.FromBytes(req.Id)
 	if err != nil {
@@ -272,31 +283,18 @@ func (s *grpcServer) EndUpload(ctx context.Context, req *pb.UploadSession) (*pb.
 	if !ok {
 		return nil, ErrUploadSessionNotFound
 	}
-	go func() { session.done <- struct{}{} }()
 
-	finalPath := filepath.Join(s.storagePath, session.storageFileName)
-	err = os.Rename(session.file.Name(), finalPath)
-	if err != nil {
+	session.doneCh <- struct{}{}
+
+	select {
+	case err := <-session.errCh:
 		return nil, err
+	case fileHash := <-session.resCh:
+		delete(s.sessions, u)
+
+		return &grpcpb.UploadAck{
+			FileHash: fileHash,
+		}, nil
+
 	}
-	file, err := os.Open(finalPath)
-	if err != nil {
-		return nil, err
-	}
-
-	fileHash, err := s.indexFile(ctx, file, session.fileName)
-	event.Append(logging.Metadata{"fileHash": fileHash})
-
-	return &pb.UploadAck{
-		FileHash: fileHash,
-	}, err
-}
-
-// AuthorizePeers gives access for a list of peers to a resource.
-func (s *grpcServer) AuthorizePeers(ctx context.Context, req *pb.AuthRequest) (*pb.Ack, error) {
-	if err := s.authorize(ctx, req.PeerIds, req.FileHash); err != nil {
-		return nil, err
-	}
-
-	return &pb.Ack{}, nil
 }

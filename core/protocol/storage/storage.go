@@ -17,14 +17,19 @@ package storage
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
+	"encoding/hex"
 	"io"
 	"os"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/alice/core/protocol/storage/acl"
+	"github.com/stratumn/alice/core/protocol/storage/file"
+	"github.com/stratumn/alice/core/protocol/storage/p2p"
+	pb "github.com/stratumn/alice/pb/storage"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -45,53 +50,95 @@ var ProtocolID = protocol.ID("/alice/storage/v1.0.0")
 var log = logging.Logger("storage")
 
 var (
-	prefixFilesHashes     = []byte("fh") // prefixFilesHashes + filepath -> filehash
+	prefixFilesHashes     = []byte("fh") // prefixFilesHashes + filehash -> filepath
 	prefixAuthorizedPeers = []byte("ap") // prefixAuthorizedPeers + filehash -> [peerIDs...]
+)
+
+var (
+	// ErrFileNameMissing is returned when no file name was given.
+	ErrFileNameMissing = errors.New("the first chunk should have the filename")
+
+	// ErrUnauthorized is returned when a peer tries to access a file he
+	// is not allowed to get
+	ErrUnauthorized = errors.New("peer not authorized for requested file")
 )
 
 // Storage implements the storage protocol.
 type Storage struct {
-	db        db.DB
-	host      Host
-	chunkSize int
+	db          db.DB
+	host        Host
+	chunkSize   int
+	fileHandler file.Handler
+	p2p         p2p.P2P
+	acl         acl.ACL
+
+	storagePath string
 }
 
 // NewStorage creates a new storage server.
-func NewStorage(host Host, db db.DB) *Storage {
+func NewStorage(host Host, db db.DB, storagePath string) *Storage {
+	fh := file.NewHandler(storagePath)
 	return &Storage{
-		db:        db,
-		host:      host,
-		chunkSize: ChunkSize,
+		db:          db,
+		host:        host,
+		chunkSize:   ChunkSize,
+		fileHandler: fh,
+		p2p:         p2p.NewP2P(host, ProtocolID, fh),
+		acl:         acl.NewACL(db),
+
+		storagePath: storagePath,
 	}
 }
 
+// ============================================================================
+// =====													GRPC Handlers														=====
+// ============================================================================
+
+// SaveFile saves a file locally.
+func (s *Storage) SaveFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) ([]byte, error) {
+	event := log.EventBegin(ctx, "SaveFile")
+	defer event.Done()
+
+	file, err := s.fileHandler.WriteFile(ctx, chunkCh)
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	var hash []byte
+	if hash, err = s.IndexFile(ctx, file); err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+	event.Append(&logging.Metadata{"hash": hex.EncodeToString(hash)})
+
+	return hash, nil
+}
+
 // IndexFile adds the file hash and name to the db.
-func (s *Storage) IndexFile(ctx context.Context, file *os.File, fileName string) (fileHash []byte, err error) {
+func (s *Storage) IndexFile(ctx context.Context, file *os.File) ([]byte, error) {
 	// go back to the beginning of the file.
 	if _, err := file.Seek(0, 0); err != nil {
 		return nil, err
 	}
 
 	h := sha256.New()
-	if _, err = io.Copy(h, file); err != nil {
-		return
+	if _, err := io.Copy(h, file); err != nil {
+		return nil, err
 	}
 
-	fileHash, err = mh.Encode(h.Sum(nil), mh.SHA2_256)
+	fileHash, err := mh.Encode(h.Sum(nil), mh.SHA2_256)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	if err = s.db.Put(append(prefixFilesHashes, fileHash...), []byte(fileName)); err != nil {
-		return
+	// if err = s.db.Put(append(prefixFilesHashes, []byte(file.Name())...), hash); err != nil {
+	if err = s.db.Put(append(prefixFilesHashes, fileHash...), []byte(file.Name())); err != nil {
+		return nil, err
 	}
 
-	return
+	return fileHash, nil
 }
-
-// Keep track of the authorized peers in a map
-// to have efficient insert.
-type authorizedPeersMap map[peer.ID]struct{}
 
 // Authorize adds a list of peers to the authorized peers for a file hash.
 func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte) error {
@@ -105,42 +152,72 @@ func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte)
 		}
 		peerIds[i] = pid
 	}
-	event := log.EventBegin(ctx, "AuthorizePeer", &logging.Metadata{
-		"peerIDs": peerIds,
-	})
-	defer event.Done()
+	return s.acl.Authorize(ctx, peerIds, fileHash)
+}
 
-	// Get authorized peers from DB and update them.
-	authorizedPeers := authorizedPeersMap{}
-	ap, err := s.db.Get(append(prefixAuthorizedPeers, fileHash...))
-	if err != nil && errors.Cause(err) != db.ErrNotFound {
-		event.SetError(err)
-		return err
-	} else if errors.Cause(err) != db.ErrNotFound {
-		if err = json.Unmarshal(ap, &authorizedPeers); err != nil {
-			event.SetError(err)
-			return err
-		}
-	}
-
-	for _, p := range peerIds {
-		authorizedPeers[p] = struct{}{}
-	}
-
-	newAp, err := json.Marshal(authorizedPeers)
+// PullFile pulls a file from a peer given the file hash.
+func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) error {
+	peerID, err := peer.IDFromBytes(pid)
 	if err != nil {
-		event.SetError(err)
 		return err
 	}
-
-	if err = s.db.Put(append(prefixAuthorizedPeers, fileHash...), newAp); err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	return nil
+	return s.p2p.PullFile(ctx, fileHash, peerID)
 }
 
 // StreamHandler handles incoming messages from peers.
 func (s *Storage) StreamHandler(ctx context.Context, stream inet.Stream) {
+	from := stream.Conn().RemotePeer()
+	event := log.EventBegin(ctx, "SendFile", logging.Metadata{
+		"peerID": from.Pretty(),
+	})
+	defer event.Done()
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+
+	var req pb.FileInfo
+
+	err := dec.Decode(&req)
+	if err != nil {
+		event.SetError(err)
+		return
+	}
+
+	// TODO: send termination to peer if error.
+
+	// Check that the peer is allowed to get the file.
+	ok, err := s.acl.IsAuthorized(ctx, from, req.Hash)
+	if err != nil {
+		event.SetError(err)
+		return
+	}
+	if !ok {
+		event.SetError(ErrUnauthorized)
+		return
+	}
+
+	path, err := s.getFilePath(ctx, req.Hash)
+	if err != nil {
+		event.SetError(err)
+		return
+	}
+
+	if err := s.p2p.SendFile(ctx, enc, path); err != nil {
+		event.SetError(err)
+		return
+	}
+
+}
+
+// ============================================================================
+// =====													Helpers																	=====
+// ============================================================================
+
+func (s *Storage) getFilePath(ctx context.Context, fileHash []byte) (string, error) {
+	p, err := s.db.Get(append(prefixFilesHashes, fileHash...))
+	if err != nil {
+		return "", err
+	}
+
+	return string(p), nil
 }

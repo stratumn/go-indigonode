@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/satori/go.uuid"
-	pb "github.com/stratumn/alice/grpc/storage"
+	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
+	grpcpb "github.com/stratumn/alice/grpc/storage"
 	"github.com/stratumn/alice/grpc/storage/mockstorage"
+	pb "github.com/stratumn/alice/pb/storage"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,33 +39,42 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	stream := mockstorage.NewMockStorage_UploadServer(ctrl)
-	indexFuncCalled := false
+	saveFnCalled := false
 
 	server := newGrpcServer(
-		func(ctx context.Context, file *os.File, fileName string) ([]byte, error) {
-			checkFileContent(t, file.Name(), []byte("coucou, tu veux voir mon fichier ?"))
+		// saveFile.
+		func(ctx context.Context, ch <-chan *pb.FileChunk) ([]byte, error) {
+			saveFnCalled = true
+			content := []byte{}
 
-			err := os.Remove(file.Name())
-			assert.NoError(t, err, "Remove()")
-			indexFuncCalled = true
+			for {
+				chunk, ok := <-ch
+				if !ok {
+					break
+				}
+				content = append(content, chunk.Data...)
+			}
+
+			assert.Equal(t, []byte("coucou, tu veux voir mon fichier ?"), content, "saveFile")
 			return []byte("123"), nil
 		},
+		nil,
 		nil,
 		storagePath,
 		1*time.Second)
 
 	filename := "grpc_test"
 
-	chunk1 := &pb.StreamFileChunk{
+	chunk1 := &pb.FileChunk{
 		FileName: filename,
 		Data:     []byte("coucou, "),
 	}
 
-	chunk2 := &pb.StreamFileChunk{
+	chunk2 := &pb.FileChunk{
 		Data: []byte("tu veux voir "),
 	}
 
-	chunk3 := &pb.StreamFileChunk{
+	chunk3 := &pb.FileChunk{
 		Data: []byte("mon fichier ?"),
 	}
 
@@ -72,13 +83,13 @@ func TestGRPCServer_UploadFile(t *testing.T) {
 		stream.EXPECT().Recv().Return(chunk2, nil),
 		stream.EXPECT().Recv().Return(chunk3, nil),
 		stream.EXPECT().Recv().Return(nil, io.EOF),
-		stream.EXPECT().SendAndClose(&pb.UploadAck{FileHash: []byte("123")}).Return(nil),
+		stream.EXPECT().SendAndClose(&grpcpb.UploadAck{FileHash: []byte("123")}).Return(nil),
 	)
 
 	err := server.Upload(stream)
 	assert.NoError(t, err, "server.Upload()")
 
-	assert.True(t, indexFuncCalled, "Index function was not called")
+	assert.True(t, saveFnCalled, "Index function was not called")
 }
 
 func TestGRPCServer_NewGrpcServer(t *testing.T) {
@@ -91,6 +102,7 @@ func TestGRPCServer_NewGrpcServer(t *testing.T) {
 	newGrpcServer(
 		nil,
 		nil,
+		nil,
 		storagePath,
 		10*time.Millisecond)
 
@@ -99,44 +111,51 @@ func TestGRPCServer_NewGrpcServer(t *testing.T) {
 }
 
 func TestGRPCServer_StartUpload(t *testing.T) {
+	fileName := "grpc_test"
+
+	saveFnCalled := false
 	server := newGrpcServer(
+		func(ctx context.Context, ch <-chan *pb.FileChunk) ([]byte, error) {
+			saveFnCalled = true
+			return []byte("zoulou"), nil
+		},
 		nil,
 		nil,
 		storagePath,
 		10*time.Millisecond)
 
-	uploadReq := &pb.UploadReq{
+	uploadReq := &grpcpb.UploadReq{
 		FileName: "grpc_test",
 	}
 
-	session, err := server.StartUpload(context.Background(), uploadReq)
+	sess, err := server.StartUpload(context.Background(), uploadReq)
 	assert.NoError(t, err, "server.StartUpload()")
 
-	u, err := uuid.FromBytes(session.Id)
+	u, err := uuid.FromBytes(sess.Id)
 	assert.NoError(t, err, "server.StartUpload()")
 
-	tmpFilePath := filepath.Join(storagePath, tmpStorageSubdir, server.sessions[u].storageFileName)
-
-	_, err = os.Stat(tmpFilePath)
-	assert.NoError(t, err, "Temporary file could not be found.")
+	session, ok := server.sessions[u]
+	assert.True(t, ok, "server.serssions(uuid)")
+	assert.Equal(t, fileName, session.fileName, "session.fielName")
 
 	test.WaitUntil(t, 2*server.uploadTimeout, time.Millisecond*1, func() error {
-		_, err := os.Stat(tmpFilePath)
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}, "Temporary file was not deleted.")
+		hash := <-session.resCh
+		assert.Equal(t, []byte("zoulou"), hash, "<-session.resCh")
+		return nil
+	}, "incorrect file hash.")
+
+	assert.True(t, saveFnCalled, "Save function was not called")
 }
 
 func TestGRPCServer_StartUpload_FileNameMissing(t *testing.T) {
 	server := newGrpcServer(
 		nil,
 		nil,
+		nil,
 		storagePath,
 		10*time.Millisecond)
 
-	uploadReq := &pb.UploadReq{
+	uploadReq := &grpcpb.UploadReq{
 		FileName: "",
 	}
 
@@ -147,50 +166,46 @@ func TestGRPCServer_StartUpload_FileNameMissing(t *testing.T) {
 func TestGRPCServer_UploadChunk(t *testing.T) {
 	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
 	u := uuid.NewV4()
-
-	file, err := os.Create(filepath.Join(storagePath, filename))
-	assert.NoError(t, err, "os.Create()")
-
 	s := newSession(filename)
-	s.file = file
 
-	server := newGrpcServer(nil, nil, storagePath, 1*time.Second)
-
+	server := newGrpcServer(nil, nil, nil, storagePath, 1*time.Second)
 	server.sessions[u] = s
 
 	t.Run("With a valid session ID", func(t *testing.T) {
-		chunk := &pb.FileChunk{
+		chunk := &grpcpb.SessionFileChunk{
 			Id:   u.Bytes(),
 			Data: []byte("coucou, "),
 		}
 
-		_, err = server.UploadChunk(context.Background(), chunk)
-		assert.NoError(t, err, "server.UploadChunk()")
+		go func() {
+			_, err := server.UploadChunk(context.Background(), chunk)
+			assert.NoError(t, err, "server.UploadChunk()")
+		}()
 
-		checkFileContent(t, filepath.Join(storagePath, filename), []byte("coucou, "))
+		receivedChunk := <-s.chunkCh
+		assert.Equal(t, filename, receivedChunk.FileName, "chunk.FileName")
+		assert.Equal(t, chunk.Data, receivedChunk.Data, "chunk.FileName")
 
-		err = os.Remove(filepath.Join(storagePath, filename))
-		assert.NoError(t, err, " Remove()")
 	})
 
 	t.Run("With an invalid session ID", func(t *testing.T) {
-		chunk := &pb.FileChunk{
+		chunk := &grpcpb.SessionFileChunk{
 			Id:   []byte("123"),
 			Data: []byte("coucou, "),
 		}
 
-		_, err = server.UploadChunk(context.Background(), chunk)
+		_, err := server.UploadChunk(context.Background(), chunk)
 		assert.EqualError(t, err, ErrInvalidUploadSession.Error())
 	})
 
 	t.Run("With a new session ID", func(t *testing.T) {
 		uNew := uuid.NewV4()
-		chunk := &pb.FileChunk{
+		chunk := &grpcpb.SessionFileChunk{
 			Id:   uNew.Bytes(),
 			Data: []byte("coucou, "),
 		}
 
-		_, err = server.UploadChunk(context.Background(), chunk)
+		_, err := server.UploadChunk(context.Background(), chunk)
 		assert.EqualError(t, err, ErrUploadSessionNotFound.Error())
 	})
 }
@@ -199,67 +214,67 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 	filename := fmt.Sprintf("grpc_test_%d", time.Now().UnixNano())
 	u := uuid.NewV4()
 
-	file, err := os.Create(filepath.Join(storagePath, filename))
-	assert.NoError(t, err, "os.Create()")
-
-	var indexedFile *os.File
-
-	content := []byte("coucou, tu veux voir mon fichier ?")
-	_, err = file.Write(content)
-	assert.NoError(t, err, "file.Write()")
-
 	server := newGrpcServer(
-		func(ctx context.Context, file *os.File, filename string) ([]byte, error) {
-			indexedFile = file
-			return []byte("123"), nil
-		},
+		nil,
+		nil,
 		nil,
 		storagePath,
 		1*time.Second)
 
 	session := newSession(filename)
-	session.file = file
 	server.sessions[u] = session
 
 	t.Run("With a valid session ID", func(t *testing.T) {
-		req := &pb.UploadSession{
+		req := &grpcpb.UploadSession{
 			Id: u.Bytes(),
 		}
 
-		uploadAck, err := server.EndUpload(context.Background(), req)
-		assert.NoError(t, err, "server.EndUpload()")
-		assert.Equal(t, uploadAck.FileHash, []byte("123"))
+		go func() {
+			uploadAck, err := server.EndUpload(context.Background(), req)
+			assert.NoError(t, err, "server.EndUpload()")
+			assert.Equal(t, uploadAck.FileHash, []byte("123"))
 
-		got, err := indexedFile.Stat()
-		assert.NoError(t, err, "indexedFile.Stat()")
+			// Check that the session has been deleted.
+			_, ok := server.sessions[u]
+			assert.False(t, ok, "server.sessions[u]")
+		}()
 
-		f, err := os.Open(filepath.Join(storagePath, session.storageFileName))
-		assert.NoError(t, err, "os.Open()")
+		<-session.doneCh
+		session.resCh <- []byte("123")
 
-		expect, err := f.Stat()
-		assert.NoError(t, err, "f.Stat()")
-		assert.True(t, os.SameFile(expect, got), "SameFile")
+	})
 
-		err = os.Remove(filepath.Join(storagePath, session.storageFileName))
-		assert.NoError(t, err, " Remove()")
+	t.Run("With a write error", func(t *testing.T) {
+		req := &grpcpb.UploadSession{
+			Id: u.Bytes(),
+		}
+
+		go func() {
+			_, err := server.EndUpload(context.Background(), req)
+			assert.Error(t, err, "server.EndUpload()")
+		}()
+
+		<-session.doneCh
+		session.errCh <- errors.New("https://goo.gl/WhZSSE")
+
 	})
 
 	t.Run("With an invalid session ID", func(t *testing.T) {
-		req := &pb.UploadSession{
+		req := &grpcpb.UploadSession{
 			Id: []byte("123"),
 		}
 
-		_, err = server.EndUpload(context.Background(), req)
+		_, err := server.EndUpload(context.Background(), req)
 		assert.EqualError(t, err, ErrInvalidUploadSession.Error())
 	})
 
 	t.Run("With a new session ID", func(t *testing.T) {
 		uNew := uuid.NewV4()
-		req := &pb.UploadSession{
+		req := &grpcpb.UploadSession{
 			Id: uNew.Bytes(),
 		}
 
-		_, err = server.EndUpload(context.Background(), req)
+		_, err := server.EndUpload(context.Background(), req)
 		assert.EqualError(t, err, ErrUploadSessionNotFound.Error())
 	})
 }
@@ -267,13 +282,16 @@ func TestGRPCServer_EndUpload(t *testing.T) {
 func TestGRPCServer_AuthorizePeers(t *testing.T) {
 	var fh []byte
 	var pids [][]byte
-	server := &grpcServer{
-		authorize: func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+	server := newGrpcServer(
+		nil,
+		func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
 			fh = fileHash
 			pids = peerIds
 			return nil
 		},
-	}
+		nil,
+		storagePath,
+		1*time.Second)
 
 	fileHash := []byte("file hash")
 	peerIds := [][]byte{
@@ -282,25 +300,38 @@ func TestGRPCServer_AuthorizePeers(t *testing.T) {
 		[]byte("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf3"),
 	}
 
-	server.AuthorizePeers(context.Background(), &pb.AuthRequest{
+	server.AuthorizePeers(context.Background(), &grpcpb.AuthRequest{
 		FileHash: fileHash,
 		PeerIds:  peerIds,
 	})
 
 	assert.Equal(t, fileHash, fh, "FileHash")
-	assert.Equal(t, peerIds, pids, "FileHash")
+	assert.Equal(t, peerIds, pids, "PeerIds")
 }
 
-func checkFileContent(t *testing.T, filename string, expected []byte) *os.File {
-	f, err := os.Open(filename)
-	assert.NoError(t, err, "os.Open()")
+func TestGRPCServer_Download(t *testing.T) {
+	var fh []byte
+	var pid []byte
 
-	content := make([]byte, 42)
-	zeros := make([]byte, 42-len(expected))
-	_, err = f.Read(content)
-	assert.NoError(t, err, "ReadFile()")
-	assert.Equal(t, expected, content[:len(expected)], "ReadFile()")
-	assert.Equal(t, zeros, content[len(expected):], "ReadFile()")
+	server := newGrpcServer(
+		nil,
+		nil,
+		func(ctx context.Context, fileHash []byte, peerId []byte) error {
+			fh = fileHash
+			pid = peerId
+			return nil
+		},
+		storagePath,
+		1*time.Second)
 
-	return f
+	fileHash := []byte("file hash")
+	peerID := []byte("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf1")
+
+	server.Download(context.Background(), &grpcpb.DownloadRequest{
+		FileHash: fileHash,
+		PeerId:   peerID,
+	})
+
+	assert.Equal(t, fileHash, fh, "FileHash")
+	assert.Equal(t, peerID, pid, "PeerId")
 }

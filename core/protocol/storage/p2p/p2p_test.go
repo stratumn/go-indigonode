@@ -127,10 +127,11 @@ func TestP2P_SendFile(t *testing.T) {
 		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
 	)
 
-	p2p.SendFile(context.Background(), enc, filePath)
+	err = p2p.SendFile(context.Background(), enc, filePath)
+	assert.NoError(t, err, "SendFile")
 }
 
-func TestP2P_SendFile_ChunkSize(t *testing.T) {
+func TestP2P_SendFile_ExactChunkSize(t *testing.T) {
 
 	content := []byte("0123456789")
 	storagePath := "/tmp/"
@@ -156,7 +157,8 @@ func TestP2P_SendFile_ChunkSize(t *testing.T) {
 		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
 	)
 
-	p2p.SendFile(context.Background(), enc, filePath)
+	err = p2p.SendFile(context.Background(), enc, filePath)
+	assert.NoError(t, err, "SendFile")
 }
 
 // Returns a stream handler that streams the byte array.

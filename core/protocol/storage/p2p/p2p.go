@@ -19,6 +19,7 @@ package p2p
 import (
 	"context"
 	"encoding/hex"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -147,13 +148,12 @@ LOOP:
 			// put as many bytes as `chunkSize` into the buf array.
 			// n is the actual number of bytes read in case we reached end of file.
 			n, err := file.Read(buf)
-			if err != nil {
-				return err
-			}
-
-			if n == 0 {
+			if err == io.EOF {
 				// No more bytes to send, break loop directly
 				break LOOP
+			}
+			if err != nil {
+				return err
 			}
 
 			if n < p.chunkSize {

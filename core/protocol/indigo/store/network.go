@@ -40,6 +40,9 @@ type Host = ihost.Host
 
 // NetworkManager provides methods to manage and join PoP networks.
 type NetworkManager interface {
+	// NodeID returns the ID of the node in the network.
+	NodeID() string
+
 	// Join joins a PoP network.
 	Join(ctx context.Context, networkID string, host Host) error
 	// Leave leaves a PoP network.
@@ -74,6 +77,11 @@ type PubSubNetworkManager struct {
 // NewNetworkManager creates a new NetworkManager.
 func NewNetworkManager(peerKey ic.PrivKey) NetworkManager {
 	return &PubSubNetworkManager{peerKey: peerKey}
+}
+
+// NodeID returns the base58 peerID.
+func (m *PubSubNetworkManager) NodeID() string {
+	return m.host.ID().Pretty()
 }
 
 // Join joins a PoP network that uses floodsub to share links.

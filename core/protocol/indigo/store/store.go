@@ -208,6 +208,8 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 		return
 	}
 
+	s.enrichLinkMeta(link)
+
 	lh, err = s.store.CreateLink(ctx, link)
 	if err != nil {
 		return
@@ -218,6 +220,14 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 	}
 
 	return
+}
+
+func (s *Store) enrichLinkMeta(link *cs.Link) {
+	if link.Meta.Data == nil {
+		link.Meta.Data = make(map[string]interface{})
+	}
+
+	link.Meta.Data[NodeIDKey] = s.networkMgr.NodeID()
 }
 
 // GetSegment forwards the request to the underlying store.

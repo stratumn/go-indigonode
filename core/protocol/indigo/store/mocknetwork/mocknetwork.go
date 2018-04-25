@@ -5,13 +5,12 @@ package mocknetworkmanager
 
 import (
 	context "context"
+	go_libp2p_host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	store "github.com/stratumn/alice/pb/indigo/store"
 	cs "github.com/stratumn/go-indigocore/cs"
-
-	go_libp2p_host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 )
 
 // MockNetworkManager is a mock of NetworkManager interface
@@ -83,6 +82,18 @@ func (_m *MockNetworkManager) Listen(_param0 context.Context) error {
 // Listen indicates an expected call of Listen
 func (_mr *MockNetworkManagerMockRecorder) Listen(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Listen", reflect.TypeOf((*MockNetworkManager)(nil).Listen), arg0)
+}
+
+// NodeID mocks base method
+func (_m *MockNetworkManager) NodeID() string {
+	ret := _m.ctrl.Call(_m, "NodeID")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// NodeID indicates an expected call of NodeID
+func (_mr *MockNetworkManagerMockRecorder) NodeID() *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "NodeID", reflect.TypeOf((*MockNetworkManager)(nil).NodeID))
 }
 
 // Publish mocks base method

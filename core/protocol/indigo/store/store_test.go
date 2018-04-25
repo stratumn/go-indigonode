@@ -80,6 +80,7 @@ func (b *TestStoreBuilder) Build() *store.Store {
 		b.networkMgr = mocknetworkmanager.NewMockNetworkManager(b.ctrl)
 		b.networkMgr.EXPECT().AddListener().Times(1)
 		b.networkMgr.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+		b.networkMgr.EXPECT().NodeID().AnyTimes()
 	}
 
 	if b.syncEngine == nil {
@@ -421,15 +422,29 @@ func TestCreateLink(t *testing.T) {
 			assert.Error(t, err, "s.CreateLink()")
 		},
 	}, {
-		"valid-link",
+		"publish-valid-link",
 		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
 			link := cstesting.NewLinkBuilder().Build()
 
 			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			mgr.EXPECT().NodeID().Times(1)
 
 			lh, err := s.CreateLink(context.Background(), link)
 			assert.NoError(t, err, "s.CreateLink()")
 			assert.NotNil(t, lh, "s.CreateLink()")
+		},
+	}, {
+		"add-node-id-meta",
+		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
+			link := cstesting.NewLinkBuilder().Build()
+
+			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			mgr.EXPECT().NodeID().Times(1).Return("spongebob")
+
+			lh, _ := s.CreateLink(context.Background(), link)
+			segment, err := s.GetSegment(context.Background(), lh)
+			assert.NoError(t, err, "s.GetSegment()")
+			assert.Equal(t, "spongebob", segment.Link.Meta.Data[store.NodeIDKey])
 		},
 	}}
 

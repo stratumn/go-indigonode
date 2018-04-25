@@ -32,7 +32,7 @@ var (
 	prefixFilePermission = []byte("ap") // prefixFilePermission + filehash + peerID -> byte
 )
 
-const hashSize = 32
+const hashSize = 2 + 32 // 2 bytes for multihash and 32 bytes for the SHA256.
 
 var (
 	// ErrUnauthorized is returned when a peer tries to access a file he

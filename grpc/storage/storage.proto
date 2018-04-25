@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/pb/storage/storage.proto";
 
 package stratumn.alice.grpc.storage;
 
@@ -25,41 +26,35 @@ service Storage {
   // // Sends a message to a peer.
   // rpc SendFile (File) returns (Ack) {
   // }
-
-  // Upload a file to the alice node with client side streaming.
-  rpc Upload (stream StreamFileChunk) returns (UploadAck) {}
+  
+  
+  // Upload a file to the alice node.
+  rpc Upload (stream stratumn.alice.pb.storage.FileChunk) returns (UploadAck) {}
 
   // Sends a request to the server to start a new upload.
   rpc StartUpload(UploadReq) returns (UploadSession) {}
 
   // Upload a single chunk of a file to the server.
-  rpc UploadChunk(FileChunk) returns (Ack) {}
+  rpc UploadChunk(SessionFileChunk) returns (Ack) {}
 
   // Notifies the server that the session's file has been entirely sent.
   rpc EndUpload(UploadSession) returns (UploadAck) {}
-
+  
   // Give peers access to a file.
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
+
+  // Download downloads a file from a peer.
+  rpc Download (DownloadRequest) returns (Ack) {}
 }
 
-// // A file storage.
-// message File {
-//   bytes peer_id = 1 [
-//     (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
-//     (stratumn.alice.grpc.ext.field_required) = true,
-//     (stratumn.alice.grpc.ext.field_base58) = true
-//   ];
-//   string path = 2 [
-//     (stratumn.alice.grpc.ext.field_desc) = "Path to the file",
-//     (stratumn.alice.grpc.ext.field_required) = true
-//   ];
-// }
 
-message StreamFileChunk {
+
+
+message SessionFileChunk {
   // file name is required only on first message.
-  string file_name = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Name of the file",
-    (stratumn.alice.grpc.ext.field_required) = false
+  bytes id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
+    (stratumn.alice.grpc.ext.field_required) = true
   ];
   bytes data = 2 [
     (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",
@@ -81,20 +76,21 @@ message UploadSession {
   ];
 }
 
-message FileChunk {
-  bytes id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
-    (stratumn.alice.grpc.ext.field_required) = true
+message AuthRequest {
+  repeated bytes peer_ids = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer IDs",
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_base58) = true
   ];
-  bytes data = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",
+  bytes file_hash = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file",
     (stratumn.alice.grpc.ext.field_required) = true
   ];
 }
 
-message AuthRequest {
-  repeated bytes peer_ids = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer IDs",
+message DownloadRequest {
+  bytes peer_id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
     (stratumn.alice.grpc.ext.field_required) = true,
     (stratumn.alice.grpc.ext.field_base58) = true
   ];

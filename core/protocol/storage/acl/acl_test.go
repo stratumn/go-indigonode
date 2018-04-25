@@ -39,7 +39,7 @@ func TestACL(t *testing.T) {
 	pid4, err := peer.IDB58Decode("QmNnP696qYWjwyiqoepYauwpdZp62NoKEjBV4Q1MJVhMUC")
 	assert.NoError(t, err, "IDB58Decode")
 
-	fileHash := []byte("this is the hash of the file !!!")
+	fileHash := []byte("this is the hash of the file !!!!!")
 
 	// Authorize peers.
 	err = acl.Authorize(context.Background(), []peer.ID{pid1, pid2}, fileHash)

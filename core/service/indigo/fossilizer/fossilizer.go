@@ -24,6 +24,7 @@ import (
 
 	protocol "github.com/stratumn/alice/core/protocol/indigo/fossilizer"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/fossilizer"
+	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
 )
 
 var (
@@ -63,6 +64,7 @@ func (s *Service) Config() interface{} {
 	return Config{
 		Version:        "0.1.0",
 		FossilizerType: Dummy,
+		BtcFee:         btctimestamper.DefaultFee,
 	}
 }
 
@@ -75,7 +77,7 @@ func (s *Service) SetConfig(config interface{}) error {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	indigoFossilizer, err := s.config.CreateIndigoFossilizer()
+	indigoFossilizer, err := s.config.CreateIndigoFossilizer(ctx)
 	if err != nil {
 		return err
 	}

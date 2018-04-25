@@ -48,10 +48,6 @@ type ACL interface {
 	IsAuthorized(context.Context, peer.ID, []byte) (bool, error)
 }
 
-// Keep track of the authorized peers in a map
-// to have efficient insert.
-type authorizedPeersMap map[string]struct{}
-
 type acl struct {
 	db db.DB
 }

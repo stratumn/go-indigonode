@@ -22,12 +22,14 @@ import (
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
+	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var log = logging.Logger("indigo.store")
@@ -36,7 +38,7 @@ var log = logging.Logger("indigo.store")
 type Store struct {
 	store      store.Adapter
 	auditStore audit.Store
-	sync       SyncEngine
+	sync       sync.Engine
 	networkMgr NetworkManager
 	linksChan  <-chan *pb.SignedLink
 }
@@ -45,7 +47,7 @@ type Store struct {
 // It expects a NetworkManager connected to a PoP network.
 func New(
 	networkMgr NetworkManager,
-	sync SyncEngine,
+	sync sync.Engine,
 	adapter store.Adapter,
 	auditStore audit.Store,
 ) *Store {
@@ -138,7 +140,12 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 		event.Done()
 	}()
 
-	missedLinks, err := s.sync.GetMissingLinks(ctx, link, s.store)
+	from, err := peer.IDFromBytes(remoteLink.From)
+	if err != nil {
+		return errors.Wrap(err, "invalid peer ID")
+	}
+
+	missedLinks, err := s.sync.GetMissingLinks(ctx, from, link, s.store)
 	if err != nil {
 		return err
 	}

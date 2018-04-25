@@ -43,6 +43,37 @@ func FromLinkHash(lh *types.Bytes32) *LinkHash {
 	return &LinkHash{Data: lh[:]}
 }
 
+// ToLinkHashes converts to the Indigo-core type.
+func (lhs *LinkHashes) ToLinkHashes() ([]string, error) {
+	if lhs == nil {
+		return nil, ErrInvalidArgument
+	}
+
+	res := make([]string, len(lhs.LinkHashes))
+	for i, lh := range lhs.LinkHashes {
+		parsed, err := lh.ToLinkHash()
+		if err != nil {
+			return nil, err
+		}
+
+		res[i] = parsed.String()
+	}
+
+	return res, nil
+}
+
+// FromLinkHashes converts from the Indigo-core type.
+func FromLinkHashes(lhs []string) *LinkHashes {
+	res := &LinkHashes{}
+
+	for _, lh := range lhs {
+		linkHash, _ := types.NewBytes32FromString(lh)
+		res.LinkHashes = append(res.LinkHashes, FromLinkHash(linkHash))
+	}
+
+	return res
+}
+
 // ToLink converts to the Indigo-core type.
 func (l *Link) ToLink() (*cs.Link, error) {
 	if l == nil {
@@ -66,6 +97,21 @@ func FromLink(l *cs.Link) (*Link, error) {
 	}
 
 	return &Link{Data: linkBytes}, nil
+}
+
+// ToSegment converts to the Indigo-core type.
+func (s *Segment) ToSegment() (*cs.Segment, error) {
+	if s == nil {
+		return nil, ErrInvalidArgument
+	}
+
+	var segment cs.Segment
+	err := json.Unmarshal(s.Data, &segment)
+	if err != nil {
+		return nil, ErrInvalidArgument
+	}
+
+	return &segment, nil
 }
 
 // FromSegment converts from the Indigo-core type.

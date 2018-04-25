@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package store
+package sync
 
 import (
 	"context"
@@ -34,50 +34,50 @@ import (
 )
 
 var (
-	// MultiNodeSyncProtocolID is the protocol ID of the sync engine
+	// MultiNodeProtocolID is the protocol ID of the sync engine
 	// that splits the sync load between several nodes.
-	MultiNodeSyncProtocolID = protocol.ID("/alice/indigo/store/sync/multinode/v1.0.0")
+	MultiNodeProtocolID = protocol.ID("/alice/indigo/store/sync/multinode/v1.0.0")
 )
 
-// MultiNodeSyncEngine synchronously syncs with peers to get
+// MultiNodeEngine synchronously syncs with peers to get
 // all missing links in one shot. It asks directly each of its
 // connected peers for those missing links. The connected peers
 // don't recursively ask their own peers if they don't have the link,
 // so this sync engine will not work if you aren't connected to
 // at least one peer having the link.
-type MultiNodeSyncEngine struct {
+type MultiNodeEngine struct {
 	host  ihost.Host
 	store store.SegmentReader
 }
 
-// NewMultiNodeSyncEngine creates a new MultiNodeSyncEngine
+// NewMultiNodeEngine creates a new MultiNodeEngine
 // and registers its handlers.
-func NewMultiNodeSyncEngine(host ihost.Host, store store.SegmentReader) *MultiNodeSyncEngine {
-	engine := &MultiNodeSyncEngine{
+func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
+	engine := &MultiNodeEngine{
 		host:  host,
 		store: store,
 	}
 
-	engine.host.SetStreamHandler(MultiNodeSyncProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(MultiNodeProtocolID, engine.syncHandler)
 
 	return engine
 }
 
 // Close cleans up resources and protocol handlers.
-func (s *MultiNodeSyncEngine) Close(ctx context.Context) {
-	s.host.RemoveStreamHandler(MultiNodeSyncProtocolID)
+func (s *MultiNodeEngine) Close(ctx context.Context) {
+	s.host.RemoveStreamHandler(MultiNodeProtocolID)
 }
 
 // GetMissingLinks will recursively walk the link graph and get all the missing
 // links in one pass. This might be a long operation.
-func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
+func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
 	event := log.EventBegin(ctx, "GetMissingLinks")
 	defer event.Done()
 
 	lh, err := link.Hash()
 	if err != nil {
 		event.SetError(err)
-		return nil, errors.Wrap(err, "invalid link hash")
+		return nil, ErrInvalidLink
 	}
 
 	event.Append(logging.Metadata{"link_hash": lh.String()})
@@ -88,18 +88,26 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 		return nil, ErrNoConnectedPeers
 	}
 
-	toFetch, fetchedLinks, err := listMissingLinkHashes(ctx, link, reader)
+	toFetch, err := ListMissingLinkHashes(ctx, link, reader)
 	if err != nil {
 		return nil, err
 	}
 
 	linksCount := 0
+	fetchedLinks := make(map[string]*cs.Link)
+
 	for len(toFetch) > 0 {
-		linksCount++
 		linkHashStr := toFetch[0]
 		toFetch = toFetch[1:]
+
+		_, alreadyFetched := fetchedLinks[linkHashStr]
+		if alreadyFetched {
+			continue
+		}
+
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
 
+		linksCount++
 		event.Append(logging.Metadata{fmt.Sprintf("fetching_%d", linksCount): linkHashStr})
 
 		found := false
@@ -121,16 +129,15 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 				continue
 			}
 
-			moreToFetch, moreIncluded, err := listMissingLinkHashes(ctx, l, reader)
+			found = true
+			fetchedLinks[linkHashStr] = l
+
+			moreToFetch, err := ListMissingLinkHashes(ctx, l, reader)
 			if err != nil {
 				return nil, err
 			}
 
 			toFetch = append(toFetch, moreToFetch...)
-
-			// We need to prepend to make sure links are correctly dependency-ordered.
-			fetchedLinks = append(append(moreIncluded, l), fetchedLinks...)
-			found = true
 
 			break
 		}
@@ -141,12 +148,18 @@ func (s *MultiNodeSyncEngine) GetMissingLinks(ctx context.Context, link *cs.Link
 		}
 	}
 
-	return fetchedLinks, nil
+	links, err := OrderLinks(ctx, link, fetchedLinks, reader)
+	if err != nil {
+		event.SetError(err)
+		return nil, ErrLinkNotFound
+	}
+
+	return links, nil
 }
 
 // getLinkFromPeer requests a link from a chosen peer.
-func (s *MultiNodeSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *types.Bytes32) (*cs.Link, error) {
-	stream, err := s.host.NewStream(ctx, pid, MultiNodeSyncProtocolID)
+func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *types.Bytes32) (*cs.Link, error) {
+	stream, err := s.host.NewStream(ctx, pid, MultiNodeProtocolID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't start peer stream")
 	}
@@ -172,57 +185,7 @@ func (s *MultiNodeSyncEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, 
 	return link.ToLink()
 }
 
-// listMissingLinkHashes returns all the link hashes referenced by the given link
-// that can't be found in the local store.
-// It also returns links that are fully included in references.
-func listMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]string, []*cs.Link, error) {
-	var referencedLinkHashes []string
-	var referencedLinks []*cs.Link
-
-	if link.Meta.PrevLinkHash != "" {
-		referencedLinkHashes = append(referencedLinkHashes, link.Meta.PrevLinkHash)
-	}
-
-	for _, ref := range link.Meta.Refs {
-		if ref.Segment != nil {
-			lhs, ls, err := listMissingLinkHashes(ctx, &ref.Segment.Link, reader)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			referencedLinkHashes = append(referencedLinkHashes, lhs...)
-			referencedLinks = append(referencedLinks, ls...)
-			referencedLinks = append(referencedLinks, &ref.Segment.Link)
-		} else if ref.LinkHash != "" {
-			referencedLinkHashes = append(referencedLinkHashes, ref.LinkHash)
-		}
-	}
-
-	storedSegments, err := reader.FindSegments(ctx, &store.SegmentFilter{
-		LinkHashes: referencedLinkHashes,
-		Pagination: store.Pagination{Limit: len(referencedLinkHashes)},
-	})
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't find segments")
-	}
-
-	storedLinkHashes := make(map[string]struct{})
-	for _, seg := range storedSegments {
-		storedLinkHashes[seg.GetLinkHashString()] = struct{}{}
-	}
-
-	var missingLinkHashes []string
-	for _, lh := range referencedLinkHashes {
-		_, ok := storedLinkHashes[lh]
-		if !ok {
-			missingLinkHashes = append(missingLinkHashes, lh)
-		}
-	}
-
-	return missingLinkHashes, referencedLinks, nil
-}
-
-func (s *MultiNodeSyncEngine) syncHandler(stream inet.Stream) {
+func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
 	ctx := context.Background()
 	var err error
 	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{

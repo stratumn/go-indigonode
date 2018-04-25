@@ -64,6 +64,14 @@ func TestSegments(t *testing.T) {
 	assert.Len(t, s.Segments, 2)
 	assert.NotNil(t, s.Segments[0].Data)
 	assert.NotNil(t, s.Segments[1].Data)
+
+	ss1, err := s.Segments[0].ToSegment()
+	assert.NoError(t, err)
+	assert.Equal(t, s1, ss1)
+
+	ss2, err := s.Segments[1].ToSegment()
+	assert.NoError(t, err)
+	assert.Equal(t, s2, ss2)
 }
 
 func TestSegmentFilter(t *testing.T) {

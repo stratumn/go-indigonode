@@ -26,7 +26,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/mockaudit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mockstore"
-	"github.com/stratumn/alice/core/protocol/indigo/store/mocksync"
+	"github.com/stratumn/alice/core/protocol/indigo/store/sync/mocksync"
 	"github.com/stratumn/alice/pb/crypto"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/alice/test"
@@ -46,7 +46,7 @@ import (
 type TestStoreBuilder struct {
 	ctrl        *gomock.Controller
 	networkMgr  *mocknetworkmanager.MockNetworkManager
-	syncEngine  *mocksync.MockSyncEngine
+	syncEngine  *mocksync.MockEngine
 	indigoStore indigostore.Adapter
 	auditStore  *mockaudit.MockStore
 }
@@ -60,7 +60,7 @@ func (b *TestStoreBuilder) WithNetworkManager(networkMgr *mocknetworkmanager.Moc
 	return b
 }
 
-func (b *TestStoreBuilder) WithSyncEngine(syncEngine *mocksync.MockSyncEngine) *TestStoreBuilder {
+func (b *TestStoreBuilder) WithSyncEngine(syncEngine *mocksync.MockEngine) *TestStoreBuilder {
 	b.syncEngine = syncEngine
 	return b
 }
@@ -83,9 +83,12 @@ func (b *TestStoreBuilder) Build() *store.Store {
 	}
 
 	if b.syncEngine == nil {
-		b.syncEngine = mocksync.NewMockSyncEngine(b.ctrl)
+		b.syncEngine = mocksync.NewMockEngine(b.ctrl)
 		// No missing links to sync.
-		b.syncEngine.EXPECT().GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil)
+		b.syncEngine.EXPECT().
+			GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			AnyTimes().
+			Return(nil, nil)
 	}
 
 	if b.auditStore == nil {
@@ -139,7 +142,7 @@ func TestReceiveLinks(t *testing.T) {
 	peerID, _ := peer.IDFromPrivateKey(sk)
 
 	createTestLink := func() (*pb.SignedLink, *cs.Link, *types.Bytes32) {
-		link := cstesting.RandomLink()
+		link := cstesting.NewLinkBuilder().Build()
 		linkHash, _ := link.Hash()
 		signedLink, _ := pb.NewSignedLink(sk, link)
 		return signedLink, link, linkHash
@@ -203,8 +206,7 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			link := cstesting.RandomLink()
-			link.Meta.MapID = ""
+			link := cstesting.NewLinkBuilder().Invalid().Build()
 			linkHash, _ := link.Hash()
 			signedLink, _ := pb.NewSignedLink(sk, link)
 
@@ -279,19 +281,17 @@ func TestReceiveLinks(t *testing.T) {
 			defer ctrl.Finish()
 
 			// link1 <----- link2 <----- link3
-			link1 := cstesting.RandomLink()
+			link1 := cstesting.NewLinkBuilder().Build()
 			linkHash1, _ := link1.Hash()
-			link2 := cstesting.RandomLink()
-			link2.Meta.PrevLinkHash = linkHash1.String()
+			link2 := cstesting.NewLinkBuilder().WithParent(link1).Build()
 			linkHash2, _ := link2.Hash()
-			link3 := cstesting.RandomLink()
-			link3.Meta.PrevLinkHash = linkHash2.String()
+			link3 := cstesting.NewLinkBuilder().WithParent(link2).Build()
 			linkHash3, _ := link3.Hash()
 			signedLink3, _ := pb.NewSignedLink(sk, link3)
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link3, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link3, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{link1, link2}, nil)
 
@@ -315,9 +315,9 @@ func TestReceiveLinks(t *testing.T) {
 
 			signedLink, link, linkHash := createTestLink()
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).
 				Return(nil, errors.New("no more credits"))
 
@@ -341,12 +341,10 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			invalidLink := cstesting.RandomLink()
-			invalidLink.Meta.MapID = ""
+			invalidLink := cstesting.NewLinkBuilder().Invalid().Build()
 			invalidLinkHash, _ := invalidLink.Hash()
 
-			link := cstesting.RandomLink()
-			link.Meta.PrevLinkHash = invalidLinkHash.String()
+			link := cstesting.NewLinkBuilder().WithParent(invalidLink).Build()
 			linkHash, _ := link.Hash()
 			signedLink, _ := pb.NewSignedLink(sk, link)
 
@@ -355,9 +353,9 @@ func TestReceiveLinks(t *testing.T) {
 			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
 				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{invalidLink}, nil)
 
@@ -418,16 +416,14 @@ func TestCreateLink(t *testing.T) {
 			// We don't add any assertions on the network manager.
 			// In case of invalid link, it shouldn't be shared with the network.
 
-			link := cstesting.RandomLink()
-			link.Meta.MapID = ""
-
+			link := cstesting.NewLinkBuilder().Invalid().Build()
 			_, err := s.CreateLink(context.Background(), link)
 			assert.Error(t, err, "s.CreateLink()")
 		},
 	}, {
 		"valid-link",
 		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
-			link := cstesting.RandomLink()
+			link := cstesting.NewLinkBuilder().Build()
 
 			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
 

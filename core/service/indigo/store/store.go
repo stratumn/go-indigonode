@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	indigostore "github.com/stratumn/go-indigocore/store"
@@ -143,7 +144,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	syncEngine := protocol.NewMultiNodeSyncEngine(s.host, indigoStore)
+	syncEngine := sync.NewSingleNodeEngine(s.host, indigoStore)
 
 	s.store = protocol.New(networkMgr, syncEngine, indigoStore, auditStore)
 

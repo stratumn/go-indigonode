@@ -5,7 +5,6 @@ package mocksync
 
 import (
 	context "context"
-	go_libp2p_peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -47,14 +46,14 @@ func (_mr *MockEngineMockRecorder) Close(arg0 interface{}) *gomock.Call {
 }
 
 // GetMissingLinks mocks base method
-func (_m *MockEngine) GetMissingLinks(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 *cs.Link, _param3 store.SegmentReader) ([]*cs.Link, error) {
-	ret := _m.ctrl.Call(_m, "GetMissingLinks", _param0, _param1, _param2, _param3)
+func (_m *MockEngine) GetMissingLinks(_param0 context.Context, _param1 *cs.Link, _param2 store.SegmentReader) ([]*cs.Link, error) {
+	ret := _m.ctrl.Call(_m, "GetMissingLinks", _param0, _param1, _param2)
 	ret0, _ := ret[0].([]*cs.Link)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMissingLinks indicates an expected call of GetMissingLinks
-func (_mr *MockEngineMockRecorder) GetMissingLinks(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetMissingLinks", reflect.TypeOf((*MockEngine)(nil).GetMissingLinks), arg0, arg1, arg2, arg3)
+func (_mr *MockEngineMockRecorder) GetMissingLinks(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "GetMissingLinks", reflect.TypeOf((*MockEngine)(nil).GetMissingLinks), arg0, arg1, arg2)
 }

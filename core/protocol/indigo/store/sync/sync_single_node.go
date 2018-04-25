@@ -19,6 +19,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
@@ -66,8 +67,8 @@ func (s *SingleNodeEngine) Close(ctx context.Context) {
 
 // GetMissingLinks connects to the node that published the link to get all
 // missing links in the subgraph ending in this new link.
-func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
-	event := log.EventBegin(ctx, "GetMissingLinks", logging.Metadata{"peer": sender.Pretty()})
+func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
+	event := log.EventBegin(ctx, "GetMissingLinks")
 	defer event.Done()
 
 	toFetch, err := ListMissingLinkHashes(ctx, link, reader)
@@ -81,6 +82,9 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, 
 		return nil, nil
 	}
 
+	// We expect the sender to have been validated upstream,
+	// so no need to check the error.
+	sender, _ := peer.IDB58Decode(link.Meta.Data[constants.NodeIDKey].(string))
 	stream, err := s.startStream(ctx, sender)
 	if err != nil {
 		event.SetError(err)

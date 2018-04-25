@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
@@ -302,7 +303,6 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 
 		_, err := engine.GetMissingLinks(
 			ctx,
-			"some peer",
 			cstesting.NewLinkBuilder().Build(),
 			indigoStore,
 		)
@@ -344,7 +344,7 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 2)
 		assert.Contains(t, links, prevLink)
@@ -381,7 +381,7 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		_, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		_, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.EqualError(t, err, sync.ErrLinkNotFound.Error())
 	})
 
@@ -430,7 +430,7 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine2.Close(ctx)
 		defer engine3.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, h3.ID(), link, store1)
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 3)
 		assert.Contains(t, links, prevPrevLink)
@@ -459,7 +459,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		engine := sync.NewSingleNodeEngine(h, nil)
 		defer engine.Close(ctx)
 
-		links, err := engine.GetMissingLinks(ctx, "some peer", link, testStore)
+		links, err := engine.GetMissingLinks(ctx, link, testStore)
 		assert.NoError(t, err)
 		assert.Nil(t, links)
 	})
@@ -475,8 +475,9 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 
 		_, err := engine.GetMissingLinks(
 			ctx,
-			"some peer",
-			cstesting.NewLinkBuilder().Build(),
+			cstesting.NewLinkBuilder().
+				WithMetadata(constants.NodeIDKey, h.ID().Pretty()).
+				Build(),
 			dummystore.New(&dummystore.Config{}),
 		)
 		assert.EqualError(t, err, sync.ErrNoConnectedPeers.Error())
@@ -501,6 +502,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		link := cstesting.NewLinkBuilder().
 			WithParent(prevLink).
 			WithRef(linkRef).
+			WithMetadata(constants.NodeIDKey, h2.ID().Pretty()).
 			Build()
 
 		// Set h2 to return only one of the two required segments.
@@ -524,7 +526,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		engine := sync.NewSingleNodeEngine(h1, testStore)
 		defer engine.Close(ctx)
 
-		_, err := engine.GetMissingLinks(ctx, h2.ID(), link, testStore)
+		_, err := engine.GetMissingLinks(ctx, link, testStore)
 		assert.EqualError(t, err, sync.ErrInvalidLinkCount.Error())
 	})
 
@@ -542,7 +544,10 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		//              `--------> prevLinkRef
 		prevLinkRef := cstesting.NewLinkBuilder().WithoutParent().Build()
 		prevLink := cstesting.NewLinkBuilder().WithRef(prevLinkRef).Build()
-		link := cstesting.NewLinkBuilder().WithParent(prevLink).Build()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithMetadata(constants.NodeIDKey, h2.ID().Pretty()).
+			Build()
 
 		store1 := dummystore.New(&dummystore.Config{})
 		store2 := dummystore.New(&dummystore.Config{})
@@ -554,7 +559,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		_, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		_, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.EqualError(t, err, sync.ErrInvalidLinkCount.Error())
 	})
 
@@ -575,6 +580,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		link := cstesting.NewLinkBuilder().
 			WithParent(prevLink).
 			WithRef(prevPrevLink).
+			WithMetadata(constants.NodeIDKey, h2.ID().Pretty()).
 			Build()
 
 		store1 := dummystore.New(&dummystore.Config{})
@@ -588,7 +594,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
 		require.Len(t, links, 2)
 		assert.Equal(t, prevPrevLink, links[0])
@@ -626,6 +632,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		link := cstesting.NewLinkBuilder().
 			WithParent(prevLink).
 			WithRef(refLink).
+			WithMetadata(constants.NodeIDKey, h2.ID().Pretty()).
 			Build()
 
 		store1 := dummystore.New(&dummystore.Config{})
@@ -642,7 +649,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
-		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		links, err := engine1.GetMissingLinks(ctx, link, store1)
 		assert.NoError(t, err)
 		assert.Len(t, links, 5)
 		assert.Contains(t, links, prevPrevLink)

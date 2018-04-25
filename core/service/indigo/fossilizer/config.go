@@ -19,14 +19,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/stratumn/go-indigocore/blockchain/btc"
-	"github.com/stratumn/go-indigocore/blockchain/dummytimestamper"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/batchfossilizer"
 	"github.com/stratumn/go-indigocore/bcbatchfossilizer"
+	"github.com/stratumn/go-indigocore/blockchain/btc"
 	"github.com/stratumn/go-indigocore/blockchain/btc/blockcypher"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
+	"github.com/stratumn/go-indigocore/blockchain/dummytimestamper"
 	"github.com/stratumn/go-indigocore/dummyfossilizer"
 	"github.com/stratumn/go-indigocore/fossilizer"
 )
@@ -44,13 +45,16 @@ const (
 	// BitcoinTimestamper designates the bitcoin timestamper.
 	BitcoinTimestamper = "bitcoin"
 
-	// DummyTimestamper designates the bitcoin timestamper.
+	// DummyTimestamper designates the dummy timestamper.
 	DummyTimestamper = "dummy"
 )
 
 var (
 	// ErrNotImplemented is returned when trying to instantiate an unknown type of fossilizer.
 	ErrNotImplemented = errors.New("fossilizer type is not implemented")
+
+	// log is the logger for the configuration package.
+	log = logging.Logger("indigo.fossilizer.config")
 )
 
 // Config contains configuration options for the Fossilizer service.
@@ -95,6 +99,10 @@ func (c *Config) CreateIndigoFossilizer(ctx context.Context) (fossilizer.Adapter
 }
 
 func (c *Config) createBlockchainFossilizer(ctx context.Context) (fossilizer.Adapter, error) {
+	log.Event(ctx, "createBlockchainFossilizer", &logging.Metadata{
+		"fossilizerConfig": c,
+	})
+
 	switch c.Timestamper {
 	case BitcoinTimestamper:
 		btcNetwork, err := btc.GetNetworkFromWIF(c.BtcWIF)

@@ -24,13 +24,13 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/storage/constants"
 	"github.com/stratumn/alice/core/protocol/storage/file"
 	pb "github.com/stratumn/alice/pb/storage"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
@@ -52,18 +52,15 @@ type P2P interface {
 }
 
 type p2p struct {
-	host       ihost.Host
-	protocolID protocol.ID
-
+	host        ihost.Host
 	fileHandler file.Handler
 	chunkSize   int
 }
 
 // NewP2P returns a new p2p handler.
-func NewP2P(host ihost.Host, p protocol.ID, fh file.Handler) P2P {
+func NewP2P(host ihost.Host, fh file.Handler) P2P {
 	return &p2p{
 		host:        host,
-		protocolID:  p,
 		chunkSize:   ChunkSize,
 		fileHandler: fh,
 	}
@@ -78,7 +75,7 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 	})
 	defer event.Done()
 
-	stream, err := p.host.NewStream(ctx, peerID, p.protocolID)
+	stream, err := p.host.NewStream(ctx, peerID, constants.ProtocolID)
 	if err != nil {
 		return errors.WithStack(err)
 	}

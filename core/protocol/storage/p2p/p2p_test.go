@@ -25,6 +25,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	p2pcore "github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/alice/core/protocol/storage/constants"
 	"github.com/stratumn/alice/core/protocol/storage/file/mockhandler"
 	"github.com/stratumn/alice/core/protocol/storage/p2p/mockencoder"
 	pb "github.com/stratumn/alice/pb/storage"
@@ -70,9 +71,9 @@ func TestP2P_PullFile(t *testing.T) {
 				return nil, nil
 			})
 
-		p2p := NewP2P(h1, "protocol", fileHandler)
+		p2p := NewP2P(h1, fileHandler)
 
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, fileName, data))
+		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
 
 		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.NoError(t, err, "PullFile")
@@ -88,9 +89,9 @@ func TestP2P_PullFile(t *testing.T) {
 				return nil, errors.New("https://goo.gl/YMfBcQ")
 			})
 
-		p2p := NewP2P(h1, "protocol", fileHandler)
+		p2p := NewP2P(h1, fileHandler)
 
-		h2.SetStreamHandler("protocol", getStreamHandler(ctx, fileName, data))
+		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
 
 		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.Error(t, err, "PullFile")

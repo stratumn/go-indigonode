@@ -10,16 +10,9 @@
 	It has these top-level messages:
 		InfoReq
 		InfoResp
-		Link
-		LinkHash
-		LinkHashes
-		Segment
-		Segments
 		SegmentFilter
 		MapIDs
 		MapFilter
-		Evidence
-		Evidences
 		AddEvidenceReq
 		AddEvidenceResp
 */
@@ -29,6 +22,7 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import _ "github.com/stratumn/alice/grpc/ext"
+import stratumn_alice_pb_indigo_store "github.com/stratumn/alice/pb/indigo/store"
 
 import context "context"
 import grpc "google.golang.org/grpc"
@@ -70,86 +64,6 @@ func (m *InfoResp) GetData() []byte {
 	return nil
 }
 
-type Link struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-}
-
-func (m *Link) Reset()                    { *m = Link{} }
-func (m *Link) String() string            { return proto.CompactTextString(m) }
-func (*Link) ProtoMessage()               {}
-func (*Link) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{2} }
-
-func (m *Link) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
-type LinkHash struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-}
-
-func (m *LinkHash) Reset()                    { *m = LinkHash{} }
-func (m *LinkHash) String() string            { return proto.CompactTextString(m) }
-func (*LinkHash) ProtoMessage()               {}
-func (*LinkHash) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{3} }
-
-func (m *LinkHash) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
-type LinkHashes struct {
-	LinkHashes []*LinkHash `protobuf:"bytes,1,rep,name=link_hashes,json=linkHashes" json:"link_hashes,omitempty"`
-}
-
-func (m *LinkHashes) Reset()                    { *m = LinkHashes{} }
-func (m *LinkHashes) String() string            { return proto.CompactTextString(m) }
-func (*LinkHashes) ProtoMessage()               {}
-func (*LinkHashes) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{4} }
-
-func (m *LinkHashes) GetLinkHashes() []*LinkHash {
-	if m != nil {
-		return m.LinkHashes
-	}
-	return nil
-}
-
-type Segment struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-}
-
-func (m *Segment) Reset()                    { *m = Segment{} }
-func (m *Segment) String() string            { return proto.CompactTextString(m) }
-func (*Segment) ProtoMessage()               {}
-func (*Segment) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{5} }
-
-func (m *Segment) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
-type Segments struct {
-	Segments []*Segment `protobuf:"bytes,1,rep,name=segments" json:"segments,omitempty"`
-}
-
-func (m *Segments) Reset()                    { *m = Segments{} }
-func (m *Segments) String() string            { return proto.CompactTextString(m) }
-func (*Segments) ProtoMessage()               {}
-func (*Segments) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{6} }
-
-func (m *Segments) GetSegments() []*Segment {
-	if m != nil {
-		return m.Segments
-	}
-	return nil
-}
-
 type SegmentFilter struct {
 	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
@@ -157,7 +71,7 @@ type SegmentFilter struct {
 func (m *SegmentFilter) Reset()                    { *m = SegmentFilter{} }
 func (m *SegmentFilter) String() string            { return proto.CompactTextString(m) }
 func (*SegmentFilter) ProtoMessage()               {}
-func (*SegmentFilter) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{7} }
+func (*SegmentFilter) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{2} }
 
 func (m *SegmentFilter) GetData() []byte {
 	if m != nil {
@@ -173,7 +87,7 @@ type MapIDs struct {
 func (m *MapIDs) Reset()                    { *m = MapIDs{} }
 func (m *MapIDs) String() string            { return proto.CompactTextString(m) }
 func (*MapIDs) ProtoMessage()               {}
-func (*MapIDs) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{8} }
+func (*MapIDs) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{3} }
 
 func (m *MapIDs) GetMapIds() []string {
 	if m != nil {
@@ -189,7 +103,7 @@ type MapFilter struct {
 func (m *MapFilter) Reset()                    { *m = MapFilter{} }
 func (m *MapFilter) String() string            { return proto.CompactTextString(m) }
 func (*MapFilter) ProtoMessage()               {}
-func (*MapFilter) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{9} }
+func (*MapFilter) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{4} }
 
 func (m *MapFilter) GetData() []byte {
 	if m != nil {
@@ -198,56 +112,24 @@ func (m *MapFilter) GetData() []byte {
 	return nil
 }
 
-type Evidence struct {
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-}
-
-func (m *Evidence) Reset()                    { *m = Evidence{} }
-func (m *Evidence) String() string            { return proto.CompactTextString(m) }
-func (*Evidence) ProtoMessage()               {}
-func (*Evidence) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{10} }
-
-func (m *Evidence) GetData() []byte {
-	if m != nil {
-		return m.Data
-	}
-	return nil
-}
-
-type Evidences struct {
-	Evidences []*Evidence `protobuf:"bytes,1,rep,name=evidences" json:"evidences,omitempty"`
-}
-
-func (m *Evidences) Reset()                    { *m = Evidences{} }
-func (m *Evidences) String() string            { return proto.CompactTextString(m) }
-func (*Evidences) ProtoMessage()               {}
-func (*Evidences) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{11} }
-
-func (m *Evidences) GetEvidences() []*Evidence {
-	if m != nil {
-		return m.Evidences
-	}
-	return nil
-}
-
 type AddEvidenceReq struct {
-	LinkHash *LinkHash `protobuf:"bytes,1,opt,name=link_hash,json=linkHash" json:"link_hash,omitempty"`
-	Evidence *Evidence `protobuf:"bytes,2,opt,name=evidence" json:"evidence,omitempty"`
+	LinkHash *stratumn_alice_pb_indigo_store.LinkHash `protobuf:"bytes,1,opt,name=link_hash,json=linkHash" json:"link_hash,omitempty"`
+	Evidence *stratumn_alice_pb_indigo_store.Evidence `protobuf:"bytes,2,opt,name=evidence" json:"evidence,omitempty"`
 }
 
 func (m *AddEvidenceReq) Reset()                    { *m = AddEvidenceReq{} }
 func (m *AddEvidenceReq) String() string            { return proto.CompactTextString(m) }
 func (*AddEvidenceReq) ProtoMessage()               {}
-func (*AddEvidenceReq) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{12} }
+func (*AddEvidenceReq) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{5} }
 
-func (m *AddEvidenceReq) GetLinkHash() *LinkHash {
+func (m *AddEvidenceReq) GetLinkHash() *stratumn_alice_pb_indigo_store.LinkHash {
 	if m != nil {
 		return m.LinkHash
 	}
 	return nil
 }
 
-func (m *AddEvidenceReq) GetEvidence() *Evidence {
+func (m *AddEvidenceReq) GetEvidence() *stratumn_alice_pb_indigo_store.Evidence {
 	if m != nil {
 		return m.Evidence
 	}
@@ -260,21 +142,14 @@ type AddEvidenceResp struct {
 func (m *AddEvidenceResp) Reset()                    { *m = AddEvidenceResp{} }
 func (m *AddEvidenceResp) String() string            { return proto.CompactTextString(m) }
 func (*AddEvidenceResp) ProtoMessage()               {}
-func (*AddEvidenceResp) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{13} }
+func (*AddEvidenceResp) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{6} }
 
 func init() {
 	proto.RegisterType((*InfoReq)(nil), "stratumn.alice.grpc.indigo.store.InfoReq")
 	proto.RegisterType((*InfoResp)(nil), "stratumn.alice.grpc.indigo.store.InfoResp")
-	proto.RegisterType((*Link)(nil), "stratumn.alice.grpc.indigo.store.Link")
-	proto.RegisterType((*LinkHash)(nil), "stratumn.alice.grpc.indigo.store.LinkHash")
-	proto.RegisterType((*LinkHashes)(nil), "stratumn.alice.grpc.indigo.store.LinkHashes")
-	proto.RegisterType((*Segment)(nil), "stratumn.alice.grpc.indigo.store.Segment")
-	proto.RegisterType((*Segments)(nil), "stratumn.alice.grpc.indigo.store.Segments")
 	proto.RegisterType((*SegmentFilter)(nil), "stratumn.alice.grpc.indigo.store.SegmentFilter")
 	proto.RegisterType((*MapIDs)(nil), "stratumn.alice.grpc.indigo.store.MapIDs")
 	proto.RegisterType((*MapFilter)(nil), "stratumn.alice.grpc.indigo.store.MapFilter")
-	proto.RegisterType((*Evidence)(nil), "stratumn.alice.grpc.indigo.store.Evidence")
-	proto.RegisterType((*Evidences)(nil), "stratumn.alice.grpc.indigo.store.Evidences")
 	proto.RegisterType((*AddEvidenceReq)(nil), "stratumn.alice.grpc.indigo.store.AddEvidenceReq")
 	proto.RegisterType((*AddEvidenceResp)(nil), "stratumn.alice.grpc.indigo.store.AddEvidenceResp")
 }
@@ -293,17 +168,17 @@ type IndigoStoreClient interface {
 	// Get store information.
 	GetInfo(ctx context.Context, in *InfoReq, opts ...grpc.CallOption) (*InfoResp, error)
 	// Create a link.
-	CreateLink(ctx context.Context, in *Link, opts ...grpc.CallOption) (*LinkHash, error)
+	CreateLink(ctx context.Context, in *stratumn_alice_pb_indigo_store.Link, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.LinkHash, error)
 	// Get a segment.
-	GetSegment(ctx context.Context, in *LinkHash, opts ...grpc.CallOption) (*Segment, error)
+	GetSegment(ctx context.Context, in *stratumn_alice_pb_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Segment, error)
 	// Find segments.
-	FindSegments(ctx context.Context, in *SegmentFilter, opts ...grpc.CallOption) (*Segments, error)
+	FindSegments(ctx context.Context, in *SegmentFilter, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Segments, error)
 	// Get map IDs.
 	GetMapIDs(ctx context.Context, in *MapFilter, opts ...grpc.CallOption) (*MapIDs, error)
 	// Add evidence to a segment.
 	AddEvidence(ctx context.Context, in *AddEvidenceReq, opts ...grpc.CallOption) (*AddEvidenceResp, error)
 	// Get segment evidences.
-	GetEvidences(ctx context.Context, in *LinkHash, opts ...grpc.CallOption) (*Evidences, error)
+	GetEvidences(ctx context.Context, in *stratumn_alice_pb_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Evidences, error)
 }
 
 type indigoStoreClient struct {
@@ -323,8 +198,8 @@ func (c *indigoStoreClient) GetInfo(ctx context.Context, in *InfoReq, opts ...gr
 	return out, nil
 }
 
-func (c *indigoStoreClient) CreateLink(ctx context.Context, in *Link, opts ...grpc.CallOption) (*LinkHash, error) {
-	out := new(LinkHash)
+func (c *indigoStoreClient) CreateLink(ctx context.Context, in *stratumn_alice_pb_indigo_store.Link, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.LinkHash, error) {
+	out := new(stratumn_alice_pb_indigo_store.LinkHash)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.indigo.store.IndigoStore/CreateLink", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -332,8 +207,8 @@ func (c *indigoStoreClient) CreateLink(ctx context.Context, in *Link, opts ...gr
 	return out, nil
 }
 
-func (c *indigoStoreClient) GetSegment(ctx context.Context, in *LinkHash, opts ...grpc.CallOption) (*Segment, error) {
-	out := new(Segment)
+func (c *indigoStoreClient) GetSegment(ctx context.Context, in *stratumn_alice_pb_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Segment, error) {
+	out := new(stratumn_alice_pb_indigo_store.Segment)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.indigo.store.IndigoStore/GetSegment", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -341,8 +216,8 @@ func (c *indigoStoreClient) GetSegment(ctx context.Context, in *LinkHash, opts .
 	return out, nil
 }
 
-func (c *indigoStoreClient) FindSegments(ctx context.Context, in *SegmentFilter, opts ...grpc.CallOption) (*Segments, error) {
-	out := new(Segments)
+func (c *indigoStoreClient) FindSegments(ctx context.Context, in *SegmentFilter, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Segments, error) {
+	out := new(stratumn_alice_pb_indigo_store.Segments)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.indigo.store.IndigoStore/FindSegments", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -368,8 +243,8 @@ func (c *indigoStoreClient) AddEvidence(ctx context.Context, in *AddEvidenceReq,
 	return out, nil
 }
 
-func (c *indigoStoreClient) GetEvidences(ctx context.Context, in *LinkHash, opts ...grpc.CallOption) (*Evidences, error) {
-	out := new(Evidences)
+func (c *indigoStoreClient) GetEvidences(ctx context.Context, in *stratumn_alice_pb_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_pb_indigo_store.Evidences, error) {
+	out := new(stratumn_alice_pb_indigo_store.Evidences)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.indigo.store.IndigoStore/GetEvidences", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
@@ -383,17 +258,17 @@ type IndigoStoreServer interface {
 	// Get store information.
 	GetInfo(context.Context, *InfoReq) (*InfoResp, error)
 	// Create a link.
-	CreateLink(context.Context, *Link) (*LinkHash, error)
+	CreateLink(context.Context, *stratumn_alice_pb_indigo_store.Link) (*stratumn_alice_pb_indigo_store.LinkHash, error)
 	// Get a segment.
-	GetSegment(context.Context, *LinkHash) (*Segment, error)
+	GetSegment(context.Context, *stratumn_alice_pb_indigo_store.LinkHash) (*stratumn_alice_pb_indigo_store.Segment, error)
 	// Find segments.
-	FindSegments(context.Context, *SegmentFilter) (*Segments, error)
+	FindSegments(context.Context, *SegmentFilter) (*stratumn_alice_pb_indigo_store.Segments, error)
 	// Get map IDs.
 	GetMapIDs(context.Context, *MapFilter) (*MapIDs, error)
 	// Add evidence to a segment.
 	AddEvidence(context.Context, *AddEvidenceReq) (*AddEvidenceResp, error)
 	// Get segment evidences.
-	GetEvidences(context.Context, *LinkHash) (*Evidences, error)
+	GetEvidences(context.Context, *stratumn_alice_pb_indigo_store.LinkHash) (*stratumn_alice_pb_indigo_store.Evidences, error)
 }
 
 func RegisterIndigoStoreServer(s *grpc.Server, srv IndigoStoreServer) {
@@ -419,7 +294,7 @@ func _IndigoStore_GetInfo_Handler(srv interface{}, ctx context.Context, dec func
 }
 
 func _IndigoStore_CreateLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Link)
+	in := new(stratumn_alice_pb_indigo_store.Link)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -431,13 +306,13 @@ func _IndigoStore_CreateLink_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/stratumn.alice.grpc.indigo.store.IndigoStore/CreateLink",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IndigoStoreServer).CreateLink(ctx, req.(*Link))
+		return srv.(IndigoStoreServer).CreateLink(ctx, req.(*stratumn_alice_pb_indigo_store.Link))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _IndigoStore_GetSegment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LinkHash)
+	in := new(stratumn_alice_pb_indigo_store.LinkHash)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -449,7 +324,7 @@ func _IndigoStore_GetSegment_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/stratumn.alice.grpc.indigo.store.IndigoStore/GetSegment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IndigoStoreServer).GetSegment(ctx, req.(*LinkHash))
+		return srv.(IndigoStoreServer).GetSegment(ctx, req.(*stratumn_alice_pb_indigo_store.LinkHash))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -509,7 +384,7 @@ func _IndigoStore_AddEvidence_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _IndigoStore_GetEvidences_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LinkHash)
+	in := new(stratumn_alice_pb_indigo_store.LinkHash)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -521,7 +396,7 @@ func _IndigoStore_GetEvidences_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: "/stratumn.alice.grpc.indigo.store.IndigoStore/GetEvidences",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IndigoStoreServer).GetEvidences(ctx, req.(*LinkHash))
+		return srv.(IndigoStoreServer).GetEvidences(ctx, req.(*stratumn_alice_pb_indigo_store.LinkHash))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -601,138 +476,6 @@ func (m *InfoResp) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintStore(dAtA, i, uint64(len(m.Data)))
 		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *Link) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Link) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintStore(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *LinkHash) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LinkHash) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintStore(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *LinkHashes) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LinkHashes) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.LinkHashes) > 0 {
-		for _, msg := range m.LinkHashes {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintStore(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	return i, nil
-}
-
-func (m *Segment) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Segment) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintStore(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *Segments) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Segments) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Segments) > 0 {
-		for _, msg := range m.Segments {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintStore(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
 	}
 	return i, nil
 }
@@ -818,60 +561,6 @@ func (m *MapFilter) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Evidence) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Evidence) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Data) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintStore(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
-	}
-	return i, nil
-}
-
-func (m *Evidences) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Evidences) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Evidences) > 0 {
-		for _, msg := range m.Evidences {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintStore(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	return i, nil
-}
-
 func (m *AddEvidenceReq) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -953,60 +642,6 @@ func (m *InfoResp) Size() (n int) {
 	return n
 }
 
-func (m *Link) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovStore(uint64(l))
-	}
-	return n
-}
-
-func (m *LinkHash) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovStore(uint64(l))
-	}
-	return n
-}
-
-func (m *LinkHashes) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.LinkHashes) > 0 {
-		for _, e := range m.LinkHashes {
-			l = e.Size()
-			n += 1 + l + sovStore(uint64(l))
-		}
-	}
-	return n
-}
-
-func (m *Segment) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovStore(uint64(l))
-	}
-	return n
-}
-
-func (m *Segments) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.Segments) > 0 {
-		for _, e := range m.Segments {
-			l = e.Size()
-			n += 1 + l + sovStore(uint64(l))
-		}
-	}
-	return n
-}
-
 func (m *SegmentFilter) Size() (n int) {
 	var l int
 	_ = l
@@ -1035,28 +670,6 @@ func (m *MapFilter) Size() (n int) {
 	l = len(m.Data)
 	if l > 0 {
 		n += 1 + l + sovStore(uint64(l))
-	}
-	return n
-}
-
-func (m *Evidence) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovStore(uint64(l))
-	}
-	return n
-}
-
-func (m *Evidences) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.Evidences) > 0 {
-		for _, e := range m.Evidences {
-			l = e.Size()
-			n += 1 + l + sovStore(uint64(l))
-		}
 	}
 	return n
 }
@@ -1202,411 +815,6 @@ func (m *InfoResp) Unmarshal(dAtA []byte) error {
 			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
 			if m.Data == nil {
 				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Link) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Link: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Link: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *LinkHash) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LinkHash: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LinkHash: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *LinkHashes) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LinkHashes: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LinkHashes: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field LinkHashes", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.LinkHashes = append(m.LinkHashes, &LinkHash{})
-			if err := m.LinkHashes[len(m.LinkHashes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Segment) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Segment: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Segment: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Segments) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Segments: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Segments: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Segments", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Segments = append(m.Segments, &Segment{})
-			if err := m.Segments[len(m.Segments)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
 			}
 			iNdEx = postIndex
 		default:
@@ -1871,168 +1079,6 @@ func (m *MapFilter) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Evidence) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Evidence: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Evidence: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Evidences) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowStore
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Evidences: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Evidences: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Evidences", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowStore
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthStore
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Evidences = append(m.Evidences, &Evidence{})
-			if err := m.Evidences[len(m.Evidences)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipStore(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthStore
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func (m *AddEvidenceReq) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -2089,7 +1135,7 @@ func (m *AddEvidenceReq) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.LinkHash == nil {
-				m.LinkHash = &LinkHash{}
+				m.LinkHash = &stratumn_alice_pb_indigo_store.LinkHash{}
 			}
 			if err := m.LinkHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2122,7 +1168,7 @@ func (m *AddEvidenceReq) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Evidence == nil {
-				m.Evidence = &Evidence{}
+				m.Evidence = &stratumn_alice_pb_indigo_store.Evidence{}
 			}
 			if err := m.Evidence.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2309,57 +1355,49 @@ func init() {
 }
 
 var fileDescriptorStore = []byte{
-	// 817 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0x4d, 0x8f, 0xdb, 0x44,
-	0x18, 0xc6, 0x50, 0x6d, 0x92, 0x37, 0x0b, 0x55, 0x47, 0xb4, 0x4c, 0x5d, 0x1a, 0xa6, 0x23, 0x40,
-	0x4b, 0x4a, 0x1d, 0x9a, 0x15, 0xad, 0x10, 0x42, 0xa8, 0xee, 0xd2, 0x90, 0xaa, 0x0b, 0x52, 0xf6,
-	0x86, 0x90, 0x56, 0x93, 0x78, 0x92, 0x4c, 0x1b, 0x7f, 0xd4, 0x33, 0xdb, 0x5d, 0x24, 0x4e, 0xbe,
-	0x70, 0x46, 0x70, 0xe0, 0xec, 0xff, 0x90, 0x93, 0xff, 0x00, 0x47, 0x0e, 0x9c, 0x38, 0xa1, 0xe5,
-	0x8f, 0x20, 0x7f, 0x8c, 0x37, 0xd6, 0xa6, 0x8a, 0x73, 0x58, 0x6b, 0x23, 0x3d, 0x1f, 0xef, 0x3c,
-	0x7e, 0xe7, 0x91, 0xe1, 0xe1, 0x4c, 0xa8, 0xf9, 0xc9, 0xd8, 0x9a, 0xf8, 0x6e, 0x4f, 0xaa, 0x90,
-	0xa9, 0x13, 0xd7, 0xeb, 0xb1, 0x85, 0x98, 0xf0, 0xde, 0x2c, 0x0c, 0x26, 0x3d, 0xe1, 0x39, 0x62,
-	0xe6, 0xf7, 0xa4, 0xf2, 0x43, 0x9e, 0x3f, 0xad, 0x20, 0xf4, 0x95, 0x8f, 0x88, 0x46, 0x5b, 0x19,
-	0xda, 0x4a, 0xd1, 0x56, 0x8e, 0xb6, 0x32, 0x9c, 0xf9, 0xe9, 0x06, 0x69, 0x7e, 0xa6, 0xd2, 0xbf,
-	0x5c, 0x8f, 0xb6, 0xa0, 0x31, 0xf4, 0xa6, 0xfe, 0x88, 0xbf, 0xa4, 0x36, 0x34, 0xf3, 0x7f, 0x65,
-	0x80, 0x1e, 0xc0, 0x15, 0x87, 0x29, 0x86, 0x0d, 0x62, 0xec, 0xed, 0xda, 0x34, 0x4e, 0x70, 0xe7,
-	0xe9, 0xd1, 0xf7, 0xdf, 0xdd, 0xe3, 0xde, 0xc4, 0x77, 0xb8, 0x43, 0x32, 0x2b, 0x22, 0xbc, 0xa9,
-	0x1f, 0xba, 0x4c, 0x09, 0xdf, 0x1b, 0x65, 0x78, 0xfa, 0x10, 0xae, 0x3c, 0x13, 0xde, 0x0b, 0xd4,
-	0xab, 0xf0, 0x6f, 0xc5, 0x09, 0x7e, 0xaf, 0xc2, 0x5f, 0x08, 0xef, 0x05, 0x19, 0xff, 0xa4, 0xb8,
-	0x2c, 0x88, 0x0f, 0xa0, 0x99, 0x12, 0xbf, 0x65, 0x72, 0x8e, 0xba, 0x15, 0xf2, 0x8d, 0x38, 0xc1,
-	0x68, 0xbf, 0x7f, 0x2f, 0x43, 0xe7, 0xc4, 0x39, 0x93, 0xf3, 0x82, 0xf7, 0x1c, 0x40, 0xf3, 0xb8,
-	0x44, 0x3f, 0x42, 0x3b, 0x05, 0x1c, 0xcf, 0xb3, 0x9f, 0xd8, 0x20, 0x6f, 0xed, 0xb5, 0xfb, 0x5d,
-	0x6b, 0x53, 0x66, 0x96, 0x96, 0xb0, 0xaf, 0xc6, 0x09, 0x6e, 0x3f, 0xd3, 0x1e, 0x5c, 0x8e, 0x60,
-	0x51, 0xaa, 0xd3, 0xaf, 0xa0, 0x71, 0xc4, 0x67, 0x2e, 0xf7, 0x14, 0xea, 0x57, 0x46, 0xec, 0xc4,
-	0x09, 0x36, 0xab, 0xf9, 0xe4, 0xb8, 0xca, 0x11, 0x43, 0x68, 0x16, 0x74, 0x89, 0xa6, 0xd0, 0x2c,
-	0x20, 0x7a, 0xca, 0x4f, 0x36, 0x4f, 0x59, 0xb0, 0xed, 0x0f, 0xe2, 0x04, 0xdf, 0x5a, 0x67, 0x27,
-	0x0b, 0xbf, 0x52, 0x9b, 0x3e, 0x85, 0xb7, 0x0b, 0xd6, 0x13, 0xb1, 0x50, 0x3c, 0x44, 0x5f, 0x54,
-	0x06, 0xff, 0x28, 0x4e, 0xf0, 0x9d, 0xb5, 0x83, 0x4f, 0x33, 0x78, 0x65, 0x7e, 0x0b, 0x76, 0x0e,
-	0x59, 0x30, 0x3c, 0x90, 0xe8, 0x43, 0x68, 0xb8, 0x2c, 0x38, 0x16, 0x4e, 0x3e, 0x7c, 0xcb, 0x6e,
-	0xc7, 0x09, 0x6e, 0x1c, 0xb2, 0x80, 0x0c, 0x0f, 0xe4, 0x68, 0xc7, 0x65, 0xc1, 0xd0, 0x91, 0xd4,
-	0x86, 0xd6, 0x21, 0x0b, 0x0a, 0xdf, 0xcf, 0x2b, 0xbe, 0x77, 0xe2, 0x04, 0xdf, 0xae, 0xf8, 0xba,
-	0x2c, 0x58, 0xe7, 0xf9, 0x35, 0x34, 0xbf, 0x79, 0x25, 0x1c, 0xee, 0x4d, 0x38, 0xda, 0xaf, 0x48,
-	0x5c, 0x0e, 0x81, 0x17, 0xc0, 0x8a, 0xc0, 0x29, 0xb4, 0xb4, 0x80, 0x44, 0xcf, 0xa1, 0xa5, 0x41,
-	0x5b, 0x2c, 0x87, 0xe6, 0xdb, 0x24, 0x4e, 0xf0, 0xfb, 0x6b, 0x2d, 0x75, 0xf0, 0x17, 0xf2, 0xf4,
-	0x1f, 0x03, 0xde, 0x79, 0xe4, 0x38, 0x9a, 0x3c, 0xe2, 0x2f, 0xd1, 0x31, 0xb4, 0xca, 0xed, 0xcc,
-	0x4e, 0xb1, 0xdd, 0x6e, 0xbe, 0xee, 0x22, 0x34, 0xf5, 0x8a, 0xa2, 0x19, 0x34, 0xf5, 0x00, 0xf8,
-	0xcd, 0xba, 0xfa, 0xe5, 0xf1, 0x36, 0x26, 0x5a, 0x8a, 0xd3, 0x6b, 0x70, 0xb5, 0x72, 0x36, 0x19,
-	0xf4, 0xff, 0x6e, 0x40, 0x7b, 0x98, 0xe9, 0x1e, 0xa5, 0xb2, 0xe8, 0x77, 0x03, 0x1a, 0x03, 0xae,
-	0xd2, 0x46, 0x41, 0x35, 0x76, 0xbb, 0x28, 0x21, 0xb3, 0x5b, 0x17, 0x2a, 0x03, 0xda, 0x8f, 0x96,
-	0xd8, 0x1a, 0x70, 0xb5, 0xda, 0x43, 0x84, 0x8d, 0xfd, 0x13, 0x45, 0xd4, 0x9c, 0x93, 0x7c, 0x1a,
-	0x92, 0x8d, 0x43, 0x24, 0x0f, 0x5f, 0x89, 0x09, 0x47, 0xa7, 0x00, 0x8f, 0x43, 0xce, 0x14, 0xcf,
-	0x6a, 0xea, 0xe3, 0x7a, 0xf1, 0x9b, 0x5b, 0xbc, 0x26, 0x7a, 0x3d, 0x5a, 0xe2, 0x6b, 0xb9, 0x07,
-	0x61, 0xc4, 0xe3, 0xa7, 0xd9, 0xab, 0x42, 0xbf, 0x19, 0x00, 0x03, 0xae, 0x74, 0x81, 0x6c, 0xa1,
-	0x68, 0xd6, 0xaf, 0x06, 0x6a, 0x45, 0x4b, 0xdc, 0x4d, 0x23, 0x61, 0x1e, 0xe1, 0x67, 0x42, 0x2a,
-	0xe1, 0xcd, 0x2e, 0xee, 0x74, 0xe8, 0xbb, 0x44, 0xa8, 0x95, 0xdd, 0x41, 0xbf, 0x18, 0xb0, 0xfb,
-	0x44, 0x78, 0x4e, 0x59, 0x4c, 0xbd, 0xda, 0x5e, 0xf9, 0xc5, 0xae, 0x13, 0x8d, 0x16, 0xa7, 0x66,
-	0xb4, 0xc4, 0x37, 0x52, 0xbb, 0x4b, 0xb3, 0x49, 0xf4, 0x33, 0xb4, 0x06, 0x5c, 0x15, 0x05, 0x73,
-	0x77, 0xb3, 0x68, 0x59, 0x2d, 0xe6, 0x5e, 0x2d, 0xf0, 0xf0, 0x40, 0x52, 0x1c, 0x2d, 0xf1, 0xbb,
-	0x69, 0x3a, 0xa5, 0xbd, 0x9b, 0x77, 0x16, 0xfa, 0xd5, 0x80, 0xf6, 0xca, 0x46, 0xa3, 0xcf, 0x36,
-	0x6b, 0x56, 0x2f, 0xb7, 0x79, 0x7f, 0x4b, 0x86, 0x0c, 0xe8, 0xed, 0x68, 0x89, 0x6f, 0x3e, 0x72,
-	0x56, 0xee, 0x99, 0xf2, 0x09, 0xd3, 0x91, 0xa0, 0xc8, 0x80, 0xdd, 0x01, 0x57, 0x17, 0xf5, 0xb5,
-	0xcd, 0xce, 0xdc, 0xad, 0x7f, 0xf1, 0x25, 0xbd, 0x19, 0x2d, 0xf1, 0xf5, 0x34, 0x17, 0xbd, 0x29,
-	0x65, 0x8d, 0xd9, 0x8f, 0xff, 0x3c, 0xef, 0x18, 0x7f, 0x9d, 0x77, 0x8c, 0x7f, 0xcf, 0x3b, 0xc6,
-	0x1f, 0xff, 0x75, 0xde, 0xf8, 0xe1, 0xfe, 0x16, 0x9f, 0x2e, 0x5f, 0x66, 0xcf, 0xf1, 0x4e, 0xf6,
-	0xad, 0xb1, 0xff, 0x7f, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x30, 0x59, 0x76, 0xf6, 0x08, 0x00,
-	0x00,
+	// 697 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x95, 0xcf, 0x4f, 0x13, 0x4f,
+	0x18, 0xc6, 0xbf, 0xfb, 0xd5, 0x50, 0x3a, 0x45, 0x0d, 0x13, 0x21, 0x43, 0x0d, 0x75, 0xd8, 0x60,
+	0x04, 0x94, 0xad, 0x94, 0xa8, 0x31, 0x9e, 0x28, 0x48, 0x2d, 0x11, 0x4d, 0xca, 0xcd, 0xc4, 0x90,
+	0x69, 0xf7, 0xa5, 0x9d, 0xd0, 0x9d, 0x1d, 0x76, 0x06, 0xc4, 0xc4, 0x78, 0x68, 0xe2, 0xd9, 0x98,
+	0x78, 0xf0, 0xdc, 0xff, 0x61, 0x4f, 0x3d, 0x9b, 0x78, 0xf4, 0xe4, 0xd9, 0xe0, 0x3f, 0x62, 0xf6,
+	0x17, 0x76, 0x81, 0xb8, 0xe5, 0xd0, 0x4d, 0x0f, 0xcf, 0x7c, 0x9e, 0x77, 0xde, 0xf7, 0x79, 0x33,
+	0xe8, 0x71, 0x9b, 0xeb, 0xce, 0x61, 0xd3, 0x6a, 0xb9, 0x4e, 0x59, 0x69, 0x8f, 0xe9, 0x43, 0x47,
+	0x94, 0x59, 0x97, 0xb7, 0xa0, 0xdc, 0xf6, 0x64, 0xab, 0xcc, 0x85, 0xcd, 0xdb, 0x6e, 0x59, 0x69,
+	0xd7, 0x83, 0xe8, 0x6b, 0x49, 0xcf, 0xd5, 0x2e, 0xa6, 0x89, 0xda, 0x0a, 0xd5, 0x56, 0xa0, 0xb6,
+	0x22, 0xb5, 0x15, 0xea, 0x8a, 0xf7, 0x33, 0xd0, 0x70, 0xac, 0x83, 0x5f, 0xc4, 0x2b, 0xfe, 0xa3,
+	0x10, 0xd9, 0x3c, 0x53, 0x06, 0xb4, 0x1d, 0x10, 0xf1, 0x41, 0x33, 0x8f, 0x72, 0x75, 0xb1, 0xe7,
+	0x36, 0xe0, 0xc0, 0xac, 0xa2, 0xf1, 0xe8, 0xaf, 0x92, 0xf8, 0x11, 0xba, 0x6a, 0x33, 0xcd, 0x88,
+	0x41, 0x8d, 0x85, 0x89, 0xaa, 0xd9, 0x1f, 0x90, 0xd2, 0xd6, 0xce, 0xab, 0x97, 0xcb, 0x20, 0x5a,
+	0xae, 0x0d, 0x36, 0x0d, 0x51, 0x94, 0x8b, 0x3d, 0xd7, 0x73, 0x98, 0xe6, 0xae, 0x68, 0x84, 0x7a,
+	0x73, 0x0b, 0x5d, 0xdb, 0x89, 0xf8, 0x9b, 0xbc, 0xab, 0xc1, 0xc3, 0x4f, 0x52, 0xa0, 0x3b, 0xfd,
+	0x01, 0x99, 0x4b, 0x83, 0x22, 0x35, 0xdd, 0x0b, 0xe5, 0xb4, 0xf9, 0x4e, 0x83, 0x8a, 0x59, 0x16,
+	0x1a, 0xdb, 0x66, 0xb2, 0xbe, 0xa1, 0xf0, 0x3c, 0xca, 0x39, 0x4c, 0xee, 0x72, 0x5b, 0x11, 0x83,
+	0x5e, 0x59, 0xc8, 0x57, 0x0b, 0xfd, 0x01, 0xc9, 0x6d, 0x33, 0x49, 0xeb, 0x1b, 0xaa, 0x31, 0xe6,
+	0x30, 0x59, 0xb7, 0x95, 0x59, 0x45, 0xf9, 0x6d, 0x26, 0x63, 0xdf, 0x87, 0x29, 0xdf, 0xb9, 0xfe,
+	0x80, 0xcc, 0xa6, 0x7c, 0x1d, 0x26, 0x2f, 0xf2, 0xfc, 0x69, 0xa0, 0xeb, 0x6b, 0xb6, 0xfd, 0xec,
+	0x88, 0xdb, 0x20, 0x5a, 0xd0, 0x80, 0x03, 0xfc, 0x06, 0xe5, 0xbb, 0x5c, 0xec, 0xef, 0x76, 0x98,
+	0xea, 0x84, 0xb8, 0x42, 0x65, 0xc1, 0x3a, 0x33, 0x3e, 0xd9, 0x4c, 0x0d, 0xcf, 0x7a, 0xc1, 0xc5,
+	0xfe, 0x73, 0xa6, 0x3a, 0xd5, 0xe9, 0xfe, 0x80, 0xe0, 0xd5, 0xca, 0x72, 0xe8, 0x41, 0x03, 0x0e,
+	0x0d, 0x38, 0x8d, 0xf1, 0x6e, 0xac, 0xc0, 0x80, 0xc6, 0x21, 0x76, 0x23, 0xff, 0x8f, 0x46, 0x4f,
+	0xaa, 0xab, 0xde, 0xee, 0x0f, 0xc8, 0xad, 0xd4, 0xb5, 0x12, 0x54, 0x7c, 0xa9, 0x53, 0xb4, 0x39,
+	0x89, 0x6e, 0xa4, 0xee, 0xa5, 0x64, 0xe5, 0x5b, 0x0e, 0x15, 0xea, 0x21, 0x77, 0x27, 0xc0, 0xe2,
+	0x2f, 0x06, 0xca, 0xd5, 0x40, 0x07, 0x19, 0xc0, 0x8b, 0x56, 0x56, 0x40, 0xad, 0x38, 0x36, 0xc5,
+	0xa5, 0x51, 0xa5, 0x4a, 0x9a, 0x95, 0x9e, 0x4f, 0xac, 0x1a, 0xe8, 0xe1, 0xe4, 0x50, 0xd6, 0x74,
+	0x0f, 0x35, 0xd5, 0x1d, 0xa0, 0x51, 0x35, 0x34, 0x2c, 0x87, 0x2a, 0xf0, 0x8e, 0x78, 0x0b, 0xb0,
+	0x42, 0x68, 0xdd, 0x03, 0xa6, 0x21, 0x68, 0x2a, 0x9e, 0x1f, 0xa5, 0xf5, 0xc5, 0x91, 0x07, 0x64,
+	0x4e, 0xf5, 0x7c, 0x32, 0x19, 0xf1, 0x29, 0xa3, 0x02, 0xde, 0x86, 0x43, 0xc2, 0x9f, 0x0c, 0x84,
+	0x6a, 0xa0, 0xe3, 0x2c, 0xe3, 0x91, 0x79, 0xc5, 0xbb, 0x59, 0xca, 0x18, 0x69, 0x5a, 0x3d, 0x9f,
+	0x2c, 0x05, 0xad, 0x60, 0x82, 0xc2, 0x31, 0x57, 0x9a, 0x8b, 0xf6, 0xdf, 0x6d, 0xf0, 0x5c, 0x87,
+	0x72, 0x3d, 0x94, 0x18, 0xfc, 0xd1, 0x40, 0x13, 0x9b, 0x5c, 0xd8, 0xf1, 0x79, 0x85, 0xcb, 0xd9,
+	0x7d, 0x4f, 0xad, 0x62, 0x76, 0x53, 0x12, 0xb4, 0x59, 0xec, 0xf9, 0x64, 0x3a, 0x30, 0x3b, 0x57,
+	0x99, 0xc2, 0xef, 0x51, 0xbe, 0x06, 0x3a, 0x5e, 0xcc, 0x7b, 0xd9, 0x35, 0x9c, 0xae, 0xe4, 0x79,
+	0xff, 0x0b, 0xc5, 0xf5, 0x0d, 0x65, 0x92, 0x9e, 0x4f, 0x6e, 0x06, 0xbd, 0x39, 0xb5, 0x77, 0xa2,
+	0x5d, 0xc7, 0x9f, 0x0d, 0x54, 0x18, 0xca, 0x31, 0x7e, 0x90, 0xcd, 0x4c, 0xaf, 0x73, 0x71, 0xe5,
+	0x92, 0x27, 0x94, 0x34, 0x67, 0x7b, 0x3e, 0x99, 0x59, 0xb3, 0x87, 0xb6, 0x4b, 0xbb, 0x94, 0x25,
+	0x2d, 0xc1, 0x1f, 0xd0, 0x44, 0x0d, 0x74, 0x72, 0x42, 0x5d, 0x22, 0x2c, 0x8b, 0xa3, 0x6e, 0xba,
+	0x32, 0x67, 0x7a, 0x3e, 0x99, 0x0a, 0x5a, 0x92, 0x44, 0x24, 0xa9, 0x45, 0x55, 0xd7, 0xbf, 0x9f,
+	0x94, 0x8c, 0x1f, 0x27, 0x25, 0xe3, 0xd7, 0x49, 0xc9, 0xf8, 0xfa, 0xbb, 0xf4, 0xdf, 0xeb, 0x95,
+	0x4b, 0x3c, 0x4b, 0x4f, 0xc3, 0x6f, 0x73, 0x2c, 0x7c, 0x0e, 0x56, 0xff, 0x04, 0x00, 0x00, 0xff,
+	0xff, 0xef, 0xbb, 0xbb, 0x4f, 0xd2, 0x06, 0x00, 0x00,
 }

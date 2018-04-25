@@ -62,12 +62,10 @@ func TestConfig_CreateStores(t *testing.T) {
 	auditStore, err := config.CreateAuditStore()
 	assert.NoError(t, err)
 	assert.NotNil(t, auditStore)
-	_, ok := auditStore.(*dummyauditstore.DummyAuditStore)
-	assert.True(t, ok)
+	assert.IsType(t, &dummyauditstore.DummyAuditStore{}, auditStore)
 
 	indigoStore, err := config.CreateIndigoStore()
 	assert.NoError(t, err)
 	assert.NotNil(t, indigoStore)
-	_, ok = indigoStore.(*dummystore.DummyStore)
-	assert.True(t, ok)
+	assert.IsType(t, &dummystore.DummyStore{}, indigoStore)
 }

@@ -22,7 +22,7 @@ option go_package = "github.com/stratumn/alice/grpc/indigo/fossilizer;fossilizer
 
 // The Indigo Fossilizer service definition.
 service IndigoFossilizer {
-    // Get information about the Indigo Fossilizer service
+    // Get information about the Indigo Fossilizer service.
     rpc GetInfo(InfoReq) returns (InfoResp) {
         option (stratumn.alice.grpc.ext.method_desc) = "Get information about the Indigo Fossilizer service";
     }

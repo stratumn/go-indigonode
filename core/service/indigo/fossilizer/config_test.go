@@ -28,6 +28,5 @@ func TestConfig_CreateFossilizer(t *testing.T) {
 	indigoFossilizer, err := config.CreateIndigoFossilizer()
 	assert.NoError(t, err)
 	assert.NotNil(t, indigoFossilizer)
-	_, ok := indigoFossilizer.(*dummyfossilizer.DummyFossilizer)
-	assert.True(t, ok)
+	assert.IsType(t, &dummyfossilizer.DummyFossilizer{}, indigoFossilizer)
 }

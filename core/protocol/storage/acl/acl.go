@@ -16,6 +16,7 @@ package acl
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
@@ -33,7 +34,7 @@ var (
 
 var (
 	// ErrUnauthorized is returned when a peer tries to access a file he
-	// is not allowed to get
+	// is not allowed to get.
 	ErrUnauthorized = errors.New("peer not authorized for requested file")
 )
 
@@ -65,9 +66,15 @@ func NewACL(db db.DB) ACL {
 // Authorize gives a list of peers access to a file hash.
 func (a *acl) Authorize(ctx context.Context, peerIds []peer.ID, fileHash []byte) error {
 
+	pids := make([]string, len(peerIds))
+	for i, pid := range peerIds {
+		pids[i] = pid.Pretty()
+	}
+
 	event := log.EventBegin(ctx, "AuthorizePeer", &logging.Metadata{
-		"peerIDs": peerIds,
+		"peerIDs": strings.Join(pids, ", "),
 	})
+
 	defer event.Done()
 
 	for _, pid := range peerIds {

@@ -137,6 +137,7 @@ func (p *p2p) SendFile(ctx context.Context, enc Encoder, path string) error {
 	eof := false
 	first := true
 
+LOOP:
 	for !eof {
 		select {
 		case <-ctx.Done():
@@ -152,7 +153,7 @@ func (p *p2p) SendFile(ctx context.Context, enc Encoder, path string) error {
 
 			if n == 0 {
 				// No more bytes to send, break loop directly
-				break
+				break LOOP
 			}
 
 			if n < p.chunkSize {

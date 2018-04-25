@@ -41,7 +41,7 @@ type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
 
-	// Version is the version of the Indigo service.
+	// Version is the version of the Indigo Store service.
 	Version string `toml:"version" comment:"The version of the indigo service."`
 
 	// NetworkId is the id of your Indigo PoP network.

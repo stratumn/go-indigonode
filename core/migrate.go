@@ -201,6 +201,21 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("indigostore.storage_type", "in-memory")
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("indigofossilizer.version", "0.1.0"); err != nil {
+			return err
+		}
+
+		if err := tree.Set("indigofossilizer.interval", int64(0)); err != nil {
+			return err
+		}
+
+		if err := tree.Set("indigofossilizer.max_leaves", int64(0)); err != nil {
+			return err
+		}
+
+		return tree.Set("indigofossilizer.fossilizer_type", "dummy")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

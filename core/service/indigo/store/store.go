@@ -45,7 +45,7 @@ var (
 // Host represents an Alice host.
 type Host = ihost.Host
 
-// Service is the Indigo service.
+// Service is the Indigo Store service.
 type Service struct {
 	config *Config
 	host   Host

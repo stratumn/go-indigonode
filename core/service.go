@@ -27,6 +27,7 @@ import (
 	"github.com/stratumn/alice/core/service/grpcweb"
 	"github.com/stratumn/alice/core/service/host"
 	"github.com/stratumn/alice/core/service/identify"
+	indigofossilizer "github.com/stratumn/alice/core/service/indigo/fossilizer"
 	indigostore "github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/kaddht"
 	"github.com/stratumn/alice/core/service/metrics"
@@ -58,6 +59,7 @@ func BuiltinServices() []manager.Service {
 		&host.Service{},
 		&identify.Service{},
 		&indigostore.Service{},
+		&indigofossilizer.Service{},
 		&kaddht.Service{},
 		&metrics.Service{},
 		&mssmux.Service{},

@@ -27,7 +27,7 @@ type Fossilizer struct {
 	fossilizer fossilizer.Adapter
 }
 
-// New instanciates a new fossilizer
+// New instantiates a new fossilizer.
 func New(f fossilizer.Adapter) *Fossilizer {
 	return &Fossilizer{
 		fossilizer: f,
@@ -39,17 +39,16 @@ func (f *Fossilizer) GetInfo(ctx context.Context) (interface{}, error) {
 	return nil, nil
 }
 
-// AddFossilizerEventChan adds a channel that receives events from the fossilizer
+// AddFossilizerEventChan adds a channel that receives events from the fossilizer.
 func (f *Fossilizer) AddFossilizerEventChan(chan *fossilizer.Event) {
 }
 
 // Fossilize requests data to be fossilized.
-// Meta is arbitrary data that will be forwarded to the websocket.
 func (f *Fossilizer) Fossilize(ctx context.Context, data []byte, meta []byte) error {
 	return nil
 }
 
-// Start launches the batchfossilizer if the type fits and return nil otherwise.
+// Start launches the fossilizer it it does use batches and return nil otherwise.
 func (f *Fossilizer) Start(ctx context.Context) error {
 	return nil
 }

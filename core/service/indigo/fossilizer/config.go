@@ -21,8 +21,13 @@ import (
 	"github.com/stratumn/go-indigocore/fossilizer"
 )
 
+const (
+	// Dummy describes the dummyfossilizer type.
+	Dummy = "dummy"
+)
+
 var (
-	// ErrNotImplemented is returned when trying to instanciate an unknown type of fossilizer.
+	// ErrNotImplemented is returned when trying to instantiate an unknown type of fossilizer.
 	ErrNotImplemented = errors.New("fossilizer type is not implemented")
 )
 
@@ -48,9 +53,7 @@ type Config struct {
 func (c *Config) CreateIndigoFossilizer() (fossilizer.Adapter, error) {
 	switch c.FossilizerType {
 	case Dummy:
-		return dummyfossilizer.New(&dummyfossilizer.Config{
-			Version: c.Version,
-		}), nil
+		return dummyfossilizer.New(&dummyfossilizer.Config{}), nil
 	default:
 		return nil, ErrNotImplemented
 	}

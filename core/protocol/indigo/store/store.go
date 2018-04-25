@@ -22,6 +22,7 @@ import (
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
@@ -145,7 +146,12 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 		return errors.Wrap(err, "invalid peer ID")
 	}
 
-	missedLinks, err := s.sync.GetMissingLinks(ctx, from, link, s.store)
+	if link.Meta.Data == nil || link.Meta.Data[constants.NodeIDKey] != from.Pretty() {
+		s.addAuditTrail(ctx, remoteLink)
+		return constants.ErrInvalidMetaNodeID
+	}
+
+	missedLinks, err := s.sync.GetMissingLinks(ctx, link, s.store)
 	if err != nil {
 		return err
 	}
@@ -227,7 +233,7 @@ func (s *Store) enrichLinkMeta(link *cs.Link) {
 		link.Meta.Data = make(map[string]interface{})
 	}
 
-	link.Meta.Data[NodeIDKey] = s.networkMgr.NodeID()
+	link.Meta.Data[constants.NodeIDKey] = s.networkMgr.NodeID()
 }
 
 // GetSegment forwards the request to the underlying store.

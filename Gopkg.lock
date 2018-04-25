@@ -293,12 +293,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
-  version = "v1.0.5"
-
-[[projects]]
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -351,7 +345,6 @@
   branch = "master"
   name = "github.com/stratumn/go-indigocore"
   packages = [
-    "batchfossilizer",
     "batchfossilizer/evidences",
     "bcbatchfossilizer/evidences",
     "bufferedbatch",
@@ -368,7 +361,7 @@
     "testutil",
     "types"
   ]
-  revision = "0841d3f6947cf350102485d15eff613fdadbb86a"
+  revision = "12b9cb05bec9d81ef06ed05d59e55ddbdfad2d99"
 
 [[projects]]
   branch = "master"
@@ -436,8 +429,7 @@
   name = "golang.org/x/crypto"
   packages = [
     "ed25519",
-    "ed25519/internal/edwards25519",
-    "ssh/terminal"
+    "ed25519/internal/edwards25519"
   ]
   revision = "beb2a9779c3b677077c41673505f150149fce895"
 
@@ -464,10 +456,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix"]
   revision = "571f7bbbe08da2a8955aed9d4db316e78630e9a3"
 
 [[projects]]
@@ -560,6 +549,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "445b74b895d09539cd2e23b92fae157283a421d60732ba3afde4b6a4ec26f78c"
+  inputs-digest = "cf50b9435ab1d99070cc95c7878f13a9b3031e9aea5c408e39628ecd0bdc8c8a"
   solver-name = "gps-cdcl"
   solver-version = 1

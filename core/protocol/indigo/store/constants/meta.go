@@ -12,9 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package store
+package constants
+
+import "github.com/pkg/errors"
 
 // Keys used when enriching links metadata.
 const (
 	NodeIDKey = "node_id"
+)
+
+// Errors returned when invalid metadata is received.
+var (
+	// ErrInvalidMetaNodeID is returned when the nodeID in the link
+	// meta can't be properly verified.
+	ErrInvalidMetaNodeID = errors.New("missing or invalid nodeID in metadata")
 )

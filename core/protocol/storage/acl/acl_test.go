@@ -39,7 +39,7 @@ func TestACL(t *testing.T) {
 	pid4, err := peer.IDB58Decode("QmNnP696qYWjwyiqoepYauwpdZp62NoKEjBV4Q1MJVhMUC")
 	assert.NoError(t, err, "IDB58Decode")
 
-	fileHash := []byte("plap")
+	fileHash := []byte("this is the hash of the file !!!")
 
 	// Authorize peers.
 	err = acl.Authorize(context.Background(), []peer.ID{pid1, pid2}, fileHash)
@@ -63,6 +63,32 @@ func TestACL(t *testing.T) {
 
 }
 
+func TestACL_BadHashSize(t *testing.T) {
+
+	db, err := db.NewMemDB(nil)
+	assert.NoError(t, err, "NewMemDB")
+
+	acl := NewACL(db)
+
+	pid1, err := peer.IDB58Decode("QmQnYf23kQ7SvuPZ3mQcg3RuJMr9E39fBvm89Nz4bevJdt")
+	assert.NoError(t, err, "IDB58Decode")
+
+	fileHash := []byte("The hash is too short !")
+
+	// Authorize peers fails.
+	err = acl.Authorize(context.Background(), []peer.ID{pid1}, fileHash)
+	assert.EqualError(t, err, ErrIncorrectHashSize.Error(), "Authorize")
+
+	// IsQuthorized fails too.
+	b, err := acl.IsAuthorized(context.Background(), pid1, fileHash)
+	assert.EqualError(t, err, ErrIncorrectHashSize.Error(), "Authorize")
+	assert.False(t, b, "Authorize")
+
+}
+
+// ====================================================================================================================
+// ====					 																					HELPERS																									=====
+// ====================================================================================================================
 func assertPeerAuthorized(t *testing.T, acl ACL, pid peer.ID, h []byte) {
 	a, err := acl.IsAuthorized(context.Background(), pid, h)
 	assert.NoError(t, err, "IsAuthorized")

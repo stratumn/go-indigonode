@@ -22,6 +22,7 @@ import (
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
+	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
@@ -37,7 +38,7 @@ var log = logging.Logger("indigo.store")
 type Store struct {
 	store      store.Adapter
 	auditStore audit.Store
-	sync       SyncEngine
+	sync       sync.Engine
 	networkMgr NetworkManager
 	linksChan  <-chan *pb.SignedLink
 }
@@ -46,7 +47,7 @@ type Store struct {
 // It expects a NetworkManager connected to a PoP network.
 func New(
 	networkMgr NetworkManager,
-	sync SyncEngine,
+	sync sync.Engine,
 	adapter store.Adapter,
 	auditStore audit.Store,
 ) *Store {

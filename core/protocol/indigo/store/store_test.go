@@ -26,7 +26,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/mockaudit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mockstore"
-	"github.com/stratumn/alice/core/protocol/indigo/store/mocksync"
+	"github.com/stratumn/alice/core/protocol/indigo/store/sync/mocksync"
 	"github.com/stratumn/alice/pb/crypto"
 	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/alice/test"
@@ -46,7 +46,7 @@ import (
 type TestStoreBuilder struct {
 	ctrl        *gomock.Controller
 	networkMgr  *mocknetworkmanager.MockNetworkManager
-	syncEngine  *mocksync.MockSyncEngine
+	syncEngine  *mocksync.MockEngine
 	indigoStore indigostore.Adapter
 	auditStore  *mockaudit.MockStore
 }
@@ -60,7 +60,7 @@ func (b *TestStoreBuilder) WithNetworkManager(networkMgr *mocknetworkmanager.Moc
 	return b
 }
 
-func (b *TestStoreBuilder) WithSyncEngine(syncEngine *mocksync.MockSyncEngine) *TestStoreBuilder {
+func (b *TestStoreBuilder) WithSyncEngine(syncEngine *mocksync.MockEngine) *TestStoreBuilder {
 	b.syncEngine = syncEngine
 	return b
 }
@@ -83,7 +83,7 @@ func (b *TestStoreBuilder) Build() *store.Store {
 	}
 
 	if b.syncEngine == nil {
-		b.syncEngine = mocksync.NewMockSyncEngine(b.ctrl)
+		b.syncEngine = mocksync.NewMockEngine(b.ctrl)
 		// No missing links to sync.
 		b.syncEngine.EXPECT().
 			GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -289,7 +289,7 @@ func TestReceiveLinks(t *testing.T) {
 			linkHash3, _ := link3.Hash()
 			signedLink3, _ := pb.NewSignedLink(sk, link3)
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
 				GetMissingLinks(gomock.Any(), peerID, link3, gomock.Any()).
 				Times(1).
@@ -315,7 +315,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			signedLink, link, linkHash := createTestLink()
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
 				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).
@@ -353,7 +353,7 @@ func TestReceiveLinks(t *testing.T) {
 			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
 				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
 
-			syncEngine := mocksync.NewMockSyncEngine(ctrl)
+			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
 				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
 				Times(1).

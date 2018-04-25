@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/alice/core/protocol/indigo/store SyncEngine
+//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/alice/core/protocol/indigo/store/sync Engine
 
-package store
+package sync
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
@@ -42,9 +43,11 @@ var (
 	ErrInvalidLinkCount = errors.New("invalid number of links found")
 )
 
-// SyncEngine lets a node sync with other nodes to fetch
+var log = logging.Logger("indigo.store.sync")
+
+// Engine lets a node sync with other nodes to fetch
 // missed content (links).
-type SyncEngine interface {
+type Engine interface {
 	// GetMissingLinks will sync all the links referenced until
 	// it finds all the dependency graph.
 	// The links returned will be properly ordered for inclusion in an Indigo store.

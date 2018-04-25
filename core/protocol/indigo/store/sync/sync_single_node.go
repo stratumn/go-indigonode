@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package store
+package sync
 
 import (
 	"context"
@@ -32,41 +32,41 @@ import (
 )
 
 var (
-	// SingleNodeSyncProtocolID is the protocol ID of the sync engine
+	// SingleNodeProtocolID is the protocol ID of the sync engine
 	// that connects to the node that created and shared the new link
 	// to sync all missing links.
-	SingleNodeSyncProtocolID = protocol.ID("/alice/indigo/store/sync/singlenode/v1.0.0")
+	SingleNodeProtocolID = protocol.ID("/alice/indigo/store/sync/singlenode/v1.0.0")
 )
 
-// SingleNodeSyncEngine synchronously syncs with the node that created the new
+// SingleNodeEngine synchronously syncs with the node that created the new
 // link. That node is expected to have all the previous links in the graph
 // because otherwise it couldn't prove the validity of the newly created link.
-type SingleNodeSyncEngine struct {
+type SingleNodeEngine struct {
 	host  ihost.Host
 	store store.SegmentReader
 }
 
-// NewSingleNodeSyncEngine creates a new SingleNodeSyncEngine
+// NewSingleNodeEngine creates a new SingleNodeEngine
 // and registers its handlers.
-func NewSingleNodeSyncEngine(host ihost.Host, store store.SegmentReader) *SingleNodeSyncEngine {
-	engine := &SingleNodeSyncEngine{
+func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
+	engine := &SingleNodeEngine{
 		host:  host,
 		store: store,
 	}
 
-	engine.host.SetStreamHandler(SingleNodeSyncProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(SingleNodeProtocolID, engine.syncHandler)
 
 	return engine
 }
 
 // Close cleans up resources and protocol handlers.
-func (s *SingleNodeSyncEngine) Close(ctx context.Context) {
-	s.host.RemoveStreamHandler(SingleNodeSyncProtocolID)
+func (s *SingleNodeEngine) Close(ctx context.Context) {
+	s.host.RemoveStreamHandler(SingleNodeProtocolID)
 }
 
 // GetMissingLinks connects to the node that published the link to get all
 // missing links in the subgraph ending in this new link.
-func (s *SingleNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
+func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
 	event := log.EventBegin(ctx, "GetMissingLinks", logging.Metadata{"peer": sender.Pretty()})
 	defer event.Done()
 
@@ -111,7 +111,7 @@ func (s *SingleNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.
 }
 
 // startStream starts a stream with the peer that created the link.
-func (s *SingleNodeSyncEngine) startStream(ctx context.Context, sender peer.ID) (inet.Stream, error) {
+func (s *SingleNodeEngine) startStream(ctx context.Context, sender peer.ID) (inet.Stream, error) {
 	event := log.EventBegin(ctx, "startStream", logging.Metadata{"peer": sender.Pretty()})
 	defer event.Done()
 
@@ -121,7 +121,7 @@ func (s *SingleNodeSyncEngine) startStream(ctx context.Context, sender peer.ID) 
 		return nil, ErrNoConnectedPeers
 	}
 
-	stream, err := s.host.NewStream(ctx, sender, SingleNodeSyncProtocolID)
+	stream, err := s.host.NewStream(ctx, sender, SingleNodeProtocolID)
 	if err != nil {
 		event.SetError(err)
 		return nil, errors.Wrap(err, "could not start stream")
@@ -132,7 +132,7 @@ func (s *SingleNodeSyncEngine) startStream(ctx context.Context, sender peer.ID) 
 
 // syncWithPeer syncs with the connected peer
 // until all links have been fetched.
-func (s *SingleNodeSyncEngine) syncWithPeer(
+func (s *SingleNodeEngine) syncWithPeer(
 	ctx context.Context,
 	stream inet.Stream,
 	toFetch []string,
@@ -216,7 +216,7 @@ func (s *SingleNodeSyncEngine) syncWithPeer(
 
 // syncHandler accepts sync requests from peers and sends them
 // all the links they need to be up-to-date.
-func (s *SingleNodeSyncEngine) syncHandler(stream inet.Stream) {
+func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
 		"from": stream.Conn().RemotePeer().Pretty(),

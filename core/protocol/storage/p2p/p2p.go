@@ -176,10 +176,5 @@ LOOP:
 	}
 
 	// Send an empty chunk to notify end of file.
-	err = enc.Encode(&pb.FileChunk{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return enc.Encode(&pb.FileChunk{})
 }

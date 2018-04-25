@@ -485,6 +485,7 @@ func TestCreateLink(t *testing.T) {
 		"add-node-id-meta",
 		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
 			link := cstesting.NewLinkBuilder().Build()
+			link.Meta.Data = nil
 
 			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
 			mgr.EXPECT().NodeID().Times(1).Return("spongebob")

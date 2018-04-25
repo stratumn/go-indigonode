@@ -26,11 +26,6 @@ import (
 	rpcpb "github.com/stratumn/alice/grpc/indigo/fossilizer"
 )
 
-const (
-	// Dummy describes the dummyfossilizer type
-	Dummy = "dummy"
-)
-
 var (
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
@@ -104,11 +99,11 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	rpcpb.RegisterIndigoFossilizerServer(gs, grpcServer{
-		DoGetInfo: func() (interface{}, error) {
+		DoGetInfo: func(ctx context.Context) (interface{}, error) {
 			if s.fossilizer == nil {
 				return nil, ErrUnavailable
 			}
-			return s.fossilizer.GetInfo(context.Background())
+			return s.fossilizer.GetInfo(ctx)
 		},
 		DoFossilize: func(ctx context.Context, data, meta []byte) error {
 			if s.fossilizer == nil {

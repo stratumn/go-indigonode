@@ -22,7 +22,7 @@ import (
 
 // grpcServer is a gRPC server for the indigo service.
 type grpcServer struct {
-	DoGetInfo   func() (interface{}, error)
+	DoGetInfo   func(ctx context.Context) (interface{}, error)
 	DoFossilize func(ctx context.Context, data []byte, meta []byte) error
 }
 

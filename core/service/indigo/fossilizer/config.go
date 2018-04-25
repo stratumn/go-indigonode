@@ -21,36 +21,39 @@ import (
 	"github.com/stratumn/go-indigocore/fossilizer"
 )
 
+const (
+	// Dummy describes the dummyfossilizer type.
+	Dummy = "dummy"
+)
+
 var (
-	// ErrNotImplemented is returned when trying to instanciate an unknown type of fossilizer.
+	// ErrNotImplemented is returned when trying to instantiate an unknown type of fossilizer.
 	ErrNotImplemented = errors.New("fossilizer type is not implemented")
 )
 
 // Config contains configuration options for the Fossilizer service.
 type Config struct {
 	// Version is the version of the Indigo Fossilizer service.
-	Version string `toml:"version" comment:"The version of the indigo fossilizer service"`
+	Version string `toml:"version" comment:"The version of the indigo fossilizer service."`
 
 	// FossilizerType is the fossilizer implementation.
-	FossilizerType string `toml:"fossilizer_type" comment:"The type of fossilizer (eg: dummy, dummybatch, bitcoin...)"`
+	FossilizerType string `toml:"fossilizer_type" comment:"The type of fossilizer (eg: dummy, dummybatch, bitcoin...)."`
 
 	// Timestamper is the backend of the timestamping mechanism.
-	Timestamper string `toml:"timestamper" comment:"The backend for timestamping (eg: dummy, bitcoin...)"`
+	Timestamper string `toml:"timestamper" comment:"The backend for timestamping (only applicable to blockchain fossilizers)."`
 
 	// Interval between batches (if any).
-	Interval int64 `toml:"interval" comment:"The time interval between batches expressed in seconds"`
+	Interval int64 `toml:"interval" comment:"The time interval between batches expressed in seconds (only applicable to fossilizers using batches)."`
 
 	// Maximum number of leaves of a Merkle tree.
-	MaxLeaves int `toml:"max_leaves" comment:"The maximum number of leaves of a merkle tree in a batch"`
+	MaxLeaves int `toml:"max_leaves" comment:"The maximum number of leaves of a merkle tree in a batch (only applicable to fossilizers using batches)."`
 }
 
 // CreateIndigoFossilizer creates an indigo fossilizer from the configuration.
 func (c *Config) CreateIndigoFossilizer() (fossilizer.Adapter, error) {
 	switch c.FossilizerType {
 	case Dummy:
-		return dummyfossilizer.New(&dummyfossilizer.Config{
-			Version: c.Version,
-		}), nil
+		return dummyfossilizer.New(&dummyfossilizer.Config{}), nil
 	default:
 		return nil, ErrNotImplemented
 	}

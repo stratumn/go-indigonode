@@ -15,18 +15,111 @@
 package fossilizer_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/stratumn/alice/core/service/indigo/fossilizer"
+	"github.com/btcsuite/btcutil"
+	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/batchfossilizer"
+	"github.com/stratumn/go-indigocore/bcbatchfossilizer"
+	"github.com/stratumn/go-indigocore/blockchain/btc"
 	"github.com/stratumn/go-indigocore/dummyfossilizer"
+
+	indigofossilizer "github.com/stratumn/go-indigocore/fossilizer"
+
+	"github.com/stratumn/alice/core/service/indigo/fossilizer"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConfig_CreateFossilizer(t *testing.T) {
-	config := &fossilizer.Config{FossilizerType: "dummy"}
+type testCase struct {
+	name       string
+	cfg        *fossilizer.Config
+	entityType indigofossilizer.Adapter
+	err        string
+}
 
-	indigoFossilizer, err := config.CreateIndigoFossilizer()
-	assert.NoError(t, err)
-	assert.NotNil(t, indigoFossilizer)
-	assert.IsType(t, &dummyfossilizer.DummyFossilizer{}, indigoFossilizer)
+func runTestCases(t *testing.T, tests []testCase) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := tt.cfg.CreateIndigoFossilizer(context.Background())
+			if tt.err == "" {
+				assert.NoError(t, err)
+				assert.NotNil(t, f)
+				assert.IsType(t, tt.entityType, f)
+			} else {
+				assert.EqualError(t, err, tt.err)
+			}
+		})
+	}
+}
+func TestConfig_CreateFossilizer(t *testing.T) {
+	t.Run("Unknown fossilizer", func(t *testing.T) {
+		runTestCases(t, []testCase{
+			{
+				name: "returns an error",
+				cfg: &fossilizer.Config{
+					FossilizerType: "unknown",
+				},
+				err: fossilizer.ErrNotImplemented.Error(),
+			},
+		})
+	})
+
+	t.Run("Dummy fossilizer", func(t *testing.T) {
+		runTestCases(t, []testCase{
+			{
+				name: "Cannot fail",
+				cfg: &fossilizer.Config{
+					FossilizerType: fossilizer.Dummy,
+				},
+				entityType: &dummyfossilizer.DummyFossilizer{},
+			},
+		})
+	})
+
+	t.Run("Dummy Batch fossilizer", func(t *testing.T) {
+		runTestCases(t, []testCase{
+			{
+				name: "Cannot fail",
+				cfg: &fossilizer.Config{
+					FossilizerType: fossilizer.DummyBatch,
+				},
+				entityType: &batchfossilizer.Fossilizer{},
+			},
+		})
+	})
+
+	t.Run("Blockchain Batch fossilizer", func(t *testing.T) {
+		tests := []testCase{
+			{
+				name: "using dummy timestamping",
+				cfg: &fossilizer.Config{
+					FossilizerType: fossilizer.BlockchainBatch,
+					Timestamper:    fossilizer.DummyTimestamper,
+				},
+				entityType: &bcbatchfossilizer.Fossilizer{},
+			},
+			{
+				name: "using bitcoin timestamping",
+				cfg: &fossilizer.Config{
+					FossilizerType: fossilizer.BlockchainBatch,
+					Timestamper:    fossilizer.BitcoinTimestamper,
+					BtcWIF:         "924v2d7ryXJjnbwB6M9GsZDEjAkfE9aHeQAG1j8muA4UEjozeAJ",
+				},
+				entityType: &bcbatchfossilizer.Fossilizer{},
+			},
+			{
+				name: "using bitcoin timestamping with a bad WIF",
+				cfg: &fossilizer.Config{
+					FossilizerType: fossilizer.BlockchainBatch,
+					Timestamper:    fossilizer.BitcoinTimestamper,
+					BtcWIF:         "bad wif",
+				},
+				entityType: &bcbatchfossilizer.Fossilizer{},
+				err:        errors.Wrap(btcutil.ErrMalformedPrivateKey, btc.ErrBadWIF.Error()).Error(),
+			},
+		}
+		runTestCases(t, tests)
+	})
+
 }

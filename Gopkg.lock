@@ -29,6 +29,40 @@
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
 
 [[projects]]
+  name = "github.com/blockcypher/gobcy"
+  packages = ["."]
+  revision = "6eace16b4b81ea8dbdcde5417d6b1cc3828a3d1f"
+  version = "v1.3.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcd"
+  packages = [
+    "btcec",
+    "chaincfg",
+    "chaincfg/chainhash",
+    "txscript",
+    "wire"
+  ]
+  revision = "675abc5df3c5531bc741b56a765e35623459da6d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btclog"
+  packages = ["."]
+  revision = "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcutil"
+  packages = [
+    ".",
+    "base58",
+    "bech32"
+  ]
+  revision = "501929d3d046174c3d39f0ea54ece471aa17238c"
+
+[[projects]]
   name = "github.com/c-bata/go-prompt"
   packages = ["."]
   revision = "c292a2f4b4fe8563883871456e19028ff9df0f26"
@@ -293,6 +327,12 @@
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -345,8 +385,15 @@
   branch = "master"
   name = "github.com/stratumn/go-indigocore"
   packages = [
+    "batchfossilizer",
     "batchfossilizer/evidences",
+    "bcbatchfossilizer",
     "bcbatchfossilizer/evidences",
+    "blockchain",
+    "blockchain/btc",
+    "blockchain/btc/blockcypher",
+    "blockchain/btc/btctimestamper",
+    "blockchain/dummytimestamper",
     "bufferedbatch",
     "cs",
     "cs/cstesting",
@@ -429,7 +476,9 @@
   name = "golang.org/x/crypto"
   packages = [
     "ed25519",
-    "ed25519/internal/edwards25519"
+    "ed25519/internal/edwards25519",
+    "ripemd160",
+    "ssh/terminal"
   ]
   revision = "beb2a9779c3b677077c41673505f150149fce895"
 
@@ -456,7 +505,10 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "571f7bbbe08da2a8955aed9d4db316e78630e9a3"
 
 [[projects]]
@@ -549,6 +601,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cf50b9435ab1d99070cc95c7878f13a9b3031e9aea5c408e39628ecd0bdc8c8a"
+  inputs-digest = "d52a0c26bab6ef743af16f7aa86791112acfc5aaff189ee1702f66ed89ba732c"
   solver-name = "gps-cdcl"
   solver-version = 1

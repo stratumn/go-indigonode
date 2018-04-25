@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
 )
 
 var (
@@ -211,6 +212,14 @@ var migrations = []cfg.MigrateHandler{
 		}
 
 		if err := tree.Set("indigofossilizer.max_leaves", int64(0)); err != nil {
+			return err
+		}
+
+		if err := tree.Set("indigofossilizer.bitcoin_WIF", ""); err != nil {
+			return err
+		}
+
+		if err := tree.Set("indigofossilizer.bitcoin_fee", btctimestamper.DefaultFee); err != nil {
 			return err
 		}
 

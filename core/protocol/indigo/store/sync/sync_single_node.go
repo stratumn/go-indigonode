@@ -99,7 +99,7 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, 
 		return nil, err
 	}
 
-	links, err := OrderLinks(ctx, link, linksMap)
+	links, err := OrderLinks(ctx, link, linksMap, reader)
 	if err != nil {
 		event.SetError(err)
 		return nil, err

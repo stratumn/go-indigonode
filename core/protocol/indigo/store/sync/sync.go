@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
+	"github.com/stratumn/go-indigocore/types"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -65,7 +66,11 @@ type Engine interface {
 
 // ListMissingLinkHashes returns all the link hashes referenced by the given
 // link that are currently missing from the store.
-func ListMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]string, error) {
+func ListMissingLinkHashes(
+	ctx context.Context,
+	link *cs.Link,
+	reader store.SegmentReader,
+) ([]string, error) {
 	var referencedLinkHashes []string
 
 	if link.Meta.PrevLinkHash != "" {
@@ -106,7 +111,88 @@ func ListMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.Segm
 // OrderLinks takes a starting link and a map that should contain
 // all the link's dependencies and returns a slice containing the
 // links properly ordered by dependency.
-func OrderLinks(ctx context.Context, start *cs.Link, linksMap map[string]*cs.Link) ([]*cs.Link, error) {
-	// TODO
-	return nil, nil
+func OrderLinks(
+	ctx context.Context,
+	start *cs.Link,
+	linksMap map[string]*cs.Link,
+	reader store.SegmentReader,
+) ([]*cs.Link, error) {
+	// We simply need to do a DFS on our DAG to achieve our goals.
+	// Because the graph is acyclic this should always terminate.
+	// Since links are referenced by hashes, and the references
+	// are included in the hash computation, it's impossible to create a cycle.
+	// Another option would be to do a BFS, reverse the results and
+	// remove the duplicates.
+	event := log.EventBegin(ctx, "OrderLinks", logging.Metadata{
+		"links_count": len(linksMap),
+	})
+	defer event.Done()
+
+	added := make(map[string]struct{})
+	var links []*cs.Link
+
+	var dfs func(*cs.Link) error
+	dfs = func(current *cs.Link) error {
+		currentLinkHash, err := current.HashString()
+		if err != nil {
+			return err
+		}
+
+		_, alreadyAdded := added[currentLinkHash]
+		if alreadyAdded {
+			return nil
+		}
+
+		recurse := func(linkHash string) error {
+			if linkHash == "" {
+				return nil
+			}
+
+			_, alreadyAdded = added[linkHash]
+			if !alreadyAdded {
+				linkHashBytes, _ := types.NewBytes32FromString(linkHash)
+				seg, err := reader.GetSegment(ctx, linkHashBytes)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
+				if seg == nil {
+					link, ok := linksMap[linkHash]
+					if !ok {
+						return ErrLinkNotFound
+					}
+
+					if err := dfs(link); err != nil {
+						return err
+					}
+				}
+			}
+
+			return nil
+		}
+
+		if err := recurse(current.Meta.PrevLinkHash); err != nil {
+			return err
+		}
+
+		for _, ref := range current.Meta.Refs {
+			if err := recurse(ref.LinkHash); err != nil {
+				return err
+			}
+		}
+
+		links = append(links, current)
+		added[currentLinkHash] = struct{}{}
+
+		return nil
+	}
+
+	if err := dfs(start); err != nil {
+		event.SetError(err)
+		return nil, ErrLinkNotFound
+	}
+
+	// The DFS adds the start link at the end of the list,
+	// we need to remove it.
+	return links[:len(links)-1], nil
 }

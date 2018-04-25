@@ -97,9 +97,159 @@ func TestListMissingLinkHashes(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			link, reader, expected := tt.setup()
-			lhs, err := sync.ListMissingLinkHashes(context.Background(), link, reader)
+			lhs, err := sync.ListMissingLinkHashes(ctx, link, reader)
 			assert.NoError(t, err)
 			assert.ElementsMatch(t, expected, lhs)
+		})
+	}
+}
+
+func TestOrderLinks(t *testing.T) {
+	ctx := context.Background()
+
+	testCases := []struct {
+		name  string
+		setup func() (*cs.Link, map[string]*cs.Link, indigostore.SegmentReader, []*cs.Link)
+		err   error
+	}{{
+		"tree-dependency",
+		func() (*cs.Link, map[string]*cs.Link, indigostore.SegmentReader, []*cs.Link) {
+			// start ---> prevLink ---> prevPrevLink
+			//   |            `-------> refPrevLink1
+			//   |            `-------> refPrevLink2
+			//   |
+			//   `------> refLink ----> prevRefLink
+			//                `-------> refRefLink
+			prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			refPrevLink1 := cstesting.NewLinkBuilder().WithoutParent().Build()
+			refPrevLink2 := cstesting.NewLinkBuilder().WithoutParent().Build()
+			prevLink := cstesting.NewLinkBuilder().
+				WithParent(prevPrevLink).
+				WithRef(refPrevLink1).
+				WithRef(refPrevLink2).
+				Build()
+
+			prevRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			refRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			refLink := cstesting.NewLinkBuilder().
+				WithParent(prevRefLink).
+				WithRef(refRefLink).
+				Build()
+
+			start := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(refLink).
+				Build()
+
+			expected := []*cs.Link{
+				prevPrevLink,
+				refPrevLink1,
+				refPrevLink2,
+				prevLink,
+				prevRefLink,
+				refRefLink,
+				refLink,
+			}
+
+			return start, toLinksMap(expected), dummystore.New(&dummystore.Config{}), expected
+		},
+		nil,
+	}, {
+		"diamond-dependencies",
+		func() (*cs.Link, map[string]*cs.Link, indigostore.SegmentReader, []*cs.Link) {
+			// start ---> prevLink ---> prevPrevLink <-,
+			//   `--------------------------^          |
+			//   `------> refLink ----------^          |
+			//               `--------> refRefLink ----'
+			prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			prevLink := cstesting.NewLinkBuilder().WithParent(prevPrevLink).Build()
+
+			refRefLink := cstesting.NewLinkBuilder().WithParent(prevPrevLink).Build()
+			refLink := cstesting.NewLinkBuilder().
+				WithParent(prevPrevLink).
+				WithRef(refRefLink).
+				Build()
+
+			start := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(prevPrevLink).
+				WithRef(refLink).
+				Build()
+
+			expected := []*cs.Link{
+				prevPrevLink,
+				prevLink,
+				refRefLink,
+				refLink,
+			}
+
+			return start, toLinksMap(expected), dummystore.New(&dummystore.Config{}), expected
+		},
+		nil,
+	}, {
+		"some-in-store",
+		func() (*cs.Link, map[string]*cs.Link, indigostore.SegmentReader, []*cs.Link) {
+			// start ---> prevLink ---> prevPrevLink (S) <-,
+			//   `--------------------------^              |
+			//   `------> refLink ----------^              |
+			//               `--------> refRefLink (S) ----'
+			prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			prevLink := cstesting.NewLinkBuilder().WithParent(prevPrevLink).Build()
+
+			refRefLink := cstesting.NewLinkBuilder().WithParent(prevPrevLink).Build()
+			refLink := cstesting.NewLinkBuilder().
+				WithParent(prevPrevLink).
+				WithRef(refRefLink).
+				Build()
+
+			start := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(prevPrevLink).
+				WithRef(refLink).
+				Build()
+
+			testStore := dummystore.New(&dummystore.Config{})
+			testStore.CreateLink(ctx, prevPrevLink)
+			testStore.CreateLink(ctx, refRefLink)
+
+			expected := []*cs.Link{
+				prevLink,
+				refLink,
+			}
+
+			return start, toLinksMap(expected), testStore, expected
+		},
+		nil,
+	}, {
+		"missing-link",
+		func() (*cs.Link, map[string]*cs.Link, indigostore.SegmentReader, []*cs.Link) {
+			// start ---> prevLink ---> X
+			//   `------> refLink ------^
+			missingLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+			prevLink := cstesting.NewLinkBuilder().WithParent(missingLink).Build()
+			refLink := cstesting.NewLinkBuilder().WithParent(missingLink).Build()
+			start := cstesting.NewLinkBuilder().
+				WithParent(prevLink).
+				WithRef(refLink).
+				Build()
+
+			linksMap := toLinksMap([]*cs.Link{prevLink, refLink})
+
+			return start, linksMap, dummystore.New(&dummystore.Config{}), nil
+		},
+		sync.ErrLinkNotFound,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			link, linksMap, reader, expected := tt.setup()
+			links, err := sync.OrderLinks(ctx, link, linksMap, reader)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, expected, links)
+			}
 		})
 	}
 }
@@ -505,6 +655,17 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		assert.True(t, getLinkIndex(prevLinkRef, links) < getLinkIndex(prevLink, links))
 		assert.True(t, getLinkIndex(refRefLink, links) < getLinkIndex(refLink, links))
 	})
+}
+
+func toLinksMap(links []*cs.Link) map[string]*cs.Link {
+	linksMap := make(map[string]*cs.Link)
+
+	for _, link := range links {
+		lh, _ := link.HashString()
+		linksMap[lh] = link
+	}
+
+	return linksMap
 }
 
 func getLinkIndex(link *cs.Link, links []*cs.Link) int {

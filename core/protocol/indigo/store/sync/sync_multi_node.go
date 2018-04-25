@@ -94,14 +94,20 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, l
 	}
 
 	linksCount := 0
-	var fetchedLinks []*cs.Link
+	fetchedLinks := make(map[string]*cs.Link)
 
 	for len(toFetch) > 0 {
-		linksCount++
 		linkHashStr := toFetch[0]
 		toFetch = toFetch[1:]
+
+		_, alreadyFetched := fetchedLinks[linkHashStr]
+		if alreadyFetched {
+			continue
+		}
+
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
 
+		linksCount++
 		event.Append(logging.Metadata{fmt.Sprintf("fetching_%d", linksCount): linkHashStr})
 
 		found := false
@@ -124,8 +130,7 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, l
 			}
 
 			found = true
-			// We need to prepend to make sure links are correctly dependency-ordered.
-			fetchedLinks = append([]*cs.Link{l}, fetchedLinks...)
+			fetchedLinks[linkHashStr] = l
 
 			moreToFetch, err := ListMissingLinkHashes(ctx, l, reader)
 			if err != nil {
@@ -143,7 +148,13 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, sender peer.ID, l
 		}
 	}
 
-	return fetchedLinks, nil
+	links, err := OrderLinks(ctx, link, fetchedLinks, reader)
+	if err != nil {
+		event.SetError(err)
+		return nil, ErrLinkNotFound
+	}
+
+	return links, nil
 }
 
 // getLinkFromPeer requests a link from a chosen peer.

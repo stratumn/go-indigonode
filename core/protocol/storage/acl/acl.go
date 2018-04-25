@@ -32,10 +32,15 @@ var (
 	prefixFilePermission = []byte("ap") // prefixFilePermission + filehash + peerID -> byte
 )
 
+const hashSize = 32
+
 var (
 	// ErrUnauthorized is returned when a peer tries to access a file he
 	// is not allowed to get.
 	ErrUnauthorized = errors.New("peer not authorized for requested file")
+
+	// ErrIncorrectHashSize is returned when using a hash that is not hashSize.
+	ErrIncorrectHashSize = errors.Errorf("file hash should be %d bytes", hashSize)
 )
 
 // ACL handles permissions on the files in the storage.
@@ -62,6 +67,10 @@ func NewACL(db db.DB) ACL {
 // Authorize gives a list of peers access to a file hash.
 func (a *acl) Authorize(ctx context.Context, peerIds []peer.ID, fileHash []byte) error {
 
+	if len(fileHash) != hashSize {
+		return ErrIncorrectHashSize
+	}
+
 	pids := make([]string, len(peerIds))
 	for i, pid := range peerIds {
 		pids[i] = pid.Pretty()
@@ -85,6 +94,11 @@ func (a *acl) Authorize(ctx context.Context, peerIds []peer.ID, fileHash []byte)
 
 // IsAuthorized checks if a peer is authorized for a file hash.
 func (a *acl) IsAuthorized(ctx context.Context, pid peer.ID, fileHash []byte) (bool, error) {
+
+	if len(fileHash) != hashSize {
+		return false, ErrIncorrectHashSize
+	}
+
 	_, err := a.db.Get(append(append(prefixFilePermission, fileHash...), pid...))
 	if errors.Cause(err) == db.ErrNotFound {
 		return false, nil

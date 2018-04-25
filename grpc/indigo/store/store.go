@@ -43,6 +43,25 @@ func FromLinkHash(lh *types.Bytes32) *LinkHash {
 	return &LinkHash{Data: lh[:]}
 }
 
+// ToLinkHashes converts to the Indigo-core type.
+func (lhs *LinkHashes) ToLinkHashes() ([]string, error) {
+	if lhs == nil {
+		return nil, ErrInvalidArgument
+	}
+
+	res := make([]string, len(lhs.LinkHashes))
+	for i, lh := range lhs.LinkHashes {
+		parsed, err := lh.ToLinkHash()
+		if err != nil {
+			return nil, err
+		}
+
+		res[i] = parsed.String()
+	}
+
+	return res, nil
+}
+
 // FromLinkHashes converts from the Indigo-core type.
 func FromLinkHashes(lhs []string) *LinkHashes {
 	res := &LinkHashes{}

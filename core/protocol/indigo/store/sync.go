@@ -36,6 +36,10 @@ var (
 
 	// ErrLinkNotFound is returned when a link cannot be synced from our peers.
 	ErrLinkNotFound = errors.New("link could not be synced from peers")
+
+	// ErrInvalidLinkCount is returned when the sync protocol doesn't return
+	// the expected number of links.
+	ErrInvalidLinkCount = errors.New("invalid number of links found")
 )
 
 // SyncEngine lets a node sync with other nodes to fetch
@@ -94,4 +98,12 @@ func ListMissingLinkHashes(ctx context.Context, link *cs.Link, reader store.Segm
 	}
 
 	return missingLinkHashes, nil
+}
+
+// OrderLinks takes a starting link and a map that should contain
+// all the link's dependencies and returns a slice containing the
+// links properly ordered by dependency.
+func OrderLinks(ctx context.Context, start *cs.Link, linksMap map[string]*cs.Link) ([]*cs.Link, error) {
+	// TODO
+	return nil, nil
 }

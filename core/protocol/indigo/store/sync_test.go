@@ -21,14 +21,18 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
+	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	bhost "gx/ipfs/QmQr1j6UvdhpponAaqSdswqRpdzsFwNop2N8kXLNw8afem/go-libp2p-blankhost"
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
@@ -286,6 +290,220 @@ func TestMultiNodeSyncEngine_GetMissingLinks(t *testing.T) {
 		// To comply with dependency ordering, prevPrevLink should appear
 		// before prevLink.
 		assert.True(t, getLinkIndex(prevPrevLink, links) < getLinkIndex(prevLink, links))
+	})
+}
+
+func TestSingleNodeSyncEngine_GetMissingLinks(t *testing.T) {
+	t.Run("no-missing-links", func(t *testing.T) {
+		ctx := context.Background()
+
+		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h.Close()
+
+		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		link := cstesting.NewLinkBuilder().WithParent(prevLink).Build()
+
+		testStore := dummystore.New(&dummystore.Config{})
+		testStore.CreateLink(ctx, prevLink)
+
+		engine := store.NewSingleNodeSyncEngine(h, nil)
+		defer engine.Close(ctx)
+
+		links, err := engine.GetMissingLinks(ctx, "some peer", link, testStore)
+		assert.NoError(t, err)
+		assert.Nil(t, links)
+	})
+
+	t.Run("sender-connection-failure", func(t *testing.T) {
+		ctx := context.Background()
+
+		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h.Close()
+
+		engine := store.NewSingleNodeSyncEngine(h, nil)
+		defer engine.Close(ctx)
+
+		_, err := engine.GetMissingLinks(
+			ctx,
+			"some peer",
+			cstesting.NewLinkBuilder().Build(),
+			dummystore.New(&dummystore.Config{}),
+		)
+		assert.EqualError(t, err, store.ErrNoConnectedPeers.Error())
+	})
+
+	t.Run("sender-protocol-error", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		// link ---> prevLink
+		//   `--------> linkRef
+		linkRef := cstesting.NewLinkBuilder().WithoutParent().Build()
+		linkRefHash, _ := linkRef.Hash()
+		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLinkHash, _ := prevLink.Hash()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(linkRef).
+			Build()
+
+		// Set h2 to return only one of the two required segments.
+		h2.SetStreamHandler(store.SingleNodeSyncProtocolID, func(stream inet.Stream) {
+			dec := protobuf.Multicodec(nil).Decoder(stream)
+			var linkHashes rpcpb.LinkHashes
+			require.NoError(t, dec.Decode(&linkHashes))
+			require.Len(t, linkHashes.LinkHashes, 2)
+
+			linkHash1, _ := linkHashes.LinkHashes[0].ToLinkHash()
+			assert.Equal(t, prevLinkHash, linkHash1)
+			linkHash2, _ := linkHashes.LinkHashes[1].ToLinkHash()
+			assert.Equal(t, linkRefHash, linkHash2)
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			segmentsMessage, _ := rpcpb.FromSegments(cs.SegmentSlice{linkRef.Segmentify()})
+			require.NoError(t, enc.Encode(segmentsMessage))
+		})
+
+		testStore := dummystore.New(&dummystore.Config{})
+		engine := store.NewSingleNodeSyncEngine(h1, testStore)
+		defer engine.Close(ctx)
+
+		_, err := engine.GetMissingLinks(ctx, h2.ID(), link, testStore)
+		assert.EqualError(t, err, store.ErrInvalidLinkCount.Error())
+	})
+
+	t.Run("missing-previous-link", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		// link ---> prevLink
+		//              `--------> prevLinkRef
+		prevLinkRef := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLink := cstesting.NewLinkBuilder().WithRef(prevLinkRef).Build()
+		link := cstesting.NewLinkBuilder().WithParent(prevLink).Build()
+
+		store1 := dummystore.New(&dummystore.Config{})
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevLink)
+		store2.CreateLink(ctx, link)
+
+		engine1 := store.NewSingleNodeSyncEngine(h1, store1)
+		engine2 := store.NewSingleNodeSyncEngine(h2, store2)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+
+		_, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		assert.EqualError(t, err, store.ErrInvalidLinkCount.Error())
+	})
+
+	t.Run("diamond-dependency", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		// link ---> prevLink ---> prevPrevLink
+		//   `------------------------^
+		prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLink := cstesting.NewLinkBuilder().WithParent(prevPrevLink).Build()
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(prevPrevLink).
+			Build()
+
+		store1 := dummystore.New(&dummystore.Config{})
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevPrevLink)
+		store2.CreateLink(ctx, prevLink)
+		store2.CreateLink(ctx, link)
+
+		engine1 := store.NewSingleNodeSyncEngine(h1, store1)
+		engine2 := store.NewSingleNodeSyncEngine(h2, store2)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+
+		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		assert.NoError(t, err)
+		require.Len(t, links, 2)
+		assert.Equal(t, prevPrevLink, links[0])
+		assert.Equal(t, prevLink, links[1])
+	})
+
+	t.Run("recursive-sync", func(t *testing.T) {
+		ctx := context.Background()
+
+		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		defer h1.Close()
+		defer h2.Close()
+
+		assert.NoError(t, h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID())))
+
+		// link ---> prevLink ---> prevPrevLink
+		//   |          `--------> prevLinkRef
+		//   |
+		//   `-----> refLink
+		//              `--------> refRefLink
+		prevPrevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLinkRef := cstesting.NewLinkBuilder().WithoutParent().Build()
+		prevLink := cstesting.NewLinkBuilder().
+			WithParent(prevPrevLink).
+			WithRef(prevLinkRef).
+			Build()
+
+		refRefLink := cstesting.NewLinkBuilder().WithoutParent().Build()
+		refLink := cstesting.NewLinkBuilder().
+			WithoutParent().
+			WithRef(refRefLink).
+			Build()
+
+		link := cstesting.NewLinkBuilder().
+			WithParent(prevLink).
+			WithRef(refLink).
+			Build()
+
+		store1 := dummystore.New(&dummystore.Config{})
+		store2 := dummystore.New(&dummystore.Config{})
+		store2.CreateLink(ctx, prevPrevLink)
+		store2.CreateLink(ctx, prevLinkRef)
+		store2.CreateLink(ctx, prevLink)
+		store2.CreateLink(ctx, refRefLink)
+		store2.CreateLink(ctx, refLink)
+		store2.CreateLink(ctx, link)
+
+		engine1 := store.NewSingleNodeSyncEngine(h1, store1)
+		engine2 := store.NewSingleNodeSyncEngine(h2, store2)
+		defer engine1.Close(ctx)
+		defer engine2.Close(ctx)
+
+		links, err := engine1.GetMissingLinks(ctx, h2.ID(), link, store1)
+		assert.NoError(t, err)
+		assert.Len(t, links, 5)
+		assert.Contains(t, links, prevPrevLink)
+		assert.Contains(t, links, prevLinkRef)
+		assert.Contains(t, links, prevLink)
+		assert.Contains(t, links, refRefLink)
+		assert.Contains(t, links, refLink)
+
+		assert.True(t, getLinkIndex(prevPrevLink, links) < getLinkIndex(prevLink, links))
+		assert.True(t, getLinkIndex(prevLinkRef, links) < getLinkIndex(prevLink, links))
+		assert.True(t, getLinkIndex(refRefLink, links) < getLinkIndex(refLink, links))
 	})
 }
 

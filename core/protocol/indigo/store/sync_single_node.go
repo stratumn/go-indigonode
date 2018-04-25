@@ -16,11 +16,15 @@ package store
 
 import (
 	"context"
+	"io"
 
+	"github.com/pkg/errors"
+	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -63,12 +67,155 @@ func (s *SingleNodeSyncEngine) Close(ctx context.Context) {
 // GetMissingLinks connects to the node that published the link to get all
 // missing links in the subgraph ending in this new link.
 func (s *SingleNodeSyncEngine) GetMissingLinks(ctx context.Context, sender peer.ID, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
-	event := log.EventBegin(ctx, "GetMissingLinks")
+	event := log.EventBegin(ctx, "GetMissingLinks", logging.Metadata{"peer": sender.Pretty()})
 	defer event.Done()
 
-	return nil, nil
+	toFetch, err := ListMissingLinkHashes(ctx, link, reader)
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	if len(toFetch) == 0 {
+		event.Append(logging.Metadata{"links_count": 0})
+		return nil, nil
+	}
+
+	stream, err := s.startStream(ctx, sender)
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	defer func() {
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"stream_close_err": err.Error()})
+		}
+	}()
+
+	linksMap, err := s.syncWithPeer(ctx, stream, toFetch, reader)
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	links, err := OrderLinks(ctx, link, linksMap)
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	event.Append(logging.Metadata{"links_count": len(links)})
+
+	return links, nil
 }
 
+// startStream starts a stream with the peer that created the link.
+func (s *SingleNodeSyncEngine) startStream(ctx context.Context, sender peer.ID) (inet.Stream, error) {
+	event := log.EventBegin(ctx, "startStream", logging.Metadata{"peer": sender.Pretty()})
+	defer event.Done()
+
+	err := s.host.Connect(ctx, s.host.Peerstore().PeerInfo(sender))
+	if err != nil {
+		event.SetError(err)
+		return nil, ErrNoConnectedPeers
+	}
+
+	stream, err := s.host.NewStream(ctx, sender, SingleNodeSyncProtocolID)
+	if err != nil {
+		event.SetError(err)
+		return nil, errors.Wrap(err, "could not start stream")
+	}
+
+	return stream, nil
+}
+
+// syncWithPeer syncs with the connected peer
+// until all links have been fetched.
+func (s *SingleNodeSyncEngine) syncWithPeer(
+	ctx context.Context,
+	stream inet.Stream,
+	toFetch []string,
+	reader store.SegmentReader,
+) (map[string]*cs.Link, error) {
+	event := log.EventBegin(ctx, "syncWithPeer", logging.Metadata{
+		"peer": stream.Conn().RemotePeer().Pretty(),
+	})
+	defer event.Done()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+
+	receivedLinks := make(map[string]*cs.Link)
+
+	for len(toFetch) > 0 {
+		if err := enc.Encode(rpcpb.FromLinkHashes(toFetch)); err != nil {
+			event.SetError(err)
+			return nil, err
+		}
+
+		var segments rpcpb.Segments
+		if err := dec.Decode(&segments); err != nil {
+			event.SetError(err)
+			return nil, err
+		}
+
+		// If we got an incorrect number of segments from our peer,
+		// we can fail fast because we're sure we'll be missing
+		// some links.
+		if len(segments.Segments) != len(toFetch) {
+			event.SetError(ErrInvalidLinkCount)
+			return nil, ErrInvalidLinkCount
+		}
+
+		toFetch = nil
+		toFetchMap := make(map[string]struct{})
+		for _, segment := range segments.Segments {
+			s, err := segment.ToSegment()
+			if err != nil {
+				event.SetError(err)
+				return nil, err
+			}
+
+			linkHash := s.GetLinkHashString()
+			_, ok := receivedLinks[linkHash]
+			if ok {
+				// No need to fetch a link multiple times.
+				continue
+			}
+
+			event.Append(logging.Metadata{linkHash: "fetched"})
+			receivedLinks[linkHash] = &s.Link
+
+			linkDeps, err := ListMissingLinkHashes(ctx, &s.Link, reader)
+			if err != nil {
+				event.SetError(err)
+				return nil, err
+			}
+
+			for _, lh := range linkDeps {
+				_, ok := receivedLinks[lh]
+				if ok {
+					continue
+				}
+
+				_, ok = toFetchMap[lh]
+				if ok {
+					continue
+				}
+
+				event.Append(logging.Metadata{lh: "fetching"})
+				toFetchMap[lh] = struct{}{}
+				toFetch = append(toFetch, lh)
+			}
+		}
+	}
+
+	return receivedLinks, nil
+}
+
+// syncHandler accepts sync requests from peers and sends them
+// all the links they need to be up-to-date.
 func (s *SingleNodeSyncEngine) syncHandler(stream inet.Stream) {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
@@ -76,5 +223,46 @@ func (s *SingleNodeSyncEngine) syncHandler(stream inet.Stream) {
 	})
 	defer event.Done()
 
-	// TODO: receive loop until stream closed
+	var err error
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+
+	// In success cases, it's the client's responsibility to close the stream.
+	// In case of error, we'll close the stream here.
+	for err == nil {
+		var msg rpcpb.LinkHashes
+		err = dec.Decode(&msg)
+		if err != nil {
+			break
+		}
+
+		segFilter := &store.SegmentFilter{
+			Pagination: store.Pagination{Limit: len(msg.LinkHashes)},
+		}
+		segFilter.LinkHashes, err = msg.ToLinkHashes()
+		if err != nil {
+			break
+		}
+
+		var segments cs.SegmentSlice
+		segments, err = s.store.FindSegments(ctx, segFilter)
+		if err != nil {
+			break
+		}
+
+		var segMsg *rpcpb.Segments
+		segMsg, err = rpcpb.FromSegments(segments)
+		if err != nil {
+			break
+		}
+
+		err = enc.Encode(segMsg)
+	}
+
+	if err != io.EOF {
+		event.SetError(err)
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"stream_close_err": err.Error()})
+		}
+	}
 }

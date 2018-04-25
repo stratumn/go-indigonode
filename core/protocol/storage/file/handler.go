@@ -18,13 +18,13 @@ package file
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-
+	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/storage"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var log = logging.Logger("storage.file_handler")
@@ -43,19 +43,19 @@ type Handler interface {
 	WriteFile(context.Context, <-chan *pb.FileChunk) (*os.File, error)
 }
 
-type handler struct {
+type localFileHandler struct {
 	storagePath string
 }
 
-// NewHandler create a new file handler.
-func NewHandler(path string) Handler {
-	return &handler{
+// NewLocalFileHandler create a new file Handler.
+func NewLocalFileHandler(path string) Handler {
+	return &localFileHandler{
 		storagePath: path,
 	}
 }
 
 // SaveFile saves a file locally.
-func (h *handler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (file *os.File, err error) {
+func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (file *os.File, err error) {
 	event := log.EventBegin(ctx, "SaveFile")
 
 	defer func() {
@@ -63,7 +63,7 @@ func (h *handler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (
 			// Delete the partially written file.
 			if file != nil {
 				if err2 := os.Remove(file.Name()); err2 != nil {
-					err = fmt.Errorf("error uploading file (%v); error deleting partially uploaded file (%v)", err, err2)
+					err = errors.Wrap(err, err2.Error())
 				}
 			}
 			event.SetError(err)
@@ -74,7 +74,6 @@ func (h *handler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (
 	for {
 		select {
 		case <-ctx.Done():
-			event.SetError(ctx.Err())
 			err = ctx.Err()
 			return
 
@@ -83,8 +82,8 @@ func (h *handler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (
 				return
 			}
 			if file == nil && chunk.FileName == "" {
-				event.SetError(ErrFileNameMissing)
-				return nil, ErrFileNameMissing
+				err = ErrFileNameMissing
+				return
 			}
 
 			if file == nil {

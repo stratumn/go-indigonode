@@ -29,7 +29,7 @@ func TestFileHandler_Write(t *testing.T) {
 
 	tmpPath := "/tmp"
 
-	fileHandler := NewHandler(tmpPath)
+	fileHandler := NewLocalFileHandler(tmpPath)
 
 	t.Run("successfully-write", func(t *testing.T) {
 		ctx := context.Background()

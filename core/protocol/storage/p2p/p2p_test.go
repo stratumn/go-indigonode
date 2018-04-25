@@ -130,6 +130,35 @@ func TestP2P_SendFile(t *testing.T) {
 	p2p.SendFile(context.Background(), enc, filePath)
 }
 
+func TestP2P_SendFile_ChunkSize(t *testing.T) {
+
+	content := []byte("0123456789")
+	storagePath := "/tmp/"
+	fileName := fmt.Sprintf("TestP2P_SendFile-%d", time.Now().UnixNano())
+	filePath := storagePath + fileName
+
+	f, err := os.Create(filePath)
+	require.NoError(t, err, "os.Create")
+
+	_, err = f.Write(content)
+	require.NoError(t, err, "f.Write")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	enc := mockencoder.NewMockEncoder(ctrl)
+
+	p2p := &p2p{
+		chunkSize: 10,
+	}
+
+	gomock.InOrder(
+		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: content}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
+	)
+
+	p2p.SendFile(context.Background(), enc, filePath)
+}
+
 // Returns a stream handler that streams the byte array.
 func getStreamHandler(ctx context.Context, name string, data []byte) func(inet.Stream) {
 

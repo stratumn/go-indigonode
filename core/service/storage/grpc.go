@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -37,9 +38,6 @@ var (
 
 	// ErrInvalidUploadSession is returned when the session id could not be parsed.
 	ErrInvalidUploadSession = errors.New("the given session could not be parsed")
-	// UploadTimeout is the timeout duration for the upload.
-	// TODO: a timeout per request ?
-	UploadTimeout = time.Minute * 20
 )
 
 // grpcServer is a gRPC server for the storage service.
@@ -49,6 +47,7 @@ type grpcServer struct {
 	download  func(ctx context.Context, fileHash []byte, peerId []byte) error
 
 	storagePath   string
+	sessionsMu    sync.RWMutex
 	sessions      map[uuid.UUID]*session
 	uploadTimeout time.Duration
 }
@@ -73,8 +72,8 @@ func newGrpcServer(
 
 // Upload saves a file on the alice node.
 // The first message must contain the file name.
-func (s grpcServer) Upload(stream grpcpb.Storage_UploadServer) (err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), UploadTimeout)
+func (s *grpcServer) Upload(stream grpcpb.Storage_UploadServer) (err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), s.uploadTimeout)
 	event := log.EventBegin(ctx, "UploadFile")
 
 	defer func() {
@@ -106,25 +105,18 @@ func (s grpcServer) Upload(stream grpcpb.Storage_UploadServer) (err error) {
 			err = nil
 			break
 		}
+
 		if err != nil {
 			return
 		}
 
 		select {
-
-		case hash := <-resCh:
-			err = stream.SendAndClose(&grpcpb.UploadAck{
-				FileHash: hash,
-			})
-			return
-
 		case err = <-errCh:
 			return
 
 		case chunkCh <- chunk:
 			continue
 		}
-
 	}
 
 	select {
@@ -140,7 +132,7 @@ func (s grpcServer) Upload(stream grpcpb.Storage_UploadServer) (err error) {
 }
 
 // AuthorizePeers gives access for a list of peers to a resource.
-func (s grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest) (*grpcpb.Ack, error) {
+func (s *grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest) (*grpcpb.Ack, error) {
 
 	if err := s.authorize(ctx, req.PeerIds, req.FileHash); err != nil {
 		return nil, err
@@ -149,7 +141,7 @@ func (s grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest)
 	return &grpcpb.Ack{}, nil
 }
 
-func (s grpcServer) Download(ctx context.Context, req *grpcpb.DownloadRequest) (*grpcpb.Ack, error) {
+func (s *grpcServer) Download(ctx context.Context, req *grpcpb.DownloadRequest) (*grpcpb.Ack, error) {
 
 	if err := s.download(ctx, req.FileHash, req.PeerId); err != nil {
 		return nil, err
@@ -177,9 +169,8 @@ func newSession(fileName string) *session {
 		id:       id,
 		fileName: fileName,
 		chunkCh:  make(chan (*pb.FileChunk)),
-		// doneCh:   make(chan struct{}),
-		errCh: make(chan error),
-		resCh: make(chan ([]byte)),
+		errCh:    make(chan error),
+		resCh:    make(chan ([]byte)),
 	}
 }
 
@@ -209,7 +200,9 @@ func (s *grpcServer) StartUpload(ctx context.Context, req *grpcpb.UploadReq) (*g
 		}
 	}()
 
+	s.sessionsMu.Lock()
 	s.sessions[session.id] = session
+	s.sessionsMu.Unlock()
 
 	return &grpcpb.UploadSession{
 		Id: session.id.Bytes(),
@@ -228,7 +221,11 @@ func (s *grpcServer) UploadChunk(ctx context.Context, req *grpcpb.SessionFileChu
 	}
 
 	event.Append(logging.Metadata{"sessionID": u})
+
+	s.sessionsMu.RLock()
 	session, ok := s.sessions[u]
+	s.sessionsMu.RUnlock()
+
 	if !ok {
 		event.SetError(ErrUploadSessionNotFound)
 		return nil, ErrUploadSessionNotFound
@@ -252,7 +249,10 @@ func (s *grpcServer) EndUpload(ctx context.Context, req *grpcpb.UploadSession) (
 	}
 	event.Append(logging.Metadata{"sessionID": u})
 
+	s.sessionsMu.RLock()
 	session, ok := s.sessions[u]
+	s.sessionsMu.RUnlock()
+
 	if !ok {
 		return nil, ErrUploadSessionNotFound
 	}
@@ -263,7 +263,9 @@ func (s *grpcServer) EndUpload(ctx context.Context, req *grpcpb.UploadSession) (
 	case err := <-session.errCh:
 		return nil, err
 	case fileHash := <-session.resCh:
+		s.sessionsMu.Lock()
 		delete(s.sessions, u)
+		s.sessionsMu.Unlock()
 
 		return &grpcpb.UploadAck{
 			FileHash: fileHash,

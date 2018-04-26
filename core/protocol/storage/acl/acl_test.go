@@ -21,6 +21,7 @@ import (
 
 	"github.com/stratumn/alice/core/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestACL(t *testing.T) {
@@ -39,7 +40,9 @@ func TestACL(t *testing.T) {
 	pid4, err := peer.IDB58Decode("QmNnP696qYWjwyiqoepYauwpdZp62NoKEjBV4Q1MJVhMUC")
 	assert.NoError(t, err, "IDB58Decode")
 
+	// fileHash must be exactly 34 (== hashSize) bytes.
 	fileHash := []byte("this is the hash of the file !!!!!")
+	require.Len(t, fileHash, hashSize, "len(fileHash)")
 
 	// Authorize peers.
 	err = acl.Authorize(context.Background(), []peer.ID{pid1, pid2}, fileHash)

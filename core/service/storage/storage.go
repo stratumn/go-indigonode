@@ -17,7 +17,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -148,7 +147,6 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Create local folder if not exists.
 	if _, err := os.Stat(s.config.LocalStorage); os.IsNotExist(err) {
 		if err := os.MkdirAll(s.config.LocalStorage, 0766); err != nil {
-			fmt.Println(s.config.LocalStorage)
 			return err
 		}
 	}

@@ -23,10 +23,6 @@ option go_package = "github.com/stratumn/alice/grpc/storage;storage";
 
 // The storage service definition.
 service Storage {
-  // // Sends a message to a peer.
-  // rpc SendFile (File) returns (Ack) {
-  // }
-  
   
   // Upload a file to the alice node.
   rpc Upload (stream stratumn.alice.pb.storage.FileChunk) returns (UploadAck) {}

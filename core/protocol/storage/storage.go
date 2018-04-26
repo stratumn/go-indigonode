@@ -51,7 +51,7 @@ var (
 
 var (
 	// ErrUnauthorized is returned when a peer tries to access a file he
-	// is not allowed to get
+	// is not allowed to get.
 	ErrUnauthorized = errors.New("peer not authorized for requested file")
 )
 
@@ -154,12 +154,17 @@ func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) err
 // StreamHandler handles incoming messages from peers.
 func (s *Storage) StreamHandler(ctx context.Context, stream inet.Stream) {
 	from := stream.Conn().RemotePeer()
-	defer stream.Close()
-
 	event := log.EventBegin(ctx, "SendFile", logging.Metadata{
 		"peerID": from.Pretty(),
 	})
-	defer event.Done()
+
+	defer func() {
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"stream_close_err": err})
+		}
+
+		event.Done()
+	}()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	enc := protobuf.Multicodec(nil).Encoder(stream)

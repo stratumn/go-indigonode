@@ -84,8 +84,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	s.fossilizer = protocol.New(indigoFossilizer)
 
+	// we need to start the fossilizer in case it uses batches.
 	errChan := make(chan error)
 	go func() { errChan <- s.fossilizer.Start(ctx) }()
+	<-s.fossilizer.Started(ctx)
 
 	running()
 	<-ctx.Done()

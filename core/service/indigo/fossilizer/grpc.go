@@ -16,8 +16,15 @@ package fossilizer
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/pkg/errors"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/fossilizer"
+)
+
+var (
+	// ErrInvalidArgument is returned when the input is invalid.
+	ErrInvalidArgument = errors.New("invalid argument")
 )
 
 // grpcServer is a gRPC server for the indigo service.
@@ -28,10 +35,28 @@ type grpcServer struct {
 
 // GetInfo returns information about the indigo service.
 func (s grpcServer) GetInfo(ctx context.Context, req *rpcpb.InfoReq) (*rpcpb.InfoResp, error) {
-	return nil, nil
+	info, err := s.DoGetInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	infoBytes, err := json.Marshal(info)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.InfoResp{Data: infoBytes}, nil
 }
 
-// GetInfo returns information about the indigo service.
+// Fossilize requests data to be fossilized.
 func (s grpcServer) Fossilize(ctx context.Context, req *rpcpb.FossilizeReq) (*rpcpb.FossilizeResp, error) {
-	return nil, nil
+	if req == nil {
+		return nil, ErrInvalidArgument
+	}
+	err := s.DoFossilize(ctx, req.Data, req.Meta)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rpcpb.FossilizeResp{}, nil
 }

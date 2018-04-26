@@ -20,7 +20,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
@@ -170,13 +170,13 @@ func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *
 	}()
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(rpcpb.FromLinkHash(lh))
+	err = enc.Encode(pb.FromLinkHash(lh))
 	if err != nil {
 		return nil, err
 	}
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
-	var link rpcpb.Link
+	var link pb.Link
 	err = dec.Decode(&link)
 	if err != nil {
 		return nil, err
@@ -204,7 +204,7 @@ func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
 	}()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
-	var linkHash rpcpb.LinkHash
+	var linkHash pb.LinkHash
 	err = dec.Decode(&linkHash)
 	if err != nil {
 		return
@@ -225,7 +225,7 @@ func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
 		return
 	}
 
-	link, err := rpcpb.FromLink(&seg.Link)
+	link, err := pb.FromLink(&seg.Link)
 	if err != nil {
 		return
 	}

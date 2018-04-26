@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/mockaudit"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mockstore"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync/mocksync"
@@ -80,13 +81,14 @@ func (b *TestStoreBuilder) Build() *store.Store {
 		b.networkMgr = mocknetworkmanager.NewMockNetworkManager(b.ctrl)
 		b.networkMgr.EXPECT().AddListener().Times(1)
 		b.networkMgr.EXPECT().Publish(gomock.Any(), gomock.Any()).AnyTimes()
+		b.networkMgr.EXPECT().NodeID().AnyTimes()
 	}
 
 	if b.syncEngine == nil {
 		b.syncEngine = mocksync.NewMockEngine(b.ctrl)
 		// No missing links to sync.
 		b.syncEngine.EXPECT().
-			GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			GetMissingLinks(gomock.Any(), gomock.Any(), gomock.Any()).
 			AnyTimes().
 			Return(nil, nil)
 	}
@@ -142,7 +144,9 @@ func TestReceiveLinks(t *testing.T) {
 	peerID, _ := peer.IDFromPrivateKey(sk)
 
 	createTestLink := func() (*pb.SignedLink, *cs.Link, *types.Bytes32) {
-		link := cstesting.NewLinkBuilder().Build()
+		link := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+			Build()
 		linkHash, _ := link.Hash()
 		signedLink, _ := pb.NewSignedLink(sk, link)
 		return signedLink, link, linkHash
@@ -206,7 +210,38 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			link := cstesting.NewLinkBuilder().Invalid().Build()
+			link := cstesting.NewLinkBuilder().
+				Invalid().
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
+			linkHash, _ := link.Hash()
+			signedLink, _ := pb.NewSignedLink(sk, link)
+
+			auditChan := make(chan struct{})
+			auditStore := mockaudit.NewMockStore(ctrl)
+			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
+				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithAuditStore(auditStore).
+				WithNetworkManager(networkMgr).
+				Build()
+
+			listenChan <- signedLink
+			<-auditChan
+
+			verifySegmentNotStored(t, testStore, linkHash)
+		},
+	}, {
+		"invalid-meta-node-id",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			link := cstesting.NewLinkBuilder().
+				WithMetadata(constants.NodeIDKey, "spongebob").
+				Build()
 			linkHash, _ := link.Hash()
 			signedLink, _ := pb.NewSignedLink(sk, link)
 
@@ -281,17 +316,25 @@ func TestReceiveLinks(t *testing.T) {
 			defer ctrl.Finish()
 
 			// link1 <----- link2 <----- link3
-			link1 := cstesting.NewLinkBuilder().Build()
+			link1 := cstesting.NewLinkBuilder().
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
 			linkHash1, _ := link1.Hash()
-			link2 := cstesting.NewLinkBuilder().WithParent(link1).Build()
+			link2 := cstesting.NewLinkBuilder().
+				WithParent(link1).
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
 			linkHash2, _ := link2.Hash()
-			link3 := cstesting.NewLinkBuilder().WithParent(link2).Build()
+			link3 := cstesting.NewLinkBuilder().
+				WithParent(link2).
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
 			linkHash3, _ := link3.Hash()
 			signedLink3, _ := pb.NewSignedLink(sk, link3)
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), peerID, link3, gomock.Any()).
+				GetMissingLinks(gomock.Any(), link3, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{link1, link2}, nil)
 
@@ -317,7 +360,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), link, gomock.Any()).
 				Times(1).
 				Return(nil, errors.New("no more credits"))
 
@@ -341,10 +384,16 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			invalidLink := cstesting.NewLinkBuilder().Invalid().Build()
+			invalidLink := cstesting.NewLinkBuilder().
+				Invalid().
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
 			invalidLinkHash, _ := invalidLink.Hash()
 
-			link := cstesting.NewLinkBuilder().WithParent(invalidLink).Build()
+			link := cstesting.NewLinkBuilder().
+				WithParent(invalidLink).
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+				Build()
 			linkHash, _ := link.Hash()
 			signedLink, _ := pb.NewSignedLink(sk, link)
 
@@ -355,7 +404,7 @@ func TestReceiveLinks(t *testing.T) {
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), peerID, link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), link, gomock.Any()).
 				Times(1).
 				Return([]*cs.Link{invalidLink}, nil)
 
@@ -421,15 +470,30 @@ func TestCreateLink(t *testing.T) {
 			assert.Error(t, err, "s.CreateLink()")
 		},
 	}, {
-		"valid-link",
+		"publish-valid-link",
 		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
 			link := cstesting.NewLinkBuilder().Build()
 
 			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			mgr.EXPECT().NodeID().Times(1)
 
 			lh, err := s.CreateLink(context.Background(), link)
 			assert.NoError(t, err, "s.CreateLink()")
 			assert.NotNil(t, lh, "s.CreateLink()")
+		},
+	}, {
+		"add-node-id-meta",
+		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
+			link := cstesting.NewLinkBuilder().Build()
+			link.Meta.Data = nil
+
+			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			mgr.EXPECT().NodeID().Times(1).Return("spongebob")
+
+			lh, _ := s.CreateLink(context.Background(), link)
+			segment, err := s.GetSegment(context.Background(), lh)
+			assert.NoError(t, err, "s.GetSegment()")
+			assert.Equal(t, "spongebob", segment.Link.Meta.Data[constants.NodeIDKey])
 		},
 	}}
 

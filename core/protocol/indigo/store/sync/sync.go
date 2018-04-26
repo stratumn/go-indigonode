@@ -25,7 +25,6 @@ import (
 	"github.com/stratumn/go-indigocore/types"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var (
@@ -55,7 +54,6 @@ type Engine interface {
 	// If Link1 references Link2, Link2 will appear before Link1 in the results list.
 	GetMissingLinks(
 		ctx context.Context,
-		sender peer.ID,
 		link *cs.Link,
 		storeReader store.SegmentReader,
 	) ([]*cs.Link, error)

@@ -43,6 +43,21 @@ func genNetworkID() string {
 	return uuid.NewV4().String()
 }
 
+func TestNodeID(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+	defer h.Close()
+
+	networkID := genNetworkID()
+	networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+
+	// The NodeID is only available after joining the network.
+	assert.NoError(t, networkMgr.Join(ctx, networkID, h))
+	assert.Equal(t, h.ID().Pretty(), networkMgr.NodeID())
+}
+
 func TestJoinLeave(t *testing.T) {
 	t.Run("missing-network-id", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())

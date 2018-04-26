@@ -16,19 +16,45 @@
 package fossilizer
 
 import (
+	"context"
+	"time"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/batchfossilizer"
+	"github.com/stratumn/go-indigocore/bcbatchfossilizer"
+	"github.com/stratumn/go-indigocore/blockchain/btc"
+	"github.com/stratumn/go-indigocore/blockchain/btc/blockcypher"
+	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
+	"github.com/stratumn/go-indigocore/blockchain/dummytimestamper"
 	"github.com/stratumn/go-indigocore/dummyfossilizer"
 	"github.com/stratumn/go-indigocore/fossilizer"
 )
 
 const (
-	// Dummy describes the dummyfossilizer type.
+	// Dummy designates the dummyfossilizer type.
 	Dummy = "dummy"
+
+	// DummyBatch designates the dummybatchfossilizer type.
+	DummyBatch = "dummybatch"
+
+	// BlockchainBatch designates the bcbatchfossilizer type.
+	BlockchainBatch = "bcbatch"
+
+	// BitcoinTimestamper designates the bitcoin timestamper.
+	BitcoinTimestamper = "bitcoin"
+
+	// DummyTimestamper designates the dummy timestamper.
+	DummyTimestamper = "dummy"
 )
 
 var (
 	// ErrNotImplemented is returned when trying to instantiate an unknown type of fossilizer.
 	ErrNotImplemented = errors.New("fossilizer type is not implemented")
+
+	// log is the logger for the configuration package.
+	log = logging.Logger("indigo.fossilizer.config")
 )
 
 // Config contains configuration options for the Fossilizer service.
@@ -47,13 +73,69 @@ type Config struct {
 
 	// Maximum number of leaves of a Merkle tree.
 	MaxLeaves int `toml:"max_leaves" comment:"The maximum number of leaves of a merkle tree in a batch (only applicable to fossilizers using batches)."`
+
+	// BtcWIF is the Wallet Import Format encoded secret key.
+	BtcWIF string `toml:"bitcoin_WIF" comment:"Wallet Import Format encoded secret key used to send transactions to the bitcoin blockchain (only applicable to the bitcoin fossilizer)."`
+
+	// BtcFee is the fee to use when sending transactions to the bitcoin blockchain.
+	BtcFee int64 `toml:"bitcoin_fee" comment:"amount of the fee to use when sending transactions to the bitcoin blockchain (only applicable to the bitcoin fossilizer)."`
 }
 
 // CreateIndigoFossilizer creates an indigo fossilizer from the configuration.
-func (c *Config) CreateIndigoFossilizer() (fossilizer.Adapter, error) {
+func (c *Config) CreateIndigoFossilizer(ctx context.Context) (fossilizer.Adapter, error) {
 	switch c.FossilizerType {
 	case Dummy:
 		return dummyfossilizer.New(&dummyfossilizer.Config{}), nil
+	case DummyBatch:
+		return batchfossilizer.New(&batchfossilizer.Config{
+			Interval:  time.Duration(c.Interval),
+			MaxLeaves: c.MaxLeaves,
+		})
+	case BlockchainBatch:
+		return c.createBlockchainFossilizer(ctx)
+	default:
+		return nil, ErrNotImplemented
+	}
+}
+
+func (c *Config) createBlockchainFossilizer(ctx context.Context) (fossilizer.Adapter, error) {
+	log.Event(ctx, "createBlockchainFossilizer", &logging.Metadata{
+		"fossilizerTimestamper": c.Timestamper,
+	})
+
+	switch c.Timestamper {
+	case BitcoinTimestamper:
+		btcNetwork, err := btc.GetNetworkFromWIF(c.BtcWIF)
+		if err != nil {
+			return nil, err
+		}
+		bcy := blockcypher.New(&blockcypher.Config{
+			Network:         btcNetwork,
+			LimiterInterval: blockcypher.DefaultLimiterInterval,
+			LimiterSize:     blockcypher.DefaultLimiterSize,
+		})
+		timestamper, err := btctimestamper.New(&btctimestamper.Config{
+			UnspentFinder: bcy,
+			Broadcaster:   bcy,
+			WIF:           c.BtcWIF,
+			Fee:           c.BtcFee,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return bcbatchfossilizer.New(&bcbatchfossilizer.Config{
+			HashTimestamper: timestamper,
+		}, &batchfossilizer.Config{
+			Interval:  time.Duration(c.Interval),
+			MaxLeaves: c.MaxLeaves,
+		})
+	case DummyTimestamper:
+		return bcbatchfossilizer.New(&bcbatchfossilizer.Config{
+			HashTimestamper: &dummytimestamper.Timestamper{},
+		}, &batchfossilizer.Config{
+			Interval:  time.Duration(c.Interval),
+			MaxLeaves: c.MaxLeaves,
+		})
 	default:
 		return nil, ErrNotImplemented
 	}

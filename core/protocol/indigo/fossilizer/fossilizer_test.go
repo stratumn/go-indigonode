@@ -169,7 +169,7 @@ func TestStarted(t *testing.T) {
 		indigoBatchFossilizer.EXPECT().Started().Times(1).Return(started)
 
 		go func() {
-			// wait for 150ms before sending an event in the started channel.
+			// wait for 100ms before sending an event in the started channel.
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
 			<-ctx.Done()

@@ -71,7 +71,7 @@ func TestAddFossilizerEventChan(t *testing.T) {
 
 	f := fossilizer.New(indigoFossilizer)
 	t.Run("calls the AddFossilizerEventChan method", func(t *testing.T) {
-		eventCh := make(chan *indigofossilizer.Event, 1)
+		eventCh := make(chan *indigofossilizer.Event)
 		indigoFossilizer.EXPECT().AddFossilizerEventChan(eventCh).Times(1)
 		f.AddFossilizerEventChan(ctx, eventCh)
 	})
@@ -113,7 +113,7 @@ func TestStart(t *testing.T) {
 		bf := fossilizer.New(indigoBatchFossilizer)
 		indigoBatchFossilizer.EXPECT().Start(ctx).Times(1).Return(nil)
 
-		c := make(chan struct{}, 1)
+		c := make(chan struct{})
 		go func() {
 			err := bf.Start(ctx)
 			assert.NoError(t, err)
@@ -133,7 +133,7 @@ func TestStart(t *testing.T) {
 			return ctx.Err()
 		})
 
-		c := make(chan struct{}, 1)
+		c := make(chan struct{})
 		go func() {
 			err := bf.Start(ctx)
 			assert.EqualError(t, err, context.Canceled.Error())
@@ -165,14 +165,12 @@ func TestStarted(t *testing.T) {
 		indigoBatchFossilizer := mockbatchfossilizer.NewMockAdapter(ctrl)
 		bf := fossilizer.New(indigoBatchFossilizer)
 
-		started := make(chan struct{}, 1)
+		started := make(chan struct{})
 		indigoBatchFossilizer.EXPECT().Started().Times(1).Return(started)
 
 		go func() {
 			// wait for 100ms before sending an event in the started channel.
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-			defer cancel()
-			<-ctx.Done()
+			<-time.After(10 * time.Millisecond)
 			started <- struct{}{}
 		}()
 
@@ -185,9 +183,7 @@ func TestStarted(t *testing.T) {
 		}
 
 		// wait a little bit longer before checking if the channel contains an event.
-		ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-		defer cancel()
-		<-ctx.Done()
+		<-time.After(15 * time.Millisecond)
 
 		select {
 		case <-startedChan:

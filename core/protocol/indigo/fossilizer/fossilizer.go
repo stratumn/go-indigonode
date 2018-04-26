@@ -55,14 +55,12 @@ func (f *Fossilizer) AddFossilizerEventChan(ctx context.Context, eventChan chan 
 // Fossilize requests data to be fossilized.
 func (f *Fossilizer) Fossilize(ctx context.Context, data, meta []byte) (err error) {
 	event := log.EventBegin(ctx, "Fossilize")
-	defer func() {
-		if err != nil {
-			event.SetError(err)
-		}
-		event.Done()
-	}()
+	defer event.Done()
 
 	err = f.fossilizer.Fossilize(ctx, data, meta)
+	if err != nil {
+		event.SetError(err)
+	}
 	return err
 }
 

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/types"
@@ -31,18 +31,18 @@ func TestGRPCServer_CreateLink(t *testing.T) {
 	link := cstesting.RandomLink()
 	linkHash, _ := link.Hash()
 	linkBytes, _ := json.Marshal(link)
-	rpcLink := &rpcpb.Link{Data: linkBytes}
+	rpcLink := &pb.Link{Data: linkBytes}
 
 	t.Run("missing-input", func(t *testing.T) {
 		server := &grpcServer{}
 		_, err := server.CreateLink(context.Background(), nil)
-		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.CreateLink()")
+		assert.EqualError(t, err, pb.ErrInvalidArgument.Error(), "server.CreateLink()")
 	})
 
 	t.Run("non-json-input", func(t *testing.T) {
 		server := &grpcServer{}
-		_, err := server.CreateLink(context.Background(), &rpcpb.Link{Data: []byte("{iAm_m4lf0rm3D")})
-		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.CreateLink()")
+		_, err := server.CreateLink(context.Background(), &pb.Link{Data: []byte("{iAm_m4lf0rm3D")})
+		assert.EqualError(t, err, pb.ErrInvalidArgument.Error(), "server.CreateLink()")
 	})
 
 	t.Run("store-error", func(t *testing.T) {
@@ -75,12 +75,12 @@ func TestGRPCServer_CreateLink(t *testing.T) {
 func TestGRPCServer_GetSegment(t *testing.T) {
 	link := cstesting.RandomLink()
 	linkHash, _ := link.Hash()
-	rpcLinkHash := &rpcpb.LinkHash{Data: linkHash[:]}
+	rpcLinkHash := &pb.LinkHash{Data: linkHash[:]}
 
 	t.Run("missing-input", func(t *testing.T) {
 		server := &grpcServer{}
 		_, err := server.GetSegment(context.Background(), nil)
-		assert.EqualError(t, err, rpcpb.ErrInvalidArgument.Error(), "server.GetSegment()")
+		assert.EqualError(t, err, pb.ErrInvalidArgument.Error(), "server.GetSegment()")
 	})
 
 	t.Run("store-error", func(t *testing.T) {

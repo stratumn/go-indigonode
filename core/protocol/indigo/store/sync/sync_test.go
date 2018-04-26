@@ -22,7 +22,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
-	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
@@ -508,7 +508,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		// Set h2 to return only one of the two required segments.
 		h2.SetStreamHandler(sync.SingleNodeProtocolID, func(stream inet.Stream) {
 			dec := protobuf.Multicodec(nil).Decoder(stream)
-			var linkHashes rpcpb.LinkHashes
+			var linkHashes pb.LinkHashes
 			require.NoError(t, dec.Decode(&linkHashes))
 			require.Len(t, linkHashes.LinkHashes, 2)
 
@@ -518,7 +518,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 			assert.Equal(t, linkRefHash, linkHash2)
 
 			enc := protobuf.Multicodec(nil).Encoder(stream)
-			segmentsMessage, _ := rpcpb.FromSegments(cs.SegmentSlice{linkRef.Segmentify()})
+			segmentsMessage, _ := pb.FromSegments(cs.SegmentSlice{linkRef.Segmentify()})
 			require.NoError(t, enc.Encode(segmentsMessage))
 		})
 

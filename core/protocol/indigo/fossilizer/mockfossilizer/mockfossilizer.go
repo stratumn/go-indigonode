@@ -6,9 +6,10 @@ package mockfossilizer
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	fossilizer "github.com/stratumn/alice/vendor/github.com/stratumn/go-indigocore/fossilizer"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	fossilizer "github.com/stratumn/go-indigocore/fossilizer"
 )
 
 // MockAdapter is a mock of Adapter interface

@@ -19,65 +19,16 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/grpc/indigo/store"
-	"github.com/stratumn/go-indigocore/cs"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	indigostore "github.com/stratumn/go-indigocore/store"
-	"github.com/stratumn/go-indigocore/types"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestLinkHash(t *testing.T) {
-	var lh *store.LinkHash
-	_, err := lh.ToLinkHash()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
-
-	linkHash := types.NewBytes32FromBytes([]byte{0x24, 0x42})
-	lh = store.FromLinkHash(linkHash)
-	assert.Equal(t, linkHash[:], lh.Data)
-
-	linkHash2, err := lh.ToLinkHash()
-	assert.NoError(t, err)
-	assert.Equal(t, linkHash, linkHash2)
-}
-
-func TestLink(t *testing.T) {
-	var l *store.Link
-	_, err := l.ToLink()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
-
-	link := cstesting.RandomLink()
-	l, err = store.FromLink(link)
-	assert.NoError(t, err)
-
-	link2, err := l.ToLink()
-	assert.NoError(t, err)
-	assert.Equal(t, link, link2)
-}
-
-func TestSegments(t *testing.T) {
-	s1 := cstesting.RandomSegment()
-	s2 := cstesting.RandomSegment()
-
-	s, err := store.FromSegments(cs.SegmentSlice{s1, s2})
-	assert.NoError(t, err)
-
-	assert.Len(t, s.Segments, 2)
-	assert.NotNil(t, s.Segments[0].Data)
-	assert.NotNil(t, s.Segments[1].Data)
-
-	ss1, err := s.Segments[0].ToSegment()
-	assert.NoError(t, err)
-	assert.Equal(t, s1, ss1)
-
-	ss2, err := s.Segments[1].ToSegment()
-	assert.NoError(t, err)
-	assert.Equal(t, s2, ss2)
-}
 
 func TestSegmentFilter(t *testing.T) {
 	var f *store.SegmentFilter
 	_, err := f.ToSegmentFilter()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
+	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
 	filter := &indigostore.SegmentFilter{Process: "p"}
 	filterBytes, _ := json.Marshal(filter)
@@ -91,7 +42,7 @@ func TestSegmentFilter(t *testing.T) {
 func TestMapFilter(t *testing.T) {
 	var f *store.MapFilter
 	_, err := f.ToMapFilter()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
+	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
 	filter := &indigostore.MapFilter{Process: "p"}
 	filterBytes, _ := json.Marshal(filter)
@@ -105,18 +56,18 @@ func TestMapFilter(t *testing.T) {
 func TestAddEvidence(t *testing.T) {
 	var req *store.AddEvidenceReq
 	_, _, err := req.ToAddEvidenceParams()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
+	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
 	req = &store.AddEvidenceReq{}
 	_, _, err = req.ToAddEvidenceParams()
-	assert.EqualError(t, err, store.ErrInvalidArgument.Error())
+	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
 	e := cstesting.RandomEvidence()
 	eBytes, _ := json.Marshal(e)
 
 	req = &store.AddEvidenceReq{
-		LinkHash: &store.LinkHash{Data: []byte{0x24, 0x42}},
-		Evidence: &store.Evidence{Data: eBytes},
+		LinkHash: &pb.LinkHash{Data: []byte{0x24, 0x42}},
+		Evidence: &pb.Evidence{Data: eBytes},
 	}
 
 	lh, e2, err := req.ToAddEvidenceParams()
@@ -124,16 +75,4 @@ func TestAddEvidence(t *testing.T) {
 	assert.Equal(t, byte(0x24), lh[0])
 	assert.Equal(t, byte(0x42), lh[1])
 	assert.Equal(t, e.Provider, e2.Provider)
-}
-
-func TestEvidences(t *testing.T) {
-	e1 := cstesting.RandomEvidence()
-	e2 := cstesting.RandomEvidence()
-
-	e, err := store.FromEvidences(cs.Evidences{e1, e2})
-	assert.NoError(t, err)
-
-	assert.Len(t, e.Evidences, 2)
-	assert.NotNil(t, e.Evidences[0].Data)
-	assert.NotNil(t, e.Evidences[1].Data)
 }

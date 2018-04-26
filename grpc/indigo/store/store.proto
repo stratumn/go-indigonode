@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/pb/indigo/store/segment.proto";
 
 package stratumn.alice.grpc.indigo.store;
 
@@ -28,17 +29,17 @@ service IndigoStore {
     }
 
     // Create a link.
-    rpc CreateLink(Link) returns (LinkHash) {
+    rpc CreateLink(stratumn.alice.pb.indigo.store.Link) returns (stratumn.alice.pb.indigo.store.LinkHash) {
         option (stratumn.alice.grpc.ext.method_desc) = "Create a new link";
     }
 
     // Get a segment.
-    rpc GetSegment(LinkHash) returns (Segment) {
+    rpc GetSegment(stratumn.alice.pb.indigo.store.LinkHash) returns (stratumn.alice.pb.indigo.store.Segment) {
         option (stratumn.alice.grpc.ext.method_desc) = "Get an existing segment from its link hash";
     }
 
     // Find segments.
-    rpc FindSegments(SegmentFilter) returns (Segments) {
+    rpc FindSegments(SegmentFilter) returns (stratumn.alice.pb.indigo.store.Segments) {
         option (stratumn.alice.grpc.ext.method_desc) = "Find existing segments";
     }
 
@@ -53,7 +54,7 @@ service IndigoStore {
     }
 
     // Get segment evidences.
-    rpc GetEvidences(LinkHash) returns (Evidences) {
+    rpc GetEvidences(stratumn.alice.pb.indigo.store.LinkHash) returns (stratumn.alice.pb.indigo.store.Evidences) {
         option (stratumn.alice.grpc.ext.method_desc) = "Get segment evidences";
     }
 }
@@ -64,36 +65,6 @@ message InfoReq {
 message InfoResp {
     bytes data = 1 [
         (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded store information"
-    ];
-}
-
-message Link {
-    bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded link bytes"
-    ];
-}
-
-message LinkHash {
-    bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "32-bytes link hash"
-    ];
-}
-
-message LinkHashes {
-    repeated LinkHash link_hashes = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Link hashes"
-    ];
-}
-
-message Segment {
-    bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segment bytes"
-    ];
-}
-
-message Segments {
-    repeated Segment segments = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segments bytes"
     ];
 }
 
@@ -115,23 +86,11 @@ message MapFilter {
     ];
 }
 
-message Evidence {
-    bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded evidence bytes"
-    ];
-}
-
-message Evidences {
-    repeated Evidence evidences = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded evidences bytes"
-    ];
-}
-
 message AddEvidenceReq {
-    LinkHash link_hash = 1 [
+    stratumn.alice.pb.indigo.store.LinkHash link_hash = 1 [
         (stratumn.alice.grpc.ext.field_desc) = "32-bytes link hash"
     ];
-    Evidence evidence = 2 [
+    stratumn.alice.pb.indigo.store.Evidence evidence = 2 [
         (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded evidence bytes"
     ];
 }

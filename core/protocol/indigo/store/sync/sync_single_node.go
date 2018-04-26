@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
-	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 
@@ -153,12 +153,12 @@ func (s *SingleNodeEngine) syncWithPeer(
 	receivedLinks := make(map[string]*cs.Link)
 
 	for len(toFetch) > 0 {
-		if err := enc.Encode(rpcpb.FromLinkHashes(toFetch)); err != nil {
+		if err := enc.Encode(pb.FromLinkHashes(toFetch)); err != nil {
 			event.SetError(err)
 			return nil, err
 		}
 
-		var segments rpcpb.Segments
+		var segments pb.Segments
 		if err := dec.Decode(&segments); err != nil {
 			event.SetError(err)
 			return nil, err
@@ -234,7 +234,7 @@ func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
 	// In success cases, it's the client's responsibility to close the stream.
 	// In case of error, we'll close the stream here.
 	for err == nil {
-		var msg rpcpb.LinkHashes
+		var msg pb.LinkHashes
 		err = dec.Decode(&msg)
 		if err != nil {
 			break
@@ -254,8 +254,8 @@ func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
 			break
 		}
 
-		var segMsg *rpcpb.Segments
-		segMsg, err = rpcpb.FromSegments(segments)
+		var segMsg *pb.Segments
+		segMsg, err = pb.FromSegments(segments)
 		if err != nil {
 			break
 		}

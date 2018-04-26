@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
+	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
@@ -57,7 +58,7 @@ func (s grpcServer) GetInfo(ctx context.Context, req *rpcpb.InfoReq) (*rpcpb.Inf
 }
 
 // CreateLink creates a link in the Indigo Store.
-func (s grpcServer) CreateLink(ctx context.Context, link *rpcpb.Link) (*rpcpb.LinkHash, error) {
+func (s grpcServer) CreateLink(ctx context.Context, link *pb.Link) (*pb.LinkHash, error) {
 	l, err := link.ToLink()
 	if err != nil {
 		return nil, err
@@ -68,11 +69,11 @@ func (s grpcServer) CreateLink(ctx context.Context, link *rpcpb.Link) (*rpcpb.Li
 		return nil, err
 	}
 
-	return rpcpb.FromLinkHash(lh), nil
+	return pb.FromLinkHash(lh), nil
 }
 
 // GetSegment looks up a segment in the Indigo Store.
-func (s grpcServer) GetSegment(ctx context.Context, req *rpcpb.LinkHash) (*rpcpb.Segment, error) {
+func (s grpcServer) GetSegment(ctx context.Context, req *pb.LinkHash) (*pb.Segment, error) {
 	lh, err := req.ToLinkHash()
 	if err != nil {
 		return nil, err
@@ -87,11 +88,11 @@ func (s grpcServer) GetSegment(ctx context.Context, req *rpcpb.LinkHash) (*rpcpb
 		return nil, ErrNotFound
 	}
 
-	return rpcpb.FromSegment(seg)
+	return pb.FromSegment(seg)
 }
 
 // FindSegments finds segments in the Indigo Store.
-func (s grpcServer) FindSegments(ctx context.Context, req *rpcpb.SegmentFilter) (*rpcpb.Segments, error) {
+func (s grpcServer) FindSegments(ctx context.Context, req *rpcpb.SegmentFilter) (*pb.Segments, error) {
 	filter, err := req.ToSegmentFilter()
 	if err != nil {
 		return nil, err
@@ -106,7 +107,7 @@ func (s grpcServer) FindSegments(ctx context.Context, req *rpcpb.SegmentFilter) 
 		return nil, ErrNotFound
 	}
 
-	return rpcpb.FromSegments(segments)
+	return pb.FromSegments(segments)
 }
 
 // GetMapIDs finds map IDs in the Indigo Store.
@@ -144,7 +145,7 @@ func (s grpcServer) AddEvidence(ctx context.Context, req *rpcpb.AddEvidenceReq) 
 }
 
 // GetEvidences finds evidences in the Indigo Store.
-func (s grpcServer) GetEvidences(ctx context.Context, req *rpcpb.LinkHash) (*rpcpb.Evidences, error) {
+func (s grpcServer) GetEvidences(ctx context.Context, req *pb.LinkHash) (*pb.Evidences, error) {
 	lh, err := req.ToLinkHash()
 	if err != nil {
 		return nil, err
@@ -155,5 +156,5 @@ func (s grpcServer) GetEvidences(ctx context.Context, req *rpcpb.LinkHash) (*rpc
 		return nil, err
 	}
 
-	return rpcpb.FromEvidences(*evidences)
+	return pb.FromEvidences(*evidences)
 }

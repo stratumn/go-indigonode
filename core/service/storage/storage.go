@@ -23,7 +23,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/storage"
-	pb "github.com/stratumn/alice/grpc/storage"
+	"github.com/stratumn/alice/core/protocol/storage/constants"
+	grpcpb "github.com/stratumn/alice/grpc/storage"
+	pb "github.com/stratumn/alice/pb/storage"
 
 	"google.golang.org/grpc"
 
@@ -160,10 +162,10 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}()
 
-	s.storage = storage.NewStorage(s.host, db)
+	s.storage = storage.NewStorage(s.host, db, s.config.LocalStorage)
 
 	// Wrap the stream handler with the context.
-	s.host.SetStreamHandler(storage.ProtocolID, func(stream inet.Stream) {
+	s.host.SetStreamHandler(constants.ProtocolID, func(stream inet.Stream) {
 		s.storage.StreamHandler(ctx, stream)
 	})
 
@@ -172,7 +174,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	stopping()
 
 	// Stop accepting streams.
-	s.host.RemoveStreamHandler(storage.ProtocolID)
+	s.host.RemoveStreamHandler(constants.ProtocolID)
 	s.storage = nil
 
 	return errors.WithStack(ctx.Err())
@@ -180,14 +182,23 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterStorageServer(
+	grpcpb.RegisterStorageServer(
 		gs,
 		newGrpcServer(
-			func(ctx context.Context, file *os.File, fileName string) (fileHash []byte, err error) {
-				return s.storage.IndexFile(ctx, file, fileName)
+			func(ctx context.Context, ch <-chan *pb.FileChunk) ([]byte, error) {
+				if s.storage == nil {
+					return nil, ErrUnavailable
+				}
+				return s.storage.SaveFile(ctx, ch)
 			},
 			func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
 				return s.storage.Authorize(ctx, peerIds, fileHash)
+			},
+			func(ctx context.Context, fileHash []byte, peerId []byte) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
+				return s.storage.PullFile(ctx, fileHash, peerId)
 			},
 			s.config.LocalStorage,
 			s.uploadTimeout))

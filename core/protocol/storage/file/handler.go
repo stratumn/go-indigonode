@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
@@ -40,7 +41,7 @@ var (
 	// ErrFileNameMissing is returned when no file name was given.
 	ErrFileNameMissing = errors.New("the first chunk should have the filename")
 
-	// ErrFileNameMissing is returned when no file name was given.
+	// ErrNoSession is returned when no session id found for a given id.
 	ErrNoSession = errors.New("no open file session with this id")
 
 	// ErrUnauthorized is returned when a peer tries to access a file he
@@ -62,7 +63,7 @@ type Handler interface {
 	// WriteChunk writes a chunk of data to a file identified by its ID.
 	WriteChunk(ctx context.Context, sessionID uuid.UUID, chunk []byte) (err error)
 
-	// EndWrite is called to finilize the file writing.
+	// EndWrite is called to finalize the file writing.
 	EndWrite(ctx context.Context, sessionID uuid.UUID) (fileHash []byte, err error)
 }
 
@@ -81,10 +82,12 @@ func newSession(file *os.File) *session {
 }
 
 type localFileHandler struct {
-	db            db.DB
-	writeSessions map[uuid.UUID]*session
-	readSessions  map[uuid.UUID]*session
-	storagePath   string
+	db              db.DB
+	writeSessionsMu sync.RWMutex
+	writeSessions   map[uuid.UUID]*session
+	readSessionsMu  sync.RWMutex
+	readSessions    map[uuid.UUID]*session
+	storagePath     string
 }
 
 // NewLocalFileHandler create a new file Handler.
@@ -160,7 +163,9 @@ func (h *localFileHandler) BeginWrite(ctx context.Context, fileName string) (uui
 	}
 
 	session := newSession(file)
+	h.writeSessionsMu.Lock()
 	h.writeSessions[session.id] = session
+	h.writeSessionsMu.Unlock()
 	event.Append(&logging.Metadata{"sessionID": session.id})
 
 	return session.id, nil
@@ -179,15 +184,15 @@ func (h *localFileHandler) WriteChunk(ctx context.Context, sessionID uuid.UUID, 
 		event.Done()
 	}()
 
+	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
+	h.writeSessionsMu.RUnlock()
 	if !ok {
 		err = ErrNoSession
 		return
 	}
 
 	_, err = session.file.Write(chunk)
-	if err != nil {
-	}
 	return
 }
 
@@ -203,7 +208,10 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) (f
 		event.Done()
 	}()
 
+	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
+	h.writeSessionsMu.RUnlock()
+
 	if !ok {
 		err = ErrNoSession
 		return
@@ -214,7 +222,10 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) (f
 		return
 	}
 
+	h.writeSessionsMu.Lock()
 	delete(h.writeSessions, sessionID)
+	h.writeSessionsMu.Unlock()
+
 	if err = session.file.Close(); err != nil {
 		event.Append(&logging.Metadata{"closeFileError": err.Error()})
 	}
@@ -222,7 +233,7 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) (f
 	return
 }
 
-// DeleteFile deletes a file and it's session.
+// deleteFile deletes a file and its session.
 // Used to clean partially written files when an error occurs.
 func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) (err error) {
 	event := log.EventBegin(ctx, "DeleteFile", &logging.Metadata{"sessionID": sessionID})
@@ -233,7 +244,10 @@ func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) 
 		event.Done()
 	}()
 
+	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
+	h.writeSessionsMu.RUnlock()
+
 	if !ok {
 		err = ErrNoSession
 		return
@@ -248,7 +262,10 @@ func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) 
 		return
 	}
 
+	h.writeSessionsMu.Lock()
 	delete(h.writeSessions, sessionID)
+	h.writeSessionsMu.Unlock()
+
 	return
 }
 
@@ -274,7 +291,11 @@ func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid
 	}
 
 	session := newSession(file)
+
+	h.readSessionsMu.Lock()
 	h.readSessions[session.id] = session
+	h.readSessionsMu.Unlock()
+
 	event.Append(&logging.Metadata{"sessionID": session.id})
 
 	return session.id, nil
@@ -286,7 +307,9 @@ func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, c
 	event := log.EventBegin(ctx, "ReadChunk", &logging.Metadata{"sessionID": sessionID})
 	defer event.Done()
 
+	h.readSessionsMu.RLock()
 	session, ok := h.readSessions[sessionID]
+	h.readSessionsMu.RUnlock()
 	if !ok {
 		event.SetError(ErrNoSession)
 		return nil, ErrNoSession
@@ -298,7 +321,10 @@ func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, c
 		if err != io.EOF {
 			event.SetError(err)
 			// TODO: deleteing the session here means that we won't be able to retry.
+			h.readSessionsMu.Lock()
 			delete(h.readSessions, sessionID)
+			h.readSessionsMu.Unlock()
+
 			if err = session.file.Close(); err != nil {
 				event.Append(&logging.Metadata{"closeFileError": err.Error()})
 			}
@@ -312,14 +338,21 @@ func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, c
 // EndRead must be called at the end of the read process to delete the session.
 func (h *localFileHandler) EndRead(ctx context.Context, sessionID uuid.UUID) error {
 	event := log.EventBegin(ctx, "EndRead", &logging.Metadata{"sessionID": sessionID})
+	defer event.Done()
 
+	h.readSessionsMu.RLock()
 	session, ok := h.readSessions[sessionID]
+	h.readSessionsMu.RUnlock()
+
 	if !ok {
 		event.SetError(ErrNoSession)
 		return ErrNoSession
 	}
 
+	h.readSessionsMu.Lock()
 	delete(h.readSessions, sessionID)
+	h.readSessionsMu.Unlock()
+
 	if err := session.file.Close(); err != nil {
 		event.Append(&logging.Metadata{"closeFileError": err.Error()})
 	}

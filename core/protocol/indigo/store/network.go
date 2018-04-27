@@ -18,6 +18,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -183,6 +184,12 @@ func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err 
 		event.Done()
 	}()
 
+	var pubsubPeers []string
+	for _, peer := range m.pubsub.ListPeers(m.networkID) {
+		pubsubPeers = append(pubsubPeers, peer.Pretty())
+	}
+	event.Append(logging.Metadata{"peers": strings.Join(pubsubPeers, ",")})
+
 	signedLink, err := pb.NewSignedLink(m.peerKey, link)
 	if err != nil {
 		return err
@@ -220,6 +227,7 @@ func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
 	for {
 		message, err := m.sub.Next(ctx)
 		if err != nil {
+			event.SetError(err)
 			return errors.WithStack(err)
 		}
 		if m.host.ID() == message.GetFrom() {
@@ -229,6 +237,7 @@ func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
 		signedLink := &pb.SignedLink{}
 		err = signedLink.Unmarshal(message.GetData())
 		if err != nil {
+			log.Event(ctx, "ListenMessageError", logging.Metadata{"err": err.Error()})
 			continue
 		}
 
@@ -242,7 +251,10 @@ func (m *PubSubNetworkManager) forwardToListeners(link *pb.SignedLink) {
 
 	for _, listener := range m.listeners {
 		go func(listener chan *pb.SignedLink) {
+			ctx := context.Background()
+			event := log.EventBegin(ctx, "ForwardingToListener")
 			listener <- link
+			event.Done()
 		}(listener)
 	}
 }

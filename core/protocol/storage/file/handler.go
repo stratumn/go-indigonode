@@ -172,54 +172,52 @@ func (h *localFileHandler) BeginWrite(ctx context.Context, fileName string) (uui
 }
 
 // WriteChunk writes a chunk of data to a file identified by its session ID.
-func (h *localFileHandler) WriteChunk(ctx context.Context, sessionID uuid.UUID, chunk []byte) (err error) {
-	// TODO: do we really want to log this ? Feels like good spam here...
+func (h *localFileHandler) WriteChunk(ctx context.Context, sessionID uuid.UUID, chunk []byte) error {
 	event := log.EventBegin(ctx, "WriteChunk", &logging.Metadata{"sessionID": sessionID})
-	defer func() {
-		if err != nil {
-			event.SetError(err)
-			// TODO: this prevents us from doing retry at chunk level...
-			h.deleteFile(ctx, sessionID)
-		}
-		event.Done()
-	}()
+	defer event.Done()
 
 	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
 	h.writeSessionsMu.RUnlock()
 	if !ok {
-		err = ErrNoSession
-		return
+		event.SetError(ErrNoSession)
+		return ErrNoSession
 	}
 
-	_, err = session.file.Write(chunk)
-	return
+	_, err := session.file.Write(chunk)
+	if err != nil {
+		err2 := h.deleteFile(ctx, sessionID)
+		if err2 != nil {
+			err = errors.Wrap(err, err2.Error())
+		}
+		event.SetError(err)
+		return err
+	}
+	return nil
 }
 
 // EndWrite must be called at the end of the writing process.
 // It indexes the file, cleans the session and returns the filehash.
-func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) (fileHash []byte, err error) {
+func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) ([]byte, error) {
 	event := log.EventBegin(ctx, "EndWrite", &logging.Metadata{"sessionID": sessionID})
-	defer func() {
-		if err != nil {
-			event.SetError(err)
-			h.deleteFile(ctx, sessionID)
-		}
-		event.Done()
-	}()
 
 	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
 	h.writeSessionsMu.RUnlock()
 
 	if !ok {
-		err = ErrNoSession
-		return
+		event.SetError(ErrNoSession)
+		return nil, ErrNoSession
 	}
 
-	fileHash, err = h.indexFile(ctx, session.file)
+	fileHash, err := h.indexFile(ctx, session.file)
 	if err != nil {
-		return
+		err2 := h.deleteFile(ctx, sessionID)
+		if err2 != nil {
+			err = errors.Wrap(err, err2.Error())
+		}
+		event.SetError(err)
+		return nil, err
 	}
 
 	h.writeSessionsMu.Lock()
@@ -227,10 +225,10 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) (f
 	h.writeSessionsMu.Unlock()
 
 	if err = session.file.Close(); err != nil {
-		event.Append(&logging.Metadata{"closeFileError": err.Error()})
+		event.Append(&logging.Metadata{"close_file_error": err.Error()})
 	}
 
-	return
+	return fileHash, nil
 }
 
 // deleteFile deletes a file and its session.
@@ -254,7 +252,7 @@ func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) 
 	}
 
 	if err = session.file.Close(); err != nil {
-		event.Append(&logging.Metadata{"closeFileError": err.Error()})
+		event.Append(&logging.Metadata{"close_file_error": err.Error()})
 	}
 
 	err = os.Remove(session.file.Name())
@@ -303,7 +301,6 @@ func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid
 
 // ReadChunk reads a chunk of data.
 func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, chunkSize int) ([]byte, error) {
-	// TODO: do we really want to log this ? Feels like good spam here...
 	event := log.EventBegin(ctx, "ReadChunk", &logging.Metadata{"sessionID": sessionID})
 	defer event.Done()
 
@@ -320,13 +317,12 @@ func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, c
 	if err != nil {
 		if err != io.EOF {
 			event.SetError(err)
-			// TODO: deleteing the session here means that we won't be able to retry.
 			h.readSessionsMu.Lock()
 			delete(h.readSessions, sessionID)
 			h.readSessionsMu.Unlock()
 
 			if err = session.file.Close(); err != nil {
-				event.Append(&logging.Metadata{"closeFileError": err.Error()})
+				event.Append(&logging.Metadata{"close_file_error": err.Error()})
 			}
 		}
 		return nil, err
@@ -354,7 +350,7 @@ func (h *localFileHandler) EndRead(ctx context.Context, sessionID uuid.UUID) err
 	h.readSessionsMu.Unlock()
 
 	if err := session.file.Close(); err != nil {
-		event.Append(&logging.Metadata{"closeFileError": err.Error()})
+		event.Append(&logging.Metadata{"close_file_error": err.Error()})
 	}
 	return nil
 }

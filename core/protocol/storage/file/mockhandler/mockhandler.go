@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	go_uuid "github.com/satori/go.uuid"
 	storage "github.com/stratumn/alice/pb/storage"
 )
 
@@ -34,6 +35,44 @@ func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
+}
+
+// BeginWrite mocks base method
+func (m *MockHandler) BeginWrite(arg0 context.Context, arg1 string) (go_uuid.UUID, error) {
+	ret := m.ctrl.Call(m, "BeginWrite", arg0, arg1)
+	ret0, _ := ret[0].(go_uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BeginWrite indicates an expected call of BeginWrite
+func (mr *MockHandlerMockRecorder) BeginWrite(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BeginWrite", reflect.TypeOf((*MockHandler)(nil).BeginWrite), arg0, arg1)
+}
+
+// EndWrite mocks base method
+func (m *MockHandler) EndWrite(arg0 context.Context, arg1 go_uuid.UUID) ([]byte, error) {
+	ret := m.ctrl.Call(m, "EndWrite", arg0, arg1)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EndWrite indicates an expected call of EndWrite
+func (mr *MockHandlerMockRecorder) EndWrite(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndWrite", reflect.TypeOf((*MockHandler)(nil).EndWrite), arg0, arg1)
+}
+
+// WriteChunk mocks base method
+func (m *MockHandler) WriteChunk(arg0 context.Context, arg1 go_uuid.UUID, arg2 []byte) error {
+	ret := m.ctrl.Call(m, "WriteChunk", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteChunk indicates an expected call of WriteChunk
+func (mr *MockHandlerMockRecorder) WriteChunk(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteChunk", reflect.TypeOf((*MockHandler)(nil).WriteChunk), arg0, arg1, arg2)
 }
 
 // WriteFile mocks base method

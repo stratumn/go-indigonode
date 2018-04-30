@@ -18,15 +18,17 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/go-indigocore/cs"
 
 	ihost "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 	floodsub "gx/ipfs/QmctbcXMMhxTjm5ybWpjMwDmabB39ANuhB5QNn8jpD4JTv/go-libp2p-floodsub"
 )
@@ -42,7 +44,7 @@ type Host = ihost.Host
 // NetworkManager provides methods to manage and join PoP networks.
 type NetworkManager interface {
 	// NodeID returns the ID of the node in the network.
-	NodeID() string
+	NodeID() peer.ID
 
 	// Join joins a PoP network.
 	Join(ctx context.Context, networkID string, host Host) error
@@ -55,10 +57,10 @@ type NetworkManager interface {
 	// to stop listening.
 	Listen(ctx context.Context) error
 
-	// AddListener adds a listeners for incoming links.
-	AddListener() <-chan *pb.SignedLink
+	// AddListener adds a listeners for incoming segments.
+	AddListener() <-chan *cs.Segment
 	// RemoveListener removes a listener.
-	RemoveListener(<-chan *pb.SignedLink)
+	RemoveListener(<-chan *cs.Segment)
 }
 
 // PubSubNetworkManager implements the NetworkManager interface.
@@ -72,7 +74,7 @@ type PubSubNetworkManager struct {
 	sub          *floodsub.Subscription
 
 	listenersMutex sync.RWMutex
-	listeners      []chan *pb.SignedLink
+	listeners      []chan *cs.Segment
 }
 
 // NewNetworkManager creates a new NetworkManager.
@@ -81,8 +83,8 @@ func NewNetworkManager(peerKey ic.PrivKey) NetworkManager {
 }
 
 // NodeID returns the base58 peerID.
-func (m *PubSubNetworkManager) NodeID() string {
-	return m.host.ID().Pretty()
+func (m *PubSubNetworkManager) NodeID() peer.ID {
+	return m.host.ID()
 }
 
 // Join joins a PoP network that uses floodsub to share links.
@@ -190,17 +192,17 @@ func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err 
 	}
 	event.Append(logging.Metadata{"peers": strings.Join(pubsubPeers, ",")})
 
-	signedLink, err := pb.NewSignedLink(m.peerKey, link)
+	signedSegment, err := audit.SignLink(ctx, m.peerKey, link)
 	if err != nil {
 		return err
 	}
 
-	signedLinkBytes, err := signedLink.Marshal()
+	signedSegmentBytes, err := json.Marshal(signedSegment)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	err = m.pubsub.Publish(m.networkID, signedLinkBytes)
+	err = m.pubsub.Publish(m.networkID, signedSegmentBytes)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -234,44 +236,44 @@ func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
 			continue
 		}
 
-		signedLink := &pb.SignedLink{}
-		err = signedLink.Unmarshal(message.GetData())
+		signedSegment := cs.Segment{}
+		err = json.Unmarshal(message.GetData(), &signedSegment)
 		if err != nil {
 			log.Event(ctx, "ListenMessageError", logging.Metadata{"err": err.Error()})
 			continue
 		}
 
-		m.forwardToListeners(signedLink)
+		m.forwardToListeners(&signedSegment)
 	}
 }
 
-func (m *PubSubNetworkManager) forwardToListeners(link *pb.SignedLink) {
+func (m *PubSubNetworkManager) forwardToListeners(segment *cs.Segment) {
 	m.listenersMutex.RLock()
 	defer m.listenersMutex.RUnlock()
 
 	for _, listener := range m.listeners {
-		go func(listener chan *pb.SignedLink) {
+		go func(listener chan *cs.Segment) {
 			ctx := context.Background()
 			event := log.EventBegin(ctx, "ForwardingToListener")
-			listener <- link
+			listener <- segment
 			event.Done()
 		}(listener)
 	}
 }
 
 // AddListener adds a listeners for incoming links.
-func (m *PubSubNetworkManager) AddListener() <-chan *pb.SignedLink {
+func (m *PubSubNetworkManager) AddListener() <-chan *cs.Segment {
 	m.listenersMutex.Lock()
 	defer m.listenersMutex.Unlock()
 
-	listenChan := make(chan *pb.SignedLink)
+	listenChan := make(chan *cs.Segment)
 	m.listeners = append(m.listeners, listenChan)
 
 	return listenChan
 }
 
 // RemoveListener removes a listener.
-func (m *PubSubNetworkManager) RemoveListener(c <-chan *pb.SignedLink) {
+func (m *PubSubNetworkManager) RemoveListener(c <-chan *cs.Segment) {
 	m.listenersMutex.Lock()
 	defer m.listenersMutex.Unlock()
 

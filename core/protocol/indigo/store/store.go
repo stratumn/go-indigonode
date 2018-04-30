@@ -19,29 +19,26 @@ package store
 import (
 	"context"
 
-	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
-	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var log = logging.Logger("indigo.store")
 
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
 type Store struct {
-	store      store.Adapter
-	auditStore audit.Store
-	sync       sync.Engine
-	networkMgr NetworkManager
-	linksChan  <-chan *pb.SignedLink
+	store        store.Adapter
+	auditStore   audit.Store
+	sync         sync.Engine
+	networkMgr   NetworkManager
+	segmentsChan <-chan *cs.Segment
 }
 
 // New creates a new Indigo store.
@@ -59,79 +56,131 @@ func New(
 		sync:       sync,
 	}
 
-	store.linksChan = networkMgr.AddListener()
+	store.segmentsChan = networkMgr.AddListener()
 	go store.listenNetwork()
 
 	return store
 }
 
-// listenNetwork listens to incoming links and stores them.
-// If invalid links are received, they are kept for auditing.
+// listenNetwork listens to incoming segments and stores them.
+// If invalid segments are received, they are kept for auditing.
 func (s *Store) listenNetwork() {
 	for {
 		ctx := context.Background()
-		remoteLink, ok := <-s.linksChan
+		segment, ok := <-s.segmentsChan
 		if !ok {
 			log.Event(ctx, "ListenChanClosed")
 			return
 		}
 
-		s.storeNetworkLink(ctx, remoteLink)
+		s.storeNetworkSegment(ctx, segment)
 	}
 }
 
-func (s *Store) addAuditTrail(ctx context.Context, remoteLink *pb.SignedLink) {
-	event := log.EventBegin(ctx, "AddAuditTrail", logging.Metadata{"sender": remoteLink.From})
+func (s *Store) addAuditTrail(ctx context.Context, segment *cs.Segment) {
+	event := log.EventBegin(ctx, "AddAuditTrail")
 	defer event.Done()
 
-	if err := s.auditStore.AddLink(ctx, remoteLink); err != nil {
+	if err := s.auditStore.AddSegment(ctx, segment); err != nil {
 		event.SetError(err)
 	}
 }
 
-func (s *Store) storeNetworkLink(ctx context.Context, remoteLink *pb.SignedLink) {
-	event := log.EventBegin(ctx, "NetworkNewLink")
+func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) {
+	event := log.EventBegin(ctx, "NetworkNewSegment")
 	defer event.Done()
 
-	if !remoteLink.VerifySignature() {
-		event.SetError(errors.New("invalid link signature"))
+	if segment == nil {
+		event.SetError(errors.New("nil segment"))
 		return
 	}
 
-	var link cs.Link
-	err := json.Unmarshal(remoteLink.Link, &link)
-	if err != nil {
-		event.SetError(errors.Wrap(err, "malformed link"))
-		s.addAuditTrail(ctx, remoteLink)
+	if err := s.verifySegmentEvidence(ctx, segment); err != nil {
+		event.SetError(err)
 		return
 	}
 
-	lh, _ := link.Hash()
-	seg, _ := s.store.GetSegment(ctx, lh)
+	seg, _ := s.store.GetSegment(ctx, segment.GetLinkHash())
 	if seg != nil {
 		event.Append(logging.Metadata{"already_stored": true})
 		return
 	}
 
-	if err = s.syncMissingLinks(ctx, &link, remoteLink); err != nil {
+	if err := s.syncMissingLinks(ctx, segment); err != nil {
 		event.SetError(errors.Wrap(err, "could not sync missing links"))
 		return
 	}
 
-	if err = link.Validate(ctx, s.GetSegment); err != nil {
+	if err := segment.Link.Validate(ctx, s.GetSegment); err != nil {
 		event.SetError(errors.Wrap(err, "invalid link"))
-		s.addAuditTrail(ctx, remoteLink)
+		s.addAuditTrail(ctx, segment)
 		return
 	}
 
-	_, err = s.store.CreateLink(ctx, &link)
+	_, err := s.store.CreateLink(ctx, &segment.Link)
 	if err != nil {
 		event.SetError(errors.Wrap(err, "could not add to store"))
 		return
 	}
 }
 
-func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink *pb.SignedLink) (err error) {
+func (s *Store) verifySegmentEvidence(ctx context.Context, segment *cs.Segment) (err error) {
+	event := log.EventBegin(ctx, "verifySegmentEvidence")
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+		}
+
+		event.Done()
+	}()
+
+	networkEvidences := segment.Meta.FindEvidences(audit.PeerSignatureBackend)
+	event.Append(logging.Metadata{"evidence_count": len(networkEvidences)})
+
+	if len(networkEvidences) == 0 {
+		return audit.ErrMissingPeerSignature
+	}
+
+	defer func() {
+		// If we have at least one valid signature on an invalid segment,
+		// it's interesting to store for auditing.
+		if err != nil {
+			auditable := false
+			for _, evidence := range networkEvidences {
+				if evidence.Proof.Verify(segment.GetLinkHash()[:]) {
+					auditable = true
+					break
+				}
+			}
+
+			if auditable {
+				s.addAuditTrail(ctx, segment)
+			}
+		}
+	}()
+
+	peerID, err := constants.GetLinkNodeID(&segment.Link)
+	if err != nil {
+		return err
+	}
+
+	event.Append(logging.Metadata{"sender": peerID.Pretty()})
+
+	networkEvidence := segment.Meta.GetEvidence(peerID.Pretty())
+	if networkEvidence == nil || networkEvidence.Backend != audit.PeerSignatureBackend {
+		return audit.ErrMissingPeerSignature
+	}
+
+	if !networkEvidence.Proof.Verify(segment.GetLinkHash()[:]) {
+		return audit.ErrInvalidPeerSignature
+	}
+
+	return nil
+}
+
+// syncMissingLinks assumes that the incoming segment's evidence
+// has been validated.
+func (s *Store) syncMissingLinks(ctx context.Context, segment *cs.Segment) (err error) {
 	event := log.EventBegin(ctx, "SyncMissingLinks")
 	defer func() {
 		if err != nil {
@@ -141,17 +190,7 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 		event.Done()
 	}()
 
-	from, err := peer.IDFromBytes(remoteLink.From)
-	if err != nil {
-		return errors.Wrap(err, "invalid peer ID")
-	}
-
-	if link.Meta.Data == nil || link.Meta.Data[constants.NodeIDKey] != from.Pretty() {
-		s.addAuditTrail(ctx, remoteLink)
-		return constants.ErrInvalidMetaNodeID
-	}
-
-	missedLinks, err := s.sync.GetMissingLinks(ctx, link, s.store)
+	missedLinks, err := s.sync.GetMissingLinks(ctx, &segment.Link, s.store)
 	if err != nil {
 		return err
 	}
@@ -171,7 +210,7 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 
 		for _, l := range missedLinks {
 			if err = l.Validate(ctx, b.GetSegment); err != nil {
-				s.addAuditTrail(ctx, remoteLink)
+				s.addAuditTrail(ctx, segment)
 				return err
 			}
 		}
@@ -187,7 +226,7 @@ func (s *Store) syncMissingLinks(ctx context.Context, link *cs.Link, remoteLink 
 // Close cleans up the store and stops it.
 func (s *Store) Close(ctx context.Context) {
 	log.Event(ctx, "Close")
-	s.networkMgr.RemoveListener(s.linksChan)
+	s.networkMgr.RemoveListener(s.segmentsChan)
 }
 
 // GetInfo returns information about the underlying store.
@@ -214,7 +253,7 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 		return
 	}
 
-	s.enrichLinkMeta(link)
+	constants.SetLinkNodeID(link, s.networkMgr.NodeID())
 
 	lh, err = s.store.CreateLink(ctx, link)
 	if err != nil {
@@ -226,14 +265,6 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 	}
 
 	return
-}
-
-func (s *Store) enrichLinkMeta(link *cs.Link) {
-	if link.Meta.Data == nil {
-		link.Meta.Data = make(map[string]interface{})
-	}
-
-	link.Meta.Data[constants.NodeIDKey] = s.networkMgr.NodeID()
 }
 
 // GetSegment forwards the request to the underlying store.

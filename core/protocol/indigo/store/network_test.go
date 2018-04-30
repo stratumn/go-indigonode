@@ -20,17 +20,18 @@ import (
 	"testing"
 	"time"
 
-	json "github.com/gibson042/canonicaljson-go"
 	"github.com/satori/go.uuid"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
+	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	bhost "gx/ipfs/QmQr1j6UvdhpponAaqSdswqRpdzsFwNop2N8kXLNw8afem/go-libp2p-blankhost"
 	netutil "gx/ipfs/QmYVR3C8DWPHdHxvLtNFYfjsXgaRAdh6hPMNH3KiwCgu4o/go-libp2p-netutil"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -55,7 +56,7 @@ func TestNodeID(t *testing.T) {
 
 	// The NodeID is only available after joining the network.
 	assert.NoError(t, networkMgr.Join(ctx, networkID, h))
-	assert.Equal(t, h.ID().Pretty(), networkMgr.NodeID())
+	assert.Equal(t, h.ID(), networkMgr.NodeID())
 }
 
 func TestJoinLeave(t *testing.T) {
@@ -135,10 +136,13 @@ func TestPublishListen(t *testing.T) {
 	networkID := genNetworkID()
 
 	networkMgrs := make([]store.NetworkManager, nodeCount)
+	networkNodeIDs := make([]peer.ID, nodeCount)
 	listenChans := make([]chan error, nodeCount)
-	listeners := make([]<-chan *pb.SignedLink, nodeCount)
+	listeners := make([]<-chan *cs.Segment, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		networkMgrs[i] = store.NewNetworkManager(genPeerPrivateKey())
+		sk := genPeerPrivateKey()
+		networkNodeIDs[i], _ = peer.IDFromPrivateKey(sk)
+		networkMgrs[i] = store.NewNetworkManager(sk)
 		listeners[i] = networkMgrs[i].AddListener()
 
 		listenChans[i] = make(chan error)
@@ -168,13 +172,13 @@ func TestPublishListen(t *testing.T) {
 
 	t.Run("publish-valid-message", func(t *testing.T) {
 		link := cstesting.NewLinkBuilder().Build()
-		linkBytes, _ := json.Marshal(link)
+		constants.SetLinkNodeID(link, networkNodeIDs[0])
 		assert.NoError(t, networkMgrs[0].Publish(context.Background(), link))
 
 		for i := 1; i < nodeCount; i++ {
 			select {
-			case l := <-listeners[i]:
-				assert.Equal(t, linkBytes, l.Link)
+			case s := <-listeners[i]:
+				assert.Equal(t, link, &s.Link)
 			case <-time.After(100 * time.Millisecond):
 				assert.Failf(t, "<-listeners[i]", "listener %d didn't receive link", i)
 			}
@@ -203,7 +207,7 @@ func TestAddRemoveListeners(t *testing.T) {
 
 	t.Run("remove-unknown-channel", func(t *testing.T) {
 		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
-		privateChan := make(chan *pb.SignedLink)
+		privateChan := make(chan *cs.Segment)
 		networkMgr.RemoveListener(privateChan)
 
 		networkMgr.AddListener()

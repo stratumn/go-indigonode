@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,22 +29,33 @@ import (
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
-// TestAddLink runs tests on the writer.AddLink method.
-func (f Factory) TestAddLink(t *testing.T) {
+// TestAddSegment runs tests on the writer.AddSegment method.
+func (f Factory) TestAddSegment(t *testing.T) {
+	ctx := context.Background()
+
 	store, err := f.New()
 	require.NoError(t, err)
 	defer f.Free(store)
 
 	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
-	l, _ := pb.NewSignedLink(sk, cstesting.RandomLink())
+	peerID, _ := peer.IDFromPrivateKey(sk)
 
-	assert.NoError(t, store.AddLink(context.Background(), l), "store.AddLink()")
+	link1 := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+		Build()
+	segment1, _ := audit.SignLink(ctx, sk, link1)
 
-	peerID, err := peer.IDFromBytes(l.From)
-	assert.NoError(t, err, "peer.IDFromBytes()")
+	link2 := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+		Build()
+	segment2, _ := audit.SignLink(ctx, sk, link2)
 
-	links, err := store.GetByPeer(context.Background(), peerID, audit.Pagination{})
+	assert.NoError(t, store.AddSegment(ctx, segment1), "store.AddSegment()")
+	assert.NoError(t, store.AddSegment(ctx, segment2), "store.AddSegment()")
+
+	segments, err := store.GetByPeer(ctx, peerID, audit.Pagination{})
 	assert.NoError(t, err, "store.GetByPeer()")
-	assert.Len(t, links, 1)
-	assert.Equal(t, *l, links[0])
+	assert.Len(t, segments, 2)
+	assert.Equal(t, *segment1, segments[0])
+	assert.Equal(t, *segment2, segments[1])
 }

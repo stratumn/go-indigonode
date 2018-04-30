@@ -14,7 +14,12 @@
 
 package constants
 
-import "github.com/pkg/errors"
+import (
+	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/cs"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+)
 
 // Keys used when enriching links metadata.
 const (
@@ -27,3 +32,40 @@ var (
 	// meta can't be properly verified.
 	ErrInvalidMetaNodeID = errors.New("missing or invalid nodeID in metadata")
 )
+
+// SetLinkNodeID store the peerID in the link's metadata.
+func SetLinkNodeID(link *cs.Link, peerID peer.ID) {
+	if link == nil {
+		return
+	}
+
+	if link.Meta.Data == nil {
+		link.Meta.Data = make(map[string]interface{})
+	}
+
+	// This is useful for end users.
+	link.Meta.Data[NodeIDKey] = peerID.Pretty()
+}
+
+// GetLinkNodeID gets the peerID from the link's metadata.
+func GetLinkNodeID(link *cs.Link) (peer.ID, error) {
+	if link == nil {
+		return "", errors.New("link is nil")
+	}
+
+	if link.Meta.Data == nil {
+		return "", ErrInvalidMetaNodeID
+	}
+
+	nodeID, ok := link.Meta.Data[NodeIDKey].(string)
+	if !ok {
+		return "", ErrInvalidMetaNodeID
+	}
+
+	peerID, err := peer.IDB58Decode(nodeID)
+	if err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	return peerID, nil
+}

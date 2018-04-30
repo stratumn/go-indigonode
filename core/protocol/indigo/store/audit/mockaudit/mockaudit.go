@@ -5,11 +5,12 @@ package mockaudit
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	audit "github.com/stratumn/alice/core/protocol/indigo/store/audit"
-	store "github.com/stratumn/alice/pb/indigo/store"
 	go_libp2p_peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	audit "github.com/stratumn/alice/core/protocol/indigo/store/audit"
+	cs "github.com/stratumn/go-indigocore/cs"
 )
 
 // MockStore is a mock of Store interface
@@ -35,22 +36,22 @@ func (_m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return _m.recorder
 }
 
-// AddLink mocks base method
-func (_m *MockStore) AddLink(_param0 context.Context, _param1 *store.SignedLink) error {
-	ret := _m.ctrl.Call(_m, "AddLink", _param0, _param1)
+// AddSegment mocks base method
+func (_m *MockStore) AddSegment(_param0 context.Context, _param1 *cs.Segment) error {
+	ret := _m.ctrl.Call(_m, "AddSegment", _param0, _param1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddLink indicates an expected call of AddLink
-func (_mr *MockStoreMockRecorder) AddLink(arg0, arg1 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddLink", reflect.TypeOf((*MockStore)(nil).AddLink), arg0, arg1)
+// AddSegment indicates an expected call of AddSegment
+func (_mr *MockStoreMockRecorder) AddSegment(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddSegment", reflect.TypeOf((*MockStore)(nil).AddSegment), arg0, arg1)
 }
 
 // GetByPeer mocks base method
-func (_m *MockStore) GetByPeer(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 audit.Pagination) ([]store.SignedLink, error) {
+func (_m *MockStore) GetByPeer(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 audit.Pagination) ([]cs.Segment, error) {
 	ret := _m.ctrl.Call(_m, "GetByPeer", _param0, _param1, _param2)
-	ret0, _ := ret[0].([]store.SignedLink)
+	ret0, _ := ret[0].([]cs.Segment)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

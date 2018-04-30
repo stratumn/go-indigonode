@@ -6,10 +6,10 @@ package mocknetworkmanager
 import (
 	context "context"
 	go_libp2p_host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
+	go_libp2p_peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	store "github.com/stratumn/alice/pb/indigo/store"
 	cs "github.com/stratumn/go-indigocore/cs"
 )
 
@@ -37,9 +37,9 @@ func (_m *MockNetworkManager) EXPECT() *MockNetworkManagerMockRecorder {
 }
 
 // AddListener mocks base method
-func (_m *MockNetworkManager) AddListener() <-chan *store.SignedLink {
+func (_m *MockNetworkManager) AddListener() <-chan *cs.Segment {
 	ret := _m.ctrl.Call(_m, "AddListener")
-	ret0, _ := ret[0].(<-chan *store.SignedLink)
+	ret0, _ := ret[0].(<-chan *cs.Segment)
 	return ret0
 }
 
@@ -85,9 +85,9 @@ func (_mr *MockNetworkManagerMockRecorder) Listen(arg0 interface{}) *gomock.Call
 }
 
 // NodeID mocks base method
-func (_m *MockNetworkManager) NodeID() string {
+func (_m *MockNetworkManager) NodeID() go_libp2p_peer.ID {
 	ret := _m.ctrl.Call(_m, "NodeID")
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(go_libp2p_peer.ID)
 	return ret0
 }
 
@@ -109,7 +109,7 @@ func (_mr *MockNetworkManagerMockRecorder) Publish(arg0, arg1 interface{}) *gomo
 }
 
 // RemoveListener mocks base method
-func (_m *MockNetworkManager) RemoveListener(_param0 <-chan *store.SignedLink) {
+func (_m *MockNetworkManager) RemoveListener(_param0 <-chan *cs.Segment) {
 	_m.ctrl.Call(_m, "RemoveListener", _param0)
 }
 

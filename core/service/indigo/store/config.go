@@ -15,6 +15,7 @@
 package store
 
 import (
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
@@ -30,6 +31,8 @@ const (
 	InMemoryStorage = "in-memory"
 	// PostgreSQLStorage is the StorageType value for storing in an external PostgreSQL database.
 	PostgreSQLStorage = "postgresql"
+
+	duplicateTable = pq.ErrorCode("42P07")
 )
 
 var (
@@ -101,9 +104,19 @@ func (c *Config) CreateIndigoStore() (indigostore.Adapter, error) {
 		if c.PostgresConfig == nil {
 			return nil, ErrMissingConfig
 		}
-		return postgresstore.New(&postgresstore.Config{
+		p, err := postgresstore.New(&postgresstore.Config{
 			URL: c.PostgresConfig.StorageDbURL,
 		})
+		if err != nil {
+			return nil, err
+		}
+		// We want to ignore the error in case we try to create an existing table.
+		if err := p.Create(); err != nil {
+			if e, ok := err.(*pq.Error); ok && e.Code != duplicateTable {
+				return nil, err
+			}
+		}
+		return p, p.Prepare()
 	default:
 		return nil, ErrStorageNotSupported
 	}

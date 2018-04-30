@@ -17,7 +17,7 @@ package chat
 import (
 	"time"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 
 	"github.com/gogo/protobuf/types"
 )

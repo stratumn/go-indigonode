@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ping "gx/ipfs/QmXGfPjhnro8tgANHDUg4gGgLGYnAz1zcDPAgNeUkzbsN1/go-libp2p/p2p/protocol/ping"
+	ping "gx/ipfs/QmWsV6kzPaYGBDVyuUfWBvyQygEc9Qrv9vzo8vZ7X4mdLN/go-libp2p/p2p/protocol/ping"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 

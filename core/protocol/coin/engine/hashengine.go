@@ -25,8 +25,8 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/state"
 	pb "github.com/stratumn/alice/pb/coin"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 // HashEngine is an engine that uses hashes of the block as a proof-of-work.

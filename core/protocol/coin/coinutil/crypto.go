@@ -17,7 +17,7 @@ package coinutil
 import (
 	pb "github.com/stratumn/alice/pb/coin"
 
-	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // PrivateKey is a private key.

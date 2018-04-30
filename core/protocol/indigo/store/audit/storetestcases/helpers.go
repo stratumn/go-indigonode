@@ -15,20 +15,18 @@
 package storetestcases
 
 import (
-	"bytes"
-
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/go-indigocore/cs"
 )
 
-// ContainsLink returns true if the list contains the given link.
-// It only compares the link bytes, not the From and Signature.
-func ContainsLink(links []pb.SignedLink, link pb.SignedLink) bool {
-	if len(links) == 0 {
+// ContainsSegment returns true if the list contains the given segment.
+// It only compares the link hash.
+func ContainsSegment(segments []cs.Segment, segment cs.Segment) bool {
+	if len(segments) == 0 {
 		return false
 	}
 
-	for _, l := range links {
-		if bytes.Equal(l.Link, link.Link) {
+	for _, s := range segments {
+		if s.GetLinkHashString() == segment.GetLinkHashString() {
 			return true
 		}
 	}

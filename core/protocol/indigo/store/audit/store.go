@@ -19,10 +19,13 @@ package audit
 import (
 	"context"
 
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/go-indigocore/cs"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
+
+var log = logging.Logger("indigo.store.audit")
 
 // Pagination defines pagination options.
 type Pagination struct {
@@ -32,18 +35,18 @@ type Pagination struct {
 
 // Reader defines operations to read from the store.
 type Reader interface {
-	GetByPeer(context.Context, peer.ID, Pagination) ([]pb.SignedLink, error)
+	GetByPeer(context.Context, peer.ID, Pagination) ([]cs.Segment, error)
 }
 
 // Writer defines operations to add to the store.
 type Writer interface {
-	AddLink(context.Context, *pb.SignedLink) error
+	AddSegment(context.Context, *cs.Segment) error
 }
 
 // Store defines an audit store. This is where we store invalid
-// links received from peers that need auditing.
-// Since these links are signed by the sender, it is non-repudiable.
-// The sender will have to explain why it produced invalid links.
+// segments received from peers that need auditing.
+// Since these segments are signed by the sender, it is non-repudiable.
+// The sender will have to explain why it produced invalid segments.
 type Store interface {
 	Reader
 	Writer

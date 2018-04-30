@@ -20,9 +20,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
-	pb "github.com/stratumn/alice/pb/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
+	"github.com/stratumn/go-indigocore/cs"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -31,39 +31,39 @@ import (
 // It stores links in memory with no persistence.
 type DummyAuditStore struct {
 	auditMapLock sync.RWMutex
-	auditMap     map[peer.ID][]pb.SignedLink
+	auditMap     map[peer.ID][]cs.Segment
 }
 
 // New creates a new DummyAuditStore.
 func New() audit.Store {
 	return &DummyAuditStore{
-		auditMap: make(map[peer.ID][]pb.SignedLink),
+		auditMap: make(map[peer.ID][]cs.Segment),
 	}
 }
 
-// AddLink stores a link in memory.
-func (s *DummyAuditStore) AddLink(_ context.Context, l *pb.SignedLink) error {
+// AddSegment stores a segment in memory.
+func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) error {
 	s.auditMapLock.Lock()
 	defer s.auditMapLock.Unlock()
 
-	peerID, err := peer.IDFromBytes(l.From)
+	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
 
-	peerLinks, ok := s.auditMap[peerID]
+	peerSegments, ok := s.auditMap[peerID]
 	if !ok {
-		peerLinks = make([]pb.SignedLink, 0, 1)
+		peerSegments = make([]cs.Segment, 0, 1)
 	}
 
-	peerLinks = append(peerLinks, *l)
-	s.auditMap[peerID] = peerLinks
+	peerSegments = append(peerSegments, *segment)
+	s.auditMap[peerID] = peerSegments
 
 	return nil
 }
 
 // GetByPeer returns links saved in memory.
-func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p audit.Pagination) ([]pb.SignedLink, error) {
+func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p audit.Pagination) ([]cs.Segment, error) {
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()
 

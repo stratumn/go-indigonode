@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
-	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +30,8 @@ import (
 
 // TestGetByPeer runs tests on the reader.GetByPeer method.
 func (f Factory) TestGetByPeer(t *testing.T) {
+	ctx := context.Background()
+
 	store, err := f.New()
 	require.NoError(t, err)
 	defer f.Free(store)
@@ -47,11 +48,11 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 			key = sk2
 		}
 
-		l, _ := pb.NewSignedLink(key, cstesting.RandomLink())
+		s, _ := audit.SignLink(ctx, key, cstesting.RandomLink())
 		require.NoError(
 			t,
-			store.AddLink(context.Background(), l),
-			"store.AddLink()",
+			store.AddSegment(ctx, s),
+			"store.AddSegment()",
 		)
 	}
 
@@ -61,46 +62,46 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 	}{{
 		"peer-not-found",
 		func(t *testing.T) {
-			links, err := store.GetByPeer(context.Background(), "Sp0nG3b0B", audit.Pagination{})
+			segments, err := store.GetByPeer(ctx, "Sp0nG3b0B", audit.Pagination{})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Nil(t, links, "store.GetByPeer()")
+			assert.Nil(t, segments, "store.GetByPeer()")
 		},
 	}, {
 		"small-pagination",
 		func(t *testing.T) {
-			linksPage1, err := store.GetByPeer(context.Background(), peer1, audit.Pagination{Top: 3})
+			segmentsPage1, err := store.GetByPeer(ctx, peer1, audit.Pagination{Top: 3})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Len(t, linksPage1, 3, "store.GetByPeer()")
+			assert.Len(t, segmentsPage1, 3, "store.GetByPeer()")
 
-			linksPage2, err := store.GetByPeer(context.Background(), peer1, audit.Pagination{Top: 3, Skip: 2})
+			segmentsPage2, err := store.GetByPeer(ctx, peer1, audit.Pagination{Top: 3, Skip: 2})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Len(t, linksPage2, 3, "store.GetByPeer()")
+			assert.Len(t, segmentsPage2, 3, "store.GetByPeer()")
 
-			assert.Equal(t, linksPage1[2], linksPage2[0])
-			assert.False(t, ContainsLink(linksPage2, linksPage1[0]))
-			assert.False(t, ContainsLink(linksPage2, linksPage1[1]))
+			assert.Equal(t, segmentsPage1[2], segmentsPage2[0])
+			assert.False(t, ContainsSegment(segmentsPage2, segmentsPage1[0]))
+			assert.False(t, ContainsSegment(segmentsPage2, segmentsPage1[1]))
 		},
 	}, {
 		"big-pagination",
 		func(t *testing.T) {
-			links, err := store.GetByPeer(context.Background(), peer2, audit.Pagination{Top: 10})
+			segments, err := store.GetByPeer(ctx, peer2, audit.Pagination{Top: 10})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.NotNil(t, links, "store.GetByPeer()")
-			assert.Len(t, links, 5, "store.GetByPeer()")
+			assert.NotNil(t, segments, "store.GetByPeer()")
+			assert.Len(t, segments, 5, "store.GetByPeer()")
 		},
 	}, {
 		"out-of-bounds",
 		func(t *testing.T) {
-			links, err := store.GetByPeer(context.Background(), peer1, audit.Pagination{Skip: 10, Top: 3})
+			segments, err := store.GetByPeer(ctx, peer1, audit.Pagination{Skip: 10, Top: 3})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Nil(t, links, "store.GetByPeer()")
+			assert.Nil(t, segments, "store.GetByPeer()")
 		},
 	}, {
 		"no-pagination",
 		func(t *testing.T) {
-			links, err := store.GetByPeer(context.Background(), peer1, audit.Pagination{})
+			segments, err := store.GetByPeer(ctx, peer1, audit.Pagination{})
 			assert.NoError(t, err, "store.GetByPeer()")
-			assert.Len(t, links, 5, "store.GetByPeer()")
+			assert.Len(t, segments, 5, "store.GetByPeer()")
 		},
 	}}
 

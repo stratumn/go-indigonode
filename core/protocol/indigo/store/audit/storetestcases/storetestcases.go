@@ -33,6 +33,6 @@ type Factory struct {
 
 // RunTests runs the audit store test suite.
 func (f Factory) RunTests(t *testing.T) {
-	t.Run("AddLink", f.TestAddLink)
+	t.Run("AddSegment", f.TestAddSegment)
 	t.Run("GetByPeer", f.TestGetByPeer)
 }

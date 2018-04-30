@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,11 +45,15 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		key := sk1
+		peerID := peer1
 		if i%2 == 0 {
 			key = sk2
+			peerID = peer2
 		}
 
-		s, _ := audit.SignLink(ctx, key, cstesting.RandomLink())
+		link := cstesting.NewLinkBuilder().Build()
+		constants.SetLinkNodeID(link, peerID)
+		s, _ := audit.SignLink(ctx, key, link)
 		require.NoError(
 			t,
 			store.AddSegment(ctx, s),

@@ -30,6 +30,15 @@ import (
 )
 
 var (
+	// ErrMissingPeerSignature is returned when there is not peer signature
+	// on a segment.
+	ErrMissingPeerSignature = errors.New("missing peer signature")
+
+	// ErrInvalidPeerSignature when an invalid proof is provided.
+	ErrInvalidPeerSignature = errors.New("invalid peer signature")
+)
+
+var (
 	// PeerSignatureBackend is the name used as the PeerSignature proof backend.
 	PeerSignatureBackend = "peer_signature"
 )
@@ -54,7 +63,14 @@ func SignLink(ctx context.Context, sk ic.PrivKey, link *cs.Link) (segment *cs.Se
 		return nil, errors.WithStack(err)
 	}
 
-	constants.SetLinkNodeID(link, peerID)
+	linkPeerID, err := constants.GetLinkNodeID(link)
+	if err != nil {
+		return nil, err
+	}
+
+	if linkPeerID != peerID {
+		return nil, constants.ErrInvalidMetaNodeID
+	}
 
 	segment = &cs.Segment{Link: *link}
 	err = segment.SetLinkHash()

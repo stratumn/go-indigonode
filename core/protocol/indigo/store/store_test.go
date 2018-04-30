@@ -23,13 +23,12 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/mockaudit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mockstore"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync/mocksync"
-	"github.com/stratumn/alice/pb/crypto"
-	pb "github.com/stratumn/alice/pb/indigo/store"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
@@ -95,7 +94,7 @@ func (b *TestStoreBuilder) Build() *store.Store {
 
 	if b.auditStore == nil {
 		b.auditStore = mockaudit.NewMockStore(b.ctrl)
-		b.auditStore.EXPECT().AddLink(gomock.Any(), gomock.Any()).AnyTimes()
+		b.auditStore.EXPECT().AddSegment(gomock.Any(), gomock.Any()).AnyTimes()
 	}
 
 	if b.indigoStore == nil {
@@ -127,7 +126,7 @@ func TestClose(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		listenChan := make(<-chan *pb.SignedLink)
+		listenChan := make(<-chan *cs.Segment)
 
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
@@ -143,17 +142,16 @@ func TestReceiveLinks(t *testing.T) {
 	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
 	peerID, _ := peer.IDFromPrivateKey(sk)
 
-	createTestLink := func() (*pb.SignedLink, *cs.Link, *types.Bytes32) {
-		link := cstesting.NewLinkBuilder().
-			WithMetadata(constants.NodeIDKey, peerID.Pretty()).
-			Build()
-		linkHash, _ := link.Hash()
-		signedLink, _ := pb.NewSignedLink(sk, link)
-		return signedLink, link, linkHash
+	createSignedSegment := func() *cs.Segment {
+		link := cstesting.NewLinkBuilder().Build()
+		constants.SetLinkNodeID(link, peerID)
+		segment, err := audit.SignLink(context.Background(), sk, link)
+		require.NoError(t, err, "audit.SignLink()")
+		return segment
 	}
 
-	createNetworkMgrWithChan := func(ctrl *gomock.Controller) (chan *pb.SignedLink, *mocknetworkmanager.MockNetworkManager) {
-		listenChan := make(chan *pb.SignedLink)
+	createNetworkMgrWithChan := func(ctrl *gomock.Controller) (chan *cs.Segment, *mocknetworkmanager.MockNetworkManager) {
+		listenChan := make(chan *cs.Segment)
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 		return listenChan, networkMgr
@@ -163,28 +161,17 @@ func TestReceiveLinks(t *testing.T) {
 		name string
 		run  func(*testing.T)
 	}{{
-		"malformed-link",
+		"empty-segment",
 		func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			malformed := &pb.SignedLink{Link: []byte("I'm not a valid JSON link")}
-			malformed.From = []byte(peerID)
-			malformed.Signature, _ = crypto.Sign(sk, malformed.Link)
-
-			auditChan := make(chan struct{})
-			auditStore := mockaudit.NewMockStore(ctrl)
-			auditStore.EXPECT().AddLink(gomock.Any(), malformed).Times(1).
-				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
-
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			NewTestStoreBuilder(ctrl).
-				WithAuditStore(auditStore).
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- malformed
-			<-auditChan
+			listenChan <- nil
 		},
 	}, {
 		"invalid-link-signature",
@@ -192,17 +179,17 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			signedLink, _, linkHash := createTestLink()
-			signedLink.Signature.PublicKey = nil
+			signedSegment := createSignedSegment()
+			signedSegment.Meta.Evidences[0].Proof.(*audit.PeerSignature).Signature.PublicKey = nil
 
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 
-			verifySegmentNotStored(t, testStore, linkHash)
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
 		},
 	}, {
 		"invalid-link",
@@ -214,13 +201,12 @@ func TestReceiveLinks(t *testing.T) {
 				Invalid().
 				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
 				Build()
-			linkHash, _ := link.Hash()
-			signedLink, _ := pb.NewSignedLink(sk, link)
+			signedSegment, _ := audit.SignLink(context.Background(), sk, link)
 
 			auditChan := make(chan struct{})
 			auditStore := mockaudit.NewMockStore(ctrl)
-			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
-				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
 
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
@@ -228,10 +214,10 @@ func TestReceiveLinks(t *testing.T) {
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 			<-auditChan
 
-			verifySegmentNotStored(t, testStore, linkHash)
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
 		},
 	}, {
 		"invalid-meta-node-id",
@@ -240,15 +226,17 @@ func TestReceiveLinks(t *testing.T) {
 			defer ctrl.Finish()
 
 			link := cstesting.NewLinkBuilder().
-				WithMetadata(constants.NodeIDKey, "spongebob").
+				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
 				Build()
-			linkHash, _ := link.Hash()
-			signedLink, _ := pb.NewSignedLink(sk, link)
+			signedSegment, err := audit.SignLink(context.Background(), sk, link)
+			require.NoError(t, err, "audit.SignLink()")
+
+			signedSegment.Meta.Evidences[0].Provider = "spongebob"
 
 			auditChan := make(chan struct{})
 			auditStore := mockaudit.NewMockStore(ctrl)
-			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
-				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
 
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
@@ -256,10 +244,10 @@ func TestReceiveLinks(t *testing.T) {
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 			<-auditChan
 
-			verifySegmentNotStored(t, testStore, linkHash)
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
 		},
 	}, {
 		"already-saved-link",
@@ -267,24 +255,24 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			signedLink, link, linkHash := createTestLink()
+			signedSegment := createSignedSegment()
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 
-			waitUntilSegmentStored(t, testStore, linkHash)
+			waitUntilSegmentStored(t, testStore, signedSegment.GetLinkHash())
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 
 			<-time.After(20 * time.Millisecond)
 
-			seg, err := testStore.GetSegment(context.Background(), linkHash)
+			seg, err := testStore.GetSegment(context.Background(), signedSegment.GetLinkHash())
 			require.NoError(t, err, "testStore.GetSegment()")
 			require.NotNil(t, seg, "testStore.GetSegment()")
-			assert.Equal(t, link, &seg.Link, "testStore.GetSegment()")
+			assert.Equal(t, signedSegment.Link, seg.Link, "testStore.GetSegment()")
 		},
 	}, {
 		"valid-link",
@@ -292,22 +280,22 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			signedLink, link, linkHash := createTestLink()
+			signedSegment := createSignedSegment()
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 
 			// Network segments are handled in a separate goroutine,
 			// so there is a race condition unless we wait.
-			waitUntilSegmentStored(t, testStore, linkHash)
+			waitUntilSegmentStored(t, testStore, signedSegment.GetLinkHash())
 
-			seg, err := testStore.GetSegment(context.Background(), linkHash)
+			seg, err := testStore.GetSegment(context.Background(), signedSegment.GetLinkHash())
 			require.NoError(t, err, "testStore.GetSegment()")
 			require.NotNil(t, seg, "testStore.GetSegment()")
-			assert.Equal(t, link, &seg.Link, "testStore.GetSegment()")
+			assert.Equal(t, signedSegment.Link, seg.Link, "testStore.GetSegment()")
 		},
 	}, {
 		"valid-link-sync-success",
@@ -330,7 +318,7 @@ func TestReceiveLinks(t *testing.T) {
 				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
 				Build()
 			linkHash3, _ := link3.Hash()
-			signedLink3, _ := pb.NewSignedLink(sk, link3)
+			signedSegment3, _ := audit.SignLink(context.Background(), sk, link3)
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
@@ -344,7 +332,7 @@ func TestReceiveLinks(t *testing.T) {
 				WithSyncEngine(syncEngine).
 				Build()
 
-			listenChan <- signedLink3
+			listenChan <- signedSegment3
 
 			waitUntilSegmentStored(t, testStore, linkHash1)
 			waitUntilSegmentStored(t, testStore, linkHash2)
@@ -356,16 +344,16 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			signedLink, link, linkHash := createTestLink()
+			signedSegment := createSignedSegment()
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
-				GetMissingLinks(gomock.Any(), link, gomock.Any()).
+				GetMissingLinks(gomock.Any(), &signedSegment.Link, gomock.Any()).
 				Times(1).
 				Return(nil, errors.New("no more credits"))
 
 			indigoStore := mockstore.NewMockAdapter(ctrl)
-			indigoStore.EXPECT().GetSegment(gomock.Any(), linkHash).Times(1)
+			indigoStore.EXPECT().GetSegment(gomock.Any(), signedSegment.GetLinkHash()).Times(1)
 
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			NewTestStoreBuilder(ctrl).
@@ -374,7 +362,7 @@ func TestReceiveLinks(t *testing.T) {
 				WithIndigoStore(indigoStore).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 			<-time.After(20 * time.Millisecond)
 			// The test will fail if a call to mockstore.CreateLink is made.
 		},
@@ -395,12 +383,12 @@ func TestReceiveLinks(t *testing.T) {
 				WithMetadata(constants.NodeIDKey, peerID.Pretty()).
 				Build()
 			linkHash, _ := link.Hash()
-			signedLink, _ := pb.NewSignedLink(sk, link)
+			signedSegment, _ := audit.SignLink(context.Background(), sk, link)
 
 			auditChan := make(chan struct{})
 			auditStore := mockaudit.NewMockStore(ctrl)
-			auditStore.EXPECT().AddLink(gomock.Any(), signedLink).Times(1).
-				Do(func(context.Context, *pb.SignedLink) { auditChan <- struct{}{} })
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
 
 			syncEngine := mocksync.NewMockEngine(ctrl)
 			syncEngine.EXPECT().
@@ -415,7 +403,7 @@ func TestReceiveLinks(t *testing.T) {
 				WithAuditStore(auditStore).
 				Build()
 
-			listenChan <- signedLink
+			listenChan <- signedSegment
 			<-auditChan
 
 			verifySegmentNotStored(t, testStore, linkHash)
@@ -487,13 +475,15 @@ func TestCreateLink(t *testing.T) {
 			link := cstesting.NewLinkBuilder().Build()
 			link.Meta.Data = nil
 
+			peerID, _ := peer.IDB58Decode("QmeZjNhdKPNNEtCbmL6THvMfTRPZMgC1wfYe9s3DdoQZcM")
+
 			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
-			mgr.EXPECT().NodeID().Times(1).Return("spongebob")
+			mgr.EXPECT().NodeID().Times(1).Return(peerID)
 
 			lh, _ := s.CreateLink(context.Background(), link)
 			segment, err := s.GetSegment(context.Background(), lh)
 			assert.NoError(t, err, "s.GetSegment()")
-			assert.Equal(t, "spongebob", segment.Link.Meta.Data[constants.NodeIDKey])
+			assert.Equal(t, "QmeZjNhdKPNNEtCbmL6THvMfTRPZMgC1wfYe9s3DdoQZcM", segment.Link.Meta.Data[constants.NodeIDKey])
 		},
 	}}
 

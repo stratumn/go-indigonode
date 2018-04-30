@@ -84,7 +84,7 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 
 	// We expect the sender to have been validated upstream,
 	// so no need to check the error.
-	sender, _ := peer.IDB58Decode(link.Meta.Data[constants.NodeIDKey].(string))
+	sender, _ := constants.GetLinkNodeID(link)
 	stream, err := s.startStream(ctx, sender)
 	if err != nil {
 		event.SetError(err)

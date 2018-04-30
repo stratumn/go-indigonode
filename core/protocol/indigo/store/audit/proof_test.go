@@ -83,6 +83,9 @@ func init() {
 
 func TestSignLink(t *testing.T) {
 	ctx := context.Background()
+	link := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+		Build()
 
 	tests := []struct {
 		name     string
@@ -93,7 +96,7 @@ func TestSignLink(t *testing.T) {
 	}{{
 		"missing-private-key",
 		nil,
-		cstesting.RandomLink(),
+		link,
 		nil,
 		errors.New("secret key or link missing"),
 	}, {
@@ -103,17 +106,15 @@ func TestSignLink(t *testing.T) {
 		nil,
 		errors.New("secret key or link missing"),
 	}, {
-		"set-link-node-id",
+		"missing-link-node-id",
 		sk1,
 		cstesting.RandomLink(),
-		func(t *testing.T, segment *cs.Segment) {
-			assert.Equal(t, peerID1.Pretty(), segment.Link.Meta.Data[constants.NodeIDKey].(string))
-		},
 		nil,
+		constants.ErrInvalidMetaNodeID,
 	}, {
 		"add-valid-evidence",
 		sk1,
-		cstesting.RandomLink(),
+		link,
 		func(t *testing.T, segment *cs.Segment) {
 			assert.Len(t, segment.Meta.Evidences, 1)
 
@@ -139,7 +140,9 @@ func TestSignLink(t *testing.T) {
 }
 
 func TestPeerSignature_New(t *testing.T) {
-	link := cstesting.RandomLink()
+	link := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+		Build()
 	linkHash, _ := link.Hash()
 
 	proof, err := audit.NewPeerSignature(sk1, link.Segmentify())
@@ -158,7 +161,10 @@ func TestPeerSignature_New(t *testing.T) {
 
 func TestPeerSignature_Verify(t *testing.T) {
 	t.Run("peer-id-mismatch", func(t *testing.T) {
-		segment := cstesting.RandomLink().Segmentify()
+		segment := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+			Build().
+			Segmentify()
 		proof, _ := audit.NewPeerSignature(sk1, segment)
 		proof.(*audit.PeerSignature).PeerID = []byte(peerID2)
 
@@ -166,15 +172,24 @@ func TestPeerSignature_Verify(t *testing.T) {
 	})
 
 	t.Run("link-hash-mismatch", func(t *testing.T) {
-		segment := cstesting.RandomLink().Segmentify()
+		segment := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+			Build().
+			Segmentify()
 		proof, _ := audit.NewPeerSignature(sk1, segment)
 
 		assert.False(t, proof.Verify([]byte("hello")))
 	})
 
 	t.Run("signature-mismatch", func(t *testing.T) {
-		s1 := cstesting.RandomLink().Segmentify()
-		s2 := cstesting.RandomLink().Segmentify()
+		s1 := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+			Build().
+			Segmentify()
+		s2 := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+			Build().
+			Segmentify()
 
 		proof1, _ := audit.NewPeerSignature(sk1, s1)
 		proof2, _ := audit.NewPeerSignature(sk1, s2)
@@ -187,7 +202,10 @@ func TestPeerSignature_Verify(t *testing.T) {
 	})
 
 	t.Run("valid-proof", func(t *testing.T) {
-		segment := cstesting.RandomLink().Segmentify()
+		segment := cstesting.NewLinkBuilder().
+			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
+			Build().
+			Segmentify()
 		proof, _ := audit.NewPeerSignature(sk1, segment)
 
 		assert.True(t, proof.Verify(segment.GetLinkHash()[:]))
@@ -196,8 +214,11 @@ func TestPeerSignature_Verify(t *testing.T) {
 
 func TestPeerSignature_Marshal(t *testing.T) {
 	ctx := context.Background()
+	link := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID2.Pretty()).
+		Build()
 
-	segment, err := audit.SignLink(ctx, sk2, cstesting.RandomLink())
+	segment, err := audit.SignLink(ctx, sk2, link)
 	require.NoError(t, err, "audit.SignLink()")
 
 	segmentJSON, err := json.Marshal(segment)

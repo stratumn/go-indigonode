@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
@@ -37,14 +38,20 @@ func (f Factory) TestAddSegment(t *testing.T) {
 	defer f.Free(store)
 
 	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
-	segment1, _ := audit.SignLink(ctx, sk, cstesting.RandomLink())
-	segment2, _ := audit.SignLink(ctx, sk, cstesting.RandomLink())
+	peerID, _ := peer.IDFromPrivateKey(sk)
+
+	link1 := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+		Build()
+	segment1, _ := audit.SignLink(ctx, sk, link1)
+
+	link2 := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+		Build()
+	segment2, _ := audit.SignLink(ctx, sk, link2)
 
 	assert.NoError(t, store.AddSegment(ctx, segment1), "store.AddSegment()")
 	assert.NoError(t, store.AddSegment(ctx, segment2), "store.AddSegment()")
-
-	peerID, err := constants.GetLinkNodeID(&segment1.Link)
-	assert.NoError(t, err, "peer.IDB58Decode()")
 
 	segments, err := store.GetByPeer(ctx, peerID, audit.Pagination{})
 	assert.NoError(t, err, "store.GetByPeer()")

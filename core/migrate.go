@@ -19,6 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/stratumn/go-indigocore/postgresstore"
+
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
@@ -223,7 +225,15 @@ var migrations = []cfg.MigrateHandler{
 			return err
 		}
 
-		return tree.Set("indigofossilizer.fossilizer_type", "dummy")
+		if err := tree.Set("indigofossilizer.fossilizer_type", "dummy"); err != nil {
+			return err
+		}
+
+		return addServiceToGroup(tree, "indigofossilizer", "indigo")
+
+	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("indigostore.postgres.storage_db_url", postgresstore.DefaultURL)
 	},
 }
 

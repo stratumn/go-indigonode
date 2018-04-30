@@ -20,6 +20,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/go-indigocore/dummystore"
+	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,15 +58,56 @@ func TestConfig_UnmarshalPrivateKey(t *testing.T) {
 }
 
 func TestConfig_CreateStores(t *testing.T) {
-	config := &store.Config{StorageType: "in-memory"}
 
-	auditStore, err := config.CreateAuditStore()
-	assert.NoError(t, err)
-	assert.NotNil(t, auditStore)
-	assert.IsType(t, &dummyauditstore.DummyAuditStore{}, auditStore)
+	t.Run("with dummy store", func(t *testing.T) {
+		config := &store.Config{StorageType: store.InMemoryStorage}
 
-	indigoStore, err := config.CreateIndigoStore()
-	assert.NoError(t, err)
-	assert.NotNil(t, indigoStore)
-	assert.IsType(t, &dummystore.DummyStore{}, indigoStore)
+		t.Run("CreateAuditStore", func(t *testing.T) {
+			auditStore, err := config.CreateAuditStore()
+			assert.NoError(t, err)
+			assert.NotNil(t, auditStore)
+			assert.IsType(t, &dummyauditstore.DummyAuditStore{}, auditStore)
+		})
+
+		t.Run("CreateIndigoStore", func(t *testing.T) {
+			indigoStore, err := config.CreateIndigoStore()
+			assert.NoError(t, err)
+			assert.NotNil(t, indigoStore)
+			assert.IsType(t, &dummystore.DummyStore{}, indigoStore)
+		})
+	})
+
+	t.Run("with postgres store", func(t *testing.T) {
+		config := &store.Config{StorageType: store.PostgreSQLStorage, PostgresConfig: &store.PostgresConfig{}}
+
+		t.Run("CreateIndigoStore", func(t *testing.T) {
+			indigoStore, err := config.CreateIndigoStore()
+			assert.NoError(t, err)
+			assert.NotNil(t, indigoStore)
+			assert.IsType(t, &postgresstore.Store{}, indigoStore)
+		})
+
+		t.Run("CreateIndigoStore with bad config", func(t *testing.T) {
+			badConf := &store.Config{StorageType: store.PostgreSQLStorage}
+			indigoStore, err := badConf.CreateIndigoStore()
+			assert.EqualError(t, err, store.ErrMissingConfig.Error())
+			assert.Nil(t, indigoStore)
+		})
+	})
+
+	t.Run("with unsupported storage type", func(t *testing.T) {
+		config := &store.Config{StorageType: "unknown"}
+
+		t.Run("CreateAuditStore", func(t *testing.T) {
+			auditStore, err := config.CreateAuditStore()
+			assert.EqualError(t, err, store.ErrStorageNotSupported.Error())
+			assert.Nil(t, auditStore)
+		})
+
+		t.Run("CreateAuditStore", func(t *testing.T) {
+			indigoStore, err := config.CreateIndigoStore()
+			assert.EqualError(t, err, store.ErrStorageNotSupported.Error())
+			assert.Nil(t, indigoStore)
+		})
+	})
 }

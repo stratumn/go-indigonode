@@ -69,3 +69,8 @@
 [[constraint]]
   name = "github.com/stratumn/go-indigocore"
   branch = "master"
+
+[[override]] 
+  # This is required because Docker claims it needs ^0.4.
+  name = "github.com/gogo/protobuf"
+  version = "~1.0.0"

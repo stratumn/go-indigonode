@@ -20,6 +20,8 @@ package store
 import (
 	"context"
 
+	"github.com/stratumn/go-indigocore/postgresstore"
+
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
@@ -81,7 +83,10 @@ func (s *Service) Config() interface{} {
 		Version:     "0.1.0",
 		NetworkID:   "",
 		PrivateKey:  cfg.ConfZeroPK,
-		StorageType: "in-memory",
+		StorageType: InMemoryStorage,
+		PostgresConfig: &PostgresConfig{
+			StorageDbURL: postgresstore.DefaultURL,
+		},
 	}
 }
 

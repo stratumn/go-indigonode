@@ -62,7 +62,7 @@ var DefaultConfig = Config{
 		ID:       "indigo",
 		Name:     "Stratumn Indigo Services",
 		Desc:     "Starts Stratumn Indigo services for Proof-of-Process networks.",
-		Services: []string{"indigostore"},
+		Services: []string{"indigostore", "indigofossilizer"},
 	}},
 	EnableBootScreen:  true,
 	BootScreenHost:    "host",

@@ -38,7 +38,7 @@ var (
 	ErrInvalidPeerSignature = errors.New("invalid peer signature")
 )
 
-var (
+const (
 	// PeerSignatureBackend is the name used as the PeerSignature proof backend.
 	PeerSignatureBackend = "peer_signature"
 )

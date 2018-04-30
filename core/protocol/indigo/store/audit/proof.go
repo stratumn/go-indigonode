@@ -30,11 +30,11 @@ import (
 )
 
 var (
-	// ErrMissingPeerSignature is returned when there is not peer signature
+	// ErrMissingPeerSignature is returned when there is no peer signature
 	// on a segment.
 	ErrMissingPeerSignature = errors.New("missing peer signature")
 
-	// ErrInvalidPeerSignature when an invalid proof is provided.
+	// ErrInvalidPeerSignature is returned when an invalid proof is provided.
 	ErrInvalidPeerSignature = errors.New("invalid peer signature")
 )
 
@@ -83,17 +83,20 @@ func SignLink(ctx context.Context, sk ic.PrivKey, link *cs.Link) (segment *cs.Se
 		return nil, err
 	}
 
-	segment.Meta.AddEvidence(cs.Evidence{
+	err = segment.Meta.AddEvidence(cs.Evidence{
 		Backend:  PeerSignatureBackend,
 		Provider: peerID.Pretty(),
 		Proof:    proof,
 	})
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	return segment, nil
 }
 
 // PeerSignature implements github.com/stratumn/go-indigocore/cs Proof interface.
-// A peer signs link before publishing it to the network.
+// A peer signs the link before publishing it to the network.
 type PeerSignature struct {
 	Timestamp uint64            `json:"timestamp"`
 	PeerID    []byte            `json:"peer_id"`

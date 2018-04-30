@@ -220,7 +220,7 @@ func TestReceiveLinks(t *testing.T) {
 			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
 		},
 	}, {
-		"invalid-meta-node-id",
+		"invalid-evidence-provider",
 		func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
@@ -232,6 +232,40 @@ func TestReceiveLinks(t *testing.T) {
 			require.NoError(t, err, "audit.SignLink()")
 
 			signedSegment.Meta.Evidences[0].Provider = "spongebob"
+
+			auditChan := make(chan struct{})
+			auditStore := mockaudit.NewMockStore(ctrl)
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithAuditStore(auditStore).
+				WithNetworkManager(networkMgr).
+				Build()
+
+			listenChan <- signedSegment
+			<-auditChan
+
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
+		},
+	}, {
+		"invalid-meta-node-id",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			signedSegment := cstesting.NewLinkBuilder().
+				WithMetadata(constants.NodeIDKey, "segment").
+				Build().
+				Segmentify()
+
+			proof, _ := audit.NewPeerSignature(sk, signedSegment)
+			signedSegment.Meta.AddEvidence(cs.Evidence{
+				Backend:  audit.PeerSignatureBackend,
+				Provider: peerID.Pretty(),
+				Proof:    proof,
+			})
 
 			auditChan := make(chan struct{})
 			auditStore := mockaudit.NewMockStore(ctrl)

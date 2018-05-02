@@ -69,7 +69,7 @@ type Storage struct {
 
 // NewStorage creates a new storage server.
 func NewStorage(host Host, db db.DB, storagePath string) *Storage {
-	fh := file.NewLocalFileHandler(storagePath)
+	fh := file.NewLocalFileHandler(storagePath, db)
 	return &Storage{
 		db:          db,
 		host:        host,

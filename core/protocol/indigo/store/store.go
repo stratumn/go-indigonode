@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
@@ -224,9 +225,15 @@ func (s *Store) syncMissingLinks(ctx context.Context, segment *cs.Segment) (err 
 }
 
 // Close cleans up the store and stops it.
-func (s *Store) Close(ctx context.Context) {
+func (s *Store) Close(ctx context.Context) error {
 	log.Event(ctx, "Close")
+
+	switch a := s.store.(type) {
+	case *postgresstore.Store:
+		return a.Close()
+	}
 	s.networkMgr.RemoveListener(s.segmentsChan)
+	return nil
 }
 
 // GetInfo returns information about the underlying store.

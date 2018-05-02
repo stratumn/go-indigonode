@@ -20,6 +20,8 @@ package store
 import (
 	"context"
 
+	"github.com/stratumn/go-indigocore/postgresstore"
+
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
@@ -81,7 +83,10 @@ func (s *Service) Config() interface{} {
 		Version:     "0.1.0",
 		NetworkID:   "",
 		PrivateKey:  cfg.ConfZeroPK,
-		StorageType: "in-memory",
+		StorageType: InMemoryStorage,
+		PostgresConfig: &PostgresConfig{
+			StorageDBURL: postgresstore.DefaultURL,
+		},
 	}
 }
 
@@ -159,13 +164,17 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	// Stop responding to sync requests.
 	syncEngine.Close(networkCtx)
 
-	// Close the store that uses the PoP network.
-	s.store.Close(networkCtx)
+	// Close the store that uses the PoP network. If an error occurs, the context needs to be canceled before returning.
+	err = s.store.Close(networkCtx)
 	s.store = nil
 
 	// Then leave the PoP network.
 	cancelListen()
 	<-errChan
+
+	if err != nil {
+		return err
+	}
 
 	err = networkMgr.Leave(networkCtx, s.config.NetworkID)
 	if err != nil {

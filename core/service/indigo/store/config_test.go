@@ -18,7 +18,10 @@ import (
 	"context"
 	"testing"
 
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit/postgresauditstore"
+	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/test/containers"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
@@ -63,19 +66,26 @@ func TestConfig_UnmarshalPrivateKey(t *testing.T) {
 }
 
 func TestConfig_CreateStores(t *testing.T) {
+	ctx := context.Background()
+	peerID, _ := peer.IDB58Decode("QmPEeCgxxX6YbQWqkKuF42YCUpy4GdrqGLPMAFZ8A3A35d")
+	link := cstesting.NewLinkBuilder().
+		WithMetadata(constants.NodeIDKey, peerID.Pretty()).
+		Build()
 
 	t.Run("with dummy store", func(t *testing.T) {
 		config := &store.Config{StorageType: store.InMemoryStorage}
 
 		t.Run("CreateAuditStore", func(t *testing.T) {
-			auditStore, err := config.CreateAuditStore()
+			auditStore, err := config.CreateAuditStore(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, auditStore)
 			assert.IsType(t, &dummyauditstore.DummyAuditStore{}, auditStore)
+			err = auditStore.AddSegment(ctx, link.Segmentify())
+			assert.NoError(t, err)
 		})
 
 		t.Run("CreateIndigoStore", func(t *testing.T) {
-			indigoStore, err := config.CreateIndigoStore()
+			indigoStore, err := config.CreateIndigoStore(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, indigoStore)
 			assert.IsType(t, &dummystore.DummyStore{}, indigoStore)
@@ -95,7 +105,7 @@ func TestConfig_CreateStores(t *testing.T) {
 		}}
 
 		t.Run("CreateIndigoStore ", func(t *testing.T) {
-			indigoStore, err := config.CreateIndigoStore()
+			indigoStore, err := config.CreateIndigoStore(ctx)
 			require.NoError(t, err)
 			assert.NotNil(t, indigoStore)
 			assert.IsType(t, &postgresstore.Store{}, indigoStore)
@@ -104,7 +114,7 @@ func TestConfig_CreateStores(t *testing.T) {
 		})
 
 		t.Run("CreateIndigoStore with existing tables", func(t *testing.T) {
-			indigoStore, err := config.CreateIndigoStore()
+			indigoStore, err := config.CreateIndigoStore(ctx)
 			require.NoError(t, err)
 			assert.NotNil(t, indigoStore)
 			assert.IsType(t, &postgresstore.Store{}, indigoStore)
@@ -114,9 +124,35 @@ func TestConfig_CreateStores(t *testing.T) {
 
 		t.Run("CreateIndigoStore with bad config", func(t *testing.T) {
 			badConf := &store.Config{StorageType: store.PostgreSQLStorage}
-			indigoStore, err := badConf.CreateIndigoStore()
+			auditStore, err := badConf.CreateIndigoStore(ctx)
 			assert.EqualError(t, err, store.ErrMissingConfig.Error())
-			assert.Nil(t, indigoStore)
+			assert.Nil(t, auditStore)
+		})
+
+		t.Run("CreateAuditStore ", func(t *testing.T) {
+			auditStore, err := config.CreateAuditStore(ctx)
+			require.NoError(t, err)
+			assert.NotNil(t, auditStore)
+			assert.IsType(t, &postgresauditstore.PostgresAuditStore{}, auditStore)
+			err = auditStore.AddSegment(ctx, link.Segmentify())
+			assert.NoError(t, err)
+		})
+
+		t.Run("CreateAuditStore with existing tables", func(t *testing.T) {
+
+			auditStore, err := config.CreateAuditStore(ctx)
+			require.NoError(t, err)
+			assert.NotNil(t, auditStore)
+			assert.IsType(t, &postgresauditstore.PostgresAuditStore{}, auditStore)
+			err = auditStore.AddSegment(ctx, link.Segmentify())
+			assert.NoError(t, err)
+		})
+
+		t.Run("CreateAuditStore with bad config", func(t *testing.T) {
+			badConf := &store.Config{StorageType: store.PostgreSQLStorage}
+			auditStore, err := badConf.CreateAuditStore(ctx)
+			assert.EqualError(t, err, store.ErrMissingConfig.Error())
+			assert.Nil(t, auditStore)
 		})
 	})
 
@@ -124,13 +160,13 @@ func TestConfig_CreateStores(t *testing.T) {
 		config := &store.Config{StorageType: "unknown"}
 
 		t.Run("CreateAuditStore", func(t *testing.T) {
-			auditStore, err := config.CreateAuditStore()
+			auditStore, err := config.CreateAuditStore(ctx)
 			assert.EqualError(t, err, store.ErrStorageNotSupported.Error())
 			assert.Nil(t, auditStore)
 		})
 
 		t.Run("CreateAuditStore", func(t *testing.T) {
-			indigoStore, err := config.CreateIndigoStore()
+			indigoStore, err := config.CreateIndigoStore(ctx)
 			assert.EqualError(t, err, store.ErrStorageNotSupported.Error())
 			assert.Nil(t, indigoStore)
 		})

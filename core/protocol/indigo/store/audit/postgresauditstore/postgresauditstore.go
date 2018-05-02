@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package postgresauditstore implements the audit.Store interface.
-// It stores links and their evidences in a PostgresSQL database.
+// It stores links and their evidences in a PostgreSQL database.
 package postgresauditstore
 
 import (
@@ -36,7 +36,7 @@ var (
 )
 
 // PostgresAuditStore implements the audit.Store interface.
-// It stores segments in a PostgresSQL database.
+// It stores segments in a PostgreSQL database.
 type PostgresAuditStore struct {
 	*reader
 	*writer

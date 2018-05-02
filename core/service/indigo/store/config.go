@@ -15,10 +15,13 @@
 package store
 
 import (
+	"context"
+
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
+	"github.com/stratumn/alice/core/protocol/indigo/store/audit/postgresauditstore"
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
@@ -87,17 +90,34 @@ func (c *Config) UnmarshalPrivateKey() (ic.PrivKey, error) {
 }
 
 // CreateAuditStore creates an audit store from the configuration.
-func (c *Config) CreateAuditStore() (audit.Store, error) {
+func (c *Config) CreateAuditStore(ctx context.Context) (audit.Store, error) {
 	switch c.StorageType {
 	case InMemoryStorage:
 		return dummyauditstore.New(), nil
+	case PostgreSQLStorage:
+		if c.PostgresConfig == nil {
+			return nil, ErrMissingConfig
+		}
+		p, err := postgresauditstore.New(&postgresstore.Config{
+			URL: c.PostgresConfig.StorageDBURL,
+		})
+		if err != nil {
+			return nil, err
+		}
+		// We want to ignore the error in case we try to create an existing table.
+		if err := p.Create(); err != nil {
+			if e, ok := err.(*pq.Error); ok && e.Code != duplicateTable {
+				return nil, err
+			}
+		}
+		return p, p.Prepare()
 	default:
 		return nil, ErrStorageNotSupported
 	}
 }
 
 // CreateIndigoStore creates an indigo store from the configuration.
-func (c *Config) CreateIndigoStore() (indigostore.Adapter, error) {
+func (c *Config) CreateIndigoStore(ctx context.Context) (indigostore.Adapter, error) {
 	switch c.StorageType {
 	case InMemoryStorage:
 		return dummystore.New(&dummystore.Config{}), nil

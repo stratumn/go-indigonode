@@ -165,7 +165,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	syncEngine.Close(networkCtx)
 
 	// Close the store that uses the PoP network.
-	s.store.Close(networkCtx)
+	if err := s.store.Close(networkCtx); err != nil {
+		return err
+	}
 	s.store = nil
 
 	// Then leave the PoP network.

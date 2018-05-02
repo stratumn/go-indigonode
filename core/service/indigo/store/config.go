@@ -32,6 +32,7 @@ const (
 	// PostgreSQLStorage is the StorageType value for storing in an external PostgreSQL database.
 	PostgreSQLStorage = "postgresql"
 
+	// duplicateTable is the error returned by pq when trying to create an existing table.
 	duplicateTable = pq.ErrorCode("42P07")
 )
 

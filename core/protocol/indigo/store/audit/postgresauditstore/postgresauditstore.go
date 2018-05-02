@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package postgresauditstore implements the audit.Store interface.
-// It stores links in a PostgresSQL database.
+// It stores links and their evidences in a PostgresSQL database.
 package postgresauditstore
 
 import (
@@ -84,7 +84,7 @@ func (s *PostgresAuditStore) AddSegment(ctx context.Context, segment *cs.Segment
 	return nil
 }
 
-// GetByPeer returns links saved in the database.
+// GetByPeer returns segments saved in the database.
 func (s *PostgresAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
 	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{
 		"peerID": peerID,
@@ -105,7 +105,7 @@ func (s *PostgresAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *a
 }
 
 // Create creates the database tables and indexes.
-// Note that the actual database itself be created before calling Create().
+// Note that the actual database itself needs to be created before calling Create().
 func (s *PostgresAuditStore) Create() error {
 	for _, query := range sqlCreate {
 		if _, err := s.db.Exec(query); err != nil {
@@ -115,7 +115,7 @@ func (s *PostgresAuditStore) Create() error {
 	return nil
 }
 
-// Prepare prepares the database stmts.
+// Prepare prepares the database statements.
 // It should be called once before interacting with segments.
 // It assumes the tables have been created using Create().
 func (s *PostgresAuditStore) Prepare() error {

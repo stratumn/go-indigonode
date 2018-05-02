@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	// PostgresTestURL is the URL to connect to when running opostgres inside a docker container.
+	// PostgresTestURL is the URL to connect to when running postgres inside a docker container.
 	PostgresTestURL = "postgres://postgres@localhost?sslmode=disable"
 )
 

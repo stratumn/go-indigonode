@@ -85,7 +85,7 @@ func (s *Service) Config() interface{} {
 		PrivateKey:  cfg.ConfZeroPK,
 		StorageType: InMemoryStorage,
 		PostgresConfig: &PostgresConfig{
-			StorageDbURL: postgresstore.DefaultURL,
+			StorageDBURL: postgresstore.DefaultURL,
 		},
 	}
 }

@@ -30,7 +30,7 @@ const (
 	// InMemoryStorage is the StorageType value for storing in memory (no hard storage).
 	InMemoryStorage = "in-memory"
 	// PostgreSQLStorage is the StorageType value for storing in an external PostgreSQL database.
-	PostgreSQLStorage = "postgresSQL"
+	PostgreSQLStorage = "postgreSQL"
 
 	// duplicateTable is the error returned by pq when trying to create an existing table.
 	duplicateTable = pq.ErrorCode("42P07")
@@ -46,8 +46,8 @@ var (
 
 // PostgresConfig contains configuration for the postgres indigo store.
 type PostgresConfig struct {
-	// StorageDbURL is the URL of the storage database (if external storage is chosen).
-	StorageDbURL string `toml:"storage_db_url" comment:"If external storage is used, the url of that storage."`
+	// StorageDBURL is the URL of the storage database (if external storage is chosen).
+	StorageDBURL string `toml:"storage_db_url" comment:"If external storage is used, the url of that storage."`
 }
 
 // Config contains configuration options for the Indigo service.
@@ -65,7 +65,7 @@ type Config struct {
 	PrivateKey string `toml:"private_key" comment:"The private key of the host."`
 
 	// StoreType is the type of storage used.
-	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgresSQL."`
+	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgreSQL."`
 
 	// PostgresConfig contains configuration for the postgres indigo store.
 	PostgresConfig *PostgresConfig `toml:"postgres" comment:"Configure settings for the Indigo PostgreSQL Store in the following section."`
@@ -106,7 +106,7 @@ func (c *Config) CreateIndigoStore() (indigostore.Adapter, error) {
 			return nil, ErrMissingConfig
 		}
 		p, err := postgresstore.New(&postgresstore.Config{
-			URL: c.PostgresConfig.StorageDbURL,
+			URL: c.PostgresConfig.StorageDBURL,
 		})
 		if err != nil {
 			return nil, err

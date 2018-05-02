@@ -91,7 +91,7 @@ func TestConfig_CreateStores(t *testing.T) {
 		}()
 
 		config := &store.Config{StorageType: store.PostgreSQLStorage, PostgresConfig: &store.PostgresConfig{
-			StorageDbURL: containers.PostgresTestURL,
+			StorageDBURL: containers.PostgresTestURL,
 		}}
 
 		t.Run("CreateIndigoStore ", func(t *testing.T) {

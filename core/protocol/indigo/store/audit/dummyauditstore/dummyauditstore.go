@@ -31,13 +31,13 @@ import (
 // It stores links in memory with no persistence.
 type DummyAuditStore struct {
 	auditMapLock sync.RWMutex
-	auditMap     map[peer.ID][]cs.Segment
+	auditMap     map[peer.ID]cs.SegmentSlice
 }
 
 // New creates a new DummyAuditStore.
 func New() audit.Store {
 	return &DummyAuditStore{
-		auditMap: make(map[peer.ID][]cs.Segment),
+		auditMap: make(map[peer.ID]cs.SegmentSlice),
 	}
 }
 
@@ -53,23 +53,30 @@ func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) err
 
 	peerSegments, ok := s.auditMap[peerID]
 	if !ok {
-		peerSegments = make([]cs.Segment, 0, 1)
+		peerSegments = cs.SegmentSlice{}
 	}
 
-	peerSegments = append(peerSegments, *segment)
+	peerSegments = append(peerSegments, segment)
 	s.auditMap[peerID] = peerSegments
 
 	return nil
 }
 
 // GetByPeer returns links saved in memory.
-func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p audit.Pagination) ([]cs.Segment, error) {
+func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()
 
+	if p == nil {
+		p = &audit.Pagination{
+			Skip: 0,
+			Top:  audit.DefaultLimit,
+		}
+	}
+
 	peerLinks, ok := s.auditMap[peerID]
 	if !ok || uint(len(peerLinks)) <= p.Skip {
-		return nil, nil
+		return cs.SegmentSlice{}, nil
 	}
 
 	if p.Top == 0 {

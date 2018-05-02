@@ -27,6 +27,19 @@ import (
 
 var log = logging.Logger("indigo.store.audit")
 
+const (
+	AliceAuditStore = "aliceAuditStore"
+
+	DefaultLimit = 20
+)
+
+// SegmentFilter contains filtering options for segments.
+type SegmentFilter struct {
+	Pagination
+
+	PeerID *peer.ID
+}
+
 // Pagination defines pagination options.
 type Pagination struct {
 	Top  uint
@@ -35,7 +48,7 @@ type Pagination struct {
 
 // Reader defines operations to read from the store.
 type Reader interface {
-	GetByPeer(context.Context, peer.ID, Pagination) ([]cs.Segment, error)
+	GetByPeer(context.Context, peer.ID, *Pagination) (cs.SegmentSlice, error)
 }
 
 // Writer defines operations to add to the store.

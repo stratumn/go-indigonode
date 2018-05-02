@@ -39,7 +39,6 @@ func TestMain(m *testing.M) {
 	testResult := m.Run()
 
 	if err := utils.KillContainer(container); err != nil {
-		fmt.Printf(err.Error())
 		os.Exit(1)
 	}
 

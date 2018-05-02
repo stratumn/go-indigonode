@@ -23,48 +23,38 @@ const (
 		INSERT INTO audited_links (
 			link_hash,
 			data,
-			peerID
+			peer_id
 		)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (link_hash)
 		DO UPDATE SET
 			data = $2,
-			peerID = $3
-	`
-
-	sqlGetSegment = `
-		SELECT l.link_hash, l.data, s.data FROM audited_links l
-		LEFT JOIN audited_evidences s ON l.link_hash = s.link_hash
-		WHERE l.link_hash = $1
+			peer_id = $3
 	`
 
 	sqlFindSegments = `
-		SELECT l.link_hash, l.data, l.peerID, s.data FROM audited_links l
+		SELECT l.link_hash, l.data, l.peer_id, s.data FROM audited_links l
 		LEFT JOIN audited_evidences s ON l.link_hash = s.link_hash
 		ORDER BY l.created_at ASC
 		OFFSET $1 LIMIT $2
 	`
 
 	sqlFindSegmentsByPeer = `
-		SELECT l.link_hash, l.data, l.peerID, s.data FROM audited_links l
+		SELECT l.link_hash, l.data, l.peer_id, s.data FROM audited_links l
 		LEFT JOIN audited_evidences s ON l.link_hash = s.link_hash
-		WHERE l.peerID = $1
+		WHERE l.peer_id = $1
 		ORDER BY l.created_at ASC
 		OFFSET $2 LIMIT $3
-	`
-
-	sqlGetEvidences = `
-		SELECT data FROM audited_evidences
-		WHERE link_hash = $1
 	`
 
 	sqlAddEvidence = `
 		INSERT INTO audited_evidences (
 			link_hash,
-			data
+			data,
+			peer_id
 		)
-		VALUES ($1, $2)
-		ON CONFLICT (link_hash)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (link_hash, peer_id)
 		DO NOTHING
 `
 )
@@ -75,7 +65,7 @@ var sqlCreate = []string{
 			id BIGSERIAL PRIMARY KEY,
 			link_hash bytea NOT NULL,
 			data jsonb NOT NULL,
-			peerID bytea NOT NULL,
+			peer_id text NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
@@ -85,21 +75,26 @@ var sqlCreate = []string{
 		ON audited_links (link_hash)
 	`,
 	`
-		CREATE UNIQUE INDEX audited_links_peerID_idx
-		ON audited_links (link_hash)
+		CREATE INDEX audited_links_peer_id_idx
+		ON audited_links (peer_id)
 	`,
 	`
 		CREATE TABLE audited_evidences (
 			id BIGSERIAL PRIMARY KEY,
 			link_hash bytea NOT NULL,
 			data bytea NOT NULL,
+			peer_id text NOT NULL,
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 	)
 	`,
 	`
-		CREATE UNIQUE INDEX audited_evidences_link_hash_idx
+		CREATE INDEX audited_evidences_link_hash_idx
 		ON audited_evidences (link_hash)
+	`,
+	`
+		CREATE UNIQUE INDEX audited_evidences_link_hash_provider_idx
+		ON audited_evidences (link_hash, peer_id)
 	`,
 }
 
@@ -113,7 +108,6 @@ type writeStmts struct {
 }
 
 type readStmts struct {
-	GetSegment         *sql.Stmt
 	FindSegments       *sql.Stmt
 	FindSegmentsByPeer *sql.Stmt
 }
@@ -136,7 +130,6 @@ func newStmts(db *sql.DB) (*stmts, error) {
 		return
 	}
 
-	s.GetSegment = prepare(sqlGetSegment)
 	s.FindSegments = prepare(sqlFindSegments)
 	s.FindSegmentsByPeer = prepare(sqlFindSegmentsByPeer)
 

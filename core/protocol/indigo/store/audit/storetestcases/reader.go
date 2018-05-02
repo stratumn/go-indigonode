@@ -21,6 +21,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
+	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -107,6 +108,31 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 			segments, err := store.GetByPeer(ctx, peer1, nil)
 			assert.NoError(t, err, "store.GetByPeer()")
 			assert.Len(t, segments, 5, "store.GetByPeer()")
+		},
+	}, {
+		"all-evidence-types",
+		func(t *testing.T) {
+			sk3, _, _ := ic.GenerateEd25519Key(rand.Reader)
+			peer3, _ := peer.IDFromPrivateKey(sk3)
+			link := cstesting.NewLinkBuilder().Build()
+			constants.SetLinkNodeID(link, peer3)
+			s, _ := audit.SignLink(ctx, sk3, link)
+
+			assert.NoError(t, s.Meta.AddEvidence(cs.Evidence{Backend: "generic", Provider: "1"}))
+			assert.NoError(t, s.Meta.AddEvidence(cs.Evidence{Backend: "batch", Provider: "2"}))
+			assert.NoError(t, s.Meta.AddEvidence(cs.Evidence{Backend: "bcbatch", Provider: "3"}))
+			assert.NoError(t, s.Meta.AddEvidence(cs.Evidence{Backend: "dummy", Provider: "4"}))
+
+			require.NoError(
+				t,
+				store.AddSegment(ctx, s),
+				"store.AddSegment()",
+			)
+
+			segments, err := store.GetByPeer(ctx, peer3, nil)
+			assert.NoError(t, err, "store.GetByPeer()")
+			require.Len(t, segments, 1, "store.GetByPeer()")
+			require.Len(t, segments[0].Meta.Evidences, 5, "store.GetByPeer()")
 		},
 	}}
 

@@ -20,11 +20,16 @@ import (
 	"context"
 	"sync"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
+)
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+var (
+	log = logging.Logger("indigo.store.audit.dummy")
 )
 
 // DummyAuditStore implements the audit.Store interface.
@@ -41,10 +46,25 @@ func New() audit.Store {
 	}
 }
 
+func (s *DummyAuditStore) addEvidence(ctx context.Context, segment *cs.Segment, evidences cs.Evidences) {
+	for _, e := range evidences {
+		if segment.Meta.AddEvidence(*e) != nil {
+			log.Event(ctx, "Trying to add existing evidence", logging.Metadata{
+				"linkHash": segment.GetLinkHashString(),
+			})
+		}
+	}
+}
+
 // AddSegment stores a segment in memory.
-func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) error {
+func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) error {
 	s.auditMapLock.Lock()
 	defer s.auditMapLock.Unlock()
+
+	e := log.EventBegin(ctx, "AddSegment", logging.Metadata{
+		"linkHash": segment.GetLinkHashString(),
+	})
+	defer e.Done()
 
 	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
@@ -56,6 +76,14 @@ func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) err
 		peerSegments = cs.SegmentSlice{}
 	}
 
+	// If the segment is already stored, update its evidences.
+	for _, peerSegment := range peerSegments {
+		if peerSegment.GetLinkHashString() == segment.GetLinkHashString() {
+			s.addEvidence(ctx, peerSegment, segment.Meta.Evidences)
+			return nil
+		}
+	}
+
 	peerSegments = append(peerSegments, segment)
 	s.auditMap[peerID] = peerSegments
 
@@ -63,9 +91,14 @@ func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) err
 }
 
 // GetByPeer returns links saved in memory.
-func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
+func (s *DummyAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()
+
+	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{
+		"peerID": peerID,
+	})
+	defer e.Done()
 
 	if p == nil {
 		p = &audit.Pagination{

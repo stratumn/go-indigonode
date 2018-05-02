@@ -16,9 +16,9 @@ package postgresauditstore
 
 import (
 	"context"
+	"encoding/json"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 
-	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 
 	"github.com/stratumn/go-indigocore/cs"
@@ -40,7 +40,7 @@ func (a *writer) createLink(ctx context.Context, link *cs.Link, peerID peer.ID) 
 		return linkHash, err
 	}
 
-	_, err = a.stmts.CreateLink.Exec(linkHash[:], string(data), []byte(peerID))
+	_, err = a.stmts.CreateLink.Exec(linkHash[:], string(data), peerID.Pretty())
 
 	return linkHash, err
 }
@@ -51,9 +51,6 @@ func (a *writer) addEvidence(ctx context.Context, linkHash *types.Bytes32, evide
 		return errors.WithStack(err)
 	}
 
-	_, err = a.stmts.AddEvidence.Exec(linkHash[:], evidenceBytes)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = a.stmts.AddEvidence.Exec(linkHash[:], evidenceBytes, evidence.Provider)
+	return err
 }

@@ -18,36 +18,16 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 
 	json "github.com/gibson042/canonicaljson-go"
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/types"
 )
 
 type reader struct {
 	stmts readStmts
-}
-
-// GetSegment implements github.com/stratumn/go-indigocore/store.SegmentReader.GetSegment.
-func (a *reader) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
-	var segments = make(cs.SegmentSlice, 0, 1)
-
-	rows, err := a.stmts.GetSegment.Query(linkHash[:])
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-	if err = scanLinkAndEvidences(rows, &segments); err != nil {
-		return nil, err
-	}
-
-	if len(segments) == 0 {
-		return nil, nil
-	}
-	return segments[0], nil
 }
 
 func (a *reader) FindSegments(ctx context.Context, filter *audit.SegmentFilter) (cs.SegmentSlice, error) {
@@ -61,7 +41,7 @@ func (a *reader) FindSegments(ctx context.Context, filter *audit.SegmentFilter) 
 	)
 
 	if filter.PeerID != nil {
-		rows, err = a.stmts.FindSegmentsByPeer.Query([]byte(*filter.PeerID), offset, limit)
+		rows, err = a.stmts.FindSegmentsByPeer.Query(filter.PeerID.Pretty(), offset, limit)
 	} else {
 		rows, err = a.stmts.FindSegments.Query(offset, limit)
 	}
@@ -69,9 +49,11 @@ func (a *reader) FindSegments(ctx context.Context, filter *audit.SegmentFilter) 
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() { err = rows.Close() }()
 
-	err = scanLinkAndEvidences(rows, &segments)
+	if err = scanLinkAndEvidences(rows, &segments); err != nil {
+		return nil, err
+	}
 
 	return segments, err
 }
@@ -85,7 +67,7 @@ func scanLinkAndEvidences(rows *sql.Rows, segments *cs.SegmentSlice) error {
 			linkHash     []byte
 			linkData     string
 			link         cs.Link
-			peerID       []byte
+			peerID       peer.ID
 			evidenceData sql.NullString
 			evidence     cs.Evidence
 		)
@@ -94,7 +76,7 @@ func scanLinkAndEvidences(rows *sql.Rows, segments *cs.SegmentSlice) error {
 			return err
 		}
 
-		if bytes.Compare(currentHash, linkHash) != 0 {
+		if !bytes.Equal(currentHash, linkHash) {
 			if err := json.Unmarshal([]byte(linkData), &link); err != nil {
 				return err
 			}

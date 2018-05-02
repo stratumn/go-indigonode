@@ -20,16 +20,19 @@ import (
 	"context"
 
 	"github.com/stratumn/go-indigocore/cs"
+	// Blank import to register fossilizer concrete evidence types.
+	_ "github.com/stratumn/go-indigocore/fossilizer/evidences"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
-var log = logging.Logger("indigo.store.audit")
+var (
+	log = logging.Logger("indigo.store.audit")
+)
 
 const (
-	AliceAuditStore = "aliceAuditStore"
-
+	// DefaultLimit is the default pagination limit.
 	DefaultLimit = 20
 )
 

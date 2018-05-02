@@ -30,7 +30,7 @@ const (
 	// InMemoryStorage is the StorageType value for storing in memory (no hard storage).
 	InMemoryStorage = "in-memory"
 	// PostgreSQLStorage is the StorageType value for storing in an external PostgreSQL database.
-	PostgreSQLStorage = "postgresql"
+	PostgreSQLStorage = "postgresSQL"
 
 	// duplicateTable is the error returned by pq when trying to create an existing table.
 	duplicateTable = pq.ErrorCode("42P07")
@@ -65,7 +65,7 @@ type Config struct {
 	PrivateKey string `toml:"private_key" comment:"The private key of the host."`
 
 	// StoreType is the type of storage used.
-	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgresql."`
+	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgresSQL."`
 
 	// PostgresConfig contains configuration for the postgres indigo store.
 	PostgresConfig *PostgresConfig `toml:"postgres" comment:"Configure settings for the Indigo PostgreSQL Store in the following section."`

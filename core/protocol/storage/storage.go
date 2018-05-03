@@ -104,18 +104,25 @@ func (s *Storage) SaveFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) ([
 }
 
 // IndexFile adds the file hash and name to the db.
-func (s *Storage) IndexFile(ctx context.Context, fileName string) ([]byte, error) {
+func (s *Storage) IndexFile(ctx context.Context, fileName string) (fileHash []byte, err error) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		return nil, err
 	}
+
+	defer func() {
+		cerr := file.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	h := sha256.New()
 	if _, err := io.Copy(h, file); err != nil {
 		return nil, err
 	}
 
-	fileHash, err := mh.Encode(h.Sum(nil), mh.SHA2_256)
+	fileHash, err = mh.Encode(h.Sum(nil), mh.SHA2_256)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +131,7 @@ func (s *Storage) IndexFile(ctx context.Context, fileName string) ([]byte, error
 		return nil, err
 	}
 
-	return fileHash, nil
+	return
 }
 
 // Authorize adds a list of peers to the authorized peers for a file hash.

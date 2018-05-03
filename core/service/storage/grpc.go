@@ -177,7 +177,9 @@ func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_Dow
 			FileName: file.Name(),
 			Data:     buffer[:n],
 		}
-		ss.Send(&chunk)
+		if err := ss.Send(&chunk); err != nil {
+			return err
+		}
 	}
 	return nil
 }

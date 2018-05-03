@@ -6,12 +6,10 @@ package mockhandler
 
 import (
 	context "context"
-	os "os"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	go_uuid "github.com/satori/go.uuid"
-	storage "github.com/stratumn/alice/pb/storage"
 )
 
 // MockHandler is a mock of Handler interface
@@ -37,6 +35,32 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
+// AbortWrite mocks base method
+func (m *MockHandler) AbortWrite(arg0 context.Context, arg1 go_uuid.UUID) error {
+	ret := m.ctrl.Call(m, "AbortWrite", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AbortWrite indicates an expected call of AbortWrite
+func (mr *MockHandlerMockRecorder) AbortWrite(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AbortWrite", reflect.TypeOf((*MockHandler)(nil).AbortWrite), arg0, arg1)
+}
+
+// BeginRead mocks base method
+func (m *MockHandler) BeginRead(arg0 context.Context, arg1 []byte) (go_uuid.UUID, string, error) {
+	ret := m.ctrl.Call(m, "BeginRead", arg0, arg1)
+	ret0, _ := ret[0].(go_uuid.UUID)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// BeginRead indicates an expected call of BeginRead
+func (mr *MockHandlerMockRecorder) BeginRead(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BeginRead", reflect.TypeOf((*MockHandler)(nil).BeginRead), arg0, arg1)
+}
+
 // BeginWrite mocks base method
 func (m *MockHandler) BeginWrite(arg0 context.Context, arg1 string) (go_uuid.UUID, error) {
 	ret := m.ctrl.Call(m, "BeginWrite", arg0, arg1)
@@ -48,6 +72,18 @@ func (m *MockHandler) BeginWrite(arg0 context.Context, arg1 string) (go_uuid.UUI
 // BeginWrite indicates an expected call of BeginWrite
 func (mr *MockHandlerMockRecorder) BeginWrite(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BeginWrite", reflect.TypeOf((*MockHandler)(nil).BeginWrite), arg0, arg1)
+}
+
+// EndRead mocks base method
+func (m *MockHandler) EndRead(arg0 context.Context, arg1 go_uuid.UUID) error {
+	ret := m.ctrl.Call(m, "EndRead", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EndRead indicates an expected call of EndRead
+func (mr *MockHandlerMockRecorder) EndRead(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndRead", reflect.TypeOf((*MockHandler)(nil).EndRead), arg0, arg1)
 }
 
 // EndWrite mocks base method
@@ -63,6 +99,19 @@ func (mr *MockHandlerMockRecorder) EndWrite(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndWrite", reflect.TypeOf((*MockHandler)(nil).EndWrite), arg0, arg1)
 }
 
+// ReadChunk mocks base method
+func (m *MockHandler) ReadChunk(arg0 context.Context, arg1 go_uuid.UUID, arg2 int) ([]byte, error) {
+	ret := m.ctrl.Call(m, "ReadChunk", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadChunk indicates an expected call of ReadChunk
+func (mr *MockHandlerMockRecorder) ReadChunk(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadChunk", reflect.TypeOf((*MockHandler)(nil).ReadChunk), arg0, arg1, arg2)
+}
+
 // WriteChunk mocks base method
 func (m *MockHandler) WriteChunk(arg0 context.Context, arg1 go_uuid.UUID, arg2 []byte) error {
 	ret := m.ctrl.Call(m, "WriteChunk", arg0, arg1, arg2)
@@ -73,17 +122,4 @@ func (m *MockHandler) WriteChunk(arg0 context.Context, arg1 go_uuid.UUID, arg2 [
 // WriteChunk indicates an expected call of WriteChunk
 func (mr *MockHandlerMockRecorder) WriteChunk(arg0, arg1, arg2 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteChunk", reflect.TypeOf((*MockHandler)(nil).WriteChunk), arg0, arg1, arg2)
-}
-
-// WriteFile mocks base method
-func (m *MockHandler) WriteFile(arg0 context.Context, arg1 <-chan *storage.FileChunk) (*os.File, error) {
-	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1)
-	ret0, _ := ret[0].(*os.File)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// WriteFile indicates an expected call of WriteFile
-func (mr *MockHandlerMockRecorder) WriteFile(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFile", reflect.TypeOf((*MockHandler)(nil).WriteFile), arg0, arg1)
 }

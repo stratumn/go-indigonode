@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/hex"
 	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -48,7 +47,7 @@ type Encoder interface {
 // P2P is where the p2p APIs are defined.
 type P2P interface {
 	PullFile(ctx context.Context, fileHash []byte, pid peer.ID) error
-	SendFile(ctx context.Context, enc Encoder, path string) error
+	SendFile(ctx context.Context, enc Encoder, fileHash []byte) error
 }
 
 type p2p struct {
@@ -90,86 +89,107 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 	// Get the response
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 
-	chunkCh := make(chan *pb.FileChunk)
-	resCh := make(chan error)
-	go func() {
-		_, err := p.fileHandler.WriteFile(ctx, chunkCh)
-
-		resCh <- err
-	}()
-
-	for {
-		var chunk pb.FileChunk
-		if err = dec.Decode(&chunk); err != nil {
-			return errors.WithStack(err)
-		}
-
-		if len(chunk.Data) == 0 {
-			// End of file
-			close(chunkCh)
-			return nil
-		}
-
-		select {
-
-		case <-ctx.Done():
-			return errors.WithStack(ctx.Err())
-
-		case err = <-resCh:
-			return err
-
-		case chunkCh <- &chunk:
-			continue
-		}
-	}
-}
-
-func (p *p2p) SendFile(ctx context.Context, enc Encoder, path string) error {
-
-	file, err := os.Open(path)
-	if err != nil {
+	var chunk pb.FileChunk
+	if err = dec.Decode(&chunk); err != nil {
 		return errors.WithStack(err)
 	}
 
-	buf := make([]byte, p.chunkSize)
-	eof := false
+	sessionID, err := p.fileHandler.BeginWrite(ctx, chunk.FileName)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+LOOP:
+	for {
+		select {
+
+		case <-ctx.Done():
+			err := ctx.Err()
+			if err2 := p.fileHandler.AbortWrite(ctx, sessionID); err2 != nil {
+				err = errors.Wrap(err, err2.Error())
+			}
+			event.SetError(err)
+			return err
+
+		default:
+			err := p.fileHandler.WriteChunk(ctx, sessionID, chunk.Data)
+			if err != nil {
+				event.SetError(err)
+				return err
+			}
+
+			if err = dec.Decode(&chunk); err != nil {
+				if err2 := p.fileHandler.AbortWrite(ctx, sessionID); err2 != nil {
+					err = errors.Wrap(err, err2.Error())
+				}
+				event.SetError(err)
+				return err
+			}
+
+			if len(chunk.Data) == 0 {
+				break LOOP
+			}
+		}
+	}
+
+	// finalize the writing.
+	_, err = p.fileHandler.EndWrite(ctx, sessionID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+	return nil
+}
+
+func (p *p2p) SendFile(ctx context.Context, enc Encoder, fileHash []byte) error {
+	event := log.EventBegin(ctx, "SendFile", &logging.Metadata{
+		"file_hash": hex.EncodeToString(fileHash),
+	})
+
+	sessionID, filePath, err := p.fileHandler.BeginRead(ctx, fileHash)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
 	first := true
 
 LOOP:
-	for !eof {
+	for {
 		select {
 		case <-ctx.Done():
-			return errors.WithStack(ctx.Err())
+			event.SetError(ctx.Err())
+			return ctx.Err()
 
 		default:
-			// put as many bytes as `chunkSize` into the buf array.
-			// n is the actual number of bytes read in case we reached end of file.
-			n, err := file.Read(buf)
+			data, err := p.fileHandler.ReadChunk(ctx, sessionID, p.chunkSize)
 			if err == io.EOF {
-				// No more bytes to send, break loop directly
 				break LOOP
 			}
 			if err != nil {
+				event.SetError(err)
 				return err
 			}
 
-			if n < p.chunkSize {
-				// This is the last chunk of data.
-				eof = true
-			}
-
-			chunk := &pb.FileChunk{Data: buf[:n]}
+			chunk := &pb.FileChunk{Data: data}
 			if first {
-				// Add the file name in the first message.
-				chunk.FileName = filepath.Base(path)
 				first = false
-
+				chunk.FileName = filepath.Base(filePath)
 			}
 
 			if err = enc.Encode(chunk); err != nil {
+				if err2 := p.fileHandler.EndRead(ctx, sessionID); err2 != nil {
+					err = errors.Wrap(err, err2.Error())
+				}
+				event.SetError(err)
 				return err
 			}
 		}
+
+	}
+
+	if err := p.fileHandler.EndRead(ctx, sessionID); err != nil {
+		event.Append(&logging.Metadata{"end_read_error": err.Error()})
 	}
 
 	// Send an empty chunk to notify end of file.

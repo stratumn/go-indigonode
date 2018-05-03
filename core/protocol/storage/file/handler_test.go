@@ -12,354 +12,148 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package file
+package file_test
 
 import (
 	"context"
 	"crypto/sha256"
 	"fmt"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	"io"
-	"os"
+	"io/ioutil"
+	"path"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/alice/core/protocol/storage/file"
+	"github.com/stratumn/alice/core/protocol/storage/file/mockhandler"
 	"github.com/stretchr/testify/assert"
 )
 
-// ============================================================================
-// ==== 															Write																 ====
-// ============================================================================
+var (
+	tmpStoragePath string
+)
 
-func TestFileHandler_BeginWrite(t *testing.T) {
-
-	fileHandler := &localFileHandler{
-		storagePath:   "/tmp",
-		writeSessions: make(map[uuid.UUID]*session),
+func init() {
+	var err error
+	tmpStoragePath, err = ioutil.TempDir("", "filetest")
+	if err != nil {
+		panic(err)
 	}
+}
 
+func TestFileHandler_Write(t *testing.T) {
+	db, err := db.NewMemDB(nil)
+	require.NoError(t, err, "NewMemDB()")
+	fileHandler := file.NewLocalFileHandler(tmpStoragePath, db)
 	fileName := fmt.Sprintf("TestFileHandler_BeginWrite-%d", time.Now().UnixNano())
+	var id uuid.UUID
+
+	t.Run("BeginWrite", func(t *testing.T) {
+		var err error
+		id, err = fileHandler.BeginWrite(context.Background(), fileName)
+		assert.NoError(t, err, "BeginWrite")
+	})
+
+	t.Run("BeginWrite_Fail", func(t *testing.T) {
+		_, err := fileHandler.BeginWrite(context.Background(), "")
+		assert.EqualError(t, err, file.ErrFileNameMissing.Error(), "BeginWrite")
+	})
+
+	t.Run("WriteChunk", func(t *testing.T) {
+		chunk := []byte(" some data")
+		err = fileHandler.WriteChunk(context.Background(), id, chunk)
+		assert.NoError(t, err, "WriteChunk")
+	})
+
+	t.Run("WriteChunk_Fail", func(t *testing.T) {
+		t.Run("no-session", func(t *testing.T) {
+			err = fileHandler.WriteChunk(context.Background(), uuid.NewV4(), []byte(" some data"))
+			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
+		})
+
+		t.Run("fail-write-and-delete", func(t *testing.T) {
+			fileName := fmt.Sprintf("TestFileHandler_BeginWrite-%d", time.Now().UnixNano())
+			id2, err := fileHandler.BeginWrite(context.Background(), fileName)
+			assert.NoError(t, err, "BeginWrite")
+
+			// close file
+			_, err = fileHandler.EndWrite(context.Background(), id2)
+			assert.NoError(t, err, "EndWrite")
+
+			err = fileHandler.WriteChunk(context.Background(), id2, []byte("yo"))
+			assert.Error(t, err, "WriteChunk")
+
+			// Check that session has been deleted.
+			err = fileHandler.WriteChunk(context.Background(), id2, []byte("yo"))
+			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
+		})
+	})
+
+	t.Run("EndWrite", func(t *testing.T) {
+		hash, err := fileHandler.EndWrite(context.Background(), id)
+		require.NoError(t, err, "EndWrite()")
+
+		// Check that hash is correct.
+		b, err := fileHandler.Read(context.Background(), hash)
+		assert.NoError(t, err)
+
+		sha := sha256.Sum256(b)
+		expected, err := mh.Encode(sha[:], mh.SHA2_256)
+		assert.NoError(t, err, "mh.Encode")
+		assert.Equal(t, expected, hash, "file hash incorrect")
+	})
+
+	t.Run("EndWrite_fail", func(t *testing.T) {
+		t.Run("no-session", func(t *testing.T) {
+			_, err = fileHandler.EndWrite(context.Background(), uuid.NewV4())
+			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
+		})
+
+		t.Run("fail-and-delete-file", func(t *testing.T) {
+			id3, err := fileHandler.BeginWrite(context.Background(), fileName)
+			assert.NoError(t, err, "BeginWrite")
+
+			err = db.Close()
+			assert.NoError(t, err, "db.Close()")
+
+			_, err = fileHandler.EndWrite(context.Background(), id3)
+			assert.Error(t, err, "WriteChunk")
+
+			// Check that session has been deleted.
+			err = fileHandler.WriteChunk(context.Background(), id3, []byte("yo"))
+			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
+		})
+	})
+}
+
+func TestFileHandler_ReadChunks(t *testing.T) {
+	ctx := context.Background()
+	db, err := db.NewMemDB(nil)
+	require.NoError(t, err, "NewMemDB()")
+	fileHandler := file.NewLocalFileHandler(tmpStoragePath, db)
+	fileName := fmt.Sprintf("TestFileHandler_BeginWrite-%d", time.Now().UnixNano())
+
 	id, err := fileHandler.BeginWrite(context.Background(), fileName)
 	assert.NoError(t, err, "BeginWrite")
-
-	// Check that the session and the file have been created.
-	session, ok := fileHandler.writeSessions[id]
-	require.True(t, ok, "fileHandler.writeSessions[id]")
-	require.NotNil(t, session.file, "session.file")
-
-	assert.Equal(t, "/tmp/"+fileName, session.file.Name())
-
-	err = os.Remove("/tmp/" + fileName)
-	assert.NoError(t, err, "os.Remove")
-}
-
-func TestFileHandler_BeginWrite_Fail(t *testing.T) {
-
-	fileHandler := &localFileHandler{
-		storagePath:   "/tmp",
-		writeSessions: make(map[uuid.UUID]*session),
-	}
-
-	_, err := fileHandler.BeginWrite(context.Background(), "")
-	assert.EqualError(t, err, ErrFileNameMissing.Error(), "BeginWrite")
-}
-
-func TestFileHandler_WriteChunk(t *testing.T) {
-
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_WriteChunk-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	_, err = file.Write([]byte("I love to write"))
-	assert.NoError(t, err, "os.Write")
-
-	sess := newSession(file)
-
-	fileHandler := &localFileHandler{
-		storagePath:   "/tmp",
-		writeSessions: map[uuid.UUID]*session{sess.id: sess},
-	}
-
-	chunk := []byte(" some data")
-	err = fileHandler.WriteChunk(context.Background(), sess.id, chunk)
+	err = fileHandler.WriteChunk(ctx, id, []byte("who wants to download "+"my juicy file ?"))
 	assert.NoError(t, err, "WriteChunk")
-
-	// Check that session is still open and that chunk was appended to data .
-	session, ok := fileHandler.writeSessions[sess.id]
-	require.True(t, ok, "fileHandler.writeSessions[id]")
-	require.NotNil(t, session.file, "session.file")
-
-	data := make([]byte, 100)
-	session.file.Seek(0, 0)
-	n, err := session.file.Read(data)
-	assert.NoError(t, err, "session.file.Read()")
-	assert.Equal(t, []byte("I love to write some data"), data[:n], "session.file.Read()")
-
-	err = os.Remove(filePath)
-	assert.NoError(t, err, "os.Remove")
-}
-
-func TestFileHandler_WriteChunk_Fail(t *testing.T) {
-
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_WriteChunk_Fail-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	sess := newSession(file)
-
-	fileHandler := &localFileHandler{
-		storagePath:   "/tmp",
-		writeSessions: map[uuid.UUID]*session{sess.id: sess},
-	}
-
-	t.Run("no-session", func(t *testing.T) {
-		err = fileHandler.WriteChunk(context.Background(), uuid.NewV4(), []byte(" some data"))
-		assert.EqualError(t, err, ErrNoSession.Error(), "WriteChunk")
-	})
-
-	t.Run("fail-write-and-delete", func(t *testing.T) {
-		err := sess.file.Close()
-		require.NoError(t, err, "session.File.Close()")
-
-		err = fileHandler.WriteChunk(context.Background(), sess.id, []byte("yo"))
-		assert.Error(t, err, "WriteChunk")
-
-		// Check that session has been deleted.
-		_, ok := fileHandler.writeSessions[sess.id]
-		require.False(t, ok, "fileHandler.writeSessions[id]")
-
-		// Check that teh file has been deleted.
-		_, err = os.Stat(sess.file.Name())
-		assert.True(t, os.IsNotExist(err), "File should be deleted")
-	})
-}
-
-func TestFileHandler_EndWrite(t *testing.T) {
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_EndWrite-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	_, err = file.Write([]byte("I love to write"))
-	assert.NoError(t, err, "os.Write")
-
-	sess := newSession(file)
-
-	db, err := db.NewMemDB(nil)
-	require.NoError(t, err, "NewMemDB()")
-
-	fileHandler := &localFileHandler{
-		db:            db,
-		storagePath:   "/tmp",
-		writeSessions: map[uuid.UUID]*session{sess.id: sess},
-	}
-
-	hash, err := fileHandler.EndWrite(context.Background(), sess.id)
-	require.NoError(t, err, "EndWrite()")
-
-	// Check that hash is correct.
-	f, err := os.Open(filePath)
-	assert.NoError(t, err)
-
-	h := sha256.New()
-	_, err = io.Copy(h, f)
-	assert.NoError(t, err, "io.Copy")
-
-	expected, err := mh.Encode(h.Sum(nil), mh.SHA2_256)
-	assert.NoError(t, err, "mh.Encode")
-	assert.Equal(t, expected, hash, "file hash incorrect")
-
-	// Check that file hash and path are in db.
-	p, err := db.Get(append(prefixFilesHashes, hash...))
-	assert.NoError(t, err, "db.Get()")
-	assert.Equal(t, filePath, string(p), "incorrect path saved")
-
-	err = os.Remove(filePath)
-	assert.NoError(t, err, "os.Remove")
-}
-
-func TestFileHandler_EndWrite_Fail(t *testing.T) {
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_EndWrite_Fail-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	_, err = file.Write([]byte("I love to write"))
-	assert.NoError(t, err, "os.Write")
-
-	sess := newSession(file)
-
-	db, err := db.NewMemDB(nil)
-	require.NoError(t, err, "NewMemDB()")
-
-	fileHandler := &localFileHandler{
-		db:            db,
-		storagePath:   "/tmp",
-		writeSessions: map[uuid.UUID]*session{sess.id: sess},
-	}
-
-	t.Run("no-session", func(t *testing.T) {
-		_, err = fileHandler.EndWrite(context.Background(), uuid.NewV4())
-		assert.EqualError(t, err, ErrNoSession.Error(), "WriteChunk")
-	})
-
-	t.Run("fail-and-delete-file", func(t *testing.T) {
-		err := db.Close()
-		assert.NoError(t, err, "db.Close()")
-
-		_, err = fileHandler.EndWrite(context.Background(), sess.id)
-		assert.Error(t, err, "WriteChunk")
-
-		// Check that session has been deleted.
-		_, ok := fileHandler.writeSessions[sess.id]
-		require.False(t, ok, "fileHandler.writeSessions[id]")
-
-		// Check that teh file has been deleted.
-		_, err = os.Stat(sess.file.Name())
-		assert.True(t, os.IsNotExist(err), "File should be deleted")
-
-	})
-}
-
-// ============================================================================
-// ==== 															Read																 ====
-// ============================================================================
-
-func TestFileHandler_BeginRead(t *testing.T) {
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_BeginRead-%d", time.Now().UnixNano())
-	fileHash := []byte("file hash")
-
-	_, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-	defer os.Remove(filePath)
-
-	db, err := db.NewMemDB(nil)
-	require.NoError(t, err)
-
-	err = db.Put(append(prefixFilesHashes, fileHash...), []byte(filePath))
-	require.NoError(t, err)
-
-	fileHandler := &localFileHandler{
-		db:           db,
-		readSessions: make(map[uuid.UUID]*session),
-		storagePath:  "/tmp",
-	}
-
-	id, path, err := fileHandler.BeginRead(context.Background(), fileHash)
-	assert.NoError(t, err, "BeginRead")
-	assert.Equal(t, filePath, path, "BeginRead")
-
-	// Check that the session has teh right file.
-	session, ok := fileHandler.readSessions[id]
-	require.True(t, ok, "fileHandler.readSessions[id]")
-	require.NotNil(t, session.file, "session.file")
-	assert.Equal(t, filePath, session.file.Name(), "session.file.Name()")
-}
-
-func TestFileHandler_ReadChunk(t *testing.T) {
-
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_ReadChunk-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-	defer os.Remove(filePath)
-
-	data := []byte("The file has some data")
-	_, err = file.Write(data)
-	assert.NoError(t, err, "os.Write")
-
-	_, err = file.Seek(0, 0)
-	assert.NoError(t, err)
-
-	sess := newSession(file)
-	chunkSize := 12
-
-	fileHandler := &localFileHandler{
-		readSessions: map[uuid.UUID]*session{sess.id: sess},
-		storagePath:  "/tmp",
-	}
-
-	// Read first chunk.
-	chunk, err := fileHandler.ReadChunk(context.Background(), sess.id, chunkSize)
-	assert.NoError(t, err, "ReadChunk")
-	assert.Equal(t, data[:12], chunk, "first chunk")
-
-	// Check that second chunk is read second.
-	chunk, err = fileHandler.ReadChunk(context.Background(), sess.id, chunkSize)
-	assert.NoError(t, err, "ReadChunk")
-	assert.Equal(t, data[chunkSize:], chunk, "second chunk")
-
-	// Check that we have EOF as there should be no more data to read.
-	_, err = fileHandler.ReadChunk(context.Background(), sess.id, chunkSize)
-	assert.EqualError(t, err, io.EOF.Error(), "ReadChunk")
-}
-
-func TestFileHandler_ReadChunk_Fail(t *testing.T) {
-	filePath := fmt.Sprintf("/tmp/TestFileHandler_ReadChunk-%d", time.Now().UnixNano())
-
-	file, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-	defer os.Remove(filePath)
-
-	sess := newSession(file)
-	chunkSize := 12
-
-	fileHandler := &localFileHandler{
-		readSessions: map[uuid.UUID]*session{sess.id: sess},
-		storagePath:  "/tmp",
-	}
-
-	t.Run("no-session", func(t *testing.T) {
-		_, err := fileHandler.ReadChunk(context.Background(), uuid.NewV4(), chunkSize)
-		assert.EqualError(t, err, ErrNoSession.Error(), "ReadChunk")
-	})
-
-	t.Run("fail-and-delete-session", func(t *testing.T) {
-		err = file.Close()
-		assert.NoError(t, err, "file.Close()")
-
-		_, err := fileHandler.ReadChunk(context.Background(), sess.id, chunkSize)
-		assert.Error(t, err, "ReadChunk")
-
-		_, ok := fileHandler.readSessions[sess.id]
-		assert.False(t, ok, "readSessions[id]")
-	})
-}
-
-func TestFileHandler_EndRead(t *testing.T) {
-	fileName := fmt.Sprintf("TestFileHandler_EndRead-%d", time.Now().UnixNano())
-
-	file, err := os.Create("/tmp/" + fileName)
-	require.NoError(t, err, "os.Create")
-
-	sess := newSession(file)
-
-	fileHandler := &localFileHandler{
-		readSessions: map[uuid.UUID]*session{sess.id: sess},
-		storagePath:  "/tmp",
-	}
-
-	err = fileHandler.EndRead(context.Background(), sess.id)
-	require.NoError(t, err, "EndRead()")
-
-	// Check that session was deleted and file closed.
-	_, ok := fileHandler.readSessions[sess.id]
-	assert.False(t, ok, "readSessions[id]")
-}
-
-func TestFileHandler_EndRead_Fail(t *testing.T) {
-
-	fileHandler := &localFileHandler{
-		readSessions: map[uuid.UUID]*session{},
-		storagePath:  "/tmp",
-	}
-
-	err := fileHandler.EndRead(context.Background(), uuid.NewV4())
-	assert.EqualError(t, err, ErrNoSession.Error(), "ReadChunk")
+	fileHash, err := fileHandler.EndWrite(ctx, id)
+	assert.NoError(t, err, "EndWrite")
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	reader := mockhandler.NewMockReader(ctrl)
+
+	gomock.InOrder(
+		reader.EXPECT().OnChunk([]byte("who wants to download "), path.Join(tmpStoragePath, fileName)),
+		reader.EXPECT().OnChunk([]byte("my juicy file ?"), path.Join(tmpStoragePath, fileName)),
+	)
+
+	err = fileHandler.ReadChunks(context.Background(), fileHash, 22, reader)
+	assert.NoError(t, err, "SendFile")
 }

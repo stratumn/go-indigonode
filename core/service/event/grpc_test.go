@@ -84,8 +84,8 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 		Level:   pb.Level_INFO,
 		Topic:   "topic",
 	}
-	emitter.Emit(e)
 	ss.EXPECT().Send(e)
+	emitter.Emit(e)
 
 	assert.NoError(t, <-errChan, "srv.Listen()")
 }

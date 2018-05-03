@@ -114,9 +114,9 @@ func NewLocalFileHandler(path string, db db.DB) Handler {
 	}
 }
 
-// ============================================================================
-// ====															Sequential write											 ====
-// ============================================================================
+// ==========================================================================
+// ====					Sequential write								 ====
+// ==========================================================================
 
 // BeginWrite creates an empty file and attaches it to a session.
 func (h *localFileHandler) BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error) {

@@ -253,7 +253,7 @@ func TestHashEngine_Finalize(t *testing.T) {
 		},
 	}, {
 		"block-nonce-pow",
-		5,
+		10,
 		func(t *testing.T, e engine.Engine) {
 			block, err := e.Finalize(ctx, chain, firstBlock.Header, nil, firstBlock.Transactions)
 			assert.NoError(t, err, "e.Finalize()")

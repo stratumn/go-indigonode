@@ -26,8 +26,11 @@ import (
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
+
+var log = logging.Logger("indigo.store.config")
 
 const (
 	// InMemoryStorage is the StorageType value for storing in memory (no hard storage).
@@ -107,11 +110,13 @@ func (c *Config) CreateAuditStore(ctx context.Context) (audit.Store, error) {
 		// We want to ignore the error in case we try to create an existing table.
 		if err := p.Create(); err != nil {
 			if e, ok := err.(*pq.Error); ok && e.Code != duplicateTable {
+				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": e.Message})
 				return nil, err
 			}
 		}
 		return p, p.Prepare()
 	default:
+		log.Event(ctx, "ErrStorageNotSupported", logging.Metadata{"storageType": c.StorageType})
 		return nil, ErrStorageNotSupported
 	}
 }
@@ -134,11 +139,13 @@ func (c *Config) CreateIndigoStore(ctx context.Context) (indigostore.Adapter, er
 		// We want to ignore the error in case we try to create an existing table.
 		if err := p.Create(); err != nil {
 			if e, ok := err.(*pq.Error); ok && e.Code != duplicateTable {
+				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": e.Message})
 				return nil, err
 			}
 		}
 		return p, p.Prepare()
 	default:
+		log.Event(ctx, "ErrStorageNotSupported", logging.Metadata{"storageType": c.StorageType})
 		return nil, ErrStorageNotSupported
 	}
 }

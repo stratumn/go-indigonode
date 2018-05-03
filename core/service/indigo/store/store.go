@@ -128,12 +128,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	indigoStore, err := s.config.CreateIndigoStore()
+	indigoStore, err := s.config.CreateIndigoStore(ctx)
 	if err != nil {
 		return err
 	}
 
-	auditStore, err := s.config.CreateAuditStore()
+	auditStore, err := s.config.CreateAuditStore(ctx)
 	if err != nil {
 		return err
 	}

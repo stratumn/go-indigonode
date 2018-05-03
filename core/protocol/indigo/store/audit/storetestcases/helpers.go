@@ -20,7 +20,7 @@ import (
 
 // ContainsSegment returns true if the list contains the given segment.
 // It only compares the link hash.
-func ContainsSegment(segments []cs.Segment, segment cs.Segment) bool {
+func ContainsSegment(segments cs.SegmentSlice, segment *cs.Segment) bool {
 	if len(segments) == 0 {
 		return false
 	}

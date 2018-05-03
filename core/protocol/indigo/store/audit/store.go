@@ -20,12 +20,28 @@ import (
 	"context"
 
 	"github.com/stratumn/go-indigocore/cs"
+	// Blank import to register fossilizer concrete evidence types.
+	_ "github.com/stratumn/go-indigocore/fossilizer/evidences"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
-var log = logging.Logger("indigo.store.audit")
+var (
+	log = logging.Logger("indigo.store.audit")
+)
+
+const (
+	// DefaultLimit is the default pagination limit.
+	DefaultLimit = 20
+)
+
+// SegmentFilter contains filtering options for segments.
+type SegmentFilter struct {
+	Pagination
+
+	PeerID *peer.ID
+}
 
 // Pagination defines pagination options.
 type Pagination struct {
@@ -35,7 +51,7 @@ type Pagination struct {
 
 // Reader defines operations to read from the store.
 type Reader interface {
-	GetByPeer(context.Context, peer.ID, Pagination) ([]cs.Segment, error)
+	GetByPeer(context.Context, peer.ID, *Pagination) (cs.SegmentSlice, error)
 }
 
 // Writer defines operations to add to the store.

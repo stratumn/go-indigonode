@@ -8,10 +8,40 @@
   revision = "f4415fafc5619dd75599a54a7c91fb3948ad58bd"
 
 [[projects]]
+  name = "docker.io/go-docker"
+  packages = [
+    ".",
+    "api",
+    "api/types",
+    "api/types/blkiodev",
+    "api/types/container",
+    "api/types/events",
+    "api/types/filters",
+    "api/types/image",
+    "api/types/mount",
+    "api/types/network",
+    "api/types/registry",
+    "api/types/strslice",
+    "api/types/swarm",
+    "api/types/swarm/runtime",
+    "api/types/time",
+    "api/types/versions",
+    "api/types/volume"
+  ]
+  revision = "b3f5b5de7bbce0acc6a7fc0a4c2b88db678e262e"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
   revision = "606f1ef31447526b908244933d5b716397a6bad8"
+
+[[projects]]
+  name = "github.com/Microsoft/go-winio"
+  packages = ["."]
+  revision = "7da180ee92d8bd8bb8c37fc560e673e6557c392f"
+  version = "v0.4.7"
 
 [[projects]]
   branch = "master"
@@ -90,6 +120,30 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/docker/distribution"
+  packages = [
+    "digestset",
+    "reference"
+  ]
+  revision = "edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c"
+
+[[projects]]
+  name = "github.com/docker/go-connections"
+  packages = [
+    "nat",
+    "sockets",
+    "tlsconfig"
+  ]
+  revision = "3ede32e2033de7505e6500d6c868c2b9ed9f169d"
+  version = "v0.3.0"
+
+[[projects]]
+  name = "github.com/docker/go-units"
+  packages = ["."]
+  revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
+  version = "v0.3.3"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -125,8 +179,8 @@
     "sortkeys",
     "types"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -233,6 +287,15 @@
   revision = "c2b33e8439af944379acbdd9c3a5fe0bc44bd8a5"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "d34b9ff171c21ad295489235aec8b6626023cd04"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "d419a98cdbed11a922bf76f257b7c4be79b50e73"
@@ -255,6 +318,21 @@
   name = "github.com/mohae/deepcopy"
   packages = ["."]
   revision = "c48cc78d482608239f6c4c92a4abd87eb8761c90"
+
+[[projects]]
+  name = "github.com/opencontainers/go-digest"
+  packages = ["."]
+  revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
+  version = "v1.0.0-rc1"
+
+[[projects]]
+  name = "github.com/opencontainers/image-spec"
+  packages = [
+    "specs-go",
+    "specs-go/v1"
+  ]
+  revision = "d60099175f88c47cd379c4738d158884749ed235"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -403,10 +481,12 @@
     "fossilizer",
     "fossilizer/evidences",
     "monitoring",
+    "postgresstore",
     "store",
     "store/storetestcases",
     "testutil",
-    "types"
+    "types",
+    "utils"
   ]
   revision = "c33f4b1bb7aa1388783baaff1f1f9032140c01fa"
 
@@ -487,11 +567,13 @@
   name = "golang.org/x/net"
   packages = [
     "context",
+    "context/ctxhttp",
     "http2",
     "http2/hpack",
     "idna",
     "internal/timeseries",
     "lex/httplex",
+    "proxy",
     "trace"
   ]
   revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
@@ -601,6 +683,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d52a0c26bab6ef743af16f7aa86791112acfc5aaff189ee1702f66ed89ba732c"
+  inputs-digest = "d7779627268b62e22a3a1330afacce8e5afd73814e54624da3df2e4217c7e2ff"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -20,31 +20,51 @@ import (
 	"context"
 	"sync"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
+)
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+var (
+	log = logging.Logger("indigo.store.audit.dummy")
 )
 
 // DummyAuditStore implements the audit.Store interface.
 // It stores links in memory with no persistence.
 type DummyAuditStore struct {
 	auditMapLock sync.RWMutex
-	auditMap     map[peer.ID][]cs.Segment
+	auditMap     map[peer.ID]cs.SegmentSlice
 }
 
 // New creates a new DummyAuditStore.
 func New() audit.Store {
 	return &DummyAuditStore{
-		auditMap: make(map[peer.ID][]cs.Segment),
+		auditMap: make(map[peer.ID]cs.SegmentSlice),
+	}
+}
+
+func (s *DummyAuditStore) addEvidence(ctx context.Context, segment *cs.Segment, evidences cs.Evidences) {
+	for _, e := range evidences {
+		if segment.Meta.AddEvidence(*e) != nil {
+			log.Event(ctx, "Trying to add existing evidence", logging.Metadata{
+				"linkHash": segment.GetLinkHashString(),
+			})
+		}
 	}
 }
 
 // AddSegment stores a segment in memory.
-func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) error {
+func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) error {
 	s.auditMapLock.Lock()
 	defer s.auditMapLock.Unlock()
+
+	e := log.EventBegin(ctx, "AddSegment", logging.Metadata{
+		"linkHash": segment.GetLinkHashString(),
+	})
+	defer e.Done()
 
 	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
@@ -53,23 +73,43 @@ func (s *DummyAuditStore) AddSegment(_ context.Context, segment *cs.Segment) err
 
 	peerSegments, ok := s.auditMap[peerID]
 	if !ok {
-		peerSegments = make([]cs.Segment, 0, 1)
+		peerSegments = cs.SegmentSlice{}
 	}
 
-	peerSegments = append(peerSegments, *segment)
+	// If the segment is already stored, update its evidences.
+	for _, peerSegment := range peerSegments {
+		if peerSegment.GetLinkHashString() == segment.GetLinkHashString() {
+			s.addEvidence(ctx, peerSegment, segment.Meta.Evidences)
+			return nil
+		}
+	}
+
+	peerSegments = append(peerSegments, segment)
 	s.auditMap[peerID] = peerSegments
 
 	return nil
 }
 
 // GetByPeer returns links saved in memory.
-func (s *DummyAuditStore) GetByPeer(_ context.Context, peerID peer.ID, p audit.Pagination) ([]cs.Segment, error) {
+func (s *DummyAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()
 
+	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{
+		"peerID": peerID,
+	})
+	defer e.Done()
+
+	if p == nil {
+		p = &audit.Pagination{
+			Skip: 0,
+			Top:  audit.DefaultLimit,
+		}
+	}
+
 	peerLinks, ok := s.auditMap[peerID]
 	if !ok || uint(len(peerLinks)) <= p.Skip {
-		return nil, nil
+		return cs.SegmentSlice{}, nil
 	}
 
 	if p.Top == 0 {

@@ -5,6 +5,25 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch postgresauditstore test function",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program":
+        "${workspaceRoot}/core/protocol/indigo/store/audit/postgresauditstore/",
+      "env": {},
+      "args": []
+    },
+    {
+      "name": "Launch indigo postgres store test function",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceRoot}/core/service/indigo/store/",
+      "env": {},
+      "args": []
+    },
+    {
       "name": "Alice Node",
       "type": "go",
       "request": "launch",

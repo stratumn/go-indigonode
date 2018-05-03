@@ -194,9 +194,9 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
 				return s.storage.Authorize(ctx, peerIds, fileHash)
 			},
-			func(ctx context.Context, fileHash []byte, peerId []byte) error {
+			func(ctx context.Context, fileHash []byte, peerId []byte) (fileName string, err error) {
 				if s.storage == nil {
-					return ErrUnavailable
+					return "", ErrUnavailable
 				}
 				return s.storage.PullFile(ctx, fileHash, peerId)
 			},

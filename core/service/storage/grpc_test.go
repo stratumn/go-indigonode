@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -293,16 +294,30 @@ func TestGRPCServer_AuthorizePeers(t *testing.T) {
 }
 
 func TestGRPCServer_Download(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
 	var fh []byte
 	var pid []byte
+
+	file, err := ioutil.TempFile(storagePath, "Download")
+	assert.NoError(t, err, "os.Open()")
+
+	_, err = file.Write([]byte("123"))
+	assert.NoError(t, err, "file.Write()")
+
+	fileName := file.Name()
+
+	err = file.Close()
+	assert.NoError(t, err, "file.Close()")
 
 	server := newGrpcServer(
 		nil,
 		nil,
-		func(ctx context.Context, fileHash []byte, peerId []byte) error {
+		func(ctx context.Context, fileHash []byte, peerId []byte) (string, error) {
 			fh = fileHash
 			pid = peerId
-			return nil
+			return fileName, nil
 		},
 		storagePath,
 		1*time.Second)
@@ -310,10 +325,20 @@ func TestGRPCServer_Download(t *testing.T) {
 	fileHash := []byte("file hash")
 	peerID := []byte("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf1")
 
-	server.Download(context.Background(), &grpcpb.DownloadRequest{
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ss := mockstorage.NewMockStorage_DownloadServer(ctrl)
+
+	ss.EXPECT().Context().Return(ctx).AnyTimes()
+	ss.EXPECT().Send(&pb.FileChunk{
+		FileName: fileName,
+		Data:     []byte("123"),
+	}).Times(1)
+
+	server.Download(&grpcpb.DownloadRequest{
 		FileHash: fileHash,
 		PeerId:   peerID,
-	})
+	}, ss)
 
 	assert.Equal(t, fileHash, fh, "FileHash")
 	assert.Equal(t, peerID, pid, "PeerId")

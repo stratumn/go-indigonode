@@ -47,7 +47,7 @@ type Encoder interface {
 
 // P2P is where the p2p APIs are defined.
 type P2P interface {
-	PullFile(ctx context.Context, fileHash []byte, pid peer.ID) error
+	PullFile(ctx context.Context, fileHash []byte, pid peer.ID) (fileName string, err error)
 	SendFile(ctx context.Context, enc Encoder, path string) error
 }
 
@@ -67,7 +67,7 @@ func NewP2P(host ihost.Host, fh file.Handler) P2P {
 }
 
 // PullFile pulls a file from a peer given the file hash.
-func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) error {
+func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) (fileName string, err error) {
 
 	event := log.EventBegin(ctx, "PullFile", logging.Metadata{
 		"fileHash": hex.EncodeToString(fileHash),
@@ -77,14 +77,14 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 
 	stream, err := p.host.NewStream(ctx, peerID, constants.ProtocolID)
 	if err != nil {
-		return errors.WithStack(err)
+		return "", errors.WithStack(err)
 	}
 
 	// Send the request
 	req := &pb.FileInfo{Hash: fileHash}
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 	if err = enc.Encode(req); err != nil {
-		return errors.WithStack(err)
+		return "", errors.WithStack(err)
 	}
 
 	// Get the response
@@ -93,7 +93,8 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 	chunkCh := make(chan *pb.FileChunk)
 	resCh := make(chan error)
 	go func() {
-		_, err := p.fileHandler.WriteFile(ctx, chunkCh)
+		var err error
+		fileName, err = p.fileHandler.WriteFile(ctx, chunkCh)
 
 		resCh <- err
 	}()
@@ -101,22 +102,22 @@ func (p *p2p) PullFile(ctx context.Context, fileHash []byte, peerID peer.ID) err
 	for {
 		var chunk pb.FileChunk
 		if err = dec.Decode(&chunk); err != nil {
-			return errors.WithStack(err)
+			return "", errors.WithStack(err)
 		}
 
 		if len(chunk.Data) == 0 {
 			// End of file
 			close(chunkCh)
-			return nil
+			return fileName, nil
 		}
 
 		select {
 
 		case <-ctx.Done():
-			return errors.WithStack(ctx.Err())
+			return "", errors.WithStack(ctx.Err())
 
 		case err = <-resCh:
-			return err
+			return "", err
 
 		case chunkCh <- &chunk:
 			continue

@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -27,6 +28,10 @@ import (
 	pb "github.com/stratumn/alice/pb/storage"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+)
+
+const (
+	chunkSize = 1024
 )
 
 var (
@@ -44,7 +49,7 @@ var (
 type grpcServer struct {
 	saveFile  func(context.Context, <-chan *pb.FileChunk) ([]byte, error)
 	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
-	download  func(ctx context.Context, fileHash []byte, peerId []byte) error
+	download  func(ctx context.Context, fileHash []byte, peerId []byte) (fileName string, err error)
 
 	storagePath   string
 	sessionsMu    sync.RWMutex
@@ -55,7 +60,7 @@ type grpcServer struct {
 func newGrpcServer(
 	saveFile func(context.Context, <-chan *pb.FileChunk) ([]byte, error),
 	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error,
-	download func(ctx context.Context, fileHash []byte, peerId []byte) error,
+	download func(ctx context.Context, fileHash []byte, peerId []byte) (fileName string, err error),
 	storagePath string,
 	uploadTimeout time.Duration,
 ) *grpcServer {
@@ -141,18 +146,40 @@ func (s *grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest
 	return &grpcpb.Ack{}, nil
 }
 
-func (s *grpcServer) Download(ctx context.Context, req *grpcpb.DownloadRequest) (*grpcpb.Ack, error) {
-
-	if err := s.download(ctx, req.FileHash, req.PeerId); err != nil {
-		return nil, err
+func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_DownloadServer) error {
+	fileName, err := s.download(ss.Context(), req.FileHash, req.PeerId)
+	if err != nil {
+		return err
 	}
+	file, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 
-	return &grpcpb.Ack{}, nil
+	buffer := make([]byte, chunkSize)
+
+	for {
+		n, err := file.Read(buffer)
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+
+		chunk := pb.FileChunk{
+			FileName: file.Name(),
+			Data:     buffer[:n],
+		}
+		ss.Send(&chunk)
+	}
+	return nil
 }
 
-// ####################################################################################################################
-// #####																		 Sequential upload protocol																						#####
-// ####################################################################################################################
+// ##############################################################
+// #####		Sequential upload protocol					#####
+// ##############################################################
 
 type session struct {
 	id       uuid.UUID

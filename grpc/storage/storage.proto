@@ -40,11 +40,8 @@ service Storage {
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
 
   // Download downloads a file from a peer.
-  rpc Download (DownloadRequest) returns (Ack) {}
+  rpc Download (DownloadRequest) returns (stream stratumn.alice.pb.storage.FileChunk) {}
 }
-
-
-
 
 message SessionFileChunk {
   // file name is required only on first message.

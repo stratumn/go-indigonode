@@ -55,7 +55,7 @@ var (
 
 // Handler contains the methods to handle a file on the alice node.
 type Handler interface {
-	WriteFile(context.Context, <-chan *pb.FileChunk) (*os.File, error)
+	WriteFile(context.Context, <-chan *pb.FileChunk) (fileName string, err error)
 
 	// BeginWrite creates an empty file.
 	BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error)
@@ -101,8 +101,11 @@ func NewLocalFileHandler(path string, db db.DB) Handler {
 }
 
 // SaveFile saves a file locally.
-func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (file *os.File, err error) {
+func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (fileName string, err error) {
 	event := log.EventBegin(ctx, "SaveFile")
+
+	var file *os.File
+	defer file.Close()
 
 	defer func() {
 		if err != nil {
@@ -137,6 +140,7 @@ func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.Fil
 				if err != nil {
 					return
 				}
+				fileName = file.Name()
 				event.Append(&logging.Metadata{"filename": file.Name()})
 			}
 

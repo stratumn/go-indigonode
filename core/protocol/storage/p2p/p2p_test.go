@@ -75,7 +75,7 @@ func TestP2P_PullFile(t *testing.T) {
 
 		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
 
-		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
+		_, err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.NoError(t, err, "PullFile")
 	})
 
@@ -93,7 +93,7 @@ func TestP2P_PullFile(t *testing.T) {
 
 		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
 
-		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
+		_, err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.Error(t, err, "PullFile")
 	})
 

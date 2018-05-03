@@ -87,14 +87,14 @@ func (s *Storage) SaveFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) ([
 	event := log.EventBegin(ctx, "SaveFile")
 	defer event.Done()
 
-	file, err := s.fileHandler.WriteFile(ctx, chunkCh)
+	fileName, err := s.fileHandler.WriteFile(ctx, chunkCh)
 	if err != nil {
 		event.SetError(err)
 		return nil, err
 	}
 
 	var hash []byte
-	if hash, err = s.IndexFile(ctx, file); err != nil {
+	if hash, err = s.IndexFile(ctx, fileName); err != nil {
 		event.SetError(err)
 		return nil, err
 	}
@@ -104,9 +104,9 @@ func (s *Storage) SaveFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) ([
 }
 
 // IndexFile adds the file hash and name to the db.
-func (s *Storage) IndexFile(ctx context.Context, file *os.File) ([]byte, error) {
-	// go back to the beginning of the file.
-	if _, err := file.Seek(0, 0); err != nil {
+func (s *Storage) IndexFile(ctx context.Context, fileName string) ([]byte, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
 		return nil, err
 	}
 
@@ -143,10 +143,10 @@ func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte)
 }
 
 // PullFile pulls a file from a peer given the file hash.
-func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) error {
+func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) (fileName string, err error) {
 	peerID, err := peer.IDFromBytes(pid)
 	if err != nil {
-		return err
+		return "", err
 	}
 	return s.p2p.PullFile(ctx, fileHash, peerID)
 }

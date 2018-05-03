@@ -6,12 +6,10 @@ package mockhandler
 
 import (
 	context "context"
-	os "os"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
-	go_uuid "github.com/satori/go.uuid"
 	storage "github.com/stratumn/alice/pb/storage"
+	go_uuid "github.com/satori/go.uuid"
+	reflect "reflect"
 )
 
 // MockHandler is a mock of Handler interface
@@ -76,9 +74,9 @@ func (mr *MockHandlerMockRecorder) WriteChunk(arg0, arg1, arg2 interface{}) *gom
 }
 
 // WriteFile mocks base method
-func (m *MockHandler) WriteFile(arg0 context.Context, arg1 <-chan *storage.FileChunk) (*os.File, error) {
+func (m *MockHandler) WriteFile(arg0 context.Context, arg1 <-chan *storage.FileChunk) (string, error) {
 	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1)
-	ret0, _ := ret[0].(*os.File)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

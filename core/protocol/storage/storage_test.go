@@ -45,7 +45,7 @@ func TestStorageProtocol_IndexFile(t *testing.T) {
 	_, err = file.Write(content)
 	assert.NoError(t, err, "file.Write()")
 
-	fh, err := storage.IndexFile(context.Background(), file)
+	fh, err := storage.IndexFile(context.Background(), file.Name())
 	assert.NoError(t, err, "IndexFile")
 	assert.Equal(t, []byte(hash), fh, "IndexFile")
 

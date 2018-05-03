@@ -54,15 +54,17 @@ func TestFileHandler_Write(t *testing.T) {
 			assert.NoError(t, err, "WriteFile")
 
 			// Check that right file pointer is returned.
-			assert.Equal(t, path, f.Name(), "f.Name()")
+			assert.Equal(t, path, f, "f.Name()")
 
 			// Check that file has the right content.
 			assert.NoError(t, err, "os.Open()")
 			expected := []byte("Hello there! How are you today?")
 			content := make([]byte, 100)
 			zeros := make([]byte, 100-len(expected))
-			f.Seek(0, 0)
-			_, err = f.Read(content)
+			file, err := os.Open(f)
+			assert.NoError(t, err, "os.Open()")
+
+			_, err = file.Read(content)
 			assert.NoError(t, err, "ReadFile()")
 			assert.Equal(t, expected, content[:len(expected)], "ReadFile()")
 			assert.Equal(t, zeros, content[len(expected):], "ReadFile()")

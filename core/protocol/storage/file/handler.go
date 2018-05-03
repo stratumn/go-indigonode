@@ -105,7 +105,12 @@ func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.Fil
 	event := log.EventBegin(ctx, "SaveFile")
 
 	var file *os.File
-	defer file.Close()
+	defer func() {
+		cerr := file.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	defer func() {
 		if err != nil {

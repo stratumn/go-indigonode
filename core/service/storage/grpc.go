@@ -146,7 +146,7 @@ func (s *grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest
 	return &grpcpb.Ack{}, nil
 }
 
-func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_DownloadServer) error {
+func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_DownloadServer) (err error) {
 	fileName, err := s.download(ss.Context(), req.FileHash, req.PeerId)
 	if err != nil {
 		return err
@@ -155,7 +155,12 @@ func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_Dow
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		cerr := file.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	buffer := make([]byte, chunkSize)
 

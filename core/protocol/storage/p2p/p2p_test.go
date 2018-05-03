@@ -24,6 +24,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	p2pcore "github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/storage/constants"
+	"github.com/stratumn/alice/core/protocol/storage/file"
 	"github.com/stratumn/alice/core/protocol/storage/file/mockhandler"
 	"github.com/stratumn/alice/core/protocol/storage/p2p/mockencoder"
 	pb "github.com/stratumn/alice/pb/storage"
@@ -106,7 +107,6 @@ func TestP2P_PullFile(t *testing.T) {
 
 func TestP2P_SendFile(t *testing.T) {
 	fileHash := []byte("file hash")
-	uid := uuid.NewV4()
 	fileName := "yolo"
 	filePath := "/the/path/to/" + fileName
 	chunkSize := 42
@@ -122,16 +122,14 @@ func TestP2P_SendFile(t *testing.T) {
 	}
 
 	chunk1 := []byte("who wants to download ")
-	chunk2 := []byte("my juicy file ?")
 
 	gomock.InOrder(
-		fileHandler.EXPECT().BeginRead(gomock.Any(), fileHash).Return(uid, filePath, nil),
-		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(chunk1, nil),
-		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: chunk1}),
-		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(chunk2, nil),
-		enc.EXPECT().Encode(&pb.FileChunk{Data: chunk2}),
-		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(nil, io.EOF),
-		fileHandler.EXPECT().EndRead(gomock.Any(), uid).Return(nil),
+		fileHandler.EXPECT().ReadChunks(gomock.Any(), fileHash, gomock.Any(), gomock.Any()).Do(func(ctx context.Context, hash []byte, size int, r file.Reader) {
+			assert.Equal(t, chunkSize, size, "chunkSize")
+			assert.Equal(t, fileHash, hash, "chunkSize")
+			r.OnChunk(chunk1, filePath)
+		}),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: chunk1, FileName: fileName}),
 		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
 	)
 

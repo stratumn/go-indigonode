@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockhandler -destination mockhandler/mockhandler.go github.com/stratumn/alice/core/protocol/storage/file Handler
+//go:generate mockgen -package mockhandler -destination mockhandler/mockhandler.go github.com/stratumn/alice/core/protocol/storage/file Handler,Reader
 
 package file
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -65,14 +67,19 @@ type Handler interface {
 	// AbortWrite is called to abort the file writing process.
 	AbortWrite(ctx context.Context, sessionID uuid.UUID) (err error)
 
-	// BeginRead starts a read session and returns the ID and the file path.
-	BeginRead(ctx context.Context, fileHash []byte) (uuid.UUID, string, error)
+	// ReadChunks reads a file by chunk and calls the callback for each chunk.
+	ReadChunks(ctx context.Context, fileHash []byte, chunkSize int, reader Reader) error
 
-	// ReadChunk reads the next chunk of data from a file.
-	ReadChunk(ctx context.Context, sessionID uuid.UUID, chunkSize int) ([]byte, error)
+	// Read returns the content of a file given its hash.
+	Read(ctx context.Context, fileHash []byte) ([]byte, error)
 
-	// EndRead is called to finalize the file reading.
-	EndRead(ctx context.Context, sessionID uuid.UUID) error
+	// Exists returns whether the file with the given hash exists in the handler db.
+	Exists(ctx context.Context, fileHash []byte) (bool, error)
+}
+
+// Reader should be implemented by a type that wants to read a file by chunks.
+type Reader interface {
+	OnChunk(chunk []byte, filePath string) error
 }
 
 // session represents one file write.
@@ -108,9 +115,9 @@ func NewLocalFileHandler(path string, db db.DB) Handler {
 	}
 }
 
-// ============================================================================
-// ====															Sequential write											 ====
-// ============================================================================
+// ==========================================================================
+// ====					Sequential write								 ====
+// ==========================================================================
 
 // BeginWrite creates an empty file and attaches it to a session.
 func (h *localFileHandler) BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error) {
@@ -235,12 +242,61 @@ func (h *localFileHandler) AbortWrite(ctx context.Context, sessionID uuid.UUID) 
 	return
 }
 
+func (h *localFileHandler) Read(ctx context.Context, fileHash []byte) ([]byte, error) {
+	filePath, err := h.getFilePath(ctx, fileHash)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.ReadFile(filePath)
+}
+
+func (h *localFileHandler) ReadChunks(ctx context.Context, fileHash []byte, chunkSize int, reader Reader) error {
+	event := log.EventBegin(ctx, "Read", &logging.Metadata{"fileHash": fileHash})
+
+	sessionID, filePath, err := h.beginRead(ctx, fileHash)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+LOOP:
+	for {
+		select {
+		case <-ctx.Done():
+			event.SetError(ctx.Err())
+			return ctx.Err()
+
+		default:
+			data, err := h.readChunk(ctx, sessionID, chunkSize)
+			if err == io.EOF {
+				break LOOP
+			}
+			if err != nil {
+				event.SetError(err)
+				return err
+			}
+			if err := reader.OnChunk(data, filePath); err != nil {
+				if err2 := h.endRead(ctx, sessionID); err2 != nil {
+					err = errors.Wrap(err, err2.Error())
+				}
+				event.SetError(err)
+				return err
+			}
+		}
+	}
+
+	if err := h.endRead(ctx, sessionID); err != nil {
+		event.Append(&logging.Metadata{"end_read_error": err.Error()})
+	}
+	return nil
+}
+
 // ============================================================================
 // ====															Sequential read											 	 ====
 // ============================================================================
 
-// BeginRead opens a file given its hash and attaches it to a session.
-func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid.UUID, string, error) {
+// beginRead opens a file given its hash and attaches it to a session.
+func (h *localFileHandler) beginRead(ctx context.Context, fileHash []byte) (uuid.UUID, string, error) {
 	event := log.EventBegin(ctx, "BeginRead", &logging.Metadata{"fileHash": hex.EncodeToString(fileHash)})
 	defer event.Done()
 
@@ -267,8 +323,8 @@ func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid
 	return session.id, filePath, nil
 }
 
-// ReadChunk reads a chunk of data.
-func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, chunkSize int) ([]byte, error) {
+// readChunk reads a chunk of data.
+func (h *localFileHandler) readChunk(ctx context.Context, sessionID uuid.UUID, chunkSize int) ([]byte, error) {
 	event := log.EventBegin(ctx, "ReadChunk", &logging.Metadata{"sessionID": sessionID})
 	defer event.Done()
 
@@ -299,8 +355,8 @@ func (h *localFileHandler) ReadChunk(ctx context.Context, sessionID uuid.UUID, c
 	return chunk[:n], nil
 }
 
-// EndRead must be called at the end of the read process to delete the session.
-func (h *localFileHandler) EndRead(ctx context.Context, sessionID uuid.UUID) error {
+// endRead must be called at the end of the read process to delete the session.
+func (h *localFileHandler) endRead(ctx context.Context, sessionID uuid.UUID) error {
 	event := log.EventBegin(ctx, "EndRead", &logging.Metadata{"sessionID": sessionID})
 	defer event.Done()
 
@@ -323,6 +379,48 @@ func (h *localFileHandler) EndRead(ctx context.Context, sessionID uuid.UUID) err
 	return nil
 }
 
+// Exists returns whether the file with the given hash exists in the handler
+// db, the file exists on disk and its hash matches.
+// It deletes the entry from the DB if the file cannot be found or has a
+// different hash.
+func (h *localFileHandler) Exists(ctx context.Context, fileHash []byte) (exists bool, err error) {
+	event := log.EventBegin(ctx, "Exists", &logging.Metadata{"fileHash": fileHash})
+	defer event.Done()
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+			err2 := h.db.Delete(append(prefixFilesHashes, fileHash...))
+			if err2 != nil {
+				event.SetError(err2)
+			}
+		}
+	}()
+
+	var path string
+	path, err = h.getFilePath(ctx, fileHash)
+	if err != nil {
+		if err == db.ErrNotFound {
+			err = nil
+			return
+		}
+		return
+	}
+
+	var file *os.File
+	file, err = os.Open(path)
+	if err != nil {
+		return
+	}
+
+	var hash []byte
+	hash, err = hashFile(file)
+	if err != nil {
+		return
+	}
+
+	return bytes.Compare(fileHash, hash) == 0, nil
+}
+
 // ============================================================================
 // ====															indexing														 	 ====
 // ============================================================================
@@ -334,12 +432,7 @@ func (h *localFileHandler) indexFile(ctx context.Context, file *os.File) ([]byte
 		return nil, err
 	}
 
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return nil, err
-	}
-
-	fileHash, err := mh.Encode(hash.Sum(nil), mh.SHA2_256)
+	fileHash, err := hashFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -349,6 +442,15 @@ func (h *localFileHandler) indexFile(ctx context.Context, file *os.File) ([]byte
 	}
 
 	return fileHash, nil
+}
+
+func hashFile(file *os.File) ([]byte, error) {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return nil, err
+	}
+
+	return mh.Encode(hash.Sum(nil), mh.SHA2_256)
 }
 
 // getFilePath returns the file path given its hash.

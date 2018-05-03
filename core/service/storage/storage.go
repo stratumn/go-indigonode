@@ -219,15 +219,18 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 				}
 				return s.storage.Authorize(ctx, peerIds, fileHash)
 			},
-
 			download: func(ctx context.Context, fileHash []byte, peerId []byte) error {
 				if s.storage == nil {
 					return ErrUnavailable
 				}
 				return s.storage.PullFile(ctx, fileHash, peerId)
 			},
-
+			readChunks: func(ctx context.Context, fileHash []byte, chunkSize int, cr *chunkReader) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
+				return s.storage.FileHandler.ReadChunks(ctx, fileHash, chunkSize, cr)
+			},
 			uploadTimeout: s.uploadTimeout,
-		},
-	)
+		})
 }

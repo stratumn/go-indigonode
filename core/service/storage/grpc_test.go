@@ -234,6 +234,9 @@ func TestGRPCServer_AuthorizePeers(t *testing.T) {
 }
 
 func TestGRPCServer_Download(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
 	var fh []byte
 	var pid []byte
 
@@ -243,15 +246,36 @@ func TestGRPCServer_Download(t *testing.T) {
 			pid = peerId
 			return nil
 		},
+		readChunks: func(ctx context.Context, fileHash []byte, chunkSize int, cr *chunkReader) error {
+			err := cr.OnChunk([]byte("123"), "blah.pdf")
+			assert.NoError(t, err, "cr.OnChunk()")
+
+			return cr.OnChunk([]byte("456"), "blah.pdf")
+		},
 	}
 
 	fileHash := []byte("file hash")
 	peerID := []byte("QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf1")
 
-	server.Download(context.Background(), &grpcpb.DownloadRequest{
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ss := mockstorage.NewMockStorage_DownloadServer(ctrl)
+
+	ss.EXPECT().Context().Return(ctx).AnyTimes()
+	gomock.InOrder(
+		ss.EXPECT().Send(&pb.FileChunk{
+			FileName: "blah.pdf",
+			Data:     []byte("123"),
+		}),
+		ss.EXPECT().Send(&pb.FileChunk{
+			Data: []byte("456"),
+		}),
+	)
+
+	server.Download(&grpcpb.DownloadRequest{
 		FileHash: fileHash,
 		PeerId:   peerID,
-	})
+	}, ss)
 
 	assert.Equal(t, fileHash, fh, "FileHash")
 	assert.Equal(t, peerID, pid, "PeerId")

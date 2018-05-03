@@ -28,151 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stratumn/alice/core/db"
-	pb "github.com/stratumn/alice/pb/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestFileHandler_Write(t *testing.T) {
-
-	tmpPath := "/tmp"
-	db, err := db.NewMemDB(nil)
-	require.NoError(t, err, "NewMemDB()")
-
-	fileHandler := NewLocalFileHandler(tmpPath, db)
-
-	t.Run("successfully-write", func(t *testing.T) {
-		ctx := context.Background()
-		chunkCh := make(chan *pb.FileChunk)
-		doneCh := make(chan struct{})
-
-		fileName := fmt.Sprintf("TheFile-%d", time.Now().UnixNano())
-		path := "/tmp/" + fileName
-		defer os.Remove(path)
-
-		go func() {
-			f, err := fileHandler.WriteFile(ctx, chunkCh)
-			assert.NoError(t, err, "WriteFile")
-
-			// Check that right file pointer is returned.
-			assert.Equal(t, path, f.Name(), "f.Name()")
-
-			// Check that file has the right content.
-			assert.NoError(t, err, "os.Open()")
-			expected := []byte("Hello there! How are you today?")
-			content := make([]byte, 100)
-			zeros := make([]byte, 100-len(expected))
-			f.Seek(0, 0)
-			_, err = f.Read(content)
-			assert.NoError(t, err, "ReadFile()")
-			assert.Equal(t, expected, content[:len(expected)], "ReadFile()")
-			assert.Equal(t, zeros, content[len(expected):], "ReadFile()")
-
-			doneCh <- struct{}{}
-		}()
-
-		chunkCh <- &pb.FileChunk{
-			FileName: fileName,
-			Data:     []byte("Hello there! "),
-		}
-		chunkCh <- &pb.FileChunk{
-			Data: []byte("How are you today?"),
-		}
-
-		close(chunkCh)
-
-		<-doneCh
-	})
-
-	t.Run("missing-name", func(t *testing.T) {
-		ctx := context.Background()
-		chunkCh := make(chan *pb.FileChunk)
-		doneCh := make(chan struct{})
-
-		fileName := fmt.Sprintf("TheFile-%d", time.Now().UnixNano())
-		path := "/tmp/" + fileName
-		defer os.Remove(path)
-
-		go func() {
-			_, err := fileHandler.WriteFile(ctx, chunkCh)
-			assert.EqualError(t, err, ErrFileNameMissing.Error(), "WriteFile()")
-
-			// Check that file has been deleted.
-			_, err = os.Stat(path)
-			assert.True(t, os.IsNotExist(err), "os.Stat()")
-
-			doneCh <- struct{}{}
-		}()
-
-		chunkCh <- &pb.FileChunk{
-			Data: []byte("Hello there! "),
-		}
-
-		close(chunkCh)
-
-		<-doneCh
-	})
-
-	t.Run("bad-path", func(t *testing.T) {
-		ctx := context.Background()
-		chunkCh := make(chan *pb.FileChunk)
-		doneCh := make(chan struct{})
-
-		fileName := fmt.Sprintf("thisdoesnotexist/TheFile-%d", time.Now().UnixNano())
-		path := "/tmp/" + fileName
-		defer os.Remove(path)
-
-		go func() {
-			_, err := fileHandler.WriteFile(ctx, chunkCh)
-			assert.True(t, os.IsNotExist(err), "WriteFile()")
-
-			// Check that file has not been written anyway.
-			_, err = os.Stat(path)
-			assert.True(t, os.IsNotExist(err), "os.Stat()")
-
-			doneCh <- struct{}{}
-		}()
-
-		chunkCh <- &pb.FileChunk{
-			FileName: fileName,
-			Data:     []byte("Hello there! "),
-		}
-
-		close(chunkCh)
-
-		<-doneCh
-	})
-
-	t.Run("context-done", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		chunkCh := make(chan *pb.FileChunk)
-		doneCh := make(chan struct{})
-
-		fileName := fmt.Sprintf("TheFile-%d", time.Now().UnixNano())
-		path := "/tmp/" + fileName
-		defer os.Remove(path)
-
-		go func() {
-			_, err := fileHandler.WriteFile(ctx, chunkCh)
-			assert.Error(t, err, "WriteFile")
-
-			// Check that file has not been written anyway.
-			_, err = os.Stat(path)
-			assert.True(t, os.IsNotExist(err), "os.Stat()")
-
-			doneCh <- struct{}{}
-		}()
-
-		chunkCh <- &pb.FileChunk{
-			FileName: fileName,
-			Data:     []byte("Hello there! "),
-		}
-
-		cancel()
-
-		<-doneCh
-	})
-
-}
 
 // ============================================================================
 // ==== 															Write																 ====
@@ -198,6 +55,17 @@ func TestFileHandler_BeginWrite(t *testing.T) {
 
 	err = os.Remove("/tmp/" + fileName)
 	assert.NoError(t, err, "os.Remove")
+}
+
+func TestFileHandler_BeginWrite_Fail(t *testing.T) {
+
+	fileHandler := &localFileHandler{
+		storagePath:   "/tmp",
+		writeSessions: make(map[uuid.UUID]*session),
+	}
+
+	_, err := fileHandler.BeginWrite(context.Background(), "")
+	assert.EqualError(t, err, ErrFileNameMissing.Error(), "BeginWrite")
 }
 
 func TestFileHandler_WriteChunk(t *testing.T) {
@@ -380,10 +248,12 @@ func TestFileHandler_BeginRead(t *testing.T) {
 	fileHandler := &localFileHandler{
 		db:           db,
 		readSessions: make(map[uuid.UUID]*session),
+		storagePath:  "/tmp",
 	}
 
-	id, err := fileHandler.BeginRead(context.Background(), fileHash)
+	id, path, err := fileHandler.BeginRead(context.Background(), fileHash)
 	assert.NoError(t, err, "BeginRead")
+	assert.Equal(t, filePath, path, "BeginRead")
 
 	// Check that the session has teh right file.
 	session, ok := fileHandler.readSessions[id]
@@ -412,6 +282,7 @@ func TestFileHandler_ReadChunk(t *testing.T) {
 
 	fileHandler := &localFileHandler{
 		readSessions: map[uuid.UUID]*session{sess.id: sess},
+		storagePath:  "/tmp",
 	}
 
 	// Read first chunk.
@@ -441,6 +312,7 @@ func TestFileHandler_ReadChunk_Fail(t *testing.T) {
 
 	fileHandler := &localFileHandler{
 		readSessions: map[uuid.UUID]*session{sess.id: sess},
+		storagePath:  "/tmp",
 	}
 
 	t.Run("no-session", func(t *testing.T) {
@@ -470,6 +342,7 @@ func TestFileHandler_EndRead(t *testing.T) {
 
 	fileHandler := &localFileHandler{
 		readSessions: map[uuid.UUID]*session{sess.id: sess},
+		storagePath:  "/tmp",
 	}
 
 	err = fileHandler.EndRead(context.Background(), sess.id)
@@ -484,6 +357,7 @@ func TestFileHandler_EndRead_Fail(t *testing.T) {
 
 	fileHandler := &localFileHandler{
 		readSessions: map[uuid.UUID]*session{},
+		storagePath:  "/tmp",
 	}
 
 	err := fileHandler.EndRead(context.Background(), uuid.NewV4())

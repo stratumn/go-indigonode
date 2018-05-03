@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -29,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 	"github.com/stratumn/alice/core/db"
-	pb "github.com/stratumn/alice/pb/storage"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -55,8 +53,6 @@ var (
 
 // Handler contains the methods to handle a file on the alice node.
 type Handler interface {
-	WriteFile(context.Context, <-chan *pb.FileChunk) (*os.File, error)
-
 	// BeginWrite creates an empty file.
 	BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error)
 
@@ -65,6 +61,18 @@ type Handler interface {
 
 	// EndWrite is called to finalize the file writing.
 	EndWrite(ctx context.Context, sessionID uuid.UUID) (fileHash []byte, err error)
+
+	// AbortWrite is called to abort the file writing process.
+	AbortWrite(ctx context.Context, sessionID uuid.UUID) (err error)
+
+	// BeginRead starts a read session and returns the ID and the file path.
+	BeginRead(ctx context.Context, fileHash []byte) (uuid.UUID, string, error)
+
+	// ReadChunk reads the next chunk of data from a file.
+	ReadChunk(ctx context.Context, sessionID uuid.UUID, chunkSize int) ([]byte, error)
+
+	// EndRead is called to finalize the file reading.
+	EndRead(ctx context.Context, sessionID uuid.UUID) error
 }
 
 // session represents one file write.
@@ -100,53 +108,6 @@ func NewLocalFileHandler(path string, db db.DB) Handler {
 	}
 }
 
-// SaveFile saves a file locally.
-func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.FileChunk) (file *os.File, err error) {
-	event := log.EventBegin(ctx, "SaveFile")
-
-	defer func() {
-		if err != nil {
-			// Delete the partially written file.
-			if file != nil {
-				if err2 := os.Remove(file.Name()); err2 != nil {
-					err = errors.Wrap(err, err2.Error())
-				}
-			}
-			event.SetError(err)
-		}
-		event.Done()
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			err = ctx.Err()
-			return
-
-		case chunk, ok := <-chunkCh:
-			if !ok {
-				return
-			}
-			if file == nil && chunk.FileName == "" {
-				err = ErrFileNameMissing
-				return
-			}
-
-			if file == nil {
-				file, err = os.Create(fmt.Sprintf("%s/%s", h.storagePath, chunk.FileName))
-				if err != nil {
-					return
-				}
-				event.Append(&logging.Metadata{"filename": file.Name()})
-			}
-
-			if _, err = file.Write(chunk.Data); err != nil {
-				return
-			}
-		}
-	}
-}
-
 // ============================================================================
 // ====															Sequential write											 ====
 // ============================================================================
@@ -155,6 +116,11 @@ func (h *localFileHandler) WriteFile(ctx context.Context, chunkCh <-chan *pb.Fil
 func (h *localFileHandler) BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error) {
 	event := log.EventBegin(ctx, "BeginWrite", &logging.Metadata{"fileName": fileName})
 	defer event.Done()
+
+	if fileName == "" {
+		event.SetError(ErrFileNameMissing)
+		return uuid.Nil, ErrFileNameMissing
+	}
 
 	file, err := os.Create(filepath.Join(h.storagePath, fileName))
 	if err != nil {
@@ -186,7 +152,7 @@ func (h *localFileHandler) WriteChunk(ctx context.Context, sessionID uuid.UUID, 
 
 	_, err := session.file.Write(chunk)
 	if err != nil {
-		err2 := h.deleteFile(ctx, sessionID)
+		err2 := h.AbortWrite(ctx, sessionID)
 		if err2 != nil {
 			err = errors.Wrap(err, err2.Error())
 		}
@@ -200,6 +166,7 @@ func (h *localFileHandler) WriteChunk(ctx context.Context, sessionID uuid.UUID, 
 // It indexes the file, cleans the session and returns the filehash.
 func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) ([]byte, error) {
 	event := log.EventBegin(ctx, "EndWrite", &logging.Metadata{"sessionID": sessionID})
+	defer event.Done()
 
 	h.writeSessionsMu.RLock()
 	session, ok := h.writeSessions[sessionID]
@@ -212,13 +179,14 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) ([
 
 	fileHash, err := h.indexFile(ctx, session.file)
 	if err != nil {
-		err2 := h.deleteFile(ctx, sessionID)
+		err2 := h.AbortWrite(ctx, sessionID)
 		if err2 != nil {
 			err = errors.Wrap(err, err2.Error())
 		}
 		event.SetError(err)
 		return nil, err
 	}
+	event.Append(&logging.Metadata{"file_hash": hex.EncodeToString(fileHash)})
 
 	h.writeSessionsMu.Lock()
 	delete(h.writeSessions, sessionID)
@@ -231,9 +199,9 @@ func (h *localFileHandler) EndWrite(ctx context.Context, sessionID uuid.UUID) ([
 	return fileHash, nil
 }
 
-// deleteFile deletes a file and its session.
+// AbortWrite deletes a file and its session.
 // Used to clean partially written files when an error occurs.
-func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) (err error) {
+func (h *localFileHandler) AbortWrite(ctx context.Context, sessionID uuid.UUID) (err error) {
 	event := log.EventBegin(ctx, "DeleteFile", &logging.Metadata{"sessionID": sessionID})
 	defer func() {
 		if err != nil {
@@ -272,20 +240,20 @@ func (h *localFileHandler) deleteFile(ctx context.Context, sessionID uuid.UUID) 
 // ============================================================================
 
 // BeginRead opens a file given its hash and attaches it to a session.
-func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid.UUID, error) {
+func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid.UUID, string, error) {
 	event := log.EventBegin(ctx, "BeginRead", &logging.Metadata{"fileHash": hex.EncodeToString(fileHash)})
 	defer event.Done()
 
 	filePath, err := h.getFilePath(ctx, fileHash)
 	if err != nil {
 		event.SetError(err)
-		return uuid.Nil, err
+		return uuid.Nil, "", err
 	}
 
-	file, err := os.Open(filepath.Join(h.storagePath, filePath))
+	file, err := os.Open(filePath)
 	if err != nil {
 		event.SetError(err)
-		return uuid.Nil, errors.WithStack(err)
+		return uuid.Nil, "", errors.WithStack(err)
 	}
 
 	session := newSession(file)
@@ -296,7 +264,7 @@ func (h *localFileHandler) BeginRead(ctx context.Context, fileHash []byte) (uuid
 
 	event.Append(&logging.Metadata{"sessionID": session.id})
 
-	return session.id, nil
+	return session.id, filePath, nil
 }
 
 // ReadChunk reads a chunk of data.

@@ -21,11 +21,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stratumn/alice/core/db"
 	"github.com/stratumn/alice/core/protocol/storage"
 	"github.com/stratumn/alice/core/protocol/storage/constants"
 	grpcpb "github.com/stratumn/alice/grpc/storage"
-	pb "github.com/stratumn/alice/pb/storage"
 
 	"google.golang.org/grpc"
 
@@ -184,22 +184,50 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	grpcpb.RegisterStorageServer(
 		gs,
-		newGrpcServer(
-			func(ctx context.Context, ch <-chan *pb.FileChunk) ([]byte, error) {
+		&grpcServer{
+			beginWrite: func(ctx context.Context, name string) (uuid.UUID, error) {
+				if s.storage == nil {
+					return uuid.Nil, ErrUnavailable
+				}
+				return s.storage.FileHandler.BeginWrite(ctx, name)
+			},
+
+			writeChunk: func(ctx context.Context, id uuid.UUID, data []byte) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
+				return s.storage.FileHandler.WriteChunk(ctx, id, data)
+			},
+
+			endWrite: func(ctx context.Context, id uuid.UUID) ([]byte, error) {
 				if s.storage == nil {
 					return nil, ErrUnavailable
 				}
-				return s.storage.SaveFile(ctx, ch)
+				return s.storage.FileHandler.EndWrite(ctx, id)
 			},
-			func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+
+			abortWrite: func(ctx context.Context, id uuid.UUID) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
+				return s.storage.FileHandler.AbortWrite(ctx, id)
+			},
+
+			authorize: func(ctx context.Context, peerIds [][]byte, fileHash []byte) error {
+				if s.storage == nil {
+					return ErrUnavailable
+				}
 				return s.storage.Authorize(ctx, peerIds, fileHash)
 			},
-			func(ctx context.Context, fileHash []byte, peerId []byte) error {
+
+			download: func(ctx context.Context, fileHash []byte, peerId []byte) error {
 				if s.storage == nil {
 					return ErrUnavailable
 				}
 				return s.storage.PullFile(ctx, fileHash, peerId)
 			},
-			s.config.LocalStorage,
-			s.uploadTimeout))
+
+			uploadTimeout: s.uploadTimeout,
+		},
+	)
 }

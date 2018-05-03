@@ -16,14 +16,12 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	p2pcore "github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/protocol/storage/constants"
 	"github.com/stratumn/alice/core/protocol/storage/file/mockhandler"
@@ -53,45 +51,52 @@ func TestP2P_PullFile(t *testing.T) {
 	fileHandler := mockhandler.NewMockHandler(ctrl)
 
 	fileName := "filename"
-	data := []byte("hello there")
+	data := []byte("hello")
+
+	uid := uuid.NewV4()
+	p2p := NewP2P(h1, fileHandler)
 
 	t.Run("successfully-write-file", func(t *testing.T) {
-		fileHandler.EXPECT().WriteFile(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, ch <-chan *pb.FileChunk) (interface{}, error) {
-				first := true
-				for _, b := range data {
-					chunk := <-ch
-					if first {
-						assert.Equal(t, fileName, chunk.FileName)
-						first = false
-					}
-					assert.Equal(t, []byte{b}, chunk.Data, "chunk.Data")
-				}
 
-				return nil, nil
-			})
+		gomock.InOrder(
+			fileHandler.EXPECT().BeginWrite(gomock.Any(), fileName).Return(uid, nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("h")).Return(nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("e")).Return(nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("l")).Return(nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("l")).Return(nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("o")).Return(nil),
+			fileHandler.EXPECT().EndWrite(gomock.Any(), uid).Return(nil, nil),
+		)
 
-		p2p := NewP2P(h1, fileHandler)
-
-		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
+		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data, 0))
 
 		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.NoError(t, err, "PullFile")
 	})
 
 	t.Run("fail-write-file", func(t *testing.T) {
-		fileHandler.EXPECT().WriteFile(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(_ context.Context, ch <-chan *pb.FileChunk) (interface{}, error) {
-				chunk := <-ch
-				assert.Equal(t, fileName, chunk.FileName)
-				assert.Equal(t, []byte{data[0]}, chunk.Data, "chunk.Data")
 
-				return nil, errors.New("https://goo.gl/YMfBcQ")
-			})
+		gomock.InOrder(
+			fileHandler.EXPECT().BeginWrite(gomock.Any(), fileName).Return(uid, nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("h")).Return(nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("e")).Return(errors.New("https://goo.gl/YMfBcQ")),
+		)
 
-		p2p := NewP2P(h1, fileHandler)
+		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data, 0))
 
-		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data))
+		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
+		assert.Error(t, err, "PullFile")
+	})
+
+	t.Run("fail-receive-chunk", func(t *testing.T) {
+
+		gomock.InOrder(
+			fileHandler.EXPECT().BeginWrite(gomock.Any(), fileName).Return(uid, nil),
+			fileHandler.EXPECT().WriteChunk(gomock.Any(), uid, []byte("h")).Return(nil),
+			fileHandler.EXPECT().AbortWrite(gomock.Any(), uid).Return(nil),
+		)
+
+		h2.SetStreamHandler(constants.ProtocolID, getStreamHandler(ctx, fileName, data, 1))
 
 		err := p2p.PullFile(ctx, []byte("fileHash"), h2.ID())
 		assert.Error(t, err, "PullFile")
@@ -100,72 +105,46 @@ func TestP2P_PullFile(t *testing.T) {
 }
 
 func TestP2P_SendFile(t *testing.T) {
-
-	content := []byte("Who wants to download my juicy file ?")
-	storagePath := "/tmp/"
-	fileName := fmt.Sprintf("TestP2P_SendFile-%d", time.Now().UnixNano())
-	filePath := storagePath + fileName
-
-	f, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	_, err = f.Write(content)
-	require.NoError(t, err, "f.Write")
+	fileHash := []byte("file hash")
+	uid := uuid.NewV4()
+	fileName := "yolo"
+	filePath := "/the/path/to/" + fileName
+	chunkSize := 42
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	enc := mockencoder.NewMockEncoder(ctrl)
+	fileHandler := mockhandler.NewMockHandler(ctrl)
 
 	p2p := &p2p{
-		chunkSize: 10,
+		fileHandler: fileHandler,
+		chunkSize:   chunkSize,
 	}
 
+	chunk1 := []byte("who wants to download ")
+	chunk2 := []byte("my juicy file ?")
+
 	gomock.InOrder(
-		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: content[0:10]}),
-		enc.EXPECT().Encode(&pb.FileChunk{Data: content[10:20]}),
-		enc.EXPECT().Encode(&pb.FileChunk{Data: content[20:30]}),
-		enc.EXPECT().Encode(&pb.FileChunk{Data: content[30:37]}),
+		fileHandler.EXPECT().BeginRead(gomock.Any(), fileHash).Return(uid, filePath, nil),
+		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(chunk1, nil),
+		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: chunk1}),
+		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(chunk2, nil),
+		enc.EXPECT().Encode(&pb.FileChunk{Data: chunk2}),
+		fileHandler.EXPECT().ReadChunk(gomock.Any(), uid, chunkSize).Return(nil, io.EOF),
+		fileHandler.EXPECT().EndRead(gomock.Any(), uid).Return(nil),
 		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
 	)
 
-	err = p2p.SendFile(context.Background(), enc, filePath)
-	assert.NoError(t, err, "SendFile")
-}
-
-func TestP2P_SendFile_ExactChunkSize(t *testing.T) {
-
-	content := []byte("0123456789")
-	storagePath := "/tmp/"
-	fileName := fmt.Sprintf("TestP2P_SendFile-%d", time.Now().UnixNano())
-	filePath := storagePath + fileName
-
-	f, err := os.Create(filePath)
-	require.NoError(t, err, "os.Create")
-
-	_, err = f.Write(content)
-	require.NoError(t, err, "f.Write")
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	enc := mockencoder.NewMockEncoder(ctrl)
-
-	p2p := &p2p{
-		chunkSize: 10,
-	}
-
-	gomock.InOrder(
-		enc.EXPECT().Encode(&pb.FileChunk{FileName: fileName, Data: content}),
-		enc.EXPECT().Encode(&pb.FileChunk{Data: nil}),
-	)
-
-	err = p2p.SendFile(context.Background(), enc, filePath)
+	err := p2p.SendFile(context.Background(), enc, fileHash)
 	assert.NoError(t, err, "SendFile")
 }
 
 // Returns a stream handler that streams the byte array.
-func getStreamHandler(ctx context.Context, name string, data []byte) func(inet.Stream) {
+// if failAfter > 0, the transmission will fail after failAfter messages
+func getStreamHandler(ctx context.Context, name string, data []byte, failAfter int) func(inet.Stream) {
 
 	return func(stream inet.Stream) {
+		defer stream.Close()
 		dec := protobuf.Multicodec(nil).Decoder(stream)
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		ch := make(chan error, 1)
@@ -182,7 +161,12 @@ func getStreamHandler(ctx context.Context, name string, data []byte) func(inet.S
 			}
 
 			first := true
-			for _, b := range data {
+			for i, b := range data {
+				if failAfter > 0 && i == failAfter {
+					ch <- errors.New("https://goo.gl/YMfBcQ")
+					return
+				}
+
 				rsp := &pb.FileChunk{Data: []byte{b}}
 				if first {
 					rsp.FileName = name

@@ -168,7 +168,10 @@ func (p *p2p) SendFile(ctx context.Context, enc Encoder, fileHash []byte) error 
 	})
 	defer event.Done()
 
-	p.fileHandler.ReadChunks(ctx, fileHash, p.chunkSize, newChunkReader(enc))
+	err := p.fileHandler.ReadChunks(ctx, fileHash, p.chunkSize, newChunkReader(enc))
+	if err != nil {
+		return err
+	}
 
 	// Send an empty chunk to notify end of file.
 	return enc.Encode(&pb.FileChunk{})

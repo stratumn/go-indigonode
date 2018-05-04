@@ -231,5 +231,6 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 				}
 				return s.storage.FileHandler.ReadChunks(ctx, fileHash, chunkSize, cr)
 			},
+			uploadTimeout: s.uploadTimeout,
 		})
 }

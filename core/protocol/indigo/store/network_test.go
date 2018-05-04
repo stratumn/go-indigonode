@@ -173,7 +173,7 @@ func TestPublishListen(t *testing.T) {
 	t.Run("publish-valid-message", func(t *testing.T) {
 		link := cstesting.NewLinkBuilder().Build()
 		constants.SetLinkNodeID(link, networkNodeIDs[0])
-		assert.NoError(t, networkMgrs[0].Publish(context.Background(), link))
+		require.NoError(t, networkMgrs[0].Publish(context.Background(), link))
 
 		for i := 1; i < nodeCount; i++ {
 			select {

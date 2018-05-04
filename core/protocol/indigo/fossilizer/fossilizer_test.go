@@ -169,7 +169,7 @@ func TestStarted(t *testing.T) {
 		indigoBatchFossilizer.EXPECT().Started().Times(1).Return(started)
 
 		go func() {
-			// wait for 100ms before sending an event in the started channel.
+			// wait for 10ms before sending an event in the started channel.
 			<-time.After(10 * time.Millisecond)
 			started <- struct{}{}
 		}()
@@ -183,7 +183,7 @@ func TestStarted(t *testing.T) {
 		}
 
 		// wait a little bit longer before checking if the channel contains an event.
-		<-time.After(15 * time.Millisecond)
+		<-time.After(30 * time.Millisecond)
 
 		select {
 		case <-startedChan:

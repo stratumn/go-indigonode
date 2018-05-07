@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/alice/core/service/indigo/store Host
+//go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/go-indigocore/validator Validator
 
 // Package store contains the Indigo Store service.
 package store
@@ -87,6 +88,7 @@ func (s *Service) Config() interface{} {
 		PostgresConfig: &PostgresConfig{
 			StorageDBURL: postgresstore.DefaultURL,
 		},
+		ValidationConfig: &ValidationConfig{},
 	}
 }
 
@@ -138,6 +140,11 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
+	governanceManager, err := s.config.CreateValidator(ctx, indigoStore)
+	if err != nil {
+		return err
+	}
+
 	// We can't use the input context as a parent because it is cancelled
 	// before we do the cleanup (see the <-ctx.Done() line).
 	// For part of the floodsub cleanup, we need an active context.
@@ -151,7 +158,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	syncEngine := sync.NewSingleNodeEngine(s.host, indigoStore)
 
-	s.store = protocol.New(networkMgr, syncEngine, indigoStore, auditStore)
+	s.store = protocol.New(ctx, networkMgr, syncEngine, indigoStore, auditStore, governanceManager)
 
 	errChan := make(chan error)
 	listenCtx, cancelListen := context.WithCancel(networkCtx)

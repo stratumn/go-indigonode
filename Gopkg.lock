@@ -486,9 +486,10 @@
     "store/storetestcases",
     "testutil",
     "types",
-    "utils"
+    "utils",
+    "validator"
   ]
-  revision = "c33f4b1bb7aa1388783baaff1f1f9032140c01fa"
+  revision = "acb0910b5f0fe3e06f6976197aedd04facdbd432"
 
 [[projects]]
   branch = "master"
@@ -532,6 +533,24 @@
   packages = ["."]
   revision = "f30a97dd1445619884e03e7ed088bc1b3c4f767e"
   version = "0.9.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/xeipuuv/gojsonpointer"
+  packages = ["."]
+  revision = "4e3ac2762d5f479393488629ee9370b50873b3a6"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/xeipuuv/gojsonreference"
+  packages = ["."]
+  revision = "bd5ef7bd5415a7ac448318e64f11a24cd21e594b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/xeipuuv/gojsonschema"
+  packages = ["."]
+  revision = "2c8e4be869c17540b336bab0ea18b8d73e6a28b7"
 
 [[projects]]
   branch = "master"
@@ -683,6 +702,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d7779627268b62e22a3a1330afacce8e5afd73814e54624da3df2e4217c7e2ff"
+  inputs-digest = "5f0a72c0424701e26f56ec4e7b55f54952238d4348a628190098ee1dec321e71"
   solver-name = "gps-cdcl"
   solver-version = 1

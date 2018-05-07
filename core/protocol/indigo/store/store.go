@@ -13,6 +13,8 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/go-indigocore/store Adapter
+//go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/go-indigocore/validator Validator
+//go:generate mockgen -package mockvalidator -destination mockvalidator/mockgovernance.go github.com/stratumn/go-indigocore/validator GovernanceManager
 
 package store
 
@@ -27,6 +29,7 @@ import (
 	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
+	"github.com/stratumn/go-indigocore/validator"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
@@ -36,6 +39,7 @@ var log = logging.Logger("indigo.store")
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
 type Store struct {
 	store        store.Adapter
+	govMgr       validator.GovernanceManager
 	auditStore   audit.Store
 	sync         sync.Engine
 	networkMgr   NetworkManager
@@ -45,21 +49,29 @@ type Store struct {
 // New creates a new Indigo store.
 // It expects a NetworkManager connected to a PoP network.
 func New(
+	ctx context.Context,
 	networkMgr NetworkManager,
 	sync sync.Engine,
 	adapter store.Adapter,
 	auditStore audit.Store,
+	governanceManager validator.GovernanceManager,
 ) *Store {
 	store := &Store{
 		store:      adapter,
 		auditStore: auditStore,
+		govMgr:     governanceManager,
 		networkMgr: networkMgr,
 		sync:       sync,
 	}
 
 	store.segmentsChan = networkMgr.AddListener()
-	go store.listenNetwork()
 
+	go store.listenNetwork()
+	go func() {
+		if err := store.govMgr.ListenAndUpdate(ctx); err != nil {
+			log.Event(ctx, "GovernanceManagerWontUpdate", logging.Metadata{"error": err})
+		}
+	}()
 	return store
 }
 
@@ -116,6 +128,23 @@ func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) {
 		event.SetError(errors.Wrap(err, "invalid link"))
 		s.addAuditTrail(ctx, segment)
 		return
+	}
+	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
+		validatorHash, err := rulesValidator.Hash()
+		if err != nil {
+			event.SetError(errors.Wrap(err, "could not get current validator hash"))
+			return
+		}
+		if incomingValidatorHash, err := constants.GetValidatorHash(&segment.Link); err != nil || !validatorHash.Equals(incomingValidatorHash) {
+			event.SetError(errors.Wrap(err, "validator hash does not match"))
+			s.addAuditTrail(ctx, segment)
+			return
+		}
+		if err := rulesValidator.Validate(ctx, s.store, &segment.Link); err != nil {
+			event.SetError(errors.Wrap(err, "link validation failed"))
+			s.addAuditTrail(ctx, segment)
+			return
+		}
 	}
 
 	_, err := s.store.CreateLink(ctx, &segment.Link)
@@ -258,6 +287,18 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 	err = link.Validate(ctx, s.GetSegment)
 	if err != nil {
 		return
+	}
+
+	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
+		if validationErr := rulesValidator.Validate(ctx, s.store, link); err != nil {
+			event.SetError(errors.Wrap(validationErr, "link validation failed"))
+			return nil, validationErr
+		}
+		rulesHash, hashErr := rulesValidator.Hash()
+		if err != nil {
+			return nil, hashErr
+		}
+		constants.SetValidatorHash(link, rulesHash)
 	}
 
 	constants.SetLinkNodeID(link, s.networkMgr.NodeID())

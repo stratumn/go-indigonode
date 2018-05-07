@@ -17,6 +17,7 @@ package constants
 import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/types"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -24,6 +25,8 @@ import (
 // Keys used when enriching links metadata.
 const (
 	NodeIDKey = "node_id"
+
+	ValidatorHashKey = "validator_hash"
 )
 
 // Errors returned when invalid metadata is received.
@@ -31,9 +34,13 @@ var (
 	// ErrInvalidMetaNodeID is returned when the nodeID in the link
 	// meta can't be properly verified.
 	ErrInvalidMetaNodeID = errors.New("missing or invalid nodeID in metadata")
+
+	// ErrInvalidValidatorHash is returned when the validator hash in the link
+	// meta can't be retrieved.
+	ErrInvalidValidatorHash = errors.New("missing or invalid nodeID in metadata")
 )
 
-// SetLinkNodeID store the peerID in the link's metadata.
+// SetLinkNodeID stores the peerID in the link's metadata.
 func SetLinkNodeID(link *cs.Link, peerID peer.ID) {
 	if link == nil {
 		return
@@ -68,4 +75,41 @@ func GetLinkNodeID(link *cs.Link) (peer.ID, error) {
 	}
 
 	return peerID, nil
+}
+
+// SetValidatorHash stores the link validator's hash in the link's metadata.
+func SetValidatorHash(link *cs.Link, validatorHash *types.Bytes32) {
+	if link == nil {
+		return
+	}
+
+	if link.Meta.Data == nil {
+		link.Meta.Data = make(map[string]interface{})
+	}
+
+	// This is useful for end users.
+	link.Meta.Data[ValidatorHashKey] = validatorHash.String()
+}
+
+// GetValidatorHash gets the link validator's hash from the link's metadata.
+func GetValidatorHash(link *cs.Link) (*types.Bytes32, error) {
+	if link == nil {
+		return nil, errors.New("link is nil")
+	}
+
+	if link.Meta.Data == nil {
+		return nil, ErrInvalidValidatorHash
+	}
+
+	validatorHash, ok := link.Meta.Data[ValidatorHashKey].(string)
+	if !ok {
+		return nil, ErrInvalidValidatorHash
+	}
+
+	validatorHashBytes, err := types.NewBytes32FromString(validatorHash)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrInvalidValidatorHash.Error())
+	}
+
+	return validatorHashBytes, nil
 }

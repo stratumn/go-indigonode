@@ -381,7 +381,7 @@ func (h *localFileHandler) endRead(ctx context.Context, sessionID uuid.UUID) err
 // Exists returns whether the file with the given hash exists in the handler db.
 func (h *localFileHandler) Exists(ctx context.Context, fileHash []byte) bool {
 	_, err := h.getFilePath(ctx, fileHash)
-	return err != nil
+	return err == nil
 }
 
 // ============================================================================

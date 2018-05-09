@@ -17,6 +17,7 @@
 package file
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -73,7 +74,7 @@ type Handler interface {
 	Read(ctx context.Context, fileHash []byte) ([]byte, error)
 
 	// Exists returns whether the file with the given hash exists in the handler db.
-	Exists(ctx context.Context, fileHash []byte) bool
+	Exists(ctx context.Context, fileHash []byte) (bool, error)
 }
 
 // Reader should be implemented by a type that wants to read a file by chunks.
@@ -379,9 +380,26 @@ func (h *localFileHandler) endRead(ctx context.Context, sessionID uuid.UUID) err
 }
 
 // Exists returns whether the file with the given hash exists in the handler db.
-func (h *localFileHandler) Exists(ctx context.Context, fileHash []byte) bool {
-	_, err := h.getFilePath(ctx, fileHash)
-	return err == nil
+func (h *localFileHandler) Exists(ctx context.Context, fileHash []byte) (bool, error) {
+	path, err := h.getFilePath(ctx, fileHash)
+	if err != nil {
+		if err == db.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+
+	hash, err := hashFile(file)
+	if err != nil {
+		return false, err
+	}
+
+	return bytes.Compare(fileHash, hash) == 0, nil
 }
 
 // ============================================================================
@@ -395,12 +413,7 @@ func (h *localFileHandler) indexFile(ctx context.Context, file *os.File) ([]byte
 		return nil, err
 	}
 
-	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return nil, err
-	}
-
-	fileHash, err := mh.Encode(hash.Sum(nil), mh.SHA2_256)
+	fileHash, err := hashFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -410,6 +423,15 @@ func (h *localFileHandler) indexFile(ctx context.Context, file *os.File) ([]byte
 	}
 
 	return fileHash, nil
+}
+
+func hashFile(file *os.File) ([]byte, error) {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return nil, err
+	}
+
+	return mh.Encode(hash.Sum(nil), mh.SHA2_256)
 }
 
 // getFilePath returns the file path given its hash.

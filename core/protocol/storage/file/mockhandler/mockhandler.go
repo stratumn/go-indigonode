@@ -75,10 +75,11 @@ func (mr *MockHandlerMockRecorder) EndWrite(arg0, arg1 interface{}) *gomock.Call
 }
 
 // Exists mocks base method
-func (m *MockHandler) Exists(arg0 context.Context, arg1 []byte) bool {
+func (m *MockHandler) Exists(arg0 context.Context, arg1 []byte) (bool, error) {
 	ret := m.ctrl.Call(m, "Exists", arg0, arg1)
 	ret0, _ := ret[0].(bool)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Exists indicates an expected call of Exists

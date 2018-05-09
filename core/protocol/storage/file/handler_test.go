@@ -50,56 +50,59 @@ func TestFileHandler_Write(t *testing.T) {
 	db, err := db.NewMemDB(nil)
 	require.NoError(t, err, "NewMemDB()")
 	fileHandler := file.NewLocalFileHandler(tmpStoragePath, db)
+	ctx := context.Background()
 	fileName := fmt.Sprintf("TestFileHandler_BeginWrite-%d", time.Now().UnixNano())
 	var id uuid.UUID
+	var hash []byte
 
 	t.Run("BeginWrite", func(t *testing.T) {
 		var err error
-		id, err = fileHandler.BeginWrite(context.Background(), fileName)
+		id, err = fileHandler.BeginWrite(ctx, fileName)
 		assert.NoError(t, err, "BeginWrite")
 	})
 
 	t.Run("BeginWrite_Fail", func(t *testing.T) {
-		_, err := fileHandler.BeginWrite(context.Background(), "")
+		_, err := fileHandler.BeginWrite(ctx, "")
 		assert.EqualError(t, err, file.ErrFileNameMissing.Error(), "BeginWrite")
 	})
 
 	t.Run("WriteChunk", func(t *testing.T) {
 		chunk := []byte(" some data")
-		err = fileHandler.WriteChunk(context.Background(), id, chunk)
+		err = fileHandler.WriteChunk(ctx, id, chunk)
 		assert.NoError(t, err, "WriteChunk")
 	})
 
 	t.Run("WriteChunk_Fail", func(t *testing.T) {
 		t.Run("no-session", func(t *testing.T) {
-			err = fileHandler.WriteChunk(context.Background(), uuid.NewV4(), []byte(" some data"))
+			err = fileHandler.WriteChunk(ctx, uuid.NewV4(), []byte(" some data"))
 			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
 		})
 
 		t.Run("fail-write-and-delete", func(t *testing.T) {
 			fileName := fmt.Sprintf("TestFileHandler_BeginWrite-%d", time.Now().UnixNano())
-			id2, err := fileHandler.BeginWrite(context.Background(), fileName)
+			id2, err := fileHandler.BeginWrite(ctx, fileName)
 			assert.NoError(t, err, "BeginWrite")
 
 			// close file
-			_, err = fileHandler.EndWrite(context.Background(), id2)
+			_, err = fileHandler.EndWrite(ctx, id2)
 			assert.NoError(t, err, "EndWrite")
 
-			err = fileHandler.WriteChunk(context.Background(), id2, []byte("yo"))
+			err = fileHandler.WriteChunk(ctx, id2, []byte("yo"))
 			assert.Error(t, err, "WriteChunk")
 
 			// Check that session has been deleted.
-			err = fileHandler.WriteChunk(context.Background(), id2, []byte("yo"))
+			err = fileHandler.WriteChunk(ctx, id2, []byte("yo"))
 			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
 		})
 	})
 
 	t.Run("EndWrite", func(t *testing.T) {
-		hash, err := fileHandler.EndWrite(context.Background(), id)
+		var err error
+		hash, err = fileHandler.EndWrite(ctx, id)
 		require.NoError(t, err, "EndWrite()")
 
 		// Check that hash is correct.
-		b, err := fileHandler.Read(context.Background(), hash)
+		b, err := fileHandler.Read(ctx, hash)
 		assert.NoError(t, err)
 
 		sha := sha256.Sum256(b)
@@ -108,24 +111,36 @@ func TestFileHandler_Write(t *testing.T) {
 		assert.Equal(t, expected, hash, "file hash incorrect")
 	})
 
+	t.Run("Exists", func(t *testing.T) {
+		exists, err := fileHandler.Exists(ctx, hash)
+		assert.NoError(t, err, "Exists(hash)")
+		assert.True(t, exists, "Exists(hash)")
+	})
+
+	t.Run("Exists_False", func(t *testing.T) {
+		exists, err := fileHandler.Exists(ctx, []byte("123"))
+		assert.NoError(t, err, "Exists(hash)")
+		assert.False(t, exists, "Exists(hash)")
+	})
+
 	t.Run("EndWrite_fail", func(t *testing.T) {
 		t.Run("no-session", func(t *testing.T) {
-			_, err = fileHandler.EndWrite(context.Background(), uuid.NewV4())
+			_, err = fileHandler.EndWrite(ctx, uuid.NewV4())
 			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
 		})
 
 		t.Run("fail-and-delete-file", func(t *testing.T) {
-			id3, err := fileHandler.BeginWrite(context.Background(), fileName)
+			id3, err := fileHandler.BeginWrite(ctx, fileName)
 			assert.NoError(t, err, "BeginWrite")
 
 			err = db.Close()
 			assert.NoError(t, err, "db.Close()")
 
-			_, err = fileHandler.EndWrite(context.Background(), id3)
+			_, err = fileHandler.EndWrite(ctx, id3)
 			assert.Error(t, err, "WriteChunk")
 
 			// Check that session has been deleted.
-			err = fileHandler.WriteChunk(context.Background(), id3, []byte("yo"))
+			err = fileHandler.WriteChunk(ctx, id3, []byte("yo"))
 			assert.EqualError(t, err, file.ErrNoSession.Error(), "WriteChunk")
 		})
 	})

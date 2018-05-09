@@ -176,6 +176,10 @@ func (c *Config) CreateValidator(ctx context.Context, store indigostore.Adapter)
 		return nil, errors.Wrap(ErrMissingConfig, "validaton settings not found")
 	}
 
+	if store == nil {
+		return nil, errors.New("an indigo store adapter is needed to initialize a validator")
+	}
+
 	return validator.NewLocalGovernor(ctx, store, &validator.Config{
 		RulesPath:   c.ValidationConfig.RulesPath,
 		PluginsPath: c.ValidationConfig.PluginsPath,

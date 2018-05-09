@@ -129,14 +129,21 @@ func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) {
 		s.addAuditTrail(ctx, segment)
 		return
 	}
+
 	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
+		incomingValidatorHash, err := constants.GetValidatorHash(&segment.Link)
+		if err != nil {
+			event.SetError(errors.Wrap(err, "missing validator hash"))
+			s.addAuditTrail(ctx, segment)
+			return
+		}
 		validatorHash, err := rulesValidator.Hash()
 		if err != nil {
 			event.SetError(errors.Wrap(err, "could not get current validator hash"))
 			return
 		}
-		if incomingValidatorHash, err := constants.GetValidatorHash(&segment.Link); err != nil || !validatorHash.Equals(incomingValidatorHash) {
-			event.SetError(errors.Wrap(err, "validator hash does not match"))
+		if !validatorHash.Equals(incomingValidatorHash) {
+			event.SetError(errors.New("validator hash does not match"))
 			s.addAuditTrail(ctx, segment)
 			return
 		}
@@ -290,13 +297,13 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 	}
 
 	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
-		if validationErr := rulesValidator.Validate(ctx, s.store, link); err != nil {
-			event.SetError(errors.Wrap(validationErr, "link validation failed"))
-			return nil, validationErr
+		if err = rulesValidator.Validate(ctx, s.store, link); err != nil {
+			event.SetError(errors.Wrap(err, "link validation failed"))
+			return nil, err
 		}
-		rulesHash, hashErr := rulesValidator.Hash()
+		rulesHash, err := rulesValidator.Hash()
 		if err != nil {
-			return nil, hashErr
+			return nil, err
 		}
 		constants.SetValidatorHash(link, rulesHash)
 	}

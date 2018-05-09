@@ -37,7 +37,7 @@ var (
 
 	// ErrInvalidValidatorHash is returned when the validator hash in the link
 	// meta can't be retrieved.
-	ErrInvalidValidatorHash = errors.New("missing or invalid nodeID in metadata")
+	ErrInvalidValidatorHash = errors.New("missing or invalid validator hash in metadata")
 )
 
 // SetLinkNodeID stores the peerID in the link's metadata.
@@ -79,7 +79,7 @@ func GetLinkNodeID(link *cs.Link) (peer.ID, error) {
 
 // SetValidatorHash stores the link validator's hash in the link's metadata.
 func SetValidatorHash(link *cs.Link, validatorHash *types.Bytes32) {
-	if link == nil {
+	if link == nil || validatorHash == nil {
 		return
 	}
 
@@ -87,7 +87,6 @@ func SetValidatorHash(link *cs.Link, validatorHash *types.Bytes32) {
 		link.Meta.Data = make(map[string]interface{})
 	}
 
-	// This is useful for end users.
 	link.Meta.Data[ValidatorHashKey] = validatorHash.String()
 }
 
@@ -108,7 +107,7 @@ func GetValidatorHash(link *cs.Link) (*types.Bytes32, error) {
 
 	validatorHashBytes, err := types.NewBytes32FromString(validatorHash)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrInvalidValidatorHash.Error())
+		return nil, ErrInvalidValidatorHash
 	}
 
 	return validatorHashBytes, nil

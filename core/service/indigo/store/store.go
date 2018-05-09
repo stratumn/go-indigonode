@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/alice/core/service/indigo/store Host
-//go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/go-indigocore/validator Validator
 
 // Package store contains the Indigo Store service.
 package store

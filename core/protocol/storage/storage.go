@@ -84,8 +84,16 @@ func (s *Storage) Authorize(ctx context.Context, pids [][]byte, fileHash []byte)
 	return s.acl.Authorize(ctx, peerIds, fileHash)
 }
 
-// PullFile pulls a file from a peer given the file hash.
-func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) error {
+// PullFile pulls a file from a peer given the file hash if it has not already be downloaded.
+func (s *Storage) PullFile(ctx context.Context, fileHash []byte, pid []byte) (err error) {
+	exists, err := s.FileHandler.Exists(ctx, fileHash)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+
 	peerID, err := peer.IDFromBytes(pid)
 	if err != nil {
 		return err

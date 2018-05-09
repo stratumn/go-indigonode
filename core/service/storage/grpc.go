@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"io"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +27,10 @@ import (
 	pb "github.com/stratumn/alice/pb/storage"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+)
+
+const (
+	chunkSize = 1024
 )
 
 var (
@@ -39,6 +44,28 @@ var (
 	ErrInvalidUploadSession = errors.New("the given session could not be parsed")
 )
 
+type chunkReader struct {
+	first bool
+	ss    grpcpb.Storage_DownloadServer
+}
+
+func newChunkReader(ss grpcpb.Storage_DownloadServer) *chunkReader {
+	return &chunkReader{
+		first: true,
+		ss:    ss,
+	}
+}
+
+func (cr *chunkReader) OnChunk(data []byte, filePath string) error {
+	chunk := &pb.FileChunk{Data: data}
+	if cr.first {
+		cr.first = false
+		chunk.FileName = filepath.Base(filePath)
+	}
+
+	return cr.ss.Send(chunk)
+}
+
 // grpcServer is a gRPC server for the storage service.
 type grpcServer struct {
 	beginWrite func(context.Context, string) (uuid.UUID, error)
@@ -48,6 +75,8 @@ type grpcServer struct {
 
 	authorize func(ctx context.Context, peerIds [][]byte, fileHash []byte) error
 	download  func(ctx context.Context, fileHash []byte, peerId []byte) error
+
+	readChunks func(ctx context.Context, fileHash []byte, chunkSize int, cr *chunkReader) error
 
 	uploadTimeout time.Duration
 }
@@ -140,18 +169,18 @@ func (s *grpcServer) AuthorizePeers(ctx context.Context, req *grpcpb.AuthRequest
 	return &grpcpb.Ack{}, nil
 }
 
-func (s *grpcServer) Download(ctx context.Context, req *grpcpb.DownloadRequest) (*grpcpb.Ack, error) {
-
-	if err := s.download(ctx, req.FileHash, req.PeerId); err != nil {
-		return nil, err
+func (s *grpcServer) Download(req *grpcpb.DownloadRequest, ss grpcpb.Storage_DownloadServer) error {
+	err := s.download(ss.Context(), req.FileHash, req.PeerId)
+	if err != nil {
+		return err
 	}
 
-	return &grpcpb.Ack{}, nil
+	return s.readChunks(ss.Context(), req.FileHash, chunkSize, newChunkReader(ss))
 }
 
-// ####################################################################################################################
-// #####																		 Sequential upload protocol																						#####
-// ####################################################################################################################
+// ##############################################################
+// #####		Sequential upload protocol					#####
+// ##############################################################
 
 func (s *grpcServer) StartUpload(ctx context.Context, req *grpcpb.UploadReq) (*grpcpb.UploadSession, error) {
 	event := log.EventBegin(ctx, "StartUpload")

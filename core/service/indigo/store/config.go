@@ -89,7 +89,7 @@ type Config struct {
 	// PostgresConfig contains configuration for the postgres indigo store.
 	PostgresConfig *PostgresConfig `toml:"postgres" comment:"Configure settings for the Indigo PostgreSQL Store in the following section."`
 
-	// ValidationConfig contains configuration for the postgres indigo store.
+	// ValidationConfig contains configuration for the links' validation rules.
 	ValidationConfig *ValidationConfig `toml:"validation" comment:"Configure settings for the validation rules of your indigo network in the following section."`
 }
 
@@ -173,7 +173,7 @@ func (c *Config) CreateIndigoStore(ctx context.Context) (indigostore.Adapter, er
 // CreateValidator creates an indigo multivalidator.
 func (c *Config) CreateValidator(ctx context.Context, store indigostore.Adapter) (validator.GovernanceManager, error) {
 	if c.ValidationConfig == nil {
-		return nil, errors.Wrap(ErrMissingConfig, "validaton settings not found")
+		return nil, errors.Wrap(ErrMissingConfig, "validation settings not found")
 	}
 
 	if store == nil {

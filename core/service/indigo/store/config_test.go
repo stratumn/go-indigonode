@@ -180,7 +180,7 @@ func TestConfig_CreateValidator(t *testing.T) {
 	t.Run("returns an error if no validation configuration is provided", func(t *testing.T) {
 		config := &store.Config{}
 		_, err := config.CreateValidator(ctx, dummystore.New(nil))
-		assert.EqualError(t, err, "validaton settings not found: missing configuration settings")
+		assert.EqualError(t, err, "validation settings not found: missing configuration settings")
 	})
 
 	t.Run("returns an error if the provided store is nil", func(t *testing.T) {

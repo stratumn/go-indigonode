@@ -19,6 +19,7 @@ import (
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
+	"github.com/stratumn/go-indigocore/testutil"
 	"github.com/stretchr/testify/assert"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -67,5 +68,51 @@ func TestNodeID(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, peerID, id)
+	})
+}
+
+func TestValidatorHash(t *testing.T) {
+	validatorHash := testutil.RandomHash()
+
+	t.Run("missing-link", func(t *testing.T) {
+		// Should not panic.
+		constants.SetValidatorHash(nil, validatorHash)
+
+		_, err := constants.GetValidatorHash(nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("missing-hash", func(t *testing.T) {
+		link := cstesting.RandomLink()
+		link.Meta.Data = nil
+
+		constants.SetValidatorHash(link, nil)
+		assert.Equal(t, nil, link.Meta.Data[constants.ValidatorHashKey])
+	})
+
+	t.Run("missing-validator-hash", func(t *testing.T) {
+		link := cstesting.RandomLink()
+
+		_, err := constants.GetValidatorHash(link)
+		assert.EqualError(t, err, constants.ErrInvalidValidatorHash.Error())
+	})
+
+	t.Run("invalid-validator-hash", func(t *testing.T) {
+		link := cstesting.RandomLink()
+		link.Meta.Data[constants.ValidatorHashKey] = "spongebob"
+
+		_, err := constants.GetValidatorHash(link)
+		assert.EqualError(t, err, constants.ErrInvalidValidatorHash.Error())
+	})
+
+	t.Run("correctly-set-and-get", func(t *testing.T) {
+		link := cstesting.RandomLink()
+		link.Meta.Data[constants.ValidatorHashKey] = "spongebob"
+
+		constants.SetValidatorHash(link, validatorHash)
+		h, err := constants.GetValidatorHash(link)
+
+		assert.NoError(t, err)
+		assert.Equal(t, validatorHash, h)
 	})
 }

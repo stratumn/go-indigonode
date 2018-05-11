@@ -28,6 +28,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mocknetwork"
 	"github.com/stratumn/alice/core/protocol/indigo/store/mockstore"
+	"github.com/stratumn/alice/core/protocol/indigo/store/mockvalidator"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync/mocksync"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/go-indigocore/cs"
@@ -35,7 +36,9 @@ import (
 	"github.com/stratumn/go-indigocore/dummystore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/store/storetestcases"
+	"github.com/stratumn/go-indigocore/testutil"
 	"github.com/stratumn/go-indigocore/types"
+	"github.com/stratumn/go-indigocore/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -48,6 +51,7 @@ type TestStoreBuilder struct {
 	networkMgr  *mocknetworkmanager.MockNetworkManager
 	syncEngine  *mocksync.MockEngine
 	indigoStore indigostore.Adapter
+	govMgr      validator.GovernanceManager
 	auditStore  *mockaudit.MockStore
 }
 
@@ -72,6 +76,11 @@ func (b *TestStoreBuilder) WithAuditStore(auditStore *mockaudit.MockStore) *Test
 
 func (b *TestStoreBuilder) WithIndigoStore(indigoStore indigostore.Adapter) *TestStoreBuilder {
 	b.indigoStore = indigoStore
+	return b
+}
+
+func (b *TestStoreBuilder) WithGovernanceManager(govMgr validator.GovernanceManager) *TestStoreBuilder {
+	b.govMgr = govMgr
 	return b
 }
 
@@ -101,23 +110,50 @@ func (b *TestStoreBuilder) Build() *store.Store {
 		b.indigoStore = dummystore.New(&dummystore.Config{})
 	}
 
+	if b.govMgr == nil {
+		govMgr := mockvalidator.NewMockGovernanceManager(b.ctrl)
+		govMgr.EXPECT().ListenAndUpdate(gomock.Any()).Times(1)
+		b.govMgr = govMgr
+	}
+
 	return store.New(
+		context.Background(),
 		b.networkMgr,
 		b.syncEngine,
 		b.indigoStore,
 		b.auditStore,
+		b.govMgr,
 	)
 }
 
 func TestNewStore(t *testing.T) {
-	t.Run("add-network-listener", func(t *testing.T) {
+	t.Run("add-network-and-governance-listener", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1)
 
-		NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).Build()
+		governanceManager := mockvalidator.NewMockGovernanceManager(ctrl)
+		governanceManager.EXPECT().ListenAndUpdate(gomock.Any()).Times(1)
+
+		NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).WithGovernanceManager(governanceManager).Build()
+		<-time.After(10 * time.Millisecond)
+	})
+
+	t.Run("governance-fails-to-listen", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
+		networkMgr.EXPECT().AddListener().Times(1)
+
+		governanceManager := mockvalidator.NewMockGovernanceManager(ctrl)
+		governanceManager.EXPECT().ListenAndUpdate(gomock.Any()).Times(1).Return(errors.New(""))
+
+		testStore := NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).WithGovernanceManager(governanceManager).Build()
+		assert.NotNil(t, testStore)
+		<-time.After(10 * time.Millisecond)
 	})
 }
 
@@ -132,6 +168,7 @@ func TestClose(t *testing.T) {
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 
 		s := NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).Build()
+		<-time.After(10 * time.Millisecond)
 
 		networkMgr.EXPECT().RemoveListener(listenChan).Times(1)
 		s.Close(context.Background())
@@ -145,6 +182,7 @@ func TestReceiveLinks(t *testing.T) {
 	createSignedSegment := func() *cs.Segment {
 		link := cstesting.NewLinkBuilder().Build()
 		constants.SetLinkNodeID(link, peerID)
+		constants.SetValidatorHash(link, testutil.RandomHash())
 		segment, err := audit.SignLink(context.Background(), sk, link)
 		require.NoError(t, err, "audit.SignLink()")
 		return segment
@@ -155,6 +193,12 @@ func TestReceiveLinks(t *testing.T) {
 		networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 		networkMgr.EXPECT().AddListener().Times(1).Return(listenChan)
 		return listenChan, networkMgr
+	}
+
+	createGovernanceMgr := func(ctrl *gomock.Controller) *mockvalidator.MockGovernanceManager {
+		governanceManager := mockvalidator.NewMockGovernanceManager(ctrl)
+		governanceManager.EXPECT().ListenAndUpdate(gomock.Any()).Times(1)
+		return governanceManager
 	}
 
 	tests := []struct {
@@ -289,10 +333,14 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(nil)
+
 			signedSegment := createSignedSegment()
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
 				Build()
 
 			listenChan <- signedSegment
@@ -314,10 +362,14 @@ func TestReceiveLinks(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(nil)
+
 			signedSegment := createSignedSegment()
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
 				Build()
 
 			listenChan <- signedSegment
@@ -360,9 +412,13 @@ func TestReceiveLinks(t *testing.T) {
 				Times(1).
 				Return([]*cs.Link{link1, link2}, nil)
 
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(nil)
+
 			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
 			testStore := NewTestStoreBuilder(ctrl).
 				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
 				WithSyncEngine(syncEngine).
 				Build()
 
@@ -443,6 +499,163 @@ func TestReceiveLinks(t *testing.T) {
 			verifySegmentNotStored(t, testStore, linkHash)
 			verifySegmentNotStored(t, testStore, invalidLinkHash)
 		},
+	}, {
+		"missing-validator-hash",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			link := cstesting.NewLinkBuilder().Build()
+			constants.SetLinkNodeID(link, peerID)
+			signedSegment, err := audit.SignLink(context.Background(), sk, link)
+			require.NoError(t, err, "audit.SignLink()")
+
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(mockvalidator.NewMockValidator(ctrl))
+
+			auditChan := make(chan struct{})
+			auditStore := mockaudit.NewMockStore(ctrl)
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithNetworkManager(networkMgr).
+				WithAuditStore(auditStore).
+				WithGovernanceManager(govMgr).
+				Build()
+
+			listenChan <- signedSegment
+			<-auditChan
+
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
+		},
+	}, {
+		"fail-to-hash-validator",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			signedSegment := createSignedSegment()
+
+			validator := mockvalidator.NewMockValidator(ctrl)
+			validator.EXPECT().Hash().Times(1).Return(nil, errors.New("error"))
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(validator)
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
+				Build()
+
+			listenChan <- signedSegment
+			<-time.After(30 * time.Millisecond)
+
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
+		},
+	}, {
+		"validator-hash-does-not-match",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			signedSegment := createSignedSegment()
+
+			validator := mockvalidator.NewMockValidator(ctrl)
+			validator.EXPECT().Hash().Times(1).Return(testutil.RandomHash(), nil)
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(validator)
+
+			auditChan := make(chan struct{})
+			auditStore := mockaudit.NewMockStore(ctrl)
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
+				WithAuditStore(auditStore).
+				Build()
+
+			listenChan <- signedSegment
+			<-auditChan
+
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
+		},
+	}, {
+		"validator-returned-error",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			validatorHash := testutil.RandomHash()
+
+			link := cstesting.NewLinkBuilder().Build()
+			constants.SetLinkNodeID(link, peerID)
+			constants.SetValidatorHash(link, validatorHash)
+			signedSegment, err := audit.SignLink(context.Background(), sk, link)
+			require.NoError(t, err, "audit.SignLink()")
+
+			validator := mockvalidator.NewMockValidator(ctrl)
+			validator.EXPECT().Hash().Times(1).Return(validatorHash, nil)
+			validator.EXPECT().Validate(gomock.Any(), gomock.Any(), &signedSegment.Link).Times(1).Return(errors.New("error"))
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(validator)
+
+			auditChan := make(chan struct{})
+			auditStore := mockaudit.NewMockStore(ctrl)
+			auditStore.EXPECT().AddSegment(gomock.Any(), signedSegment).Times(1).
+				Do(func(context.Context, *cs.Segment) { auditChan <- struct{}{} })
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
+				WithAuditStore(auditStore).
+				Build()
+
+			listenChan <- signedSegment
+			<-auditChan
+
+			verifySegmentNotStored(t, testStore, signedSegment.GetLinkHash())
+		},
+	}, {
+		"validation-succeds",
+		func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			validatorHash := testutil.RandomHash()
+
+			link := cstesting.NewLinkBuilder().Build()
+			constants.SetLinkNodeID(link, peerID)
+			constants.SetValidatorHash(link, validatorHash)
+			signedSegment, err := audit.SignLink(context.Background(), sk, link)
+			require.NoError(t, err, "audit.SignLink()")
+
+			validator := mockvalidator.NewMockValidator(ctrl)
+			validator.EXPECT().Hash().Times(1).Return(validatorHash, nil)
+			validator.EXPECT().Validate(gomock.Any(), gomock.Any(), &signedSegment.Link).Times(1).Return(nil)
+			govMgr := createGovernanceMgr(ctrl)
+			govMgr.EXPECT().Current().Times(1).Return(validator)
+
+			listenChan, networkMgr := createNetworkMgrWithChan(ctrl)
+			testStore := NewTestStoreBuilder(ctrl).
+				WithNetworkManager(networkMgr).
+				WithGovernanceManager(govMgr).
+				Build()
+
+			listenChan <- signedSegment
+
+			waitUntilSegmentStored(t, testStore, signedSegment.GetLinkHash())
+
+			seg, err := testStore.GetSegment(context.Background(), signedSegment.GetLinkHash())
+			require.NoError(t, err, "testStore.GetSegment()")
+			require.NotNil(t, seg, "testStore.GetSegment()")
+			assert.Equal(t, signedSegment.Link, seg.Link, "testStore.GetSegment()")
+		},
 	}}
 
 	for _, tt := range tests {
@@ -480,10 +693,10 @@ func verifySegmentNotStored(t *testing.T, testStore *store.Store, linkHash *type
 func TestCreateLink(t *testing.T) {
 	tests := []struct {
 		name string
-		run  func(*testing.T, *store.Store, *mocknetworkmanager.MockNetworkManager)
+		run  func(*testing.T, *store.Store, *mocknetworkmanager.MockNetworkManager, *mockvalidator.MockGovernanceManager, *mockvalidator.MockValidator)
 	}{{
 		"invalid-link",
-		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, _ *mockvalidator.MockGovernanceManager, _ *mockvalidator.MockValidator) {
 			// We don't add any assertions on the network manager.
 			// In case of invalid link, it shouldn't be shared with the network.
 
@@ -493,11 +706,13 @@ func TestCreateLink(t *testing.T) {
 		},
 	}, {
 		"publish-valid-link",
-		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, govMgr *mockvalidator.MockGovernanceManager, _ *mockvalidator.MockValidator) {
 			link := cstesting.NewLinkBuilder().Build()
 
-			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
-			mgr.EXPECT().NodeID().Times(1)
+			networkMgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			networkMgr.EXPECT().NodeID().Times(1)
+
+			govMgr.EXPECT().Current().Times(1).Return(nil)
 
 			lh, err := s.CreateLink(context.Background(), link)
 			assert.NoError(t, err, "s.CreateLink()")
@@ -505,19 +720,65 @@ func TestCreateLink(t *testing.T) {
 		},
 	}, {
 		"add-node-id-meta",
-		func(t *testing.T, s *store.Store, mgr *mocknetworkmanager.MockNetworkManager) {
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, govMgr *mockvalidator.MockGovernanceManager, _ *mockvalidator.MockValidator) {
 			link := cstesting.NewLinkBuilder().Build()
 			link.Meta.Data = nil
 
 			peerID, _ := peer.IDB58Decode("QmeZjNhdKPNNEtCbmL6THvMfTRPZMgC1wfYe9s3DdoQZcM")
 
-			mgr.EXPECT().Publish(gomock.Any(), link).Times(1)
-			mgr.EXPECT().NodeID().Times(1).Return(peerID)
+			networkMgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			networkMgr.EXPECT().NodeID().Times(1).Return(peerID)
+
+			govMgr.EXPECT().Current().Times(1).Return(nil)
 
 			lh, _ := s.CreateLink(context.Background(), link)
 			segment, err := s.GetSegment(context.Background(), lh)
 			assert.NoError(t, err, "s.GetSegment()")
 			assert.Equal(t, "QmeZjNhdKPNNEtCbmL6THvMfTRPZMgC1wfYe9s3DdoQZcM", segment.Link.Meta.Data[constants.NodeIDKey])
+		},
+	}, {
+		"add-validator-hash",
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, govMgr *mockvalidator.MockGovernanceManager, val *mockvalidator.MockValidator) {
+			link := cstesting.NewLinkBuilder().Build()
+			link.Meta.Data = nil
+
+			validatorHash := testutil.RandomHash()
+
+			networkMgr.EXPECT().Publish(gomock.Any(), link).Times(1)
+			networkMgr.EXPECT().NodeID().Times(1)
+			val.EXPECT().Hash().Times(1).Return(validatorHash, nil)
+			val.EXPECT().Validate(gomock.Any(), gomock.Any(), link).Times(1).Return(nil)
+			govMgr.EXPECT().Current().Times(1).Return(val)
+
+			lh, err := s.CreateLink(context.Background(), link)
+			assert.NoError(t, err, "s.CreateLink()")
+			segment, err := s.GetSegment(context.Background(), lh)
+			assert.NoError(t, err, "s.GetSegment()")
+			assert.Equal(t, validatorHash.String(), segment.Link.Meta.Data[constants.ValidatorHashKey])
+		},
+	}, {
+		"validator-hash-failed",
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, govMgr *mockvalidator.MockGovernanceManager, val *mockvalidator.MockValidator) {
+			link := cstesting.NewLinkBuilder().Build()
+			link.Meta.Data = nil
+
+			val.EXPECT().Hash().Times(1).Return(nil, errors.New("error"))
+			val.EXPECT().Validate(gomock.Any(), gomock.Any(), link).Times(1).Return(nil)
+			govMgr.EXPECT().Current().Times(1).Return(val)
+
+			_, err := s.CreateLink(context.Background(), link)
+			assert.EqualError(t, err, "error")
+		},
+	}, {
+		"validation-error",
+		func(t *testing.T, s *store.Store, networkMgr *mocknetworkmanager.MockNetworkManager, govMgr *mockvalidator.MockGovernanceManager, val *mockvalidator.MockValidator) {
+			link := cstesting.NewLinkBuilder().Build()
+
+			val.EXPECT().Validate(gomock.Any(), gomock.Any(), link).Times(1).Return(errors.New("error"))
+			govMgr.EXPECT().Current().Times(1).Return(val)
+
+			_, err := s.CreateLink(context.Background(), link)
+			assert.EqualError(t, err, "error")
 		},
 	}}
 
@@ -529,8 +790,14 @@ func TestCreateLink(t *testing.T) {
 			networkMgr := mocknetworkmanager.NewMockNetworkManager(ctrl)
 			networkMgr.EXPECT().AddListener().Times(1)
 
-			s := NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).Build()
-			tt.run(t, s, networkMgr)
+			governanceManager := mockvalidator.NewMockGovernanceManager(ctrl)
+			governanceManager.EXPECT().ListenAndUpdate(gomock.Any()).Times(1)
+
+			validatorMock := mockvalidator.NewMockValidator(ctrl)
+
+			s := NewTestStoreBuilder(ctrl).WithNetworkManager(networkMgr).WithGovernanceManager(governanceManager).Build()
+			<-time.After(10 * time.Millisecond)
+			tt.run(t, s, networkMgr, governanceManager, validatorMock)
 		})
 	}
 }
@@ -539,9 +806,13 @@ func TestIndigoStoreImpl(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	governanceManager := mockvalidator.NewMockGovernanceManager(ctrl)
+	governanceManager.EXPECT().ListenAndUpdate(gomock.Any()).AnyTimes()
+	governanceManager.EXPECT().Current().AnyTimes().Return(nil)
+
 	storetestcases.Factory{
 		New: func() (indigostore.Adapter, error) {
-			store := NewTestStoreBuilder(ctrl).Build()
+			store := NewTestStoreBuilder(ctrl).WithGovernanceManager(governanceManager).Build()
 			return store, nil
 		},
 	}.RunStoreTests(t)

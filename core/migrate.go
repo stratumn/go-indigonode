@@ -235,6 +235,13 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("indigostore.postgres.storage_db_url", postgresstore.DefaultURL)
 	},
+	func(tree *cfg.Tree) error {
+		if err := tree.Set("indigostore.rules_path", ""); err != nil {
+			return err
+		}
+
+		return tree.Set("indigostore.validation.plugins_path", "")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

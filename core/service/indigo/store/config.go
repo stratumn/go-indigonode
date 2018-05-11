@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
+	"github.com/stratumn/go-indigocore/validator"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ic "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
@@ -48,12 +49,24 @@ var (
 
 	// ErrMissingConfig is returned when the provided configuration is missing required settings.
 	ErrMissingConfig = errors.New("missing configuration settings")
+
+	// ErrMissingPrivateKey is returned when no private key is set in the configuration.
+	ErrMissingPrivateKey = errors.New("indigo store nodes must have a private key")
 )
 
 // PostgresConfig contains configuration for the postgres indigo store.
 type PostgresConfig struct {
 	// StorageDBURL is the URL of the storage database (if external storage is chosen).
 	StorageDBURL string `toml:"storage_db_url" comment:"If external storage is used, the url of that storage."`
+}
+
+// ValidationConfig contains configuration for the link validation rules.
+type ValidationConfig struct {
+	// RulesPath is the path to the validation rules file.
+	RulesPath string `toml:"rules_path" comment:"The path to the validation rules file."`
+
+	// PluginsPath is the directory where the validator scripts are located.
+	PluginsPath string `toml:"plugins_path" comment:"The directory where the validator scripts are located."`
 }
 
 // Config contains configuration options for the Indigo service.
@@ -75,10 +88,17 @@ type Config struct {
 
 	// PostgresConfig contains configuration for the postgres indigo store.
 	PostgresConfig *PostgresConfig `toml:"postgres" comment:"Configure settings for the Indigo PostgreSQL Store in the following section."`
+
+	// ValidationConfig contains configuration for the links' validation rules.
+	ValidationConfig *ValidationConfig `toml:"validation" comment:"Configure settings for the validation rules of your indigo network in the following section."`
 }
 
 // UnmarshalPrivateKey unmarshals the configured private key.
 func (c *Config) UnmarshalPrivateKey() (ic.PrivKey, error) {
+	if c.PrivateKey == "" {
+		return nil, ErrMissingPrivateKey
+	}
+
 	keyBytes, err := ic.ConfigDecodeKey(c.PrivateKey)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -148,4 +168,20 @@ func (c *Config) CreateIndigoStore(ctx context.Context) (indigostore.Adapter, er
 		log.Event(ctx, "ErrStorageNotSupported", logging.Metadata{"storageType": c.StorageType})
 		return nil, ErrStorageNotSupported
 	}
+}
+
+// CreateValidator creates an indigo multivalidator.
+func (c *Config) CreateValidator(ctx context.Context, store indigostore.Adapter) (validator.GovernanceManager, error) {
+	if c.ValidationConfig == nil {
+		return nil, errors.Wrap(ErrMissingConfig, "validation settings not found")
+	}
+
+	if store == nil {
+		return nil, errors.New("an indigo store adapter is needed to initialize a validator")
+	}
+
+	return validator.NewLocalGovernor(ctx, store, &validator.Config{
+		RulesPath:   c.ValidationConfig.RulesPath,
+		PluginsPath: c.ValidationConfig.PluginsPath,
+	})
 }

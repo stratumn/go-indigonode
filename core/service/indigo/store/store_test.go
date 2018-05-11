@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/manager/testservice"
+	storeprotocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
@@ -86,28 +87,35 @@ func TestService_Run_Error(t *testing.T) {
 
 	tests := []struct {
 		name   string
+		err    string
 		config store.Config
 	}{{
 		"missing-network-id",
+		storeprotocol.ErrInvalidNetworkID.Error(),
 		store.Config{
-			Version:     "1.0.0",
-			StorageType: "in-memory",
-			PrivateKey:  "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
+			Version:          "1.0.0",
+			StorageType:      "in-memory",
+			PrivateKey:       "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
+			ValidationConfig: &store.ValidationConfig{},
 		},
 	}, {
 		"missing-private-key",
+		store.ErrMissingPrivateKey.Error(),
 		store.Config{
-			Version:     "1.0.0",
-			StorageType: "in-memory",
-			NetworkID:   "42",
+			Version:          "1.0.0",
+			StorageType:      "in-memory",
+			NetworkID:        "42",
+			ValidationConfig: &store.ValidationConfig{},
 		},
 	}, {
 		"invalid-storage-type",
+		store.ErrStorageNotSupported.Error(),
 		store.Config{
-			Version:     "1.0.0",
-			StorageType: "on-the-moon",
-			NetworkID:   "42",
-			PrivateKey:  "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
+			Version:          "1.0.0",
+			StorageType:      "on-the-moon",
+			NetworkID:        "42",
+			PrivateKey:       "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
+			ValidationConfig: &store.ValidationConfig{},
 		},
 	}}
 
@@ -115,7 +123,7 @@ func TestService_Run_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			serv := &store.Service{}
 			require.NoError(t, serv.SetConfig(tt.config), "serv.SetConfig(config)")
-			assert.Error(t, serv.Run(ctx, func() {}, func() {}))
+			assert.EqualError(t, serv.Run(ctx, func() {}, func() {}), tt.err)
 		})
 	}
 }

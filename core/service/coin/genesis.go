@@ -21,7 +21,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/coin/coinutil"
 	pb "github.com/stratumn/alice/pb/coin"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 // GetGenesisBlock returns the default genesis block.

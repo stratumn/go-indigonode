@@ -69,7 +69,9 @@ func New(
 	go store.listenNetwork()
 	go func() {
 		if err := store.govMgr.ListenAndUpdate(ctx); err != nil {
-			log.Event(ctx, "GovernanceManagerWontUpdate", logging.Metadata{"error": err})
+			log.Event(ctx, "GovernanceManagerError", logging.Metadata{
+				"error": err.Error(),
+			})
 		}
 	}()
 	return store

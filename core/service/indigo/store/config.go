@@ -130,7 +130,7 @@ func (c *Config) CreateAuditStore(ctx context.Context) (audit.Store, error) {
 		// We want to ignore the error in case we try to create an existing table.
 		if err := p.Create(); err != nil {
 			if e, ok := err.(*pq.Error); !ok || e.Code != duplicateTable {
-				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": e.Message})
+				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": err.Error()})
 				return nil, err
 			}
 		}
@@ -159,7 +159,7 @@ func (c *Config) CreateIndigoStore(ctx context.Context) (indigostore.Adapter, er
 		// We want to ignore the error in case we try to create an existing table.
 		if err := p.Create(); err != nil {
 			if e, ok := err.(*pq.Error); !ok || e.Code != duplicateTable {
-				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": e.Message})
+				log.Event(ctx, "ErrPostgresCreate", logging.Metadata{"error": err.Error()})
 				return nil, err
 			}
 		}

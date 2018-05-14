@@ -18,8 +18,6 @@ import (
 	"context"
 	"testing"
 
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/dummyauditstore"
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit/postgresauditstore"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
@@ -31,6 +29,8 @@ import (
 	"github.com/stratumn/go-indigocore/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 func TestConfig_UnmarshalPrivateKey(t *testing.T) {
@@ -105,7 +105,7 @@ func TestConfig_CreateStores(t *testing.T) {
 			StorageDBURL: containers.PostgresTestURL,
 		}}
 
-		t.Run("CreateIndigoStore ", func(t *testing.T) {
+		t.Run("CreateIndigoStore", func(t *testing.T) {
 			indigoStore, err := config.CreateIndigoStore(ctx)
 			require.NoError(t, err)
 			assert.NotNil(t, indigoStore)
@@ -125,9 +125,9 @@ func TestConfig_CreateStores(t *testing.T) {
 
 		t.Run("CreateIndigoStore with bad config", func(t *testing.T) {
 			badConf := &store.Config{StorageType: store.PostgreSQLStorage}
-			auditStore, err := badConf.CreateIndigoStore(ctx)
+			indigoStore, err := badConf.CreateIndigoStore(ctx)
 			assert.EqualError(t, err, store.ErrMissingConfig.Error())
-			assert.Nil(t, auditStore)
+			assert.Nil(t, indigoStore)
 		})
 
 		t.Run("CreateAuditStore ", func(t *testing.T) {
@@ -140,7 +140,6 @@ func TestConfig_CreateStores(t *testing.T) {
 		})
 
 		t.Run("CreateAuditStore with existing tables", func(t *testing.T) {
-
 			auditStore, err := config.CreateAuditStore(ctx)
 			require.NoError(t, err)
 			assert.NotNil(t, auditStore)

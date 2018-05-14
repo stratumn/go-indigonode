@@ -68,18 +68,18 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 	}{{
 		"peer-not-found",
 		func(t *testing.T) {
-			segments, err := store.GetByPeer(ctx, "Sp0nG3b0B", &audit.Pagination{})
+			segments, err := store.GetByPeer(ctx, "Sp0nG3b0B", audit.Pagination{})
 			assert.NoError(t, err, "store.GetByPeer()")
 			assert.Empty(t, segments, "store.GetByPeer()")
 		},
 	}, {
 		"small-pagination",
 		func(t *testing.T) {
-			segmentsPage1, err := store.GetByPeer(ctx, peer1, &audit.Pagination{Top: 3})
+			segmentsPage1, err := store.GetByPeer(ctx, peer1, audit.Pagination{Top: 3})
 			assert.NoError(t, err, "store.GetByPeer()")
 			require.Len(t, segmentsPage1, 3, "store.GetByPeer()")
 
-			segmentsPage2, err := store.GetByPeer(ctx, peer1, &audit.Pagination{Top: 3, Skip: 2})
+			segmentsPage2, err := store.GetByPeer(ctx, peer1, audit.Pagination{Top: 3, Skip: 2})
 			assert.NoError(t, err, "store.GetByPeer()")
 			require.Len(t, segmentsPage2, 3, "store.GetByPeer()")
 
@@ -90,7 +90,7 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 	}, {
 		"big-pagination",
 		func(t *testing.T) {
-			segments, err := store.GetByPeer(ctx, peer2, &audit.Pagination{Top: 10})
+			segments, err := store.GetByPeer(ctx, peer2, audit.Pagination{Top: 10})
 			assert.NoError(t, err, "store.GetByPeer()")
 			assert.NotEmpty(t, segments, "store.GetByPeer()")
 			assert.Len(t, segments, 5, "store.GetByPeer()")
@@ -98,14 +98,14 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 	}, {
 		"out-of-bounds",
 		func(t *testing.T) {
-			segments, err := store.GetByPeer(ctx, peer1, &audit.Pagination{Skip: 10, Top: 3})
+			segments, err := store.GetByPeer(ctx, peer1, audit.Pagination{Skip: 10, Top: 3})
 			assert.NoError(t, err, "store.GetByPeer()")
 			assert.Empty(t, segments, "store.GetByPeer()")
 		},
 	}, {
 		"no-pagination",
 		func(t *testing.T) {
-			segments, err := store.GetByPeer(ctx, peer1, nil)
+			segments, err := store.GetByPeer(ctx, peer1, audit.Pagination{})
 			assert.NoError(t, err, "store.GetByPeer()")
 			assert.Len(t, segments, 5, "store.GetByPeer()")
 		},
@@ -129,7 +129,7 @@ func (f Factory) TestGetByPeer(t *testing.T) {
 				"store.AddSegment()",
 			)
 
-			segments, err := store.GetByPeer(ctx, peer3, nil)
+			segments, err := store.GetByPeer(ctx, peer3, audit.NewDefaultPagination())
 			assert.NoError(t, err, "store.GetByPeer()")
 			require.Len(t, segments, 1, "store.GetByPeer()")
 			require.Len(t, segments[0].Meta.Evidences, 5, "store.GetByPeer()")

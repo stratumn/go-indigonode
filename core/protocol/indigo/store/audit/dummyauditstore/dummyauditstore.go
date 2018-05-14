@@ -20,12 +20,12 @@ import (
 	"context"
 	"sync"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var (
@@ -48,9 +48,10 @@ func New() audit.Store {
 
 func (s *DummyAuditStore) addEvidence(ctx context.Context, segment *cs.Segment, evidences cs.Evidences) {
 	for _, e := range evidences {
-		if segment.Meta.AddEvidence(*e) != nil {
-			log.Event(ctx, "Trying to add existing evidence", logging.Metadata{
+		if err := segment.Meta.AddEvidence(*e); err != nil {
+			log.Event(ctx, "AddEvidenceError", logging.Metadata{
 				"linkHash": segment.GetLinkHashString(),
+				"err":      err.Error(),
 			})
 		}
 	}
@@ -58,13 +59,13 @@ func (s *DummyAuditStore) addEvidence(ctx context.Context, segment *cs.Segment, 
 
 // AddSegment stores a segment in memory.
 func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) error {
-	s.auditMapLock.Lock()
-	defer s.auditMapLock.Unlock()
-
 	e := log.EventBegin(ctx, "AddSegment", logging.Metadata{
 		"linkHash": segment.GetLinkHashString(),
 	})
 	defer e.Done()
+
+	s.auditMapLock.Lock()
+	defer s.auditMapLock.Unlock()
 
 	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
@@ -91,21 +92,14 @@ func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) e
 }
 
 // GetByPeer returns links saved in memory.
-func (s *DummyAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
+func (s *DummyAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p audit.Pagination) (cs.SegmentSlice, error) {
+	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{"peerID": peerID})
+	defer e.Done()
+
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()
 
-	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{
-		"peerID": peerID,
-	})
-	defer e.Done()
-
-	if p == nil {
-		p = &audit.Pagination{
-			Skip: 0,
-			Top:  audit.DefaultLimit,
-		}
-	}
+	p.InitIfInvalid()
 
 	peerLinks, ok := s.auditMap[peerID]
 	if !ok || uint(len(peerLinks)) <= p.Skip {

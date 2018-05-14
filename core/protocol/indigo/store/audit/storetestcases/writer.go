@@ -55,7 +55,7 @@ func (f Factory) TestAddSegment(t *testing.T) {
 		assert.NoError(t, store.AddSegment(ctx, segment1), "store.AddSegment()")
 		assert.NoError(t, store.AddSegment(ctx, segment2), "store.AddSegment()")
 
-		segments, err := store.GetByPeer(ctx, peerID, nil)
+		segments, err := store.GetByPeer(ctx, peerID, audit.Pagination{})
 		require.NoError(t, err, "store.GetByPeer()")
 		require.Len(t, segments, 2)
 		assert.Equal(t, segment1, segments[0])
@@ -78,7 +78,7 @@ func (f Factory) TestAddSegment(t *testing.T) {
 		}))
 		assert.NoError(t, store.AddSegment(ctx, segment1), "store.AddSegment()")
 
-		segments, err := store.GetByPeer(ctx, peerID2, nil)
+		segments, err := store.GetByPeer(ctx, peerID2, audit.NewDefaultPagination())
 		require.NoError(t, err, "store.GetByPeer()")
 		require.Len(t, segments, 1)
 		require.Len(t, segments[0].Meta.Evidences, 2)

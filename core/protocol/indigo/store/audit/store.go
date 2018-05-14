@@ -40,7 +40,7 @@ const (
 type SegmentFilter struct {
 	Pagination
 
-	PeerID *peer.ID
+	PeerID peer.ID
 }
 
 // Pagination defines pagination options.
@@ -49,9 +49,25 @@ type Pagination struct {
 	Skip uint
 }
 
+// NewDefaultPagination returns the default pagination.
+func NewDefaultPagination() Pagination {
+	return Pagination{
+		Top:  DefaultLimit,
+		Skip: 0,
+	}
+}
+
+// InitIfInvalid sets pagination default values if invalid
+// (for example requesting 0 results).
+func (p *Pagination) InitIfInvalid() {
+	if p.Top == 0 {
+		p.Top = DefaultLimit
+	}
+}
+
 // Reader defines operations to read from the store.
 type Reader interface {
-	GetByPeer(context.Context, peer.ID, *Pagination) (cs.SegmentSlice, error)
+	GetByPeer(context.Context, peer.ID, Pagination) (cs.SegmentSlice, error)
 }
 
 // Writer defines operations to add to the store.

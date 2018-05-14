@@ -261,15 +261,16 @@ func (s *Store) syncMissingLinks(ctx context.Context, segment *cs.Segment) (err 
 }
 
 // Close cleans up the store and stops it.
-func (s *Store) Close(ctx context.Context) error {
+func (s *Store) Close(ctx context.Context) (err error) {
 	log.Event(ctx, "Close")
 
 	switch a := s.store.(type) {
 	case *postgresstore.Store:
-		return a.Close()
+		err = a.Close()
 	}
+
 	s.networkMgr.RemoveListener(s.segmentsChan)
-	return nil
+	return
 }
 
 // GetInfo returns information about the underlying store.

@@ -18,12 +18,12 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
-	json "github.com/gibson042/canonicaljson-go"
+	"encoding/json"
 
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/go-indigocore/cs"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 type reader struct {
@@ -40,7 +40,7 @@ func (a *reader) FindSegments(ctx context.Context, filter *audit.SegmentFilter) 
 		offset   = filter.Skip
 	)
 
-	if filter.PeerID != nil {
+	if filter.PeerID != "" {
 		rows, err = a.stmts.FindSegmentsByPeer.Query(filter.PeerID.Pretty(), offset, limit)
 	} else {
 		rows, err = a.stmts.FindSegments.Query(offset, limit)

@@ -20,15 +20,14 @@ import (
 	"context"
 	"database/sql"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-
 	"github.com/pkg/errors"
-
 	"github.com/stratumn/alice/core/protocol/indigo/store/audit"
 	"github.com/stratumn/alice/core/protocol/indigo/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
+
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 var (
@@ -78,29 +77,21 @@ func (s *PostgresAuditStore) AddSegment(ctx context.Context, segment *cs.Segment
 		if err := s.addEvidence(ctx, lh, evidence); err != nil {
 			return err
 		}
-
 	}
 
 	return nil
 }
 
 // GetByPeer returns segments saved in the database.
-func (s *PostgresAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p *audit.Pagination) (cs.SegmentSlice, error) {
-	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{
-		"peerID": peerID,
-	})
+func (s *PostgresAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p audit.Pagination) (cs.SegmentSlice, error) {
+	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{"peerID": peerID})
 	defer e.Done()
 
-	if p == nil {
-		p = &audit.Pagination{
-			Skip: 0,
-			Top:  audit.DefaultLimit,
-		}
-	}
+	p.InitIfInvalid()
 
 	return s.FindSegments(ctx, &audit.SegmentFilter{
-		PeerID:     &peerID,
-		Pagination: *p,
+		PeerID:     peerID,
+		Pagination: p,
 	})
 }
 

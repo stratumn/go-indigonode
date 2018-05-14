@@ -17,12 +17,12 @@ package postgresauditstore
 import (
 	"context"
 	"encoding/json"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 
 	"github.com/pkg/errors"
-
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/types"
+
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 type writer struct {
@@ -37,12 +37,12 @@ func (a *writer) createLink(ctx context.Context, link *cs.Link, peerID peer.ID) 
 
 	data, err := json.Marshal(link)
 	if err != nil {
-		return linkHash, err
+		return linkHash, errors.WithStack(err)
 	}
 
 	_, err = a.stmts.CreateLink.Exec(linkHash[:], string(data), peerID.Pretty())
 
-	return linkHash, err
+	return linkHash, errors.WithStack(err)
 }
 
 func (a *writer) addEvidence(ctx context.Context, linkHash *types.Bytes32, evidence *cs.Evidence) error {
@@ -52,5 +52,9 @@ func (a *writer) addEvidence(ctx context.Context, linkHash *types.Bytes32, evide
 	}
 
 	_, err = a.stmts.AddEvidence.Exec(linkHash[:], evidenceBytes, evidence.Provider)
-	return err
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }

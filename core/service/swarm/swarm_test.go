@@ -26,8 +26,6 @@ import (
 	"github.com/stratumn/alice/core/service/swarm/mockswarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 )
 
 func testService(ctx context.Context, t *testing.T, smuxer Transport) *Service {
@@ -62,7 +60,10 @@ func TestService_Expose(t *testing.T) {
 	serv := testService(ctx, t, smuxer)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
-	assert.IsType(t, &swarm.Swarm{}, exposed, "exposed type")
+	assert.IsType(t, &Swarm{}, exposed, "exposed type")
+	exposedSwarm := exposed.(*Swarm)
+	assert.NotNil(t, exposedSwarm.PrivKey, "PrivKey")
+	assert.NotNil(t, exposedSwarm.Swarm, "Swarm")
 }
 
 func TestService_Run(t *testing.T) {

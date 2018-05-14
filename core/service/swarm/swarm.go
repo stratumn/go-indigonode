@@ -69,6 +69,13 @@ type Service struct {
 	swarm   *swarm.Swarm
 }
 
+// Swarm wraps a swarm with other data that could be useful to services.
+// It's the type exposed by the swarm service.
+type Swarm struct {
+	PrivKey crypto.PrivKey
+	Swarm   *swarm.Swarm
+}
+
 // Config contains configuration options for the Swarm service.
 type Config struct {
 	// PeerID is peer ID of the node.
@@ -211,9 +218,12 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 // Expose exposes the swarm to other services.
 //
 // It exposes the type:
-//	github.com/libp2p/*go-libp2p-swarm.Swarm
+//	github.com/stratumn/alice/core/service/*swarm.Swarm
 func (s *Service) Expose() interface{} {
-	return s.swarm
+	return &Swarm{
+		PrivKey: s.privKey,
+		Swarm:   s.swarm,
+	}
 }
 
 // Run starts the service.

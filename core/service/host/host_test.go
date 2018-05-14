@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/metrics"
+	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -159,6 +160,13 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.Network = "myswarm" },
 		map[string]interface{}{
 			"myswarm": testutil.GenSwarmNetwork(t, context.Background()),
+		},
+		nil,
+	}, {
+		"valid swarm",
+		func(c *Config) { c.Network = "myswarm" },
+		map[string]interface{}{
+			"myswarm": &swarm.Swarm{},
 		},
 		nil,
 	}, {

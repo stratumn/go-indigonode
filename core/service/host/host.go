@@ -24,7 +24,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/metrics"
+	swarmSvc "github.com/stratumn/alice/core/service/swarm"
 	pb "github.com/stratumn/alice/grpc/host"
+
 	"google.golang.org/grpc"
 
 	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
@@ -170,12 +172,12 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 	// Try network first, then swarm.
 	netw := exposed[s.config.Network]
 	if s.netw, ok = netw.(inet.Network); !ok {
-		swm, ok := netw.(*swarm.Swarm)
+		swm, ok := netw.(*swarmSvc.Swarm)
 		if !ok {
 			return errors.Wrap(ErrNotNetwork, s.config.Network)
 		}
 
-		s.netw = (*swarm.Network)(swm)
+		s.netw = (*swarm.Network)(swm.Swarm)
 	}
 
 	if s.config.ConnectionManager != "" {

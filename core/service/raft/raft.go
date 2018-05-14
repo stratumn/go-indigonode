@@ -19,10 +19,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/raft"
-	"google.golang.org/grpc"
-
 	protocol "github.com/stratumn/alice/core/protocol/circle"
+	swarmSvc "github.com/stratumn/alice/core/service/swarm"
+	pb "github.com/stratumn/alice/grpc/raft"
+
+	"google.golang.org/grpc"
 
 	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
@@ -115,9 +116,12 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, "host")
 	}
 
-	if s.swarm, ok = exposed["swarm"].(*swarm.Swarm); !ok {
+	pluggedSwarm, ok := exposed["swarm"].(*swarmSvc.Swarm)
+	if !ok {
 		return errors.Wrap(ErrNotSwarm, "swarm")
 	}
+
+	s.swarm = pluggedSwarm.Swarm
 
 	return nil
 }

@@ -33,39 +33,6 @@ import (
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-func TestConfig_UnmarshalPrivateKey(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *store.Config
-		success bool
-	}{{
-		"missing-key",
-		&store.Config{},
-		false,
-	}, {
-		"invalid-key",
-		&store.Config{PrivateKey: "sp0ng3b0b"},
-		false,
-	}, {
-		"valid-key",
-		&store.Config{PrivateKey: "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g=="},
-		true,
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sk, err := tt.config.UnmarshalPrivateKey()
-			if tt.success {
-				assert.NoError(t, err)
-				assert.NotNil(t, sk)
-			} else {
-				assert.Error(t, err)
-				assert.Nil(t, sk)
-			}
-		})
-	}
-}
-
 func TestConfig_CreateStores(t *testing.T) {
 	ctx := context.Background()
 	peerID, _ := peer.IDB58Decode("QmPEeCgxxX6YbQWqkKuF42YCUpy4GdrqGLPMAFZ8A3A35d")

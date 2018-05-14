@@ -42,7 +42,7 @@ var (
 
 func init() {
 	var err error
-	sk1Bytes, err := ic.ConfigDecodeKey("CAESYA8c9Ei8atnEXpODNga9OrXUBDjPhpEr3Zf6DYwsVmLfzBY65CWfDdpbDHOZZE+nB7W/K4b2RLuohkGx/a1JwYzMFjrkJZ8N2lsMc5lkT6cHtb8rhvZEu6iGQbH9rUnBjA==")
+	sk1Bytes, err := ic.ConfigDecodeKey("CAESYKnY+DjP117lX9R3c79j7aNy3nw/kgl9Qsj8UqDuQuV3njK+2GS0+CzP1DsDphBxyVLNJcy+f/Io+U9GKNkzL1KeMr7YZLT4LM/UOwOmEHHJUs0lzL5/8ij5T0Yo2TMvUg==")
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func init() {
 		panic(err)
 	}
 
-	peerID1, err = peer.IDB58Decode("QmPEeCgxxX6YbQWqkKuF42YCUpy4GdrqGLPMAFZ8A3A35d")
+	peerID1, err = peer.IDB58Decode("12D3KooWLTuTuFWdyPMqayf8oFxBTW1q2aSTLZHQ3HeaW84dMpKb")
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +61,7 @@ func init() {
 		panic("peerID / secret key mismatch")
 	}
 
-	sk2Bytes, err := ic.ConfigDecodeKey("CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==")
+	sk2Bytes, err := ic.ConfigDecodeKey("CAESYHwyHBAE7vMstcqNNllwvuG9Fd9tzuoYhZx5kVZDlBe585qva8NR6XpPLOxtLxCLcb1TRJ5Ku0WgA0I9as4/fx7zmq9rw1Hpek8s7G0vEItxvVNEnkq7RaADQj1qzj9/Hg==")
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +71,7 @@ func init() {
 		panic(err)
 	}
 
-	peerID2, err = peer.IDB58Decode("QmeZjNhdKPNNEtCbmL6THvMfTRPZMgC1wfYe9s3DdoQZcM")
+	peerID2, err = peer.IDB58Decode("12D3KooWSDJ3VWhFsHJKkCTq7ALuv4v8SdnbjmAMS8PmrbDJqpih")
 	if err != nil {
 		panic(err)
 	}

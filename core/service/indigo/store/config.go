@@ -28,7 +28,6 @@ import (
 	"github.com/stratumn/go-indigocore/validator"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 var log = logging.Logger("indigo.store.config")
@@ -74,14 +73,14 @@ type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
 
+	// Swarm is the name of the swarm service.
+	Swarm string `toml:"swarm" comment:"The name of the swarm service."`
+
 	// Version is the version of the Indigo Store service.
 	Version string `toml:"version" comment:"The version of the indigo service."`
 
 	// NetworkId is the id of your Indigo PoP network.
 	NetworkID string `toml:"network_id" comment:"The id of your Indigo PoP network."`
-
-	// PrivateKey is the private key of the node.
-	PrivateKey string `toml:"private_key" comment:"The private key of the host."`
 
 	// StoreType is the type of storage used.
 	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgreSQL."`
@@ -91,25 +90,6 @@ type Config struct {
 
 	// ValidationConfig contains configuration for the links' validation rules.
 	ValidationConfig *ValidationConfig `toml:"validation" comment:"Configure settings for the validation rules of your indigo network in the following section."`
-}
-
-// UnmarshalPrivateKey unmarshals the configured private key.
-func (c *Config) UnmarshalPrivateKey() (ic.PrivKey, error) {
-	if c.PrivateKey == "" {
-		return nil, ErrMissingPrivateKey
-	}
-
-	keyBytes, err := ic.ConfigDecodeKey(c.PrivateKey)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	key, err := ic.UnmarshalPrivateKey(keyBytes)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return key, nil
 }
 
 // CreateAuditStore creates an audit store from the configuration.

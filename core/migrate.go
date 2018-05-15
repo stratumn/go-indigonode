@@ -186,6 +186,9 @@ var migrations = []cfg.MigrateHandler{
 		if err := tree.Set("indigostore.host", "host"); err != nil {
 			return err
 		}
+		if err := tree.Set("indigostore.swarm", "swarm"); err != nil {
+			return err
+		}
 		if err := tree.Set("indigostore.version", "0.1.0"); err != nil {
 			return err
 		}
@@ -197,9 +200,6 @@ var migrations = []cfg.MigrateHandler{
 	},
 	func(tree *cfg.Tree) error {
 		return tree.Set("storage.upload_timeout", "10m")
-	},
-	func(tree *cfg.Tree) error {
-		return tree.Set("indigostore.private_key", tree.Get("swarm.private_key"))
 	},
 	func(tree *cfg.Tree) error {
 		return tree.Set("indigostore.storage_type", "in-memory")

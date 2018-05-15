@@ -16,34 +16,43 @@ package store_test
 
 import (
 	"context"
+	"crypto/rand"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	storeprotocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
 	"github.com/stratumn/alice/core/service/indigo/store"
 	"github.com/stratumn/alice/core/service/indigo/store/mockstore"
 	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
+	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
+
+func validSwarm() *swarm.Swarm {
+	sk, _, _ := crypto.GenerateEd25519Key(rand.Reader)
+	return &swarm.Swarm{PrivKey: sk}
+}
 
 func testService(ctx context.Context, t *testing.T, host *mockstore.MockHost) *store.Service {
 	serv := &store.Service{}
 	config := serv.Config().(store.Config)
 	config.Version = "1.0.0"
 	config.NetworkID = "42"
-	config.PrivateKey = "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g=="
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"host": host,
+		"host":  host,
+		"swarm": validSwarm(),
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -95,16 +104,6 @@ func TestService_Run_Error(t *testing.T) {
 		store.Config{
 			Version:          "1.0.0",
 			StorageType:      "in-memory",
-			PrivateKey:       "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
-			ValidationConfig: &store.ValidationConfig{},
-		},
-	}, {
-		"missing-private-key",
-		store.ErrMissingPrivateKey.Error(),
-		store.Config{
-			Version:          "1.0.0",
-			StorageType:      "in-memory",
-			NetworkID:        "42",
 			ValidationConfig: &store.ValidationConfig{},
 		},
 	}, {
@@ -114,7 +113,6 @@ func TestService_Run_Error(t *testing.T) {
 			Version:          "1.0.0",
 			StorageType:      "on-the-moon",
 			NetworkID:        "42",
-			PrivateKey:       "CAESYKecc4tj7XAXruOYfd4m61d3mvxJUUdUVwIuFbB/PYFAtAoPM/Pbft/aS3mc5jFkb2dScZS61XOl9PnU3uDWuPq0Cg8z89t+39pLeZzmMWRvZ1JxlLrVc6X0+dTe4Na4+g==",
 			ValidationConfig: &store.ValidationConfig{},
 		},
 	}}
@@ -124,6 +122,60 @@ func TestService_Run_Error(t *testing.T) {
 			serv := &store.Service{}
 			require.NoError(t, serv.SetConfig(tt.config), "serv.SetConfig(config)")
 			assert.EqualError(t, serv.Run(ctx, func() {}, func() {}), tt.err)
+		})
+	}
+}
+
+func TestService_Plug(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	host := mockstore.NewMockHost(ctrl)
+
+	tests := []struct {
+		name string
+		set  func(*store.Config)
+		deps map[string]interface{}
+		err  error
+	}{{
+		"valid-private-key",
+		func(c *store.Config) { c.Swarm = "myswarm" },
+		map[string]interface{}{
+			"host":    host,
+			"myswarm": validSwarm(),
+		},
+		nil,
+	}, {
+		"missing-private-key",
+		func(c *store.Config) { c.Swarm = "myswarm" },
+		map[string]interface{}{
+			"host":    host,
+			"myswarm": &swarm.Swarm{},
+		},
+		store.ErrNotSwarm,
+	}, {
+		"missing-swarm",
+		func(c *store.Config) { c.Swarm = "myswarm" },
+		map[string]interface{}{
+			"host": host,
+		},
+		store.ErrNotSwarm,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serv := store.Service{}
+			config := serv.Config().(store.Config)
+			config.Host = "host"
+			tt.set(&config)
+
+			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
+
+			err := errors.Cause(serv.Plug(tt.deps))
+			switch {
+			case err != tt.err:
+				assert.Equal(t, tt.err, err)
+			}
 		})
 	}
 }

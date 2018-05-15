@@ -20,25 +20,28 @@ package store
 import (
 	"context"
 
-	"github.com/stratumn/go-indigocore/postgresstore"
-
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/cfg"
 	protocol "github.com/stratumn/alice/core/protocol/indigo/store"
 	"github.com/stratumn/alice/core/protocol/indigo/store/sync"
+	swarmSvc "github.com/stratumn/alice/core/service/swarm"
 	rpcpb "github.com/stratumn/alice/grpc/indigo/store"
 	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 
 	"google.golang.org/grpc"
 
+	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
+
+	// ErrNotSwarm is returned when the connected service is not a swarm.
+	ErrNotSwarm = errors.New("connected service is not a swarm")
 
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
@@ -50,9 +53,10 @@ type Host = ihost.Host
 
 // Service is the Indigo Store service.
 type Service struct {
-	config *Config
-	host   Host
-	store  *protocol.Store
+	config  *Config
+	host    Host
+	store   *protocol.Store
+	privKey crypto.PrivKey
 }
 
 // ID returns the unique identifier of the service.
@@ -80,9 +84,8 @@ func (s *Service) Config() interface{} {
 	// Set the default configuration settings of your service here.
 	return Config{
 		Host:        "host",
+		Swarm:       "swarm",
 		Version:     "0.1.0",
-		NetworkID:   "",
-		PrivateKey:  cfg.ConfZeroPK,
 		StorageType: InMemoryStorage,
 		PostgresConfig: &PostgresConfig{
 			StorageDBURL: postgresstore.DefaultURL,
@@ -102,6 +105,7 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
+	needs[s.config.Swarm] = struct{}{}
 
 	return needs
 }
@@ -114,6 +118,13 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
+	pluggedSwarm, ok := exposed[s.config.Swarm].(*swarmSvc.Swarm)
+	if !ok || pluggedSwarm.PrivKey == nil {
+		return errors.Wrap(ErrNotSwarm, s.config.Swarm)
+	}
+
+	s.privKey = pluggedSwarm.PrivKey
+
 	return nil
 }
 
@@ -124,11 +135,6 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	hostPrivateKey, err := s.config.UnmarshalPrivateKey()
-	if err != nil {
-		return err
-	}
-
 	indigoStore, err := s.config.CreateIndigoStore(ctx)
 	if err != nil {
 		return err
@@ -150,7 +156,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	networkCtx, cancelNetwork := context.WithCancel(context.Background())
 	defer cancelNetwork()
 
-	networkMgr := protocol.NewNetworkManager(hostPrivateKey)
+	networkMgr := protocol.NewNetworkManager(s.privKey)
 	if err := networkMgr.Join(networkCtx, s.config.NetworkID, s.host); err != nil {
 		return err
 	}

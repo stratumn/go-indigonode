@@ -183,6 +183,16 @@
       "hash": "Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu",
       "name": "go-libp2p-blankhost",
       "version": "0.2.7"
+    },
+    {
+      "hash": "Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8",
+      "name": "go-libp2p-interface-pnet",
+      "version": "2.1.7"
+    },
+    {
+      "hash": "QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB",
+      "name": "go-libp2p-transport",
+      "version": "2.2.14"
     }
   ],
   "gxVersion": "0.11.0",
@@ -192,4 +202,3 @@
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "version": "0.0.0"
 }
-

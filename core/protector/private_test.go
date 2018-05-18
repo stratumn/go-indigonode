@@ -42,9 +42,9 @@ func generatePeerID() peer.ID {
 // waitUntilAllowed waits until the given peer is found in the allowed list
 // and the allowed list contains allowedCount elements.
 // It fails after a short polling period.
-func waitUntilAllowed(t *testing.T, p ipnet.Protector, peer peer.ID, allowedCount int) {
+func waitUntilAllowed(t *testing.T, p protector.Protector, peer peer.ID, allowedCount int) {
 	test.WaitUntil(t, 20*time.Millisecond, 5*time.Millisecond, func() error {
-		allowedPeers := p.(*protector.PrivateNetwork).AllowedPeers()
+		allowedPeers := p.AllowedPeers()
 		if allowedCount == 0 && len(allowedPeers) == 0 {
 			return nil
 		}
@@ -81,19 +81,29 @@ func (p *PeerStoreData) PeerStore(ctrl *gomock.Controller) *mocks.MockPeerstore 
 }
 
 func TestPrivateNetwork_New(t *testing.T) {
-	t.Run("sets-private-network-mode", func(t *testing.T) {
-		ipnet.ForcePrivateNetwork = false
-		updateChan := make(chan protector.NetworkUpdate)
-		protector.NewPrivateNetwork(nil, updateChan)
+	ipnet.ForcePrivateNetwork = false
+	protector.NewPrivateNetwork(nil)
 
-		assert.True(t, ipnet.ForcePrivateNetwork)
-	})
+	assert.True(t, ipnet.ForcePrivateNetwork)
+}
 
-	t.Run("stops-listening-closed-channel", func(t *testing.T) {
-		updateChan := make(chan protector.NetworkUpdate)
-		protector.NewPrivateNetwork(nil, updateChan)
-		close(updateChan)
-	})
+func TestPrivateNetwork_ListenForUpdates(t *testing.T) {
+	updateChan := make(chan protector.NetworkUpdate)
+	p := protector.NewPrivateNetwork(nil)
+
+	exitChan := make(chan struct{})
+	go func() {
+		p.ListenForUpdates(updateChan)
+		exitChan <- struct{}{}
+	}()
+
+	close(updateChan)
+
+	select {
+	case <-time.After(5 * time.Millisecond):
+		assert.Fail(t, "ListenForUpdates")
+	case <-exitChan:
+	}
 }
 
 func TestPrivateNetwork_Fingerprint(t *testing.T) {
@@ -101,9 +111,15 @@ func TestPrivateNetwork_Fingerprint(t *testing.T) {
 
 	t.Run("stable-network", func(t *testing.T) {
 		chan1 := make(chan protector.NetworkUpdate)
-		p1 := protector.NewPrivateNetwork(nil, chan1)
+		defer close(chan1)
+
 		chan2 := make(chan protector.NetworkUpdate)
-		p2 := protector.NewPrivateNetwork(nil, chan2)
+		defer close(chan2)
+
+		p1 := protector.NewPrivateNetwork(nil)
+		go p1.ListenForUpdates(chan1)
+		p2 := protector.NewPrivateNetwork(nil)
+		go p2.ListenForUpdates(chan2)
 
 		chan1 <- protector.CreateAddNetworkUpdate(peer)
 		chan2 <- protector.CreateAddNetworkUpdate(peer)
@@ -119,7 +135,10 @@ func TestPrivateNetwork_Fingerprint(t *testing.T) {
 
 	t.Run("changes-on-peer-added", func(t *testing.T) {
 		updateChan := make(chan protector.NetworkUpdate)
-		p := protector.NewPrivateNetwork(nil, updateChan)
+		defer close(updateChan)
+
+		p := protector.NewPrivateNetwork(nil)
+		go p.ListenForUpdates(updateChan)
 		f1 := p.Fingerprint()
 
 		updateChan <- protector.CreateAddNetworkUpdate(peer)
@@ -131,7 +150,10 @@ func TestPrivateNetwork_Fingerprint(t *testing.T) {
 
 	t.Run("changes-on-peer-removed", func(t *testing.T) {
 		updateChan := make(chan protector.NetworkUpdate)
-		p := protector.NewPrivateNetwork(nil, updateChan)
+		defer close(updateChan)
+
+		p := protector.NewPrivateNetwork(nil)
+		go p.ListenForUpdates(updateChan)
 		f1 := p.Fingerprint()
 
 		updateChan <- protector.CreateAddNetworkUpdate(peer)
@@ -167,13 +189,13 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		networkUpdates func(ipnet.Protector, chan<- protector.NetworkUpdate)
+		networkUpdates func(protector.Protector, chan<- protector.NetworkUpdate)
 		local          multiaddr.Multiaddr
 		remote         multiaddr.Multiaddr
 		reject         bool
 	}{{
 		"allowed-peer-not-in-peer-store",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer3)
 			waitUntilAllowed(t, p, peer3, 2)
@@ -183,13 +205,13 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 		true,
 	}, {
 		"no-peer-allowed",
-		func(ipnet.Protector, chan<- protector.NetworkUpdate) {},
+		func(protector.Protector, chan<- protector.NetworkUpdate) {},
 		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
 		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
 		true,
 	}, {
 		"invalid-remote-addr",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			waitUntilAllowed(t, p, peer1, 1)
 		},
@@ -198,7 +220,7 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 		true,
 	}, {
 		"removed-peer",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			waitUntilAllowed(t, p, peer2, 1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
@@ -210,7 +232,7 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 		true,
 	}, {
 		"invalid-local-addr-ignored",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			waitUntilAllowed(t, p, peer2, 1)
 		},
@@ -220,7 +242,7 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 		false,
 	}, {
 		"valid-to-valid-from",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			waitUntilAllowed(t, p, peer2, 2)
@@ -236,7 +258,10 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			defer ctrl.Finish()
 
 			updateChan := make(chan protector.NetworkUpdate)
-			p := protector.NewPrivateNetwork(testData.PeerStore(ctrl), updateChan)
+			defer close(updateChan)
+
+			p := protector.NewPrivateNetwork(testData.PeerStore(ctrl))
+			go p.ListenForUpdates(updateChan)
 
 			tt.networkUpdates(p, updateChan)
 
@@ -278,11 +303,11 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		networkUpdates func(ipnet.Protector, chan<- protector.NetworkUpdate)
+		networkUpdates func(protector.Protector, chan<- protector.NetworkUpdate)
 		addrs          []multiaddr.Multiaddr
 	}{{
 		"ignores-missing-peer",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer3)
 			waitUntilAllowed(t, p, peer3, 2)
@@ -290,7 +315,7 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 		testData.Peers[peer1],
 	}, {
 		"ignores-removed-peer",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			updateChan <- protector.CreateRemoveNetworkUpdate(peer1)
@@ -299,7 +324,7 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 		testData.Peers[peer2],
 	}, {
 		"returns-all-addresses",
-		func(p ipnet.Protector, updateChan chan<- protector.NetworkUpdate) {
+		func(p protector.Protector, updateChan chan<- protector.NetworkUpdate) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			updateChan <- protector.CreateAddNetworkUpdate(peer3)
@@ -314,11 +339,14 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 			defer ctrl.Finish()
 
 			updateChan := make(chan protector.NetworkUpdate)
-			p := protector.NewPrivateNetwork(testData.PeerStore(ctrl), updateChan)
+			defer close(updateChan)
+
+			p := protector.NewPrivateNetwork(testData.PeerStore(ctrl))
+			go p.ListenForUpdates(updateChan)
 
 			tt.networkUpdates(p, updateChan)
 
-			assert.ElementsMatch(t, tt.addrs, p.(*protector.PrivateNetwork).AllowedAddrs())
+			assert.ElementsMatch(t, tt.addrs, p.AllowedAddrs())
 		})
 	}
 }
@@ -353,7 +381,10 @@ func TestPrivateNetwork_AllowedPeers(t *testing.T) {
 			defer ctrl.Finish()
 
 			updateChan := make(chan protector.NetworkUpdate)
-			p := protector.NewPrivateNetwork(nil, updateChan)
+			defer close(updateChan)
+
+			p := protector.NewPrivateNetwork(nil)
+			go p.ListenForUpdates(updateChan)
 
 			tt.networkUpdates(updateChan)
 

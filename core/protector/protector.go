@@ -25,6 +25,9 @@ import (
 	"github.com/pkg/errors"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8/go-libp2p-interface-pnet"
 )
 
 var log = logging.Logger("core.protector")
@@ -33,3 +36,19 @@ var (
 	// ErrConnectionRefused is returned when a connection is refused.
 	ErrConnectionRefused = errors.New("connection refused")
 )
+
+// Protector protects a network against non-whitelisted peers.
+type Protector interface {
+	ipnet.Protector
+
+	// ListenForUpdates listens for network updates.
+	// This is a blocking call that should be made in a dedicated go routine.
+	// Closing the channel will stop the listener.
+	ListenForUpdates(<-chan NetworkUpdate)
+
+	// AllowedAddrs returns the list of whitelisted addresses.
+	AllowedAddrs() []multiaddr.Multiaddr
+
+	// AllowedPeers returns the list of whitelisted peers.
+	AllowedPeers() []peer.ID
+}

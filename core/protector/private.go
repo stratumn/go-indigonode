@@ -44,20 +44,19 @@ type PrivateNetwork struct {
 // It is not the responsibility of this protector to add whitelisted peers
 // to the PeerStore, that needs to be done by another component for the
 // end-to-end flow to work properly.
-func NewPrivateNetwork(peerStore peerstore.Peerstore, updateChan <-chan NetworkUpdate) ipnet.Protector {
+func NewPrivateNetwork(peerStore peerstore.Peerstore) Protector {
 	ipnet.ForcePrivateNetwork = true
 
-	p := PrivateNetwork{
+	return &PrivateNetwork{
 		peerStore:    peerStore,
 		allowedPeers: make(map[peer.ID]struct{}),
 	}
-
-	go p.listenForUpdates(updateChan)
-
-	return &p
 }
 
-func (p *PrivateNetwork) listenForUpdates(updateChan <-chan NetworkUpdate) {
+// ListenForUpdates listens for network updates.
+// This is a blocking call that should be made in a dedicated go routine.
+// Closing the channel will stop the listener.
+func (p *PrivateNetwork) ListenForUpdates(updateChan <-chan NetworkUpdate) {
 	for {
 		update, ok := <-updateChan
 		if !ok {

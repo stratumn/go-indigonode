@@ -34,6 +34,9 @@ func (f *SegmentFilter) ToSegmentFilter() (*indigostore.SegmentFilter, error) {
 	if err != nil {
 		return nil, pb.ErrInvalidArgument
 	}
+	if filter.Pagination.Limit == 0 {
+		filter.Pagination.Limit = indigostore.DefaultLimit
+	}
 
 	return &filter, nil
 }
@@ -48,6 +51,9 @@ func (f *MapFilter) ToMapFilter() (*indigostore.MapFilter, error) {
 	err := json.Unmarshal(f.Data, &filter)
 	if err != nil {
 		return nil, pb.ErrInvalidArgument
+	}
+	if filter.Pagination.Limit == 0 {
+		filter.Pagination.Limit = indigostore.DefaultLimit
 	}
 
 	return &filter, nil

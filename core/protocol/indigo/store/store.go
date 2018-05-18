@@ -336,13 +336,17 @@ func (s *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Se
 
 // FindSegments forwards the request to the underlying store.
 func (s *Store) FindSegments(ctx context.Context, filter *store.SegmentFilter) (cs.SegmentSlice, error) {
-	log.Event(ctx, "FindSegments")
+	log.Event(ctx, "FindSegments", logging.Metadata{
+		"filter": filter,
+	})
 	return s.store.FindSegments(ctx, filter)
 }
 
 // GetMapIDs forwards the request to the underlying store.
 func (s *Store) GetMapIDs(ctx context.Context, filter *store.MapFilter) ([]string, error) {
-	log.Event(ctx, "GetMapIDs")
+	log.Event(ctx, "GetMapIDs", logging.Metadata{
+		"filter": filter,
+	})
 	return s.store.GetMapIDs(ctx, filter)
 }
 

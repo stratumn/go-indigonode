@@ -23,7 +23,7 @@ type NetworkUpdateType int
 const (
 	// Add a peer.
 	Add NetworkUpdateType = 1
-	// Remove a peer
+	// Remove a peer.
 	Remove NetworkUpdateType = 2
 )
 

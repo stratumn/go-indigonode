@@ -17,7 +17,7 @@ package protector
 import "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 
 // NetworkUpdateType defines the operations supported by a private network.
-type NetworkUpdateType int
+type NetworkUpdateType byte
 
 // Operations supported by a private network.
 const (

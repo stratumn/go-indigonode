@@ -103,10 +103,6 @@ func (s grpcServer) FindSegments(ctx context.Context, req *rpcpb.SegmentFilter) 
 		return nil, err
 	}
 
-	if len(segments) == 0 {
-		return nil, ErrNotFound
-	}
-
 	return pb.FromSegments(segments)
 }
 
@@ -120,10 +116,6 @@ func (s grpcServer) GetMapIDs(ctx context.Context, req *rpcpb.MapFilter) (*rpcpb
 	mapIDs, err := s.DoGetMapIDs(ctx, filter)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(mapIDs) == 0 {
-		return nil, ErrNotFound
 	}
 
 	return rpcpb.FromMapIDs(mapIDs)

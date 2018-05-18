@@ -50,7 +50,7 @@ TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | gr
 COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
 COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
 LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
-BUILD_SOURCES=$(shell find . -name '*.go' | grep -v './grpc/' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
+BUILD_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
 CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
@@ -105,7 +105,7 @@ generate:
 		echo $(GO_CMD) generate $$d; \
 		$(GO_CMD) generate $$d 2> /dev/null; \
 	done
-	
+
 	@for f in $(MOCK_FILES); do \
 		sed -i'.bak' 's|github.com/stratumn/alice/vendor/||g' $$f; \
 		rm $$f.bak; \

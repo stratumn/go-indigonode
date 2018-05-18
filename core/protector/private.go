@@ -78,7 +78,7 @@ func (p *PrivateNetwork) ListenForUpdates(updateChan <-chan NetworkUpdate) {
 
 // Fingerprint returns a hash of the participants list.
 func (p *PrivateNetwork) Fingerprint() []byte {
-	event := log.EventBegin(context.Background(), "Fingerpint")
+	event := log.EventBegin(context.Background(), "Fingerprint")
 	defer event.Done()
 
 	p.allowedPeersLock.RLock()

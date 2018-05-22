@@ -15,6 +15,7 @@
 package protector_test
 
 import (
+	"context"
 	"crypto/rand"
 	"io/ioutil"
 	"os"
@@ -42,11 +43,14 @@ func init() {
 }
 
 func TestLocalConfig_InitConfig_Success(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("creates-config-folder", func(t *testing.T) {
 		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
 		require.NoError(t, os.Remove(configDir))
 
 		conf, err := protector.InitLocalConfig(
+			ctx,
 			filepath.Join(configDir, "config.json"),
 			testKey,
 			protector.NewPrivateNetwork(nil),
@@ -71,6 +75,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 
 		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
 		_, err := protector.InitLocalConfig(
+			ctx,
 			filepath.Join(configDir, "config.json"),
 			testKey,
 			p,
@@ -102,14 +107,14 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 			},
 		}
 
-		require.NoError(t, configData.Flush(configPath, testKey))
+		require.NoError(t, configData.Flush(ctx, configPath, testKey))
 
 		peerStore := mocks.NewMockPeerstore(ctrl)
 		peerStore.EXPECT().AddAddr(peerID, peerAddr1, gomock.Any()).Times(1)
 		peerStore.EXPECT().AddAddr(peerID, peerAddr2, gomock.Any()).Times(1)
 
 		p := protector.NewPrivateNetwork(nil)
-		conf, err := protector.InitLocalConfig(configPath, testKey, p, peerStore)
+		conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)
 		require.NoError(t, err)
 		assert.NotNil(t, conf)
 
@@ -120,6 +125,8 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 }
 
 func TestLocalConfig_InitConfig_Error(t *testing.T) {
+	ctx := context.Background()
+
 	testCases := []struct {
 		name                 string
 		createPreviousConfig func(*testing.T, string)
@@ -145,7 +152,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 				},
 			}
 
-			require.NoError(t, configData.Flush(configPath, otherKey))
+			require.NoError(t, configData.Flush(ctx, configPath, otherKey))
 		},
 		protector.ErrInvalidSignature,
 	}, {
@@ -157,7 +164,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 				},
 			}
 
-			require.NoError(t, configData.Flush(configPath, testKey))
+			require.NoError(t, configData.Flush(ctx, configPath, testKey))
 		},
 		protector.ErrInvalidConfig,
 	}, {
@@ -169,7 +176,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 				},
 			}
 
-			require.NoError(t, configData.Flush(configPath, testKey))
+			require.NoError(t, configData.Flush(ctx, configPath, testKey))
 		},
 		protector.ErrInvalidConfig,
 	}}
@@ -181,6 +188,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 
 			tt.createPreviousConfig(t, configPath)
 			_, err := protector.InitLocalConfig(
+				ctx,
 				configPath,
 				testKey,
 				protector.NewPrivateNetwork(nil),

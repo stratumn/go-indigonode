@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	// ErrInvalidConfig is returned when an existing configuration file
-	// exists and is invalid.
+	// ErrInvalidConfig is returned when an invalid configuration file
+	// is provided.
 	ErrInvalidConfig = errors.New("invalid configuration file")
 
 	// ErrInvalidSignature is returned when an existing configuration file
@@ -164,7 +164,7 @@ func InitLocalConfig(
 
 	// Create the directory if it doesn't exist.
 	configDir, _ := filepath.Split(configPath)
-	if err = os.MkdirAll(configDir, os.ModePerm); err != nil {
+	if err = os.MkdirAll(configDir, 0744); err != nil {
 		return nil, errors.WithStack(err)
 	}
 

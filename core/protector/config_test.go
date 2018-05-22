@@ -46,7 +46,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("creates-config-folder", func(t *testing.T) {
-		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+		configDir, _ := ioutil.TempDir("", "alice")
 		require.NoError(t, os.Remove(configDir))
 
 		conf, err := protector.InitLocalConfig(
@@ -73,7 +73,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 			testChan <- struct{}{}
 		})
 
-		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+		configDir, _ := ioutil.TempDir("", "alice")
 		_, err := protector.InitLocalConfig(
 			ctx,
 			filepath.Join(configDir, "config.json"),
@@ -94,7 +94,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+		configDir, _ := ioutil.TempDir("", "alice")
 		configPath := filepath.Join(configDir, "config.json")
 
 		peerID := generatePeerID()
@@ -183,7 +183,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+			configDir, _ := ioutil.TempDir("", "alice")
 			configPath := filepath.Join(configDir, "config.json")
 
 			tt.createPreviousConfig(t, configPath)
@@ -205,7 +205,7 @@ func TestLocalConfig_AddPeer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configDir, _ := ioutil.TempDir("", "alice")
 	configPath := filepath.Join(configDir, "config.json")
 
 	peer1 := generatePeerID()
@@ -234,7 +234,7 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configDir, _ := ioutil.TempDir("", "alice")
 	configPath := filepath.Join(configDir, "config.json")
 
 	peer1 := generatePeerID()
@@ -272,7 +272,7 @@ func TestLocalConfig_Flush(t *testing.T) {
 	peer2 := generatePeerID()
 	peer2Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
 
-	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configDir, _ := ioutil.TempDir("", "alice")
 	configPath := filepath.Join(configDir, "config.json")
 
 	conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)

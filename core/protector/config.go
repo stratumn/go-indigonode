@@ -164,7 +164,7 @@ func InitLocalConfig(
 
 	// Create the directory if it doesn't exist.
 	configDir, _ := filepath.Split(configPath)
-	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
+	if err = os.MkdirAll(configDir, os.ModePerm); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
@@ -195,7 +195,7 @@ func InitLocalConfig(
 			return nil, err
 		}
 
-		if err := conf.addDataToPeerStore(); err != nil {
+		if err = conf.addDataToPeerStore(); err != nil {
 			return nil, err
 		}
 	}

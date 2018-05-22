@@ -74,7 +74,7 @@ func (c *ConfigData) Flush(configPath string, privKey crypto.PrivKey) error {
 		return errors.WithStack(err)
 	}
 
-	return ioutil.WriteFile(configPath, signedBytes, os.ModePerm)
+	return ioutil.WriteFile(configPath, signedBytes, 0644)
 }
 
 // LocalConfig implements the Config interface.

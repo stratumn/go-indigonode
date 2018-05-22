@@ -20,11 +20,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protector/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
@@ -37,14 +41,15 @@ func init() {
 	testKey, _, _ = crypto.GenerateEd25519Key(rand.Reader)
 }
 
-func TestLocalSignedConfig_New(t *testing.T) {
+func TestLocalConfig_InitConfig_Success(t *testing.T) {
 	t.Run("creates-config-folder", func(t *testing.T) {
 		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
 		require.NoError(t, os.Remove(configDir))
 
-		conf, err := protector.NewLocalSignedConfig(
+		conf, err := protector.InitLocalConfig(
 			filepath.Join(configDir, "config.json"),
 			testKey,
+			protector.NewPrivateNetwork(nil),
 			nil,
 		)
 		require.NoError(t, err)
@@ -54,21 +59,57 @@ func TestLocalSignedConfig_New(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("configures-protector-listener", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		p := mocks.NewMockProtector(ctrl)
+		testChan := make(chan struct{})
+		p.EXPECT().ListenForUpdates(gomock.Any()).Times(1).Do(func(<-chan protector.NetworkUpdate) {
+			testChan <- struct{}{}
+		})
+
+		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+		_, err := protector.InitLocalConfig(
+			filepath.Join(configDir, "config.json"),
+			testKey,
+			p,
+			nil,
+		)
+		require.NoError(t, err)
+
+		select {
+		case <-time.After(5 * time.Millisecond):
+			assert.Fail(t, "protector.ListenForUpdates()")
+		case <-testChan:
+		}
+	})
+
 	t.Run("loads-existing-config", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
 		configPath := filepath.Join(configDir, "config.json")
 
 		peerID := generatePeerID()
+		peerAddr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
+		peerAddr2 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
+
 		configData := protector.ConfigData{
 			PeersAddrs: map[string][]string{
-				peerID.Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
+				peerID.Pretty(): []string{peerAddr1.String(), peerAddr2.String()},
 			},
 		}
 
 		require.NoError(t, configData.Flush(configPath, testKey))
 
+		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore.EXPECT().AddAddr(peerID, peerAddr1, gomock.Any()).Times(1)
+		peerStore.EXPECT().AddAddr(peerID, peerAddr2, gomock.Any()).Times(1)
+
 		p := protector.NewPrivateNetwork(nil)
-		conf, err := protector.NewLocalSignedConfig(configPath, testKey, p)
+		conf, err := protector.InitLocalConfig(configPath, testKey, p, peerStore)
 		require.NoError(t, err)
 		assert.NotNil(t, conf)
 
@@ -76,35 +117,77 @@ func TestLocalSignedConfig_New(t *testing.T) {
 		allowed := conf.AllowedPeers()
 		assert.ElementsMatch(t, []peer.ID{peerID}, allowed)
 	})
+}
 
-	t.Run("fails-invalid-config", func(t *testing.T) {
-		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
-		configPath := filepath.Join(configDir, "invalid.json")
-		err := ioutil.WriteFile(
-			configPath,
-			[]byte("not a json config"),
-			0644,
-		)
-		require.NoError(t, err)
+func TestLocalConfig_InitConfig_Error(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		createPreviousConfig func(*testing.T, string)
+		expectedError        error
+	}{{
+		"invalid-config",
+		func(t *testing.T, configPath string) {
+			err := ioutil.WriteFile(
+				configPath,
+				[]byte("not a json config"),
+				0644,
+			)
+			require.NoError(t, err)
+		},
+		protector.ErrInvalidConfig,
+	}, {
+		"invalid-config-signature",
+		func(t *testing.T, configPath string) {
+			otherKey, _, _ := crypto.GenerateEd25519Key(rand.Reader)
+			configData := protector.ConfigData{
+				PeersAddrs: map[string][]string{
+					generatePeerID().Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
+				},
+			}
 
-		_, err = protector.NewLocalSignedConfig(configPath, testKey, nil)
-		assert.EqualError(t, err, protector.ErrInvalidConfig.Error())
-	})
+			require.NoError(t, configData.Flush(configPath, otherKey))
+		},
+		protector.ErrInvalidSignature,
+	}, {
+		"invalid-peer-id",
+		func(t *testing.T, configPath string) {
+			configData := protector.ConfigData{
+				PeersAddrs: map[string][]string{
+					"not-a-peer-id": []string{"/ip4/127.0.0.1/tcp/8903"},
+				},
+			}
 
-	t.Run("fails-invalid-config-signature", func(t *testing.T) {
-		configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
-		configPath := filepath.Join(configDir, "invalid_sig.json")
+			require.NoError(t, configData.Flush(configPath, testKey))
+		},
+		protector.ErrInvalidConfig,
+	}, {
+		"invalid-peer-address",
+		func(t *testing.T, configPath string) {
+			configData := protector.ConfigData{
+				PeersAddrs: map[string][]string{
+					generatePeerID().Pretty(): []string{"/not/a/multiaddr"},
+				},
+			}
 
-		otherKey, _, _ := crypto.GenerateEd25519Key(rand.Reader)
-		configData := protector.ConfigData{
-			PeersAddrs: map[string][]string{
-				generatePeerID().Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
-			},
-		}
+			require.NoError(t, configData.Flush(configPath, testKey))
+		},
+		protector.ErrInvalidConfig,
+	}}
 
-		require.NoError(t, configData.Flush(configPath, otherKey))
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+			configPath := filepath.Join(configDir, "config.json")
 
-		_, err := protector.NewLocalSignedConfig(configPath, testKey, nil)
-		assert.EqualError(t, err, protector.ErrInvalidSignature.Error())
-	})
+			tt.createPreviousConfig(t, configPath)
+			_, err := protector.InitLocalConfig(
+				configPath,
+				testKey,
+				protector.NewPrivateNetwork(nil),
+				nil,
+			)
+
+			assert.EqualError(t, err, tt.expectedError.Error())
+		})
+	}
 }

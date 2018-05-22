@@ -23,7 +23,9 @@ import (
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
@@ -75,73 +77,108 @@ func (c *ConfigData) Flush(configPath string, privKey crypto.PrivKey) error {
 	return ioutil.WriteFile(configPath, signedBytes, os.ModePerm)
 }
 
-// LocalSignedConfig implements the Config interface.
+// LocalConfig implements the Config interface.
 // It keeps a signed config file on the filesystem.
-type LocalSignedConfig struct {
-	privKey crypto.PrivKey
-	protect Protector
+type LocalConfig struct {
+	privKey     crypto.PrivKey
+	protect     Protector
+	protectChan chan NetworkUpdate
 }
 
-// NewLocalSignedConfig creates a Config instance.
-// It loads the previous configuration if it exists.
-func NewLocalSignedConfig(configPath string, privKey crypto.PrivKey, protect Protector) (Config, error) {
+// InitLocalConfig loads a Config from the given file or creates it if missing.
+// It configures the given protector for automatic updates.
+func InitLocalConfig(
+	configPath string,
+	privKey crypto.PrivKey,
+	protect Protector,
+	peerStore peerstore.Peerstore,
+) (Config, error) {
+	// Create the directory if it doesn't exist.
+	configDir, _ := filepath.Split(configPath)
+	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	conf := &LocalConfig{
+		privKey:     privKey,
+		protect:     protect,
+		protectChan: make(chan NetworkUpdate),
+	}
+
+	// This go routine has the same lifetime as the Config object,
+	// so it makes sense to launch it here. When the Config object
+	// is collected by the GC, the channel is closed which stops
+	// this go routine.
+	go protect.ListenForUpdates(conf.protectChan)
+
 	_, err := os.Stat(configPath)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, ErrInvalidConfig
 	}
 
-	conf := &LocalSignedConfig{
-		privKey: privKey,
-		protect: protect,
-	}
-
+	// Load previous configuration.
 	if err == nil {
-		if err = conf.load(configPath, privKey); err != nil {
+		previousData, err := conf.load(configPath, privKey)
+		if err != nil {
 			return nil, err
 		}
-	} else {
-		dir, _ := filepath.Split(configPath)
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			return nil, errors.WithStack(err)
+
+		for peerID, peerAddrs := range previousData.PeersAddrs {
+			decodedPeerID, err := peer.IDB58Decode(peerID)
+			if err != nil {
+				return nil, ErrInvalidConfig
+			}
+
+			for _, peerAddr := range peerAddrs {
+				decodedPeerAddr, err := multiaddr.NewMultiaddr(peerAddr)
+				if err != nil {
+					return nil, ErrInvalidConfig
+				}
+
+				peerStore.AddAddr(decodedPeerID, decodedPeerAddr, peerstore.PermanentAddrTTL)
+			}
+
+			conf.protectChan <- CreateAddNetworkUpdate(decodedPeerID)
 		}
 	}
 
 	return conf, nil
 }
 
-func (c *LocalSignedConfig) load(configPath string, privKey crypto.PrivKey) error {
+func (c *LocalConfig) load(configPath string, privKey crypto.PrivKey) (*ConfigData, error) {
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return ErrInvalidConfig
+		return nil, ErrInvalidConfig
 	}
 
 	var confData ConfigData
 	err = json.Unmarshal(configBytes, &confData)
 	if err != nil {
-		return ErrInvalidConfig
+		return nil, ErrInvalidConfig
 	}
 
 	confBytes, err := json.Marshal(confData.PeersAddrs)
 	if err != nil {
-		return ErrInvalidConfig
+		return nil, ErrInvalidConfig
 	}
 
 	valid, err := privKey.GetPublic().Verify(confBytes, confData.Signature)
 	if !valid || err != nil {
-		return ErrInvalidSignature
+		return nil, ErrInvalidSignature
 	}
 
+	return &confData, nil
+}
+
+func (c *LocalConfig) AddPeer(context.Context, peer.ID) error {
 	return nil
 }
 
-func (c *LocalSignedConfig) AddPeer(context.Context, peer.ID) error {
+func (c *LocalConfig) RemovePeer(context.Context, peer.ID) error {
 	return nil
 }
 
-func (c *LocalSignedConfig) RemovePeer(context.Context, peer.ID) error {
-	return nil
-}
-
-func (c *LocalSignedConfig) AllowedPeers() []peer.ID {
-	return nil
+// AllowedPeers returns the IDs of the peers in the network.
+func (c *LocalConfig) AllowedPeers() []peer.ID {
+	return c.protect.AllowedPeers()
 }

@@ -199,3 +199,60 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 		})
 	}
 }
+
+func TestLocalConfig_AddPeer(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configPath := filepath.Join(configDir, "config.json")
+
+	peer1 := generatePeerID()
+	peer1Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
+	peer1Addr2 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8904")
+	peer2 := generatePeerID()
+	peer2Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
+
+	peerStore := mocks.NewMockPeerstore(ctrl)
+	peerStore.EXPECT().AddAddrs(peer1, []multiaddr.Multiaddr{peer1Addr1, peer1Addr2}, gomock.Any()).Times(1)
+	peerStore.EXPECT().AddAddrs(peer2, []multiaddr.Multiaddr{peer2Addr1}, gomock.Any()).Times(1)
+
+	p := protector.NewPrivateNetwork(peerStore)
+	conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)
+	require.NoError(t, err)
+
+	require.NoError(t, conf.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr1, peer1Addr2}))
+	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
+
+	waitUntilAllowed(t, p, peer2, 2)
+	assert.ElementsMatch(t, []peer.ID{peer1, peer2}, conf.AllowedPeers())
+}
+
+func TestLocalConfig_RemovePeer(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configPath := filepath.Join(configDir, "config.json")
+
+	peer1 := generatePeerID()
+	peer2 := generatePeerID()
+
+	peerStore := mocks.NewMockPeerstore(ctrl)
+	peerStore.EXPECT().AddAddrs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+	p := protector.NewPrivateNetwork(peerStore)
+	conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)
+	require.NoError(t, err)
+	require.NoError(t, conf.AddPeer(ctx, peer1, nil))
+	require.NoError(t, conf.AddPeer(ctx, peer2, nil))
+
+	waitUntilAllowed(t, p, peer2, 2)
+
+	conf.RemovePeer(ctx, peer1)
+	waitUntilAllowed(t, p, peer2, 1)
+
+	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers())
+}

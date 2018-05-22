@@ -47,7 +47,7 @@ var (
 
 // Config manages the network participants list.
 type Config interface {
-	AddPeer(context.Context, peer.ID) error
+	AddPeer(context.Context, peer.ID, []multiaddr.Multiaddr) error
 	RemovePeer(context.Context, peer.ID) error
 	AllowedPeers() []peer.ID
 }
@@ -203,11 +203,27 @@ func (c *LocalConfig) addToPeerStore(configData *ConfigData) error {
 	return nil
 }
 
-func (c *LocalConfig) AddPeer(context.Context, peer.ID) error {
+// AddPeer adds a peer to the network configuration.
+// It populates the peer store with the peer's initial addresses.
+func (c *LocalConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
+	defer log.EventBegin(ctx, "LocalConfig.AddPeer", logging.Metadata{
+		"peer": peerID.Pretty(),
+	}).Done()
+
+	c.peerStore.AddAddrs(peerID, addrs, peerstore.PermanentAddrTTL)
+	c.protectChan <- CreateAddNetworkUpdate(peerID)
+
 	return nil
 }
 
-func (c *LocalConfig) RemovePeer(context.Context, peer.ID) error {
+// RemovePeer removes a peer from the network configuration.
+func (c *LocalConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
+	defer log.EventBegin(ctx, "LocalConfig.RemovePeer", logging.Metadata{
+		"peer": peerID.Pretty(),
+	}).Done()
+
+	c.protectChan <- CreateRemoveNetworkUpdate(peerID)
+
 	return nil
 }
 

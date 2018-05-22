@@ -90,6 +90,7 @@ func (c *ConfigData) Flush(ctx context.Context, configPath string, privKey crypt
 // LocalConfig implements the Config interface.
 // It keeps a signed config file on the filesystem.
 type LocalConfig struct {
+	peerStore   peerstore.Peerstore
 	privKey     crypto.PrivKey
 	protect     Protector
 	protectChan chan NetworkUpdate
@@ -120,6 +121,7 @@ func InitLocalConfig(
 	}
 
 	conf := &LocalConfig{
+		peerStore:   peerStore,
 		privKey:     privKey,
 		protect:     protect,
 		protectChan: make(chan NetworkUpdate),
@@ -143,28 +145,16 @@ func InitLocalConfig(
 			return nil, err
 		}
 
-		for peerID, peerAddrs := range previousData.PeersAddrs {
-			decodedPeerID, err := peer.IDB58Decode(peerID)
-			if err != nil {
-				return nil, ErrInvalidConfig
-			}
-
-			for _, peerAddr := range peerAddrs {
-				decodedPeerAddr, err := multiaddr.NewMultiaddr(peerAddr)
-				if err != nil {
-					return nil, ErrInvalidConfig
-				}
-
-				peerStore.AddAddr(decodedPeerID, decodedPeerAddr, peerstore.PermanentAddrTTL)
-			}
-
-			conf.protectChan <- CreateAddNetworkUpdate(decodedPeerID)
+		if err := conf.addToPeerStore(previousData); err != nil {
+			return nil, err
 		}
 	}
 
 	return conf, nil
 }
 
+// load loads a previous configuration file.
+// Validates configuration format and signature.
 func (c *LocalConfig) load(configPath string, privKey crypto.PrivKey) (*ConfigData, error) {
 	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -188,6 +178,29 @@ func (c *LocalConfig) load(configPath string, privKey crypto.PrivKey) (*ConfigDa
 	}
 
 	return &confData, nil
+}
+
+// addToPeerStore adds peers' addresses to the peer store.
+func (c *LocalConfig) addToPeerStore(configData *ConfigData) error {
+	for peerID, peerAddrs := range configData.PeersAddrs {
+		decodedPeerID, err := peer.IDB58Decode(peerID)
+		if err != nil {
+			return ErrInvalidConfig
+		}
+
+		for _, peerAddr := range peerAddrs {
+			decodedPeerAddr, err := multiaddr.NewMultiaddr(peerAddr)
+			if err != nil {
+				return ErrInvalidConfig
+			}
+
+			c.peerStore.AddAddr(decodedPeerID, decodedPeerAddr, peerstore.PermanentAddrTTL)
+		}
+
+		c.protectChan <- CreateAddNetworkUpdate(decodedPeerID)
+	}
+
+	return nil
 }
 
 func (c *LocalConfig) AddPeer(context.Context, peer.ID) error {

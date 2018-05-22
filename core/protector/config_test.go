@@ -256,3 +256,38 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 
 	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers())
 }
+
+func TestLocalConfig_Flush(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	peerStore := mocks.NewMockPeerstore(ctrl)
+	peerStore.EXPECT().AddAddrs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+	p := protector.NewPrivateNetwork(peerStore)
+
+	peer1 := generatePeerID()
+	peer1Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
+	peer2 := generatePeerID()
+	peer2Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
+
+	configDir, _ := ioutil.TempDir(os.TempDir(), "alice")
+	configPath := filepath.Join(configDir, "config.json")
+
+	conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)
+	require.NoError(t, err)
+	require.NoError(t, conf.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr1}))
+	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
+
+	configData := protector.NewConfigData()
+	require.NoError(t, configData.Load(ctx, configPath, testKey))
+	assert.Len(t, configData.PeersAddrs, 2)
+	assert.ElementsMatch(t, []string{peer1Addr1.String()}, configData.PeersAddrs[peer1.Pretty()])
+	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
+
+	require.NoError(t, conf.RemovePeer(ctx, peer1))
+	require.NoError(t, configData.Load(ctx, configPath, testKey))
+	assert.Len(t, configData.PeersAddrs, 1)
+	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
+}

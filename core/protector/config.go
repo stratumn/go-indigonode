@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
@@ -58,6 +59,49 @@ type ConfigData struct {
 	Signature  []byte              `json:"signature"`
 }
 
+// NewConfigData creates a new ConfigData object.
+func NewConfigData() *ConfigData {
+	return &ConfigData{PeersAddrs: make(map[string][]string)}
+}
+
+// Load loads the given configuration and validates it.
+func (c *ConfigData) Load(ctx context.Context, configPath string, privKey crypto.PrivKey) (err error) {
+	event := log.EventBegin(ctx, "ConfigData.Load", logging.Metadata{"path": configPath})
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+		}
+
+		event.Done()
+	}()
+
+	configBytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return ErrInvalidConfig
+	}
+
+	var confData ConfigData
+	err = json.Unmarshal(configBytes, &confData)
+	if err != nil {
+		return ErrInvalidConfig
+	}
+
+	confBytes, err := json.Marshal(confData.PeersAddrs)
+	if err != nil {
+		return ErrInvalidConfig
+	}
+
+	valid, err := privKey.GetPublic().Verify(confBytes, confData.Signature)
+	if !valid || err != nil {
+		return ErrInvalidSignature
+	}
+
+	c.PeersAddrs = confData.PeersAddrs
+	c.Signature = confData.Signature
+
+	return nil
+}
+
 // Flush signs the configuration data and writes it to disk.
 func (c *ConfigData) Flush(ctx context.Context, configPath string, privKey crypto.PrivKey) (err error) {
 	event := log.EventBegin(ctx, "ConfigData.Flush", logging.Metadata{"path": configPath})
@@ -90,6 +134,10 @@ func (c *ConfigData) Flush(ctx context.Context, configPath string, privKey crypt
 // LocalConfig implements the Config interface.
 // It keeps a signed config file on the filesystem.
 type LocalConfig struct {
+	dataLock sync.RWMutex
+	data     *ConfigData
+	dataPath string
+
 	peerStore   peerstore.Peerstore
 	privKey     crypto.PrivKey
 	protect     Protector
@@ -121,6 +169,8 @@ func InitLocalConfig(
 	}
 
 	conf := &LocalConfig{
+		data:        NewConfigData(),
+		dataPath:    configPath,
 		peerStore:   peerStore,
 		privKey:     privKey,
 		protect:     protect,
@@ -140,12 +190,12 @@ func InitLocalConfig(
 
 	// Load previous configuration.
 	if err == nil {
-		previousData, err := conf.load(configPath, privKey)
+		err = conf.data.Load(ctx, configPath, privKey)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := conf.addToPeerStore(previousData); err != nil {
+		if err := conf.addDataToPeerStore(); err != nil {
 			return nil, err
 		}
 	}
@@ -153,36 +203,12 @@ func InitLocalConfig(
 	return conf, nil
 }
 
-// load loads a previous configuration file.
-// Validates configuration format and signature.
-func (c *LocalConfig) load(configPath string, privKey crypto.PrivKey) (*ConfigData, error) {
-	configBytes, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, ErrInvalidConfig
-	}
-
-	var confData ConfigData
-	err = json.Unmarshal(configBytes, &confData)
-	if err != nil {
-		return nil, ErrInvalidConfig
-	}
-
-	confBytes, err := json.Marshal(confData.PeersAddrs)
-	if err != nil {
-		return nil, ErrInvalidConfig
-	}
-
-	valid, err := privKey.GetPublic().Verify(confBytes, confData.Signature)
-	if !valid || err != nil {
-		return nil, ErrInvalidSignature
-	}
-
-	return &confData, nil
-}
-
 // addToPeerStore adds peers' addresses to the peer store.
-func (c *LocalConfig) addToPeerStore(configData *ConfigData) error {
-	for peerID, peerAddrs := range configData.PeersAddrs {
+func (c *LocalConfig) addDataToPeerStore() error {
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	for peerID, peerAddrs := range c.data.PeersAddrs {
 		decodedPeerID, err := peer.IDB58Decode(peerID)
 		if err != nil {
 			return ErrInvalidConfig
@@ -213,7 +239,16 @@ func (c *LocalConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []multi
 	c.peerStore.AddAddrs(peerID, addrs, peerstore.PermanentAddrTTL)
 	c.protectChan <- CreateAddNetworkUpdate(peerID)
 
-	return nil
+	var marshalledAddrs []string
+	for _, addr := range addrs {
+		marshalledAddrs = append(marshalledAddrs, addr.String())
+	}
+
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
+	c.data.PeersAddrs[peerID.Pretty()] = marshalledAddrs
+	return c.data.Flush(ctx, c.dataPath, c.privKey)
 }
 
 // RemovePeer removes a peer from the network configuration.
@@ -224,7 +259,11 @@ func (c *LocalConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 
 	c.protectChan <- CreateRemoveNetworkUpdate(peerID)
 
-	return nil
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
+	delete(c.data.PeersAddrs, peerID.Pretty())
+	return c.data.Flush(ctx, c.dataPath, c.privKey)
 }
 
 // AllowedPeers returns the IDs of the peers in the network.

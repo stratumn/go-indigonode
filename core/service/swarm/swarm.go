@@ -159,6 +159,10 @@ func (s *Service) SetConfig(config interface{}) error {
 		}
 	}
 
+	if err = conf.ValidateProtectionMode(); err != nil {
+		return err
+	}
+
 	s.peerID = peerID
 	s.privKey = privKey
 	s.addrs = addrs

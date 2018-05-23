@@ -14,6 +14,20 @@
 
 package swarm
 
+import "github.com/pkg/errors"
+
+// Supported network protection modes.
+const (
+	// PrivateCoordinatorMode uses a coordinator node
+	// for network participants updates.
+	PrivateCoordinatorMode = "private-coordinator"
+)
+
+// Configuration errors.
+var (
+	ErrInvalidProtectionMode = errors.New("invalid network protection mode")
+)
+
 // Config contains configuration options for the Swarm service.
 type Config struct {
 	// PeerID is peer ID of the node.
@@ -25,9 +39,21 @@ type Config struct {
 	// Addresses are the list of addresses to bind to.
 	Addresses []string `toml:"addresses" comment:"List of addresses to bind to."`
 
+	// ProtectionMode describes the network protection mode.
+	ProtectionMode string `toml:"protection_mode" comment:"Protection mode for private network (blank = disabled)."`
+
 	// StreamMuxer is the name of the stream muxer service.
 	StreamMuxer string `toml:"stream_muxer" comment:"The name of the stream muxer service."`
 
 	// Metrics is the name of the metrics service.
 	Metrics string `toml:"metrics" comment:"The name of the metrics service (blank = disabled)."`
+}
+
+// ValidateProtectionMode checks that the protection mode is supported.
+func (c *Config) ValidateProtectionMode() error {
+	if c.ProtectionMode != "" && c.ProtectionMode != PrivateCoordinatorMode {
+		return ErrInvalidProtectionMode
+	}
+
+	return nil
 }

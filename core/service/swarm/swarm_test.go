@@ -94,6 +94,10 @@ func TestService_SetConfig(t *testing.T) {
 		func(c *Config) { c.PrivateKey = "alice" },
 		errAny,
 	}, {
+		"invalid-protection-mode",
+		func(c *Config) { c.ProtectionMode = "over-9000" },
+		ErrInvalidProtectionMode,
+	}, {
 		"peer ID mismatch",
 		func(c *Config) {
 			c.PeerID = "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"

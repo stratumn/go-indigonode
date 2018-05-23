@@ -39,8 +39,8 @@ var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
 
-	// ErrNotEnoughPeers is returned when peers are connected.
-	ErrNotEnoughPeers = errors.New("number of connected peers is under configuration threeshold")
+	// ErrNotEnoughPeers is returned when not enough peers are connected.
+	ErrNotEnoughPeers = errors.New("number of connected peers is under configuration threshold")
 )
 
 // log is the logger for the service.
@@ -56,30 +56,6 @@ type Service struct {
 	interval time.Duration
 	timeout  time.Duration
 	host     Host
-}
-
-// Config contains configuration options for the Bootstrap service.
-type Config struct {
-	// Host is the name of the host service.
-	Host string `toml:"host" comment:"The name of the host service."`
-
-	// Needs are services that should be started in addition to the host
-	// before bootstrapping.
-	Needs []string `toml:"needs" comment:"Services that should be started in addition to the host before bootstrapping."`
-
-	// Addresses is a list of known peer addresses.
-	Addresses []string `toml:"addresses" comment:"A list of known peer addresses."`
-
-	// MinPeerThreshold is the number of peers under which to bootstrap
-	// connections.
-	MinPeerThreshold int `toml:"min_peer_threshold" comment:"The number of peers under which to bootstrap connections."`
-
-	// Interval is the duration of the interval between bootstrap jobs.
-	Interval string `toml:"interval" comment:"Interval between bootstrap jobs."`
-
-	// ConnectionTimeout is the connection timeout. It should be less than
-	// the interval.
-	ConnectionTimeout string `toml:"connection_timeout" comment:"The connection timeout. It should be less than the interval."`
 }
 
 // ID returns the unique identifier of the service.

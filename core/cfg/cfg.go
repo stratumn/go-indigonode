@@ -84,17 +84,31 @@ func Load(set Set, filename string) error {
 	return nil
 }
 
+// SaveParams provides options for saving a configuration file.
+type SaveParams struct {
+	Overwrite bool
+	Backup    bool
+}
+
+// Loggable formats the parameters for logging.
+func (p SaveParams) Loggable() map[string]interface{} {
+	return map[string]interface{}{
+		"overwrite": p.Overwrite,
+		"backup":    p.Backup,
+	}
+}
+
 // Save saves the configurations of a set of configurables to a TOML file.
-func Save(set Set, filename string, perms os.FileMode, overwrite bool) error {
+func Save(set Set, filename string, perms os.FileMode, params SaveParams) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
-		"filename":  filename,
-		"perms":     perms,
-		"overwrite": overwrite,
+		"filename": filename,
+		"perms":    perms,
+		"params":   params.Loggable(),
 	})
 	event := log.EventBegin(ctx, "Save")
 	defer event.Done()
 
-	err := set.Configs().Save(filename, perms, overwrite)
+	err := set.Configs().Save(filename, perms, params)
 	if err != nil {
 		event.SetError(err)
 	}
@@ -113,19 +127,20 @@ func (s Set) Configs() ConfigSet {
 	return cs
 }
 
-// Save saves a set of configurations to a file. It will return an error if the
-// file already exists unless overwrite is true.
-func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) error {
+// Save saves a set of configurations to a file.
+// It will return an error if the file already exists
+// unless the overwrite param is true.
+func (cs ConfigSet) Save(filename string, perms os.FileMode, params SaveParams) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
-		"filename":  filename,
-		"perms":     perms,
-		"overwrite": overwrite,
+		"filename": filename,
+		"perms":    perms,
+		"params":   params.Loggable(),
 	})
 	event := log.EventBegin(ctx, "configSave")
 	defer event.Done()
 
-	// Backup file.
-	if overwrite {
+	// Backup file if needed.
+	if params.Overwrite && params.Backup {
 		if _, err := os.Stat(filename); !os.IsNotExist(err) {
 			if err := backup(ctx, filename); err != nil {
 				event.SetError(err)
@@ -136,7 +151,7 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 
 	mode := os.O_WRONLY | os.O_CREATE
 
-	if !overwrite {
+	if !params.Overwrite {
 		mode |= os.O_EXCL
 	}
 

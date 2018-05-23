@@ -50,7 +50,7 @@ func NewConfigurableSet() ConfigurableSet {
 //
 // It fails if the file already exists.
 func InitConfig(set ConfigurableSet, filename string) error {
-	return cfg.Save(set, filename, 0600, false)
+	return cfg.Save(set, filename, 0600, cfg.SaveParams{Overwrite: false})
 }
 
 // LoadConfig loads the configuration file and applies migrations.

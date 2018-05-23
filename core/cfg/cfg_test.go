@@ -67,7 +67,7 @@ func TestCfg(t *testing.T) {
 		"tar": &tarSave,
 	}
 
-	err = Save(setSave, filename, 0644, false)
+	err = Save(setSave, filename, 0644, SaveParams{Overwrite: false})
 	require.NoError(t, err, "Save(filename)")
 
 	zipLoad := testHandler{name: "default"}

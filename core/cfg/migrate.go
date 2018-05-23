@@ -186,7 +186,7 @@ func Migrate(
 
 	// Save config file if there were migrations.
 	if len(migrations) > 0 {
-		return Save(set, filename, perms, true)
+		return Save(set, filename, perms, SaveParams{Overwrite: true, Backup: true})
 	}
 
 	return nil

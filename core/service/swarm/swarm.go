@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	// ErrPeerIDMismatch is returned whe the peer ID does not match the
+	// ErrPeerIDMismatch is returned when the peer ID does not match the
 	// private key.
 	ErrPeerIDMismatch = errors.New("the peer ID does not match the private key")
 

@@ -21,6 +21,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
+	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/core/service/swarm"
+)
+
+var (
+	initPrivateWithCoordinator = false
 )
 
 // initCmd represents the init command.
@@ -28,9 +34,16 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := core.InitConfig(core.NewConfigurableSet(services), coreCfgFilename()); err != nil {
+		configSet := core.NewConfigurableSet(services)
+		coreConfigFilename := coreCfgFilename()
+
+		if err := core.InitConfig(configSet, coreConfigFilename); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the core configuration file: %s.\n", err)
 			os.Exit(1)
+		}
+
+		if initPrivateWithCoordinator {
+			configurePrivateCoordinatorMode(configSet, coreConfigFilename)
 		}
 
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
@@ -46,6 +59,39 @@ var initCmd = &cobra.Command{
 	},
 }
 
+func configurePrivateCoordinatorMode(configSet cfg.Set, coreConfigFilename string) {
+	if err := cfg.Update(
+		configSet,
+		coreConfigFilename,
+		[]cfg.UpdateHandler{
+			func(tree *cfg.Tree) error {
+				if err := tree.Set("swarm.protection_mode", swarm.PrivateCoordinatorMode); err != nil {
+					return err
+				}
+				if err := tree.Set("bootstrap.addresses", nil); err != nil {
+					return err
+				}
+				if err := tree.Set("bootstrap.min_peer_threshold", int64(0)); err != nil {
+					return err
+				}
+
+				return nil
+			},
+		},
+		0600,
+	); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not configure private network: %s.\n", err)
+		os.Exit(1)
+	}
+}
+
 func init() {
 	RootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().BoolVar(
+		&initPrivateWithCoordinator,
+		"private-coordinator-mode",
+		false,
+		"initialize a private network using a coordinator node",
+	)
 }

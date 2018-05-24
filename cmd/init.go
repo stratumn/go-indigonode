@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/stratumn/alice/cli"
@@ -58,16 +57,14 @@ var initCmd = &cobra.Command{
 		}
 
 		if err := core.InitConfig(configSet, coreCfgFilename()); err != nil {
-			fmt.Fprintf(os.Stderr, "Could not save the core configuration file: %s.\n", err)
-			osExit(1)
+			osExit(1, fmt.Sprintf("Could not save the core configuration file: %s.\n", err))
 		}
 
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
 		fmt.Println("Keep this file private!!!")
 
 		if err := cli.InitConfig(cli.NewConfigurableSet(), cliCfgFilename()); err != nil {
-			fmt.Fprintf(os.Stderr, "Could not save the command line interface configuration file: %s.\n", err)
-			osExit(1)
+			osExit(1, fmt.Sprintf("Could not save the command line interface configuration file: %s.\n", err))
 		}
 
 		fmt.Printf("Created configuration file %q.\n", cliCfgFilename())
@@ -77,18 +74,16 @@ var initCmd = &cobra.Command{
 
 func validateFlags() {
 	if initPrivateCoordinator && initPrivateWithCoordinator {
-		fmt.Fprintln(os.Stderr, "Invalid flag combination. "+
+		osExit(1, fmt.Sprintf("Invalid flag combination. "+
 			"You need to chose between private-coordinator "+
-			"and private-with-coordinator")
-		osExit(1)
+			"and private-with-coordinator"))
 	}
 }
 
 func getSwarmConfig(configSet cfg.Set) swarm.Config {
 	swarmConfig, ok := configSet[swarm.ServiceID].Config().(swarm.Config)
 	if !ok {
-		fmt.Fprintln(os.Stderr, "Invalid or missing swarm configuration.")
-		osExit(1)
+		osExit(1, fmt.Sprintf("Invalid or missing swarm configuration."))
 	}
 
 	return swarmConfig
@@ -96,16 +91,14 @@ func getSwarmConfig(configSet cfg.Set) swarm.Config {
 
 func setSwarmConfig(configSet cfg.Set, swarmConfig swarm.Config) {
 	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not set swarm configuration: %s.\n", err)
-		osExit(1)
+		osExit(1, fmt.Sprintf("Could not set swarm configuration: %s.\n", err))
 	}
 }
 
 func getBootstrapConfig(configSet cfg.Set) bootstrap.Config {
 	bootstrapConfig, ok := configSet[bootstrap.ServiceID].Config().(bootstrap.Config)
 	if !ok {
-		fmt.Fprintln(os.Stderr, "Invalid or missing bootstrap configuration.")
-		osExit(1)
+		osExit(1, fmt.Sprintf("Invalid or missing bootstrap configuration."))
 	}
 
 	return bootstrapConfig
@@ -113,8 +106,7 @@ func getBootstrapConfig(configSet cfg.Set) bootstrap.Config {
 
 func setBootstrapConfig(configSet cfg.Set, bootstrapConfig bootstrap.Config) {
 	if err := configSet[bootstrap.ServiceID].SetConfig(bootstrapConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not set bootstrap configuration: %s.\n", err)
-		osExit(1)
+		osExit(1, fmt.Sprintf("Could not set bootstrap configuration: %s.\n", err))
 	}
 }
 
@@ -136,14 +128,12 @@ func configurePrivateCoordinator(configSet cfg.Set) {
 func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	coordinatorAddr, err := multiaddr.NewMultiaddr(initCoordinatorAddr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err)
-		osExit(1)
+		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err))
 	}
 
 	coordinatorInfo, err := peerstore.InfoFromP2pAddr(coordinatorAddr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err)
-		osExit(1)
+		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err))
 	}
 
 	swarmConfig := getSwarmConfig(configSet)

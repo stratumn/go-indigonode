@@ -20,14 +20,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	Execute()
-
-	// Panic can be caught in tests, os.Exit cannot.
-	osExit = func(code int) { panic(code) }
-}
-
 func TestInitPrivateNetwork_InvalidArgs(t *testing.T) {
+	prevOsExit := osExit
+	osExit = func(code int, _ string) {
+		// Panic can be caught in tests, os.Exit cannot.
+		panic(code)
+	}
+	defer func() { osExit = prevOsExit }()
+
 	testCases := []struct {
 		name  string
 		setup func(*testing.T)

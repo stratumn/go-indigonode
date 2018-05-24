@@ -61,6 +61,9 @@ type Config struct {
 // CoordinatorConfig contains configuration options
 // for the network coordinator (if enabled).
 type CoordinatorConfig struct {
+	// IsCoordinator is true when the node is the coordinator of a private network.
+	IsCoordinator bool `toml:"is_coordinator" comment:"True if we are the coordinator node."`
+
 	// CoordinatorID is the peer ID of the coordinator node.
 	CoordinatorID string `toml:"coordinator_id" comment:"The peer ID of the coordinator."`
 
@@ -89,6 +92,10 @@ func (c Config) ValidateProtectionMode() error {
 func (c Config) validateCoordinatorConfig() error {
 	if c.CoordinatorConfig == nil {
 		return ErrInvalidCoordinatorConfig
+	}
+
+	if c.CoordinatorConfig.IsCoordinator {
+		return nil
 	}
 
 	_, err := peer.IDB58Decode(c.CoordinatorConfig.CoordinatorID)

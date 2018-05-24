@@ -125,6 +125,13 @@ func TestService_SetConfig(t *testing.T) {
 		},
 		ErrInvalidCoordinatorConfig,
 	}, {
+		"coordinator-node",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{IsCoordinator: true}
+		},
+		nil,
+	}, {
 		"peer ID mismatch",
 		func(c *Config) {
 			c.PeerID = "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"
@@ -141,6 +148,8 @@ func TestService_SetConfig(t *testing.T) {
 
 			err := errors.Cause(serv.SetConfig(config))
 			switch {
+			case tt.err == nil:
+				assert.NoError(t, err)
 			case err != nil && tt.err == errAny:
 			case err != tt.err:
 				assert.Equal(t, tt.err, err)

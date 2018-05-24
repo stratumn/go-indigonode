@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	initPrivateCoordinator     bool
 	initPrivateWithCoordinator bool
 	initCoordinatorAddr        string
 )
@@ -39,8 +40,13 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
+		validateFlags()
+
 		configSet := core.NewConfigurableSet(services)
-		if initPrivateWithCoordinator {
+
+		if initPrivateCoordinator {
+			configurePrivateCoordinator(configSet)
+		} else if initPrivateWithCoordinator {
 			configurePrivateWithCoordinatorMode(configSet)
 		}
 
@@ -62,6 +68,64 @@ var initCmd = &cobra.Command{
 	},
 }
 
+func validateFlags() {
+	if initPrivateCoordinator && initPrivateWithCoordinator {
+		fmt.Fprintln(os.Stderr, "Invalid flag combination. "+
+			"You need to chose between private-coordinator "+
+			"and private-with-coordinator")
+		os.Exit(1)
+	}
+}
+
+func getSwarmConfig(configSet cfg.Set) swarm.Config {
+	swarmConfig, ok := configSet[swarm.ServiceID].Config().(swarm.Config)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "Invalid or missing swarm configuration.")
+		os.Exit(1)
+	}
+
+	return swarmConfig
+}
+
+func setSwarmConfig(configSet cfg.Set, swarmConfig swarm.Config) {
+	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not set swarm configuration: %s.\n", err)
+		os.Exit(1)
+	}
+}
+
+func getBootstrapConfig(configSet cfg.Set) bootstrap.Config {
+	bootstrapConfig, ok := configSet[bootstrap.ServiceID].Config().(bootstrap.Config)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "Invalid or missing bootstrap configuration.")
+		os.Exit(1)
+	}
+
+	return bootstrapConfig
+}
+
+func setBootstrapConfig(configSet cfg.Set, bootstrapConfig bootstrap.Config) {
+	if err := configSet[bootstrap.ServiceID].SetConfig(bootstrapConfig); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not set bootstrap configuration: %s.\n", err)
+		os.Exit(1)
+	}
+}
+
+func configurePrivateCoordinator(configSet cfg.Set) {
+	swarmConfig := getSwarmConfig(configSet)
+	bootstrapConfig := getBootstrapConfig(configSet)
+
+	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{IsCoordinator: true}
+
+	// No bootstrapping to other nodes, we are the bootstrapping node.
+	bootstrapConfig.Addresses = nil
+	bootstrapConfig.MinPeerThreshold = 0
+
+	setSwarmConfig(configSet, swarmConfig)
+	setBootstrapConfig(configSet, bootstrapConfig)
+}
+
 func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	coordinatorAddr, err := multiaddr.NewMultiaddr(initCoordinatorAddr)
 	if err != nil {
@@ -75,17 +139,8 @@ func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 		os.Exit(1)
 	}
 
-	swarmConfig, ok := configSet[swarm.ServiceID].Config().(swarm.Config)
-	if !ok {
-		fmt.Fprintln(os.Stderr, "Invalid or missing swarm configuration.")
-		os.Exit(1)
-	}
-
-	bootstrapConfig, ok := configSet[bootstrap.ServiceID].Config().(bootstrap.Config)
-	if !ok {
-		fmt.Fprintln(os.Stderr, "Invalid or missing bootstrap configuration.")
-		os.Exit(1)
-	}
+	swarmConfig := getSwarmConfig(configSet)
+	bootstrapConfig := getBootstrapConfig(configSet)
 
 	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
 	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
@@ -100,19 +155,19 @@ func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	bootstrapConfig.Addresses = []string{coordinatorAddr.String()}
 	bootstrapConfig.MinPeerThreshold = 1
 
-	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not set swarm configuration: %s.\n", err)
-		os.Exit(1)
-	}
-
-	if err := configSet[bootstrap.ServiceID].SetConfig(bootstrapConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not set bootstrap configuration: %s.\n", err)
-		os.Exit(1)
-	}
+	setSwarmConfig(configSet, swarmConfig)
+	setBootstrapConfig(configSet, bootstrapConfig)
 }
 
 func init() {
 	RootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().BoolVar(
+		&initPrivateCoordinator,
+		"private-coordinator",
+		false,
+		"initialize the coordinator of a private network",
+	)
 
 	initCmd.Flags().BoolVar(
 		&initPrivateWithCoordinator,

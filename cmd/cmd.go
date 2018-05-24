@@ -14,3 +14,8 @@
 
 // Package cmd defines the commands of the alice executable.
 package cmd
+
+import "os"
+
+// Only modify in unit tests.
+var osExit = os.Exit

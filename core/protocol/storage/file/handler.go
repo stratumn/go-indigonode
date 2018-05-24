@@ -418,7 +418,7 @@ func (h *localFileHandler) Exists(ctx context.Context, fileHash []byte) (exists 
 		return
 	}
 
-	return bytes.Compare(fileHash, hash) == 0, nil
+	return bytes.Equal(fileHash, hash), nil
 }
 
 // ============================================================================

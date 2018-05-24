@@ -30,7 +30,7 @@ func TestSegmentFilter(t *testing.T) {
 	_, err := f.ToSegmentFilter()
 	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
-	filter := &indigostore.SegmentFilter{Process: "p"}
+	filter := &indigostore.SegmentFilter{Process: "p", Pagination: indigostore.Pagination{Limit: 10}}
 	filterBytes, _ := json.Marshal(filter)
 	f = &store.SegmentFilter{Data: filterBytes}
 
@@ -44,7 +44,7 @@ func TestMapFilter(t *testing.T) {
 	_, err := f.ToMapFilter()
 	assert.EqualError(t, err, pb.ErrInvalidArgument.Error())
 
-	filter := &indigostore.MapFilter{Process: "p"}
+	filter := &indigostore.MapFilter{Process: "p", Pagination: indigostore.Pagination{Limit: 10}}
 	filterBytes, _ := json.Marshal(filter)
 	f = &store.MapFilter{Data: filterBytes}
 

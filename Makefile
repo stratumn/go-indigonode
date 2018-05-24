@@ -46,12 +46,15 @@ DOCKER_PUSH=$(DOCKER_CMD) push
 
 PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor)
 MOCK_FILES=$(shell find . -name 'mock*.go' | grep -v vendor)
-TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
-COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
-COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
-LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc' | grep -v 'mock' | grep -v 'test')
+TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v 'mock' | grep -v 'test')
+# All packages for which we want to get coverage data.
+COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
+# All packages for which we don't want to get coverage data (but still want to build and test).
+NO_COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -E '(./grpc/|./pb/)')
+COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test')
+LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
 BUILD_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
-CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' | grep -v 'mock' | grep -v 'test')
+CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
 GRPC_PROTOS=$(shell find grpc -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
@@ -177,8 +180,13 @@ system:
 	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system
 
 # == coverage =================================================================
-coverage: $(COVERAGE_FILE)
+coverage: $(NO_COVERAGE_PACKAGES) $(COVERAGE_FILE)
 
+# We run the unit tests on not-covered packages.
+$(NO_COVERAGE_PACKAGES): 
+	@$(GO_TEST) $@
+
+# Then all tests for which we want coverage.
 $(COVERAGE_FILE): $(COVERAGE_SOURCES)
 	@for d in $(COVERAGE_PACKAGES); do \
 	    $(GO_TEST) -coverprofile=profile.out -covermode=atomic $$d || exit 1; \

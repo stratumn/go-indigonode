@@ -180,8 +180,13 @@ system:
 	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system
 
 # == coverage =================================================================
-coverage: $(COVERAGE_FILE)
+coverage: $(NO_COVERAGE_PACKAGES) $(COVERAGE_FILE)
 
+# We run the unit tests on not-covered packages.
+$(NO_COVERAGE_PACKAGES): 
+	@$(GO_TEST) $@
+
+# Then all tests for which we want coverage.
 $(COVERAGE_FILE): $(COVERAGE_SOURCES)
 	@for d in $(COVERAGE_PACKAGES); do \
 	    $(GO_TEST) -coverprofile=profile.out -covermode=atomic $$d || exit 1; \
@@ -189,9 +194,6 @@ $(COVERAGE_FILE): $(COVERAGE_SOURCES)
 	        cat profile.out >> $(COVERAGE_FILE); \
 	        rm profile.out; \
 	    fi \
-	done
-	@for d in $(NO_COVERAGE_PACKAGES); do \
-		$(GO_TEST) $$d; \
 	done
 
 coverhtml:

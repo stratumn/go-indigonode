@@ -24,10 +24,14 @@ import (
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
+
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
 var (
-	initPrivateWithCoordinator = false
+	initPrivateWithCoordinator bool
+	initCoordinatorAddr        string
 )
 
 // initCmd represents the init command.
@@ -59,6 +63,18 @@ var initCmd = &cobra.Command{
 }
 
 func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
+	coordinatorAddr, err := multiaddr.NewMultiaddr(initCoordinatorAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err)
+		os.Exit(1)
+	}
+
+	coordinatorInfo, err := peerstore.InfoFromP2pAddr(coordinatorAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err)
+		os.Exit(1)
+	}
+
 	swarmConfig, ok := configSet[swarm.ServiceID].Config().(swarm.Config)
 	if !ok {
 		fmt.Fprintln(os.Stderr, "Invalid or missing swarm configuration.")
@@ -72,8 +88,17 @@ func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	}
 
 	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
-	bootstrapConfig.Addresses = nil
-	bootstrapConfig.MinPeerThreshold = 0
+	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
+		CoordinatorID: coordinatorInfo.ID.Pretty(),
+	}
+
+	for _, addr := range coordinatorInfo.Addrs {
+		swarmConfig.CoordinatorConfig.CoordinatorAddresses = append(swarmConfig.CoordinatorConfig.CoordinatorAddresses, addr.String())
+	}
+
+	// Bootstrap only with the coordinator node.
+	bootstrapConfig.Addresses = []string{coordinatorAddr.String()}
+	bootstrapConfig.MinPeerThreshold = 1
 
 	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not set swarm configuration: %s.\n", err)
@@ -94,5 +119,12 @@ func init() {
 		"private-with-coordinator",
 		false,
 		"initialize a private network using a coordinator node",
+	)
+
+	initCmd.Flags().StringVar(
+		&initCoordinatorAddr,
+		"coordinator-addr",
+		"",
+		"multiaddr of the coordinator node",
 	)
 }

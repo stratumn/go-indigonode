@@ -21,6 +21,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
+	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/core/service/bootstrap"
+	"github.com/stratumn/alice/core/service/swarm"
+)
+
+var (
+	initPrivateWithCoordinator = false
 )
 
 // initCmd represents the init command.
@@ -28,7 +35,12 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := core.InitConfig(core.NewConfigurableSet(services), coreCfgFilename()); err != nil {
+		configSet := core.NewConfigurableSet(services)
+		if initPrivateWithCoordinator {
+			configurePrivateWithCoordinatorMode(configSet)
+		}
+
+		if err := core.InitConfig(configSet, coreCfgFilename()); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not save the core configuration file: %s.\n", err)
 			os.Exit(1)
 		}
@@ -46,6 +58,41 @@ var initCmd = &cobra.Command{
 	},
 }
 
+func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
+	swarmConfig, ok := configSet[swarm.ServiceID].Config().(swarm.Config)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "Invalid or missing swarm configuration.")
+		os.Exit(1)
+	}
+
+	bootstrapConfig, ok := configSet[bootstrap.ServiceID].Config().(bootstrap.Config)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "Invalid or missing bootstrap configuration.")
+		os.Exit(1)
+	}
+
+	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	bootstrapConfig.Addresses = nil
+	bootstrapConfig.MinPeerThreshold = 0
+
+	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not set swarm configuration: %s.\n", err)
+		os.Exit(1)
+	}
+
+	if err := configSet[bootstrap.ServiceID].SetConfig(bootstrapConfig); err != nil {
+		fmt.Fprintf(os.Stderr, "Could not set bootstrap configuration: %s.\n", err)
+		os.Exit(1)
+	}
+}
+
 func init() {
 	RootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().BoolVar(
+		&initPrivateWithCoordinator,
+		"private-with-coordinator",
+		false,
+		"initialize a private network using a coordinator node",
+	)
 }

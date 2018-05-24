@@ -35,8 +35,13 @@ import (
 	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
+const (
+	// ServiceID used by the swarm service.
+	ServiceID = "swarm"
+)
+
 var (
-	// ErrPeerIDMismatch is returned whe the peer ID does not match the
+	// ErrPeerIDMismatch is returned when the peer ID does not match the
 	// private key.
 	ErrPeerIDMismatch = errors.New("the peer ID does not match the private key")
 
@@ -76,27 +81,9 @@ type Swarm struct {
 	Swarm   *swarm.Swarm
 }
 
-// Config contains configuration options for the Swarm service.
-type Config struct {
-	// PeerID is peer ID of the node.
-	PeerID string `toml:"peer_id" comment:"The peer ID of the host."`
-
-	// PrivateKey is the private key of the node.
-	PrivateKey string `toml:"private_key" comment:"The private key of the host."`
-
-	// Addresses are the list of addresses to bind to.
-	Addresses []string `toml:"addresses" comment:"List of addresses to bind to."`
-
-	// StreamMuxer is the name of the stream muxer service.
-	StreamMuxer string `toml:"stream_muxer" comment:"The name of the stream muxer service."`
-
-	// Metrics is the name of the metrics service.
-	Metrics string `toml:"metrics" comment:"The name of the metrics service (blank = disabled)."`
-}
-
 // ID returns the unique identifier of the service.
 func (s *Service) ID() string {
-	return "swarm"
+	return ServiceID
 }
 
 // Name returns the human friendly name of the service.
@@ -175,6 +162,10 @@ func (s *Service) SetConfig(config interface{}) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
+	}
+
+	if err = conf.ValidateProtectionMode(); err != nil {
+		return err
 	}
 
 	s.peerID = peerID

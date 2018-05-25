@@ -163,20 +163,22 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	// Bootstrap until we have at least one connected peer.
-	for {
-		if err := s.round(ctx); err != nil {
-			log.Event(ctx, "roundError", logging.Metadata{
-				"error": err.Error(),
-			})
-		}
+	if s.config.MinPeerThreshold > 0 {
+		// Bootstrap until we have at least one connected peer.
+		for {
+			if err := s.round(ctx); err != nil {
+				log.Event(ctx, "roundError", logging.Metadata{
+					"error": err.Error(),
+				})
+			}
 
-		connected := s.host.Network().Peers()
-		if len(connected) > 0 {
-			break
-		}
+			connected := s.host.Network().Peers()
+			if len(connected) > 0 {
+				break
+			}
 
-		time.Sleep(time.Second)
+			time.Sleep(time.Second)
+		}
 	}
 
 	ticker := time.NewTicker(s.interval)

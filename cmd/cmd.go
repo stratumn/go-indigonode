@@ -14,3 +14,14 @@
 
 // Package cmd defines the commands of the alice executable.
 package cmd
+
+import (
+	"fmt"
+	"os"
+)
+
+// Only modify in unit tests.
+var osExit = func(code int, message string) {
+	fmt.Fprintln(os.Stderr, message)
+	os.Exit(code)
+}

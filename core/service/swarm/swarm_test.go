@@ -98,6 +98,40 @@ func TestService_SetConfig(t *testing.T) {
 		func(c *Config) { c.ProtectionMode = "over-9000" },
 		ErrInvalidProtectionMode,
 	}, {
+		"invalid-coordinator-id",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{
+				CoordinatorID:        "H4cK3rM4n",
+				CoordinatorAddresses: []string{"/ip4/127.0.0.1/tcp/8903/ipfs/QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"},
+			}
+		},
+		ErrInvalidCoordinatorConfig,
+	}, {
+		"missing-coordinator-addr",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{CoordinatorID: "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"}
+		},
+		ErrInvalidCoordinatorConfig,
+	}, {
+		"invalid-coordinator-addr",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{
+				CoordinatorID:        "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9",
+				CoordinatorAddresses: []string{"/ip42/9.0.0.0/tcp/8903/ipfs/QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"},
+			}
+		},
+		ErrInvalidCoordinatorConfig,
+	}, {
+		"coordinator-node",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{IsCoordinator: true}
+		},
+		nil,
+	}, {
 		"peer ID mismatch",
 		func(c *Config) {
 			c.PeerID = "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"
@@ -114,6 +148,8 @@ func TestService_SetConfig(t *testing.T) {
 
 			err := errors.Cause(serv.SetConfig(config))
 			switch {
+			case tt.err == nil:
+				assert.NoError(t, err)
 			case err != nil && tt.err == errAny:
 			case err != tt.err:
 				assert.Equal(t, tt.err, err)

@@ -57,14 +57,14 @@ var initCmd = &cobra.Command{
 		}
 
 		if err := core.InitConfig(configSet, coreCfgFilename()); err != nil {
-			osExit(1, fmt.Sprintf("Could not save the core configuration file: %s.\n", err))
+			osExit(1, fmt.Sprintf("Could not save the core configuration file: %s.", err))
 		}
 
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
 		fmt.Println("Keep this file private!!!")
 
 		if err := cli.InitConfig(cli.NewConfigurableSet(), cliCfgFilename()); err != nil {
-			osExit(1, fmt.Sprintf("Could not save the command line interface configuration file: %s.\n", err))
+			osExit(1, fmt.Sprintf("Could not save the command line interface configuration file: %s.", err))
 		}
 
 		fmt.Printf("Created configuration file %q.\n", cliCfgFilename())
@@ -91,7 +91,7 @@ func getSwarmConfig(configSet cfg.Set) swarm.Config {
 
 func setSwarmConfig(configSet cfg.Set, swarmConfig swarm.Config) {
 	if err := configSet[swarm.ServiceID].SetConfig(swarmConfig); err != nil {
-		osExit(1, fmt.Sprintf("Could not set swarm configuration: %s.\n", err))
+		osExit(1, fmt.Sprintf("Could not set swarm configuration: %s.", err))
 	}
 }
 
@@ -106,7 +106,7 @@ func getBootstrapConfig(configSet cfg.Set) bootstrap.Config {
 
 func setBootstrapConfig(configSet cfg.Set, bootstrapConfig bootstrap.Config) {
 	if err := configSet[bootstrap.ServiceID].SetConfig(bootstrapConfig); err != nil {
-		osExit(1, fmt.Sprintf("Could not set bootstrap configuration: %s.\n", err))
+		osExit(1, fmt.Sprintf("Could not set bootstrap configuration: %s.", err))
 	}
 }
 
@@ -128,12 +128,12 @@ func configurePrivateCoordinator(configSet cfg.Set) {
 func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	coordinatorAddr, err := multiaddr.NewMultiaddr(initCoordinatorAddr)
 	if err != nil {
-		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err))
+		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.", initCoordinatorAddr, err))
 	}
 
 	coordinatorInfo, err := peerstore.InfoFromP2pAddr(coordinatorAddr)
 	if err != nil {
-		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.\n", initCoordinatorAddr, err))
+		osExit(1, fmt.Sprintf("Invalid coordinator address (%s): %s.", initCoordinatorAddr, err))
 	}
 
 	swarmConfig := getSwarmConfig(configSet)

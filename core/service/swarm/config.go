@@ -69,15 +69,18 @@ type CoordinatorConfig struct {
 
 	// CoordinatorAddresses is the list of addresses of the coordinator node.
 	CoordinatorAddresses []string `toml:"coordinator_addresses" comment:"Coordinator addresses."`
+
+	// Path to the signed network configuration file.
+	ConfigPath string `toml:"config_path" comment:"Path to the signed network configuration file."`
 }
 
 // ValidateProtectionMode checks that the protection mode is supported.
-func (c Config) ValidateProtectionMode() error {
+func (c Config) ValidateProtectionMode(s *Service) error {
 	if c.ProtectionMode == "" {
 		return nil
 	}
 
-	protectionModes := map[string]func() error{
+	protectionModes := map[string]func(*Service) error{
 		PrivateWithCoordinatorMode: c.validateCoordinatorConfig,
 	}
 
@@ -86,11 +89,15 @@ func (c Config) ValidateProtectionMode() error {
 		return ErrInvalidProtectionMode
 	}
 
-	return validator()
+	return validator(s)
 }
 
-func (c Config) validateCoordinatorConfig() error {
+func (c Config) validateCoordinatorConfig(s *Service) (err error) {
 	if c.CoordinatorConfig == nil {
+		return ErrInvalidCoordinatorConfig
+	}
+
+	if c.CoordinatorConfig.ConfigPath == "" {
 		return ErrInvalidCoordinatorConfig
 	}
 
@@ -98,7 +105,7 @@ func (c Config) validateCoordinatorConfig() error {
 		return nil
 	}
 
-	_, err := peer.IDB58Decode(c.CoordinatorConfig.CoordinatorID)
+	s.coordinatorID, err = peer.IDB58Decode(c.CoordinatorConfig.CoordinatorID)
 	if err != nil {
 		return ErrInvalidCoordinatorConfig
 	}
@@ -108,9 +115,12 @@ func (c Config) validateCoordinatorConfig() error {
 	}
 
 	for _, addr := range c.CoordinatorConfig.CoordinatorAddresses {
-		if _, err := multiaddr.NewMultiaddr(addr); err != nil {
+		coordinatorAddr, err := multiaddr.NewMultiaddr(addr)
+		if err != nil {
 			return ErrInvalidCoordinatorConfig
 		}
+
+		s.coordinatorAddrs = append(s.coordinatorAddrs, coordinatorAddr)
 	}
 
 	return nil

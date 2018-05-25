@@ -23,6 +23,7 @@ import (
 
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/metrics"
 	pb "github.com/stratumn/alice/grpc/swarm"
 	"google.golang.org/grpc"
@@ -31,7 +32,7 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
@@ -72,13 +73,18 @@ type Service struct {
 	privKey crypto.PrivKey
 	addrs   []ma.Multiaddr
 	swarm   *swarm.Swarm
+
+	networkConfig    protector.Config
+	coordinatorID    peer.ID
+	coordinatorAddrs []ma.Multiaddr
 }
 
 // Swarm wraps a swarm with other data that could be useful to services.
 // It's the type exposed by the swarm service.
 type Swarm struct {
-	PrivKey crypto.PrivKey
-	Swarm   *swarm.Swarm
+	NetworkConfig protector.Config
+	PrivKey       crypto.PrivKey
+	Swarm         *swarm.Swarm
 }
 
 // ID returns the unique identifier of the service.
@@ -164,7 +170,7 @@ func (s *Service) SetConfig(config interface{}) error {
 		}
 	}
 
-	if err = conf.ValidateProtectionMode(); err != nil {
+	if err = conf.ValidateProtectionMode(s); err != nil {
 		return err
 	}
 
@@ -212,28 +218,33 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 //	github.com/stratumn/alice/core/service/*swarm.Swarm
 func (s *Service) Expose() interface{} {
 	return &Swarm{
-		PrivKey: s.privKey,
-		Swarm:   s.swarm,
+		NetworkConfig: s.networkConfig,
+		PrivKey:       s.privKey,
+		Swarm:         s.swarm,
 	}
 }
 
 // Run starts the service.
-func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	pstore := pstore.NewPeerstore()
+func (s *Service) Run(ctx context.Context, running, stopping func()) (err error) {
+	pstore := peerstore.NewPeerstore()
 
-	if err := pstore.AddPrivKey(s.peerID, s.privKey); err != nil {
+	if err = pstore.AddPrivKey(s.peerID, s.privKey); err != nil {
 		return errors.WithStack(err)
 	}
 
-	if err := pstore.AddPubKey(s.peerID, s.privKey.GetPublic()); err != nil {
+	if err = pstore.AddPubKey(s.peerID, s.privKey.GetPublic()); err != nil {
 		return errors.WithStack(err)
+	}
+
+	protect, err := s.configureProtector(ctx, pstore)
+	if err != nil {
+		return err
 	}
 
 	swmCtx, swmCancel := context.WithCancel(ctx)
 	defer swmCancel()
 
-	// TODO: protector?
-	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, nil, s.smuxer, s.metrics)
+	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, protect, s.smuxer, s.metrics)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -257,12 +268,43 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	swmCancel()
 
 	s.swarm = nil
+	s.networkConfig = nil
 
-	if err := swm.Close(); err != nil {
+	if err = swm.Close(); err != nil {
 		return errors.WithStack(err)
 	}
 
 	return errors.WithStack(ctx.Err())
+}
+
+func (s *Service) configureProtector(ctx context.Context, pstore peerstore.Peerstore) (protect protector.Protector, err error) {
+	if s.config.ProtectionMode == "" {
+		return nil, nil
+	}
+
+	if s.config.ProtectionMode == PrivateWithCoordinatorMode {
+		protect = protector.NewPrivateNetwork(pstore)
+		s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, protect, pstore)
+		if err != nil {
+			return nil, err
+		}
+
+		if s.config.CoordinatorConfig.IsCoordinator {
+			if err = s.networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
+				return nil, err
+			}
+		} else {
+			pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
+
+			if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
+				return nil, err
+			}
+		}
+
+		return protect, nil
+	}
+
+	return nil, ErrInvalidProtectionMode
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

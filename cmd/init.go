@@ -21,6 +21,7 @@ import (
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
 	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
 
@@ -115,7 +116,10 @@ func configurePrivateCoordinator(configSet cfg.Set) {
 	bootstrapConfig := getBootstrapConfig(configSet)
 
 	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
-	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{IsCoordinator: true}
+	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
+		ConfigPath:    protector.DefaultConfigPath,
+		IsCoordinator: true,
+	}
 
 	// No bootstrapping to other nodes, we are the bootstrapping node.
 	bootstrapConfig.Addresses = nil
@@ -141,6 +145,7 @@ func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 
 	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
 	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
+		ConfigPath:    protector.DefaultConfigPath,
 		CoordinatorID: coordinatorInfo.ID.Pretty(),
 	}
 

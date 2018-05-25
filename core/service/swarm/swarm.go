@@ -283,22 +283,31 @@ func (s *Service) configureProtector(ctx context.Context, pstore peerstore.Peers
 	}
 
 	if s.config.ProtectionMode == PrivateWithCoordinatorMode {
+		if s.config.CoordinatorConfig.IsCoordinator {
+			// TODO: use the channel to notify when network bootstrap is complete.
+			protect, _ = protector.NewPrivateNetworkWithBootstrap(pstore)
+			s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, protect, pstore)
+			if err != nil {
+				return nil, err
+			}
+
+			if err = s.networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
+				return nil, err
+			}
+
+			return protect, nil
+		}
+
 		protect = protector.NewPrivateNetwork(pstore)
 		s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, protect, pstore)
 		if err != nil {
 			return nil, err
 		}
 
-		if s.config.CoordinatorConfig.IsCoordinator {
-			if err = s.networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
-				return nil, err
-			}
-		} else {
-			pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
+		pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
 
-			if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
-				return nil, err
-			}
+		if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
+			return nil, err
 		}
 
 		return protect, nil

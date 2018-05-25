@@ -15,7 +15,6 @@
 package protector_test
 
 import (
-	"crypto/rand"
 	"testing"
 	"time"
 
@@ -30,14 +29,7 @@ import (
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8/go-libp2p-interface-pnet"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
-
-func generatePeerID() peer.ID {
-	_, pk, _ := crypto.GenerateEd25519Key(rand.Reader)
-	peerID, _ := peer.IDFromPublicKey(pk)
-	return peerID
-}
 
 // waitUntilAllowed waits until the given peer is found in the allowed list
 // and the allowed list contains allowedCount elements.
@@ -107,7 +99,7 @@ func TestPrivateNetwork_ListenForUpdates(t *testing.T) {
 }
 
 func TestPrivateNetwork_Fingerprint(t *testing.T) {
-	peer := generatePeerID()
+	peer := test.GeneratePeerID(t)
 
 	t.Run("stable-network", func(t *testing.T) {
 		chan1 := make(chan protector.NetworkUpdate)
@@ -170,9 +162,9 @@ func TestPrivateNetwork_Fingerprint(t *testing.T) {
 }
 
 func TestPrivateNetwork_Protect(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
@@ -284,9 +276,9 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 }
 
 func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
@@ -352,9 +344,9 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 }
 
 func TestPrivateNetwork_AllowedPeers(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testCases := []struct {
 		name           string

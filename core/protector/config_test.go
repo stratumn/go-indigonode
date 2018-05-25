@@ -26,6 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/mocks"
+	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -97,7 +98,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 		configDir, _ := ioutil.TempDir("", "alice")
 		configPath := filepath.Join(configDir, "config.json")
 
-		peerID := generatePeerID()
+		peerID := test.GeneratePeerID(t)
 		peerAddr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
 		peerAddr2 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
 
@@ -148,7 +149,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 			otherKey, _, _ := crypto.GenerateEd25519Key(rand.Reader)
 			configData := protector.ConfigData{
 				PeersAddrs: map[string][]string{
-					generatePeerID().Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
+					test.GeneratePeerID(t).Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
 				},
 			}
 
@@ -172,7 +173,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 		func(t *testing.T, configPath string) {
 			configData := protector.ConfigData{
 				PeersAddrs: map[string][]string{
-					generatePeerID().Pretty(): []string{"/not/a/multiaddr"},
+					test.GeneratePeerID(t).Pretty(): []string{"/not/a/multiaddr"},
 				},
 			}
 
@@ -208,10 +209,10 @@ func TestLocalConfig_AddPeer(t *testing.T) {
 	configDir, _ := ioutil.TempDir("", "alice")
 	configPath := filepath.Join(configDir, "config.json")
 
-	peer1 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
 	peer1Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
 	peer1Addr2 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8904")
-	peer2 := generatePeerID()
+	peer2 := test.GeneratePeerID(t)
 	peer2Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
 
 	peerStore := mocks.NewMockPeerstore(ctrl)
@@ -237,8 +238,8 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 	configDir, _ := ioutil.TempDir("", "alice")
 	configPath := filepath.Join(configDir, "config.json")
 
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
 
 	peerStore := mocks.NewMockPeerstore(ctrl)
 	peerStore.EXPECT().AddAddrs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -267,9 +268,9 @@ func TestLocalConfig_Flush(t *testing.T) {
 
 	p := protector.NewPrivateNetwork(peerStore)
 
-	peer1 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
 	peer1Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
-	peer2 := generatePeerID()
+	peer2 := test.GeneratePeerID(t)
 	peer2Addr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
 
 	configDir, _ := ioutil.TempDir("", "alice")

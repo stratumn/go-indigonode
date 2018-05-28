@@ -52,7 +52,7 @@ var (
 type NetworkState = string
 
 // NetworkState values.
-var (
+const (
 	// The network is in the bootstrap phase (not fully private yet).
 	Bootstrap = "bootstrap"
 	// The network bootstrap phase is complete and the network is now protected.

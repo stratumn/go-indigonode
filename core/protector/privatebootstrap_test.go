@@ -15,15 +15,15 @@
 package protector_test
 
 import (
+	"context"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/mocks"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -32,27 +32,19 @@ import (
 
 func TestPrivateNetworkWithBootstrap_New(t *testing.T) {
 	ipnet.ForcePrivateNetwork = true
-	_, bootstrapChan := protector.NewPrivateNetworkWithBootstrap(nil)
+	p := protector.NewPrivateNetworkWithBootstrap(nil)
 
 	assert.False(t, ipnet.ForcePrivateNetwork)
 
-	bootstrapChan <- struct{}{}
-	test.WaitUntil(
-		t,
-		10*time.Millisecond,
-		3*time.Millisecond,
-		func() error {
-			if !ipnet.ForcePrivateNetwork {
-				return errors.New("ipnet.ForcePrivateNetwork not set")
-			}
+	networkStateWriter, ok := p.(protector.NetworkStateWriter)
+	require.True(t, ok, "p.(protector.NetworkStateWriter)")
 
-			return nil
-		},
-		"ipnet.ForcePrivateNetwork not set",
-	)
+	networkStateWriter.SetNetworkState(context.Background(), protector.Protected)
+	assert.True(t, ipnet.ForcePrivateNetwork)
 }
 
 func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
+	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -69,7 +61,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 		},
 	}
 
-	p, bootstrapChan := protector.NewPrivateNetworkWithBootstrap(testData.PeerStore(ctrl))
+	p := protector.NewPrivateNetworkWithBootstrap(testData.PeerStore(ctrl))
 	go p.ListenForUpdates(updateChan)
 
 	updateChan <- protector.CreateAddNetworkUpdate(peer1)
@@ -81,7 +73,9 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	assert.Equal(t, bootstrapConn, wrappedConn)
 
 	// Notifying the bootstrap channel starts rejecting unauthorized requests.
-	bootstrapChan <- struct{}{}
+	networkStateWriter, ok := p.(protector.NetworkStateWriter)
+	require.True(t, ok, "p.(networkStateWriter)")
+	networkStateWriter.SetNetworkState(ctx, protector.Protected)
 
 	invalidConn := mocks.NewMockConn(ctrl)
 	invalidConn.EXPECT().LocalMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)

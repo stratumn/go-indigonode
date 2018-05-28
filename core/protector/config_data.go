@@ -27,13 +27,17 @@ import (
 
 // ConfigData describes the data stored in config file.
 type ConfigData struct {
-	PeersAddrs map[string][]string `json:"peers_addresses"`
-	Signature  []byte              `json:"signature"`
+	NetworkState NetworkState        `json:"network_state"`
+	PeersAddrs   map[string][]string `json:"peers_addresses"`
+	Signature    []byte              `json:"signature"`
 }
 
 // NewConfigData creates a new ConfigData object.
 func NewConfigData() *ConfigData {
-	return &ConfigData{PeersAddrs: make(map[string][]string)}
+	return &ConfigData{
+		NetworkState: Bootstrap,
+		PeersAddrs:   make(map[string][]string),
+	}
 }
 
 // Load loads the given configuration and validates it.
@@ -58,18 +62,22 @@ func (c *ConfigData) Load(ctx context.Context, configPath string, privKey crypto
 		return ErrInvalidConfig
 	}
 
-	confBytes, err := json.Marshal(confData.PeersAddrs)
+	signature := confData.Signature
+	confData.Signature = nil
+
+	confBytes, err := json.Marshal(confData)
 	if err != nil {
 		return ErrInvalidConfig
 	}
 
-	valid, err := privKey.GetPublic().Verify(confBytes, confData.Signature)
+	valid, err := privKey.GetPublic().Verify(confBytes, signature)
 	if !valid || err != nil {
 		return ErrInvalidSignature
 	}
 
+	c.NetworkState = confData.NetworkState
 	c.PeersAddrs = confData.PeersAddrs
-	c.Signature = confData.Signature
+	c.Signature = signature
 
 	return nil
 }
@@ -85,7 +93,9 @@ func (c *ConfigData) Flush(ctx context.Context, configPath string, privKey crypt
 		event.Done()
 	}()
 
-	b, err := json.Marshal(c.PeersAddrs)
+	c.Signature = nil
+
+	b, err := json.Marshal(c)
 	if err != nil {
 		return errors.WithStack(err)
 	}

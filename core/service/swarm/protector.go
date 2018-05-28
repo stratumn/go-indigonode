@@ -56,10 +56,7 @@ func (c *noProtectorConfig) Configure(_ context.Context, _ *Service, _ peerstore
 type coordinatorConfig struct{}
 
 func (c *coordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, error) {
-	// TODO: refactor the Protector/NetworkConfig interfaces
-	// The NetworkConfig should expose the state of the network (bootstrapped/bootstrapping)
-	// and the protector should be able to access that state.
-	p, _ := protector.NewPrivateNetworkWithBootstrap(pstore)
+	p := protector.NewPrivateNetworkWithBootstrap(pstore)
 
 	var err error
 	s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)

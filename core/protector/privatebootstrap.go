@@ -15,6 +15,7 @@
 package protector
 
 import (
+	"context"
 	"sync"
 
 	"gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
@@ -90,11 +91,11 @@ func (p *PrivateNetworkWithBootstrap) Fingerprint() []byte {
 }
 
 // AllowedAddrs returns the list of whitelisted addresses.
-func (p *PrivateNetworkWithBootstrap) AllowedAddrs() []multiaddr.Multiaddr {
-	return p.privateNetwork.AllowedAddrs()
+func (p *PrivateNetworkWithBootstrap) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr {
+	return p.privateNetwork.AllowedAddrs(ctx)
 }
 
 // AllowedPeers returns the list of whitelisted peers.
-func (p *PrivateNetworkWithBootstrap) AllowedPeers() []peer.ID {
-	return p.privateNetwork.AllowedPeers()
+func (p *PrivateNetworkWithBootstrap) AllowedPeers(ctx context.Context) []peer.ID {
+	return p.privateNetwork.AllowedPeers(ctx)
 }

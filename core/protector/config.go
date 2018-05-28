@@ -50,7 +50,7 @@ var (
 type Config interface {
 	AddPeer(context.Context, peer.ID, []multiaddr.Multiaddr) error
 	RemovePeer(context.Context, peer.ID) error
-	AllowedPeers() []peer.ID
+	AllowedPeers(context.Context) []peer.ID
 }
 
 // ConfigData describes the data stored in config file.
@@ -267,6 +267,6 @@ func (c *LocalConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 }
 
 // AllowedPeers returns the IDs of the peers in the network.
-func (c *LocalConfig) AllowedPeers() []peer.ID {
-	return c.protect.AllowedPeers()
+func (c *LocalConfig) AllowedPeers(ctx context.Context) []peer.ID {
+	return c.protect.AllowedPeers(ctx)
 }

@@ -120,7 +120,7 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 		assert.NotNil(t, conf)
 
 		waitUntilAllowed(t, p, peerID, 1)
-		allowed := conf.AllowedPeers()
+		allowed := conf.AllowedPeers(ctx)
 		assert.ElementsMatch(t, []peer.ID{peerID}, allowed)
 	})
 }
@@ -227,7 +227,7 @@ func TestLocalConfig_AddPeer(t *testing.T) {
 	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
 
 	waitUntilAllowed(t, p, peer2, 2)
-	assert.ElementsMatch(t, []peer.ID{peer1, peer2}, conf.AllowedPeers())
+	assert.ElementsMatch(t, []peer.ID{peer1, peer2}, conf.AllowedPeers(ctx))
 }
 
 func TestLocalConfig_RemovePeer(t *testing.T) {
@@ -255,7 +255,7 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 	conf.RemovePeer(ctx, peer1)
 	waitUntilAllowed(t, p, peer2, 1)
 
-	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers())
+	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers(ctx))
 }
 
 func TestLocalConfig_Flush(t *testing.T) {

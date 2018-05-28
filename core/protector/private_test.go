@@ -15,6 +15,7 @@
 package protector_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ import (
 // It fails after a short polling period.
 func waitUntilAllowed(t *testing.T, p protector.Protector, peer peer.ID, allowedCount int) {
 	test.WaitUntil(t, 20*time.Millisecond, 5*time.Millisecond, func() error {
-		allowedPeers := p.AllowedPeers()
+		allowedPeers := p.AllowedPeers(context.Background())
 		if allowedCount == 0 && len(allowedPeers) == 0 {
 			return nil
 		}
@@ -338,7 +339,7 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 
 			tt.networkUpdates(p, updateChan)
 
-			assert.ElementsMatch(t, tt.addrs, p.AllowedAddrs())
+			assert.ElementsMatch(t, tt.addrs, p.AllowedAddrs(context.Background()))
 		})
 	}
 }

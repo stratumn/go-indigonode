@@ -23,6 +23,8 @@
 package protector
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -48,8 +50,8 @@ type Protector interface {
 	ListenForUpdates(<-chan NetworkUpdate)
 
 	// AllowedAddrs returns the list of whitelisted addresses.
-	AllowedAddrs() []multiaddr.Multiaddr
+	AllowedAddrs(context.Context) []multiaddr.Multiaddr
 
 	// AllowedPeers returns the list of whitelisted peers.
-	AllowedPeers() []peer.ID
+	AllowedPeers(context.Context) []peer.ID
 }

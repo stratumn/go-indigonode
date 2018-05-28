@@ -15,7 +15,7 @@
 package protector_test
 
 import (
-	"crypto/rand"
+	"context"
 	"testing"
 	"time"
 
@@ -30,21 +30,14 @@ import (
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8/go-libp2p-interface-pnet"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
-
-func generatePeerID() peer.ID {
-	_, pk, _ := crypto.GenerateEd25519Key(rand.Reader)
-	peerID, _ := peer.IDFromPublicKey(pk)
-	return peerID
-}
 
 // waitUntilAllowed waits until the given peer is found in the allowed list
 // and the allowed list contains allowedCount elements.
 // It fails after a short polling period.
 func waitUntilAllowed(t *testing.T, p protector.Protector, peer peer.ID, allowedCount int) {
 	test.WaitUntil(t, 20*time.Millisecond, 5*time.Millisecond, func() error {
-		allowedPeers := p.AllowedPeers()
+		allowedPeers := p.AllowedPeers(context.Background())
 		if allowedCount == 0 && len(allowedPeers) == 0 {
 			return nil
 		}
@@ -107,7 +100,7 @@ func TestPrivateNetwork_ListenForUpdates(t *testing.T) {
 }
 
 func TestPrivateNetwork_Fingerprint(t *testing.T) {
-	peer := generatePeerID()
+	peer := test.GeneratePeerID(t)
 
 	t.Run("stable-network", func(t *testing.T) {
 		chan1 := make(chan protector.NetworkUpdate)
@@ -170,19 +163,19 @@ func TestPrivateNetwork_Fingerprint(t *testing.T) {
 }
 
 func TestPrivateNetwork_Protect(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
 			peer1: []multiaddr.Multiaddr{
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8904"),
+				test.GeneratePeerMultiaddr(t, peer1),
+				test.GeneratePeerMultiaddr(t, peer1),
 			},
 			peer2: []multiaddr.Multiaddr{
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8914"),
+				test.GeneratePeerMultiaddr(t, peer2),
+				test.GeneratePeerMultiaddr(t, peer2),
 			},
 		},
 	}
@@ -200,14 +193,14 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer3)
 			waitUntilAllowed(t, p, peer3, 2)
 		},
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"), // accepted (peer1)
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"), // rejected (peer2, not peer3)
+		testData.Peers[peer1][0], // accepted (peer1)
+		testData.Peers[peer2][0], // rejected (peer2, not peer3)
 		true,
 	}, {
 		"no-peer-allowed",
 		func(protector.Protector, chan<- protector.NetworkUpdate) {},
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
+		testData.Peers[peer1][0],
+		testData.Peers[peer2][1],
 		true,
 	}, {
 		"invalid-remote-addr",
@@ -215,8 +208,8 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer1)
 			waitUntilAllowed(t, p, peer1, 1)
 		},
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
+		testData.Peers[peer1][0],
+		testData.Peers[peer2][0],
 		true,
 	}, {
 		"removed-peer",
@@ -227,8 +220,8 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			updateChan <- protector.CreateRemoveNetworkUpdate(peer2)
 			waitUntilAllowed(t, p, peer1, 1)
 		},
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
+		testData.Peers[peer1][0],
+		testData.Peers[peer2][0],
 		true,
 	}, {
 		"invalid-local-addr-ignored",
@@ -237,8 +230,8 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			waitUntilAllowed(t, p, peer2, 1)
 		},
 		// Peer1 isn't whitelisted but we only validate the remote address (peer2).
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
+		testData.Peers[peer1][0],
+		testData.Peers[peer2][0],
 		false,
 	}, {
 		"valid-to-valid-from",
@@ -247,8 +240,8 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 			updateChan <- protector.CreateAddNetworkUpdate(peer2)
 			waitUntilAllowed(t, p, peer2, 2)
 		},
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-		multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
+		testData.Peers[peer1][0],
+		testData.Peers[peer2][1],
 		false,
 	}}
 
@@ -284,19 +277,19 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 }
 
 func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
 			peer1: []multiaddr.Multiaddr{
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903"),
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8904"),
+				test.GeneratePeerMultiaddr(t, peer1),
+				test.GeneratePeerMultiaddr(t, peer1),
 			},
 			peer2: []multiaddr.Multiaddr{
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913"),
-				multiaddr.StringCast("/ip4/127.0.0.1/tcp/8914"),
+				test.GeneratePeerMultiaddr(t, peer2),
+				test.GeneratePeerMultiaddr(t, peer2),
 			},
 		},
 	}
@@ -346,15 +339,15 @@ func TestPrivateNetwork_AllowedAddrs(t *testing.T) {
 
 			tt.networkUpdates(p, updateChan)
 
-			assert.ElementsMatch(t, tt.addrs, p.AllowedAddrs())
+			assert.ElementsMatch(t, tt.addrs, p.AllowedAddrs(context.Background()))
 		})
 	}
 }
 
 func TestPrivateNetwork_AllowedPeers(t *testing.T) {
-	peer1 := generatePeerID()
-	peer2 := generatePeerID()
-	peer3 := generatePeerID()
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
 
 	testCases := []struct {
 		name           string

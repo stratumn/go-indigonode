@@ -105,7 +105,8 @@ func (p *PrivateNetwork) Fingerprint() []byte {
 
 // Protect drops any connection attempt from or to a nonwhitelisted peer.
 func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
-	event := log.EventBegin(context.Background(), "Protect")
+	ctx := context.Background()
+	event := log.EventBegin(ctx, "Protect")
 	defer event.Done()
 
 	remoteAddr := conn.RemoteMultiaddr()
@@ -115,7 +116,7 @@ func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
 		"remote": remoteAddr.String(),
 	})
 
-	for _, addr := range p.AllowedAddrs() {
+	for _, addr := range p.AllowedAddrs(ctx) {
 		if remoteAddr.Equal(addr) {
 			return conn, nil
 		}
@@ -130,8 +131,7 @@ func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
 }
 
 // AllowedAddrs returns all addresses we allow connections to and from.
-func (p *PrivateNetwork) AllowedAddrs() []multiaddr.Multiaddr {
-	ctx := context.Background()
+func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr {
 	defer log.EventBegin(ctx, "AllowedAddrs").Done()
 
 	p.allowedPeersLock.RLock()
@@ -153,8 +153,8 @@ func (p *PrivateNetwork) AllowedAddrs() []multiaddr.Multiaddr {
 }
 
 // AllowedPeers returns the list of whitelisted peers.
-func (p *PrivateNetwork) AllowedPeers() []peer.ID {
-	event := log.EventBegin(context.Background(), "AllowedPeers")
+func (p *PrivateNetwork) AllowedPeers(ctx context.Context) []peer.ID {
+	event := log.EventBegin(ctx, "AllowedPeers")
 	defer event.Done()
 
 	p.allowedPeersLock.RLock()

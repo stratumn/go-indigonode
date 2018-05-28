@@ -4,6 +4,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	protector "github.com/stratumn/alice/core/protector"
 	go_libp2p_transport "gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
@@ -36,27 +37,27 @@ func (_m *MockProtector) EXPECT() *MockProtectorMockRecorder {
 }
 
 // AllowedAddrs mocks base method
-func (_m *MockProtector) AllowedAddrs() []go_multiaddr.Multiaddr {
-	ret := _m.ctrl.Call(_m, "AllowedAddrs")
+func (_m *MockProtector) AllowedAddrs(_param0 context.Context) []go_multiaddr.Multiaddr {
+	ret := _m.ctrl.Call(_m, "AllowedAddrs", _param0)
 	ret0, _ := ret[0].([]go_multiaddr.Multiaddr)
 	return ret0
 }
 
 // AllowedAddrs indicates an expected call of AllowedAddrs
-func (_mr *MockProtectorMockRecorder) AllowedAddrs() *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedAddrs", reflect.TypeOf((*MockProtector)(nil).AllowedAddrs))
+func (_mr *MockProtectorMockRecorder) AllowedAddrs(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedAddrs", reflect.TypeOf((*MockProtector)(nil).AllowedAddrs), arg0)
 }
 
 // AllowedPeers mocks base method
-func (_m *MockProtector) AllowedPeers() []go_libp2p_peer.ID {
-	ret := _m.ctrl.Call(_m, "AllowedPeers")
+func (_m *MockProtector) AllowedPeers(_param0 context.Context) []go_libp2p_peer.ID {
+	ret := _m.ctrl.Call(_m, "AllowedPeers", _param0)
 	ret0, _ := ret[0].([]go_libp2p_peer.ID)
 	return ret0
 }
 
 // AllowedPeers indicates an expected call of AllowedPeers
-func (_mr *MockProtectorMockRecorder) AllowedPeers() *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedPeers", reflect.TypeOf((*MockProtector)(nil).AllowedPeers))
+func (_mr *MockProtectorMockRecorder) AllowedPeers(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedPeers", reflect.TypeOf((*MockProtector)(nil).AllowedPeers), arg0)
 }
 
 // Fingerprint mocks base method

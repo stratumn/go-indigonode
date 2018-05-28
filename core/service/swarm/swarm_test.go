@@ -16,23 +16,36 @@ package swarm
 
 import (
 	"context"
+	"io/ioutil"
+	"path"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/metrics"
 	"github.com/stratumn/alice/core/service/swarm/mockswarm"
+	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8/go-libp2p-interface-pnet"
 )
 
-func testService(ctx context.Context, t *testing.T, smuxer Transport) *Service {
+type OptConfig = func(*Config)
+
+func testService(ctx context.Context, t *testing.T, smuxer Transport, cfgOpts ...OptConfig) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 	config.Addresses = []string{"/ip4/0.0.0.0/tcp/35768"}
 	config.Metrics = ""
+
+	for _, opt := range cfgOpts {
+		opt(&config)
+	}
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
@@ -50,20 +63,82 @@ func TestService_strings(t *testing.T) {
 }
 
 func TestService_Expose(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
+	peerID := test.GeneratePeerID(t)
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name     string
+		cfgOpts  []OptConfig
+		validate func(*testing.T, *Swarm)
+	}{{
+		"public-network",
+		nil,
+		func(t *testing.T, swm *Swarm) {
+			assert.NotNil(t, swm.PrivKey, "PrivKey")
+			assert.NotNil(t, swm.Swarm, "Swarm")
+			assert.Nil(t, swm.NetworkConfig, "NetworkConfig")
+		},
+	}, {
+		"private-network-with-coordinator",
+		[]OptConfig{
+			func(cfg *Config) { cfg.ProtectionMode = PrivateWithCoordinatorMode },
+			func(cfg *Config) {
+				configDir, _ := ioutil.TempDir("", "alice")
+				cfg.CoordinatorConfig = &CoordinatorConfig{
+					CoordinatorID:        peerID.Pretty(),
+					CoordinatorAddresses: []string{"/ip4/127.0.0.1/tcp/8903"},
+					ConfigPath:           path.Join(configDir, "config.json"),
+				}
+			},
+		},
+		func(t *testing.T, swm *Swarm) {
+			assert.NotNil(t, swm.PrivKey, "PrivKey")
+			assert.NotNil(t, swm.Swarm, "Swarm")
+			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
+			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
+		},
+	}, {
+		"private-network-coordinator",
+		[]OptConfig{
+			func(cfg *Config) { cfg.ProtectionMode = PrivateWithCoordinatorMode },
+			func(cfg *Config) {
+				configDir, _ := ioutil.TempDir("", "alice")
+				cfg.CoordinatorConfig = &CoordinatorConfig{
+					IsCoordinator: true,
+					ConfigPath:    path.Join(configDir, "config.json"),
+				}
+			},
+		},
+		func(t *testing.T, swm *Swarm) {
+			assert.NotNil(t, swm.PrivKey, "PrivKey")
+			assert.NotNil(t, swm.Swarm, "Swarm")
+			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 
-	smuxer := mockswarm.NewMockTransport(ctrl)
-	serv := testService(ctx, t, smuxer)
-	exposed := testservice.Expose(ctx, t, serv, time.Second)
+			peerID, _ := peer.IDFromPrivateKey(swm.PrivKey)
+			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
+		},
+	}}
 
-	assert.IsType(t, &Swarm{}, exposed, "exposed type")
-	exposedSwarm := exposed.(*Swarm)
-	assert.NotNil(t, exposedSwarm.PrivKey, "PrivKey")
-	assert.NotNil(t, exposedSwarm.Swarm, "Swarm")
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset global flag.
+			defer func() { ipnet.ForcePrivateNetwork = false }()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			smuxer := mockswarm.NewMockTransport(ctrl)
+			serv := testService(ctx, t, smuxer, tt.cfgOpts...)
+			exposed := testservice.Expose(ctx, t, serv, time.Second)
+
+			assert.IsType(t, &Swarm{}, exposed, "exposed type")
+			exposedSwarm := exposed.(*Swarm)
+			tt.validate(t, exposedSwarm)
+		})
+	}
 }
 
 func TestService_Run(t *testing.T) {
@@ -103,7 +178,18 @@ func TestService_SetConfig(t *testing.T) {
 			c.ProtectionMode = PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				CoordinatorID:        "H4cK3rM4n",
-				CoordinatorAddresses: []string{"/ip4/127.0.0.1/tcp/8903/ipfs/QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"},
+				CoordinatorAddresses: []string{test.GenerateMultiaddr(t).String()},
+				ConfigPath:           protector.DefaultConfigPath,
+			}
+		},
+		ErrInvalidCoordinatorConfig,
+	}, {
+		"missing-config-path",
+		func(c *Config) {
+			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.CoordinatorConfig = &CoordinatorConfig{
+				CoordinatorID:        test.GeneratePeerID(t).Pretty(),
+				CoordinatorAddresses: []string{test.GenerateMultiaddr(t).String()},
 			}
 		},
 		ErrInvalidCoordinatorConfig,
@@ -111,7 +197,10 @@ func TestService_SetConfig(t *testing.T) {
 		"missing-coordinator-addr",
 		func(c *Config) {
 			c.ProtectionMode = PrivateWithCoordinatorMode
-			c.CoordinatorConfig = &CoordinatorConfig{CoordinatorID: "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"}
+			c.CoordinatorConfig = &CoordinatorConfig{
+				CoordinatorID: test.GeneratePeerID(t).Pretty(),
+				ConfigPath:    protector.DefaultConfigPath,
+			}
 		},
 		ErrInvalidCoordinatorConfig,
 	}, {
@@ -119,8 +208,9 @@ func TestService_SetConfig(t *testing.T) {
 		func(c *Config) {
 			c.ProtectionMode = PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
-				CoordinatorID:        "QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9",
+				CoordinatorID:        test.GeneratePeerID(t).Pretty(),
 				CoordinatorAddresses: []string{"/ip42/9.0.0.0/tcp/8903/ipfs/QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"},
+				ConfigPath:           protector.DefaultConfigPath,
 			}
 		},
 		ErrInvalidCoordinatorConfig,
@@ -128,7 +218,10 @@ func TestService_SetConfig(t *testing.T) {
 		"coordinator-node",
 		func(c *Config) {
 			c.ProtectionMode = PrivateWithCoordinatorMode
-			c.CoordinatorConfig = &CoordinatorConfig{IsCoordinator: true}
+			c.CoordinatorConfig = &CoordinatorConfig{
+				IsCoordinator: true,
+				ConfigPath:    protector.DefaultConfigPath,
+			}
 		},
 		nil,
 	}, {

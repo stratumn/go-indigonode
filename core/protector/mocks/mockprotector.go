@@ -178,7 +178,7 @@ func (_mr *MockStateAwareProtectorMockRecorder) Protect(arg0 interface{}) *gomoc
 }
 
 // SetNetworkState mocks base method
-func (_m *MockStateAwareProtector) SetNetworkState(_param0 context.Context, _param1 string) error {
+func (_m *MockStateAwareProtector) SetNetworkState(_param0 context.Context, _param1 protector.NetworkState) error {
 	ret := _m.ctrl.Call(_m, "SetNetworkState", _param0, _param1)
 	ret0, _ := ret[0].(error)
 	return ret0

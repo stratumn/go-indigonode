@@ -28,12 +28,12 @@ import (
 	pb "github.com/stratumn/alice/grpc/swarm"
 	"google.golang.org/grpc"
 
-	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
+	"gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 const (
@@ -236,7 +236,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return errors.WithStack(err)
 	}
 
-	protect, err := s.configureProtector(ctx, pstore)
+	protectCfg, err := NewProtectorConfig(s.config)
+	if err != nil {
+		return err
+	}
+
+	protect, err := protectCfg.Configure(ctx, s, pstore)
 	if err != nil {
 		return err
 	}
@@ -275,45 +280,6 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	}
 
 	return errors.WithStack(ctx.Err())
-}
-
-func (s *Service) configureProtector(ctx context.Context, pstore peerstore.Peerstore) (protect protector.Protector, err error) {
-	if s.config.ProtectionMode == "" {
-		return nil, nil
-	}
-
-	if s.config.ProtectionMode == PrivateWithCoordinatorMode {
-		if s.config.CoordinatorConfig.IsCoordinator {
-			// TODO: use the channel to notify when network bootstrap is complete.
-			protect, _ = protector.NewPrivateNetworkWithBootstrap(pstore)
-			s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, protect, pstore)
-			if err != nil {
-				return nil, err
-			}
-
-			if err = s.networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
-				return nil, err
-			}
-
-			return protect, nil
-		}
-
-		protect = protector.NewPrivateNetwork(pstore)
-		s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, protect, pstore)
-		if err != nil {
-			return nil, err
-		}
-
-		pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
-
-		if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
-			return nil, err
-		}
-
-		return protect, nil
-	}
-
-	return nil, ErrInvalidProtectionMode
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

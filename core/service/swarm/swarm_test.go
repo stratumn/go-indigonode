@@ -63,6 +63,7 @@ func TestService_strings(t *testing.T) {
 }
 
 func TestService_Expose(t *testing.T) {
+	ctx := context.Background()
 	peerID := test.GeneratePeerID(t)
 
 	testCases := []struct {
@@ -94,7 +95,7 @@ func TestService_Expose(t *testing.T) {
 			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
 			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
-			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers())
+			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
 		},
 	}, {
 		"private-network-coordinator",
@@ -114,7 +115,7 @@ func TestService_Expose(t *testing.T) {
 			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 
 			peerID, _ := peer.IDFromPrivateKey(swm.PrivKey)
-			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers())
+			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
 		},
 	}}
 

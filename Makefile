@@ -21,7 +21,7 @@ TMP_DIR:=$(shell mktemp -d)
 DEPGRAPH_FILE=doc/depgraph.svg
 
 GO_CMD=go
-GO_LINT_CMD=gometalinter
+GO_LINT_CMD=golangci-lint
 GO_CYCLO_CMD=gocyclo
 KEYBASE_CMD=keybase
 GITHUB_RELEASE_COMMAND=github-release
@@ -35,7 +35,7 @@ GO_LIST=$(GO_CMD) list
 GO_BUILD=$(GO_CMD) build -gcflags=-trimpath=$(GOPATH) -asmflags=-trimpath=$(GOPATH) -ldflags '-X github.com/$(GITHUB_USER)/$(GITHUB_REPO)/release.Version=$(VERSION) -X github.com/$(GITHUB_USER)/$(GITHUB_REPO)/release.GitCommit=$(GIT_COMMIT)'
 GO_TEST=$(GO_CMD) test
 GO_BENCHMARK=$(GO_TEST) -bench .
-GO_LINT=$(GO_LINT_CMD) --vendor --enable-gc --skip=test --skip=pb --skip=grpc --deadline=3m --disable="vetshadow" --disable="maligned" --disable="ineffassign" --disable="gocyclo" --disable="gas"
+GO_LINT=$(GO_LINT_CMD) run --build-tags="lint" --deadline=4m --disable="ineffassign" --disable="gas"
 GO_CYCLO=$(GO_CYCLO_CMD)
 KEYBASE_SIGN=$(KEYBASE_CMD) pgp sign
 GITHUB_RELEASE_RELEASE=$(GITHUB_RELEASE_COMMAND) release $(GITHUB_RELEASE_RELEASE_FLAGS)
@@ -77,7 +77,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep gometalinter graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -90,14 +90,13 @@ gx:
 dep:
 	go get -u github.com/golang/dep/cmd/dep
 
-gometalinter:
-	go get -u github.com/alecthomas/gometalinter
-	gometalinter --install
+golangcilint:
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 graphpkg:
 	go get -u github.com/davecheney/graphpkg
 
-deps: gx dep gometalinter graphpkg
+deps: gx dep golangcilint graphpkg
 	gx install
 	dep ensure
 

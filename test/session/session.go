@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//+build !lint
+
 // Package session defines types for doing system tests.
 //
 // It facilitates launching a network of nodes each in a separate process and

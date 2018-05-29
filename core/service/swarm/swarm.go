@@ -244,7 +244,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return err
 	}
 
-	protect, err := protectCfg.Configure(ctx, s, pstore)
+	protect, networkConfig, err := protectCfg.Configure(ctx, s, pstore)
 	if err != nil {
 		return err
 	}
@@ -257,6 +257,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return errors.WithStack(err)
 	}
 
+	s.networkConfig = networkConfig
 	s.swarm = swm
 
 	var cancelPeriodicMetrics func()

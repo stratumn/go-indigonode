@@ -40,9 +40,10 @@ func TestNoProtectorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&swarm.Config{})
 	require.NoError(t, err)
 
-	p, err := cfg.Configure(context.Background(), nil, nil)
+	p, c, err := cfg.Configure(context.Background(), nil, nil)
 	require.NoError(t, err)
 	assert.Nil(t, p)
+	assert.Nil(t, c)
 }
 
 func TestPrivateCoordinatorConfig(t *testing.T) {
@@ -51,7 +52,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
-	config.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	config.ProtectionMode = protector.PrivateWithCoordinatorMode
 	config.CoordinatorConfig = &swarm.CoordinatorConfig{
 		IsCoordinator: true,
 		ConfigPath:    path.Join(configDir, "config.json"),
@@ -63,11 +64,8 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&config)
 	require.NoError(t, err)
 
-	p, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
+	p, networkConfig, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
-
-	// NetworkConfig should be set and coordinator white-listed.
-	networkConfig := s.Expose().(*swarm.Swarm).NetworkConfig
 	require.NotNil(t, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{peerID}, networkConfig.AllowedPeers(ctx))
 }
@@ -81,7 +79,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
-	config.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	config.ProtectionMode = protector.PrivateWithCoordinatorMode
 	config.CoordinatorConfig = &swarm.CoordinatorConfig{
 		ConfigPath:           path.Join(configDir, "config.json"),
 		CoordinatorID:        coordinatorID.Pretty(),
@@ -93,7 +91,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	pstore := peerstore.NewPeerstore()
-	p, err := cfg.Configure(ctx, s, pstore)
+	p, networkConfig, err := cfg.Configure(ctx, s, pstore)
 	assert.IsType(t, &protector.PrivateNetwork{}, p)
 
 	// Coordinator should be added to peer store.
@@ -101,8 +99,6 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	require.NotNil(t, coordinatorInfo)
 	assert.ElementsMatch(t, []multiaddr.Multiaddr{coordinatorAddr}, coordinatorInfo.Addrs)
 
-	// NetworkConfig should be set and coordinator white-listed.
-	networkConfig := s.Expose().(*swarm.Swarm).NetworkConfig
 	require.NotNil(t, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{coordinatorID}, networkConfig.AllowedPeers(ctx))
 }

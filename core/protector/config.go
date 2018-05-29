@@ -42,16 +42,54 @@ var (
 	// ErrInvalidSignature is returned when an existing configuration file
 	// contains an invalid signature.
 	ErrInvalidSignature = errors.New("invalid configuration signature")
+
+	// ErrInvalidNetworkState is returned when trying to set an
+	// invalid network state.
+	ErrInvalidNetworkState = errors.New("invalid network state")
 )
 
-// Config manages the network participants list.
-type Config interface {
-	AddPeer(context.Context, peer.ID, []multiaddr.Multiaddr) error
-	RemovePeer(context.Context, peer.ID) error
+// NetworkState is the state of a private network.
+type NetworkState string
+
+// NetworkState values.
+const (
+	// The network is in the bootstrap phase (not fully private yet).
+	Bootstrap = NetworkState("bootstrap")
+	// The network bootstrap phase is complete and the network is now protected.
+	Protected = NetworkState("protected")
+)
+
+// NetworkStateReader provides read access to the network state.
+type NetworkStateReader interface {
+	NetworkState(context.Context) NetworkState
+}
+
+// NetworkStateWriter provides write access to the network state.
+type NetworkStateWriter interface {
+	SetNetworkState(context.Context, NetworkState) error
+}
+
+// NetworkPeersReader provides read access to the network peers list.
+type NetworkPeersReader interface {
 	AllowedPeers(context.Context) []peer.ID
 }
 
-// LocalConfig implements the Config interface.
+// NetworkPeersWriter provides write access to the network peers list.
+type NetworkPeersWriter interface {
+	AddPeer(context.Context, peer.ID, []multiaddr.Multiaddr) error
+	RemovePeer(context.Context, peer.ID) error
+}
+
+// NetworkConfig manages the private network's configuration.
+type NetworkConfig interface {
+	NetworkPeersReader
+	NetworkPeersWriter
+
+	NetworkStateReader
+	NetworkStateWriter
+}
+
+// LocalConfig implements the NetworkConfig interface.
 // It keeps a signed config file on the filesystem.
 type LocalConfig struct {
 	dataLock sync.RWMutex
@@ -64,7 +102,7 @@ type LocalConfig struct {
 	protectChan chan NetworkUpdate
 }
 
-// InitLocalConfig loads a Config from the given file or creates it if missing.
+// InitLocalConfig loads a NetworkConfig from the given file or creates it if missing.
 // It configures the given protector for automatic updates.
 func InitLocalConfig(
 	ctx context.Context,
@@ -72,7 +110,7 @@ func InitLocalConfig(
 	privKey crypto.PrivKey,
 	protect Protector,
 	peerStore peerstore.Peerstore,
-) (c Config, err error) {
+) (c NetworkConfig, err error) {
 	event := log.EventBegin(ctx, "InitLocalConfig", logging.Metadata{"path": configPath})
 	defer func() {
 		if err != nil {
@@ -97,8 +135,8 @@ func InitLocalConfig(
 		protectChan: make(chan NetworkUpdate),
 	}
 
-	// This go routine has the same lifetime as the Config object,
-	// so it makes sense to launch it here. When the Config object
+	// This go routine has the same lifetime as the NetworkConfig object,
+	// so it makes sense to launch it here. When the NetworkConfig object
 	// is collected by the GC, the channel is closed which stops
 	// this go routine.
 	go protect.ListenForUpdates(conf.protectChan)
@@ -189,4 +227,43 @@ func (c *LocalConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 // AllowedPeers returns the IDs of the peers in the network.
 func (c *LocalConfig) AllowedPeers(ctx context.Context) []peer.ID {
 	return c.protect.AllowedPeers(ctx)
+}
+
+// NetworkState returns the current state of the network protection.
+func (c *LocalConfig) NetworkState(ctx context.Context) NetworkState {
+	event := log.EventBegin(ctx, "LocalConfig.NetworkState")
+	defer event.Done()
+
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	event.Append(logging.Metadata{"state": c.data.NetworkState})
+	return c.data.NetworkState
+}
+
+// SetNetworkState sets the current state of the network protection.
+func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState NetworkState) error {
+	defer log.EventBegin(ctx, "LocalConfig.SetNetworkState", logging.Metadata{
+		"state": networkState,
+	}).Done()
+
+	switch networkState {
+	case Bootstrap, Protected:
+		c.dataLock.Lock()
+		defer c.dataLock.Unlock()
+
+		c.data.NetworkState = networkState
+
+		stateAwareProtector, ok := c.protect.(NetworkStateWriter)
+		if ok {
+			err := stateAwareProtector.SetNetworkState(ctx, networkState)
+			if err != nil {
+				return err
+			}
+		}
+
+		return c.data.Flush(ctx, c.dataPath, c.privKey)
+	default:
+		return ErrInvalidNetworkState
+	}
 }

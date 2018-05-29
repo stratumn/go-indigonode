@@ -258,6 +258,92 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers(ctx))
 }
 
+func TestLocalConfig_NetworkState(t *testing.T) {
+	newMockProtector := func(ctrl *gomock.Controller, listenChan chan<- struct{}) protector.Protector {
+		p := mocks.NewMockProtector(ctrl)
+		p.EXPECT().
+			ListenForUpdates(gomock.Any()).
+			Times(1).
+			Do(func(<-chan protector.NetworkUpdate) {
+				listenChan <- struct{}{}
+			})
+
+		return p
+	}
+
+	testCases := []struct {
+		name         string
+		newProtector func(*gomock.Controller, chan<- struct{}) protector.Protector
+		afterInit    func(protector.Protector)
+		networkState protector.NetworkState
+		err          error
+	}{{
+		"rejects-invalid-network-state",
+		newMockProtector,
+		func(protector.Protector) {},
+		"broken",
+		protector.ErrInvalidNetworkState,
+	}, {
+		"configures-state-aware-protector",
+		func(ctrl *gomock.Controller, listenChan chan<- struct{}) protector.Protector {
+			p := mocks.NewMockStateAwareProtector(ctrl)
+			p.EXPECT().
+				ListenForUpdates(gomock.Any()).
+				Times(1).
+				Do(func(<-chan protector.NetworkUpdate) {
+					listenChan <- struct{}{}
+				})
+
+			return p
+		},
+		func(p protector.Protector) {
+			p.(*mocks.MockStateAwareProtector).EXPECT().SetNetworkState(gomock.Any(), protector.Protected).Times(1)
+		},
+		protector.Protected,
+		nil,
+	}, {
+		"ignores-state-agnostic-protector",
+		newMockProtector,
+		func(p protector.Protector) {},
+		protector.Protected,
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			configDir, _ := ioutil.TempDir("", "alice")
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			listenChan := make(chan struct{})
+			p := tt.newProtector(ctrl, listenChan)
+
+			conf, err := protector.InitLocalConfig(
+				ctx,
+				filepath.Join(configDir, "config.json"),
+				testKey,
+				p,
+				nil,
+			)
+
+			// Avoid race conditions in the EXPECT().
+			<-listenChan
+
+			tt.afterInit(p)
+
+			err = conf.SetNetworkState(ctx, tt.networkState)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.networkState, conf.NetworkState(ctx))
+			}
+		})
+	}
+}
+
 func TestLocalConfig_Flush(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -280,12 +366,14 @@ func TestLocalConfig_Flush(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, conf.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr1}))
 	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
+	require.NoError(t, conf.SetNetworkState(ctx, protector.Protected))
 
 	configData := protector.NewConfigData()
 	require.NoError(t, configData.Load(ctx, configPath, testKey))
 	assert.Len(t, configData.PeersAddrs, 2)
 	assert.ElementsMatch(t, []string{peer1Addr1.String()}, configData.PeersAddrs[peer1.Pretty()])
 	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
+	assert.Equal(t, protector.Protected, configData.NetworkState)
 
 	require.NoError(t, conf.RemovePeer(ctx, peer1))
 	require.NoError(t, configData.Load(ctx, configPath, testKey))

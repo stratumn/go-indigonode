@@ -74,7 +74,7 @@ type Service struct {
 	addrs   []ma.Multiaddr
 	swarm   *swarm.Swarm
 
-	networkConfig    protector.Config
+	networkConfig    protector.NetworkConfig
 	coordinatorID    peer.ID
 	coordinatorAddrs []ma.Multiaddr
 }
@@ -82,7 +82,7 @@ type Service struct {
 // Swarm wraps a swarm with other data that could be useful to services.
 // It's the type exposed by the swarm service.
 type Swarm struct {
-	NetworkConfig protector.Config
+	NetworkConfig protector.NetworkConfig
 	PrivKey       crypto.PrivKey
 	Swarm         *swarm.Swarm
 }

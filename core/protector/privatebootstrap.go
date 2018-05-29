@@ -26,52 +26,41 @@ import (
 )
 
 // PrivateNetworkWithBootstrap implements the github.com/libp2p/go-libp2p-interface-pnet/ipnet.Protector interface.
-// It protects a network by only allowing whitelisted peers to connect once a
+// It protects a network by only allowing whitelisted peers to connect once the
 // bootstrap phase is complete.
 // During the bootstrap phase, it accepts all requests.
 type PrivateNetworkWithBootstrap struct {
 	privateNetwork Protector
 
-	bootstrapChan   chan struct{}
-	bootstrapOkLock sync.RWMutex
-	bootstrapOk     bool
+	networkStateLock sync.RWMutex
+	networkState     NetworkState
 }
 
 // NewPrivateNetworkWithBootstrap creates a protector for private networks
 // supporting an open bootstrapping phase.
 // The protector accepts all connections during the bootstrap phase.
-// Once a signal is sent to the bootstrapChan channel, the protector
+// Once the network state changes and ends the bootstrap phase, the protector
 // starts rejecting every non-white-listed request.
-func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) (Protector, chan<- struct{}) {
-	p := &PrivateNetworkWithBootstrap{
+func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
+	p := PrivateNetworkWithBootstrap{
 		privateNetwork: NewPrivateNetwork(peerStore),
-		bootstrapChan:  make(chan struct{}),
+		networkState:   Bootstrap,
 	}
 
 	// We initially allow all requests.
 	ipnet.ForcePrivateNetwork = false
 
-	go func() {
-		<-p.bootstrapChan
-		p.bootstrapOkLock.Lock()
-		p.bootstrapOk = true
-		ipnet.ForcePrivateNetwork = true
-		p.bootstrapOkLock.Unlock()
-
-		close(p.bootstrapChan)
-	}()
-
-	return p, p.bootstrapChan
+	return &p
 }
 
 // Protect accepts all connections until the bootstrap channel is notified.
 // Then it switches to private network mode.
 func (p *PrivateNetworkWithBootstrap) Protect(conn transport.Conn) (transport.Conn, error) {
-	p.bootstrapOkLock.RLock()
-	bootstrapOk := p.bootstrapOk
-	p.bootstrapOkLock.RUnlock()
+	p.networkStateLock.RLock()
+	bootstrapDone := p.networkState != Bootstrap
+	p.networkStateLock.RUnlock()
 
-	if !bootstrapOk {
+	if !bootstrapDone {
 		return conn, nil
 	}
 
@@ -98,4 +87,21 @@ func (p *PrivateNetworkWithBootstrap) AllowedAddrs(ctx context.Context) []multia
 // AllowedPeers returns the list of whitelisted peers.
 func (p *PrivateNetworkWithBootstrap) AllowedPeers(ctx context.Context) []peer.ID {
 	return p.privateNetwork.AllowedPeers(ctx)
+}
+
+// SetNetworkState sets the network state. The protector adapts to the
+// network state, so this method should be called when it changes.
+func (p *PrivateNetworkWithBootstrap) SetNetworkState(_ context.Context, networkState NetworkState) error {
+	p.networkStateLock.Lock()
+	defer p.networkStateLock.Unlock()
+
+	p.networkState = networkState
+	switch p.networkState {
+	case Bootstrap:
+		ipnet.ForcePrivateNetwork = false
+	default:
+		ipnet.ForcePrivateNetwork = true
+	}
+
+	return nil
 }

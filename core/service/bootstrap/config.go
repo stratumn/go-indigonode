@@ -19,6 +19,9 @@ type Config struct {
 	// Host is the name of the host service.
 	Host string `toml:"host" comment:"The name of the host service."`
 
+	// Swarm is the name of the swarm service.
+	Swarm string `toml:"swarm" comment:"The name of the swarm service."`
+
 	// Needs are services that should be started in addition to the host
 	// before bootstrapping.
 	Needs []string `toml:"needs" comment:"Services that should be started in addition to the host before bootstrapping."`

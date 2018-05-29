@@ -242,6 +242,9 @@ var migrations = []cfg.MigrateHandler{
 
 		return tree.Set("indigostore.validation.plugins_path", "")
 	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("bootstrap.swarm", "swarm")
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

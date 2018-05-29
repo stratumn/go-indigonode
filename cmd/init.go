@@ -115,7 +115,7 @@ func configurePrivateCoordinator(configSet cfg.Set) {
 	swarmConfig := getSwarmConfig(configSet)
 	bootstrapConfig := getBootstrapConfig(configSet)
 
-	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	swarmConfig.ProtectionMode = protector.PrivateWithCoordinatorMode
 	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
 		ConfigPath:    protector.DefaultConfigPath,
 		IsCoordinator: true,
@@ -143,7 +143,7 @@ func configurePrivateWithCoordinatorMode(configSet cfg.Set) {
 	swarmConfig := getSwarmConfig(configSet)
 	bootstrapConfig := getBootstrapConfig(configSet)
 
-	swarmConfig.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	swarmConfig.ProtectionMode = protector.PrivateWithCoordinatorMode
 	swarmConfig.CoordinatorConfig = &swarm.CoordinatorConfig{
 		ConfigPath:    protector.DefaultConfigPath,
 		CoordinatorID: coordinatorInfo.ID.Pretty(),

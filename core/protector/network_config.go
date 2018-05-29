@@ -48,9 +48,9 @@ type NetworkState string
 // NetworkState values.
 const (
 	// The network is in the bootstrap phase (not fully private yet).
-	Bootstrap = NetworkState("bootstrap")
+	NetworkStateBootstrap = NetworkState("bootstrap")
 	// The network bootstrap phase is complete and the network is now protected.
-	Protected = NetworkState("protected")
+	NetworkStateProtected = NetworkState("protected")
 )
 
 // NetworkStateReader provides read access to the network state.

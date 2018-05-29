@@ -297,15 +297,15 @@ func TestLocalConfig_NetworkState(t *testing.T) {
 			return p
 		},
 		func(p protector.Protector) {
-			p.(*mocks.MockStateAwareProtector).EXPECT().SetNetworkState(gomock.Any(), protector.Protected).Times(1)
+			p.(*mocks.MockStateAwareProtector).EXPECT().SetNetworkState(gomock.Any(), protector.NetworkStateProtected).Times(1)
 		},
-		protector.Protected,
+		protector.NetworkStateProtected,
 		nil,
 	}, {
 		"ignores-state-agnostic-protector",
 		newMockProtector,
 		func(p protector.Protector) {},
-		protector.Protected,
+		protector.NetworkStateProtected,
 		nil,
 	}}
 
@@ -366,14 +366,14 @@ func TestLocalConfig_Flush(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, conf.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr1}))
 	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
-	require.NoError(t, conf.SetNetworkState(ctx, protector.Protected))
+	require.NoError(t, conf.SetNetworkState(ctx, protector.NetworkStateProtected))
 
 	configData := protector.NewConfigData()
 	require.NoError(t, configData.Load(ctx, configPath, testKey))
 	assert.Len(t, configData.PeersAddrs, 2)
 	assert.ElementsMatch(t, []string{peer1Addr1.String()}, configData.PeersAddrs[peer1.Pretty()])
 	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
-	assert.Equal(t, protector.Protected, configData.NetworkState)
+	assert.Equal(t, protector.NetworkStateProtected, configData.NetworkState)
 
 	require.NoError(t, conf.RemovePeer(ctx, peer1))
 	require.NoError(t, configData.Load(ctx, configPath, testKey))

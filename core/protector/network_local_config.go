@@ -188,7 +188,7 @@ func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState NetworkS
 	}).Done()
 
 	switch networkState {
-	case Bootstrap, Protected:
+	case NetworkStateBootstrap, NetworkStateProtected:
 		c.dataLock.Lock()
 		defer c.dataLock.Unlock()
 

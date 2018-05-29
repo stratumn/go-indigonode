@@ -109,7 +109,7 @@ const confZero = `
   min_peer_threshold = 4
 
   # Services that should be started in addition to the host before bootstrapping.
-  needs = ["network","p2p"]
+  needs = ["p2p"]
 
 # Settings for the clock module.
 [clock]

@@ -39,7 +39,7 @@ func TestPrivateNetworkWithBootstrap_New(t *testing.T) {
 	networkStateWriter, ok := p.(protector.NetworkStateWriter)
 	require.True(t, ok, "p.(protector.NetworkStateWriter)")
 
-	networkStateWriter.SetNetworkState(context.Background(), protector.Protected)
+	networkStateWriter.SetNetworkState(context.Background(), protector.NetworkStateProtected)
 	assert.True(t, ipnet.ForcePrivateNetwork)
 }
 
@@ -75,7 +75,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	// Notifying the bootstrap channel starts rejecting unauthorized requests.
 	networkStateWriter, ok := p.(protector.NetworkStateWriter)
 	require.True(t, ok, "p.(networkStateWriter)")
-	networkStateWriter.SetNetworkState(ctx, protector.Protected)
+	networkStateWriter.SetNetworkState(ctx, protector.NetworkStateProtected)
 
 	invalidConn := mocks.NewMockConn(ctrl)
 	invalidConn.EXPECT().LocalMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)

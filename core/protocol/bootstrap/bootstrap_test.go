@@ -18,9 +18,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/test"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -68,7 +70,13 @@ func TestBootstrapNew(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			h, err := bootstrap.New(ctx, nil, tt.networkMode, nil)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
+
+			h, err := bootstrap.New(ctx, host, tt.networkMode, nil)
 
 			if tt.expectedErr == nil {
 				require.NoError(t, err)

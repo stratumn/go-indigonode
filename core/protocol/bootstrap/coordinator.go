@@ -14,16 +14,49 @@
 
 package bootstrap
 
-import "context"
+import (
+	"context"
+
+	"github.com/stratumn/alice/core/protector"
+
+	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+)
+
+var (
+	// PrivateWithCoordinatorProtocolID is the protocol for managing a private
+	// network when a special node acts as coordinator.
+	PrivateWithCoordinatorProtocolID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/v1.0.0")
+)
 
 // CoordinatorHandler is the handler for the coordinator
 // of a private network.
-type CoordinatorHandler struct{}
-
-// NewCoordinatorHandler returns a Handler for a coordinator node.
-func NewCoordinatorHandler() (Handler, error) {
-	return &CoordinatorHandler{}, nil
+type CoordinatorHandler struct {
+	host          ihost.Host
+	networkConfig protector.NetworkConfig
 }
 
-// Close doesn't do anything.
-func (h *CoordinatorHandler) Close(context.Context) {}
+// NewCoordinatorHandler returns a Handler for a coordinator node.
+func NewCoordinatorHandler(
+	host ihost.Host,
+	networkMode *protector.NetworkMode,
+	networkConfig protector.NetworkConfig,
+) (Handler, error) {
+	handler := CoordinatorHandler{host: host, networkConfig: networkConfig}
+
+	host.SetStreamHandler(PrivateWithCoordinatorProtocolID, handler.handle)
+
+	return &handler, nil
+}
+
+func (h *CoordinatorHandler) handle(stream inet.Stream) {
+	ctx := context.Background()
+	defer log.EventBegin(ctx, "Coordinator.Handle").Done()
+}
+
+// Close removes the protocol handlers.
+func (h *CoordinatorHandler) Close(ctx context.Context) {
+	log.Event(ctx, "Coordinator.Close")
+	h.host.RemoveStreamHandler(PrivateWithCoordinatorProtocolID)
+}

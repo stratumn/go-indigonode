@@ -23,8 +23,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
+
+var log = logging.Logger("bootstrap")
 
 // Errors returned by bootstrap.
 var (
@@ -54,10 +57,10 @@ func New(
 		return &PublicNetworkHandler{}, nil
 	case protector.PrivateWithCoordinatorMode:
 		if networkMode.IsCoordinator {
-			return NewCoordinatorHandler()
+			return NewCoordinatorHandler(host, networkMode, networkConfig)
 		}
 
-		return NewCoordinatedHandler()
+		return NewCoordinatedHandler(host, networkMode, networkConfig)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

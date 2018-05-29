@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/release"
 
@@ -193,6 +194,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}
 
+	protocolCtx, cancel := context.WithCancel(context.Background())
+	protocolHandler := protocol.New(protocolCtx, s.host, s.swarm.NetworkMode, s.swarm.NetworkConfig)
+
 	ticker := time.NewTicker(s.interval)
 
 	running()
@@ -214,6 +218,9 @@ RUN_LOOP:
 	stopping()
 
 	ticker.Stop()
+
+	protocolHandler.Close(protocolCtx)
+	cancel()
 
 	return errors.WithStack(ctx.Err())
 }

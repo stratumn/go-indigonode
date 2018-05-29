@@ -22,6 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,13 @@ const (
 	testAddr = "/ip4/127.0.0.1/tcp/54983/ipfs/" + testPID
 )
 
-func testService(ctx context.Context, t *testing.T, host Host) *Service {
+func testService(
+	ctx context.Context,
+	t *testing.T,
+	host Host,
+	networkMode *protector.NetworkMode,
+	networkConfig protector.NetworkConfig,
+) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 
@@ -47,8 +54,11 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"host":  host,
-		"swarm": &swarm.Swarm{},
+		"host": host,
+		"swarm": &swarm.Swarm{
+			NetworkMode:   networkMode,
+			NetworkConfig: networkConfig,
+		},
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -87,7 +97,7 @@ func TestService_Expose(t *testing.T) {
 	net := mockbootstrap.NewMockNetwork(ctrl)
 	expectHost(ctx, t, net, host)
 
-	serv := testService(ctx, t, host)
+	serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
 
 	assert.Equal(t, struct{}{}, exposed, "exposed type")
@@ -104,7 +114,7 @@ func TestService_Run(t *testing.T) {
 	net := mockbootstrap.NewMockNetwork(ctrl)
 	expectHost(ctx, t, net, host)
 
-	serv := testService(ctx, t, host)
+	serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
 

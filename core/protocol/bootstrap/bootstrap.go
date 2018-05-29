@@ -20,9 +20,15 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+)
+
+// Errors returned by bootstrap.
+var (
+	ErrInvalidProtectionMode = errors.New("invalid protection mode")
 )
 
 // Handler defines the methods to bootstrap and administer a network.
@@ -33,6 +39,20 @@ type Handler interface {
 // New creates the right instance of the Handler interface
 // depending on the network parameters.
 // It will register protocols to handle network requests.
-func New(context.Context, ihost.Host, *protector.NetworkMode, protector.NetworkConfig) Handler {
-	return &PublicNetworkHandler{}
+func New(
+	ctx context.Context,
+	host ihost.Host,
+	networkMode *protector.NetworkMode,
+	networkConfig protector.NetworkConfig,
+) (Handler, error) {
+	if networkMode == nil {
+		return &PublicNetworkHandler{}, nil
+	}
+
+	switch networkMode.ProtectionMode {
+	case "":
+		return &PublicNetworkHandler{}, nil
+	default:
+		return nil, ErrInvalidProtectionMode
+	}
 }

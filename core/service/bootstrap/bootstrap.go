@@ -195,7 +195,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	}
 
 	protocolCtx, cancel := context.WithCancel(context.Background())
-	protocolHandler := protocol.New(protocolCtx, s.host, s.swarm.NetworkMode, s.swarm.NetworkConfig)
+	defer cancel()
+
+	protocolHandler, err := protocol.New(protocolCtx, s.host, s.swarm.NetworkMode, s.swarm.NetworkConfig)
+	if err != nil {
+		return err
+	}
 
 	ticker := time.NewTicker(s.interval)
 
@@ -220,7 +225,6 @@ RUN_LOOP:
 	ticker.Stop()
 
 	protocolHandler.Close(protocolCtx)
-	cancel()
 
 	return errors.WithStack(ctx.Err())
 }

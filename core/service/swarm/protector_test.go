@@ -19,7 +19,9 @@ import (
 	"io/ioutil"
 	"path"
 	"testing"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/test"
@@ -46,6 +48,25 @@ func TestNoProtectorConfig(t *testing.T) {
 	assert.Nil(t, c)
 }
 
+func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
+	test.WaitUntil(
+		t,
+		10*time.Millisecond,
+		3*time.Millisecond,
+		func() error {
+			allowed := networkConfig.AllowedPeers(context.Background())
+			if len(allowed) == 0 {
+				return errors.New("no peer allowed")
+			}
+
+			if allowed[0] != peerID {
+				return errors.New("peer not allowed")
+			}
+
+			return nil
+		}, "Peer not allowed yet")
+}
+
 func TestPrivateCoordinatorConfig(t *testing.T) {
 	ctx := context.Background()
 	configDir, _ := ioutil.TempDir("", "alice")
@@ -67,6 +88,8 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	p, networkConfig, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
 	require.NotNil(t, networkConfig)
+
+	waitUntilAllowed(t, peerID, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{peerID}, networkConfig.AllowedPeers(ctx))
 }
 
@@ -100,5 +123,6 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	assert.ElementsMatch(t, []multiaddr.Multiaddr{coordinatorAddr}, coordinatorInfo.Addrs)
 
 	require.NotNil(t, networkConfig)
+	waitUntilAllowed(t, coordinatorID, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{coordinatorID}, networkConfig.AllowedPeers(ctx))
 }

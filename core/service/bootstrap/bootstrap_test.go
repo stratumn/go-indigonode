@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
+	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -46,7 +47,8 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"host": host,
+		"host":  host,
+		"swarm": &swarm.Swarm{},
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -152,11 +154,11 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"host",
 		func(c *Config) { c.Host = "myhost" },
-		[]string{"myhost", "p2p", "network"},
+		[]string{"myhost", "swarm", "p2p"},
 	}, {
 		"needs",
-		func(c *Config) { c.Needs = []string{"p2p"} },
-		[]string{"host", "p2p"},
+		func(c *Config) { c.Needs = []string{"something"} },
+		[]string{"host", "swarm", "something"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -195,10 +197,11 @@ func TestService_Plug(t *testing.T) {
 		deps map[string]interface{}
 		err  error
 	}{{
-		"valid host",
+		"valid host and swarm",
 		func(c *Config) { c.Host = "myhost" },
 		map[string]interface{}{
 			"myhost": host,
+			"swarm":  &swarm.Swarm{},
 		},
 		nil,
 	}, {
@@ -206,8 +209,17 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.Host = "myhost" },
 		map[string]interface{}{
 			"myhost": struct{}{},
+			"swarm":  &swarm.Swarm{},
 		},
 		ErrNotHost,
+	}, {
+		"invalid swarm",
+		func(c *Config) { c.Swarm = "myswarm" },
+		map[string]interface{}{
+			"host":    host,
+			"myswarm": struct{}{},
+		},
+		ErrNotSwarm,
 	}}
 
 	for _, tt := range tests {

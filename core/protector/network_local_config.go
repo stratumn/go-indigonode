@@ -29,66 +29,6 @@ import (
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
-const (
-	// DefaultConfigPath is the location of the config file.
-	DefaultConfigPath = "data/network/config.json"
-)
-
-var (
-	// ErrInvalidConfig is returned when an invalid configuration file
-	// is provided.
-	ErrInvalidConfig = errors.New("invalid configuration file")
-
-	// ErrInvalidSignature is returned when an existing configuration file
-	// contains an invalid signature.
-	ErrInvalidSignature = errors.New("invalid configuration signature")
-
-	// ErrInvalidNetworkState is returned when trying to set an
-	// invalid network state.
-	ErrInvalidNetworkState = errors.New("invalid network state")
-)
-
-// NetworkState is the state of a private network.
-type NetworkState string
-
-// NetworkState values.
-const (
-	// The network is in the bootstrap phase (not fully private yet).
-	Bootstrap = NetworkState("bootstrap")
-	// The network bootstrap phase is complete and the network is now protected.
-	Protected = NetworkState("protected")
-)
-
-// NetworkStateReader provides read access to the network state.
-type NetworkStateReader interface {
-	NetworkState(context.Context) NetworkState
-}
-
-// NetworkStateWriter provides write access to the network state.
-type NetworkStateWriter interface {
-	SetNetworkState(context.Context, NetworkState) error
-}
-
-// NetworkPeersReader provides read access to the network peers list.
-type NetworkPeersReader interface {
-	AllowedPeers(context.Context) []peer.ID
-}
-
-// NetworkPeersWriter provides write access to the network peers list.
-type NetworkPeersWriter interface {
-	AddPeer(context.Context, peer.ID, []multiaddr.Multiaddr) error
-	RemovePeer(context.Context, peer.ID) error
-}
-
-// NetworkConfig manages the private network's configuration.
-type NetworkConfig interface {
-	NetworkPeersReader
-	NetworkPeersWriter
-
-	NetworkStateReader
-	NetworkStateWriter
-}
-
 // LocalConfig implements the NetworkConfig interface.
 // It keeps a signed config file on the filesystem.
 type LocalConfig struct {

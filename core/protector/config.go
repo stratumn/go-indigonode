@@ -248,28 +248,22 @@ func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState NetworkS
 	}).Done()
 
 	switch networkState {
-	case Bootstrap:
-		return c.setValidNetworkState(ctx, networkState)
-	case Protected:
-		return c.setValidNetworkState(ctx, networkState)
+	case Bootstrap, Protected:
+		c.dataLock.Lock()
+		defer c.dataLock.Unlock()
+
+		c.data.NetworkState = networkState
+
+		stateAwareProtector, ok := c.protect.(NetworkStateWriter)
+		if ok {
+			err := stateAwareProtector.SetNetworkState(ctx, networkState)
+			if err != nil {
+				return err
+			}
+		}
+
+		return c.data.Flush(ctx, c.dataPath, c.privKey)
 	default:
 		return ErrInvalidNetworkState
 	}
-}
-
-func (c *LocalConfig) setValidNetworkState(ctx context.Context, networkState NetworkState) error {
-	c.dataLock.Lock()
-	defer c.dataLock.Unlock()
-
-	c.data.NetworkState = networkState
-
-	stateAwareProtector, ok := c.protect.(NetworkStateWriter)
-	if ok {
-		err := stateAwareProtector.SetNetworkState(ctx, networkState)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.data.Flush(ctx, c.dataPath, c.privKey)
 }

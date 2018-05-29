@@ -34,7 +34,7 @@ func NewProtectorConfig(config *Config) (ProtectorConfig, error) {
 	switch config.ProtectionMode {
 	case "":
 		return &noProtectorConfig{}, nil
-	case PrivateWithCoordinatorMode:
+	case protector.PrivateWithCoordinatorMode:
 		if config.CoordinatorConfig.IsCoordinator {
 			return &coordinatorConfig{}, nil
 		}
@@ -84,9 +84,17 @@ func (c *withCoordinatorConfig) Configure(ctx context.Context, s *Service, pstor
 		return nil, err
 	}
 
-	pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
+	pstore.AddAddrs(
+		s.networkMode.CoordinatorID,
+		s.networkMode.CoordinatorAddrs,
+		peerstore.PermanentAddrTTL,
+	)
 
-	if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
+	if err = s.networkConfig.AddPeer(
+		ctx,
+		s.networkMode.CoordinatorID,
+		s.networkMode.CoordinatorAddrs,
+	); err != nil {
 		return nil, err
 	}
 

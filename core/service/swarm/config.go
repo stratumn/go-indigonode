@@ -16,16 +16,7 @@ package swarm
 
 import (
 	"github.com/pkg/errors"
-
-	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-)
-
-// Supported network protection modes.
-const (
-	// PrivateWithCoordinatorMode uses a coordinator node
-	// for network participants updates.
-	PrivateWithCoordinatorMode = "private-with-coordinator"
+	"github.com/stratumn/alice/core/protector"
 )
 
 // Configuration errors.
@@ -74,54 +65,29 @@ type CoordinatorConfig struct {
 	ConfigPath string `toml:"config_path" comment:"Path to the signed network configuration file."`
 }
 
-// ValidateProtectionMode checks that the protection mode is supported.
-func (c Config) ValidateProtectionMode(s *Service) error {
-	if c.ProtectionMode == "" {
-		return nil
-	}
-
-	protectionModes := map[string]func(*Service) error{
-		PrivateWithCoordinatorMode: c.validateCoordinatorConfig,
-	}
-
-	validator, ok := protectionModes[c.ProtectionMode]
-	if !ok {
-		return ErrInvalidProtectionMode
-	}
-
-	return validator(s)
-}
-
-func (c Config) validateCoordinatorConfig(s *Service) (err error) {
-	if c.CoordinatorConfig == nil {
-		return ErrInvalidCoordinatorConfig
-	}
-
-	if c.CoordinatorConfig.ConfigPath == "" {
-		return ErrInvalidCoordinatorConfig
-	}
-
-	if c.CoordinatorConfig.IsCoordinator {
-		return nil
-	}
-
-	s.coordinatorID, err = peer.IDB58Decode(c.CoordinatorConfig.CoordinatorID)
-	if err != nil {
-		return ErrInvalidCoordinatorConfig
-	}
-
-	if len(c.CoordinatorConfig.CoordinatorAddresses) == 0 {
-		return ErrInvalidCoordinatorConfig
-	}
-
-	for _, addr := range c.CoordinatorConfig.CoordinatorAddresses {
-		coordinatorAddr, err := multiaddr.NewMultiaddr(addr)
-		if err != nil {
-			return ErrInvalidCoordinatorConfig
+// ParseNetworkMode parses network mode details from the configuration.
+func (c Config) ParseNetworkMode() (*protector.NetworkMode, error) {
+	switch c.ProtectionMode {
+	case "":
+		return nil, nil
+	case protector.PrivateWithCoordinatorMode:
+		if c.CoordinatorConfig == nil {
+			return nil, ErrInvalidCoordinatorConfig
 		}
 
-		s.coordinatorAddrs = append(s.coordinatorAddrs, coordinatorAddr)
-	}
+		if c.CoordinatorConfig.ConfigPath == "" {
+			return nil, ErrInvalidCoordinatorConfig
+		}
 
-	return nil
+		if c.CoordinatorConfig.IsCoordinator {
+			return protector.NewCoordinatorNetworkMode(), nil
+		}
+
+		return protector.NewCoordinatedNetworkMode(
+			c.CoordinatorConfig.CoordinatorID,
+			c.CoordinatorConfig.CoordinatorAddresses,
+		)
+	default:
+		return nil, ErrInvalidProtectionMode
+	}
 }

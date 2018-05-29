@@ -81,7 +81,7 @@ func TestService_Expose(t *testing.T) {
 	}, {
 		"private-network-with-coordinator",
 		[]OptConfig{
-			func(cfg *Config) { cfg.ProtectionMode = PrivateWithCoordinatorMode },
+			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
 			func(cfg *Config) {
 				configDir, _ := ioutil.TempDir("", "alice")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
@@ -94,13 +94,20 @@ func TestService_Expose(t *testing.T) {
 		func(t *testing.T, swm *Swarm) {
 			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
+
+			require.NotNil(t, swm.NetworkMode, "NetworkMode")
+			assert.Equal(t, protector.PrivateWithCoordinatorMode, swm.NetworkMode.ProtectionMode)
+			assert.False(t, swm.NetworkMode.IsCoordinator)
+			assert.Equal(t, peerID, swm.NetworkMode.CoordinatorID)
+			assert.Equal(t, "/ip4/127.0.0.1/tcp/8903", swm.NetworkMode.CoordinatorAddrs[0].String())
+
 			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
 		},
 	}, {
 		"private-network-coordinator",
 		[]OptConfig{
-			func(cfg *Config) { cfg.ProtectionMode = PrivateWithCoordinatorMode },
+			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
 			func(cfg *Config) {
 				configDir, _ := ioutil.TempDir("", "alice")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
@@ -112,8 +119,12 @@ func TestService_Expose(t *testing.T) {
 		func(t *testing.T, swm *Swarm) {
 			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
-			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 
+			require.NotNil(t, swm.NetworkMode, "NetworkMode")
+			assert.Equal(t, protector.PrivateWithCoordinatorMode, swm.NetworkMode.ProtectionMode)
+			assert.True(t, swm.NetworkMode.IsCoordinator)
+
+			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 			peerID, _ := peer.IDFromPrivateKey(swm.PrivKey)
 			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
 		},
@@ -175,18 +186,18 @@ func TestService_SetConfig(t *testing.T) {
 	}, {
 		"invalid-coordinator-id",
 		func(c *Config) {
-			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.ProtectionMode = protector.PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				CoordinatorID:        "H4cK3rM4n",
 				CoordinatorAddresses: []string{test.GenerateMultiaddr(t).String()},
 				ConfigPath:           protector.DefaultConfigPath,
 			}
 		},
-		ErrInvalidCoordinatorConfig,
+		protector.ErrInvalidCoordinatorID,
 	}, {
 		"missing-config-path",
 		func(c *Config) {
-			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.ProtectionMode = protector.PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				CoordinatorID:        test.GeneratePeerID(t).Pretty(),
 				CoordinatorAddresses: []string{test.GenerateMultiaddr(t).String()},
@@ -196,28 +207,28 @@ func TestService_SetConfig(t *testing.T) {
 	}, {
 		"missing-coordinator-addr",
 		func(c *Config) {
-			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.ProtectionMode = protector.PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				CoordinatorID: test.GeneratePeerID(t).Pretty(),
 				ConfigPath:    protector.DefaultConfigPath,
 			}
 		},
-		ErrInvalidCoordinatorConfig,
+		protector.ErrMissingCoordinatorAddr,
 	}, {
 		"invalid-coordinator-addr",
 		func(c *Config) {
-			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.ProtectionMode = protector.PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				CoordinatorID:        test.GeneratePeerID(t).Pretty(),
 				CoordinatorAddresses: []string{"/ip42/9.0.0.0/tcp/8903/ipfs/QmVhJVRSYHNSHgR9dJNbDxu6G7GPPqJAeiJoVRvcexGNf9"},
 				ConfigPath:           protector.DefaultConfigPath,
 			}
 		},
-		ErrInvalidCoordinatorConfig,
+		protector.ErrInvalidCoordinatorAddr,
 	}, {
 		"coordinator-node",
 		func(c *Config) {
-			c.ProtectionMode = PrivateWithCoordinatorMode
+			c.ProtectionMode = protector.PrivateWithCoordinatorMode
 			c.CoordinatorConfig = &CoordinatorConfig{
 				IsCoordinator: true,
 				ConfigPath:    protector.DefaultConfigPath,

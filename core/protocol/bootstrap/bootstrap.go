@@ -52,6 +52,12 @@ func New(
 	switch networkMode.ProtectionMode {
 	case "":
 		return &PublicNetworkHandler{}, nil
+	case protector.PrivateWithCoordinatorMode:
+		if networkMode.IsCoordinator {
+			return NewCoordinatorHandler()
+		}
+
+		return NewCoordinatedHandler()
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

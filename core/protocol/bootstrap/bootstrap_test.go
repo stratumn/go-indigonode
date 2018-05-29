@@ -20,11 +20,17 @@ import (
 
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
 func TestBootstrapNew(t *testing.T) {
+	peerID := test.GeneratePeerID(t)
+	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
+
 	testCases := []struct {
 		name         string
 		networkMode  *protector.NetworkMode
@@ -39,6 +45,23 @@ func TestBootstrapNew(t *testing.T) {
 		"public-network",
 		&protector.NetworkMode{},
 		&bootstrap.PublicNetworkHandler{},
+		nil,
+	}, {
+		"private-coordinator-node",
+		&protector.NetworkMode{
+			ProtectionMode: protector.PrivateWithCoordinatorMode,
+			IsCoordinator:  true,
+		},
+		&bootstrap.CoordinatorHandler{},
+		nil,
+	}, {
+		"private-with-coordinator",
+		&protector.NetworkMode{
+			ProtectionMode:   protector.PrivateWithCoordinatorMode,
+			CoordinatorID:    peerID,
+			CoordinatorAddrs: []multiaddr.Multiaddr{peerAddr},
+		},
+		&bootstrap.CoordinatedHandler{},
 		nil,
 	}}
 

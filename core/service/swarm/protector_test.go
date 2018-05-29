@@ -19,7 +19,9 @@ import (
 	"io/ioutil"
 	"path"
 	"testing"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/test"
@@ -40,9 +42,29 @@ func TestNoProtectorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&swarm.Config{})
 	require.NoError(t, err)
 
-	p, err := cfg.Configure(context.Background(), nil, nil)
+	p, c, err := cfg.Configure(context.Background(), nil, nil)
 	require.NoError(t, err)
 	assert.Nil(t, p)
+	assert.Nil(t, c)
+}
+
+func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
+	test.WaitUntil(
+		t,
+		10*time.Millisecond,
+		3*time.Millisecond,
+		func() error {
+			allowed := networkConfig.AllowedPeers(context.Background())
+			if len(allowed) == 0 {
+				return errors.New("no peer allowed")
+			}
+
+			if allowed[0] != peerID {
+				return errors.New("peer not allowed")
+			}
+
+			return nil
+		}, "Peer not allowed yet")
 }
 
 func TestPrivateCoordinatorConfig(t *testing.T) {
@@ -51,7 +73,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
-	config.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	config.ProtectionMode = protector.PrivateWithCoordinatorMode
 	config.CoordinatorConfig = &swarm.CoordinatorConfig{
 		IsCoordinator: true,
 		ConfigPath:    path.Join(configDir, "config.json"),
@@ -63,12 +85,11 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&config)
 	require.NoError(t, err)
 
-	p, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
+	p, networkConfig, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
-
-	// NetworkConfig should be set and coordinator white-listed.
-	networkConfig := s.Expose().(*swarm.Swarm).NetworkConfig
 	require.NotNil(t, networkConfig)
+
+	waitUntilAllowed(t, peerID, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{peerID}, networkConfig.AllowedPeers(ctx))
 }
 
@@ -81,7 +102,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
-	config.ProtectionMode = swarm.PrivateWithCoordinatorMode
+	config.ProtectionMode = protector.PrivateWithCoordinatorMode
 	config.CoordinatorConfig = &swarm.CoordinatorConfig{
 		ConfigPath:           path.Join(configDir, "config.json"),
 		CoordinatorID:        coordinatorID.Pretty(),
@@ -93,7 +114,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	pstore := peerstore.NewPeerstore()
-	p, err := cfg.Configure(ctx, s, pstore)
+	p, networkConfig, err := cfg.Configure(ctx, s, pstore)
 	assert.IsType(t, &protector.PrivateNetwork{}, p)
 
 	// Coordinator should be added to peer store.
@@ -101,8 +122,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	require.NotNil(t, coordinatorInfo)
 	assert.ElementsMatch(t, []multiaddr.Multiaddr{coordinatorAddr}, coordinatorInfo.Addrs)
 
-	// NetworkConfig should be set and coordinator white-listed.
-	networkConfig := s.Expose().(*swarm.Swarm).NetworkConfig
 	require.NotNil(t, networkConfig)
+	waitUntilAllowed(t, coordinatorID, networkConfig)
 	assert.ElementsMatch(t, []peer.ID{coordinatorID}, networkConfig.AllowedPeers(ctx))
 }

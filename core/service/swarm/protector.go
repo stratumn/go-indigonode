@@ -25,7 +25,7 @@ import (
 
 // ProtectorConfig configures the right protector for the swarm service.
 type ProtectorConfig interface {
-	Configure(context.Context, *Service, peerstore.Peerstore) (ipnet.Protector, error)
+	Configure(context.Context, *Service, peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error)
 }
 
 // NewProtectorConfig returns the right protector configuration
@@ -34,7 +34,7 @@ func NewProtectorConfig(config *Config) (ProtectorConfig, error) {
 	switch config.ProtectionMode {
 	case "":
 		return &noProtectorConfig{}, nil
-	case PrivateWithCoordinatorMode:
+	case protector.PrivateWithCoordinatorMode:
 		if config.CoordinatorConfig.IsCoordinator {
 			return &coordinatorConfig{}, nil
 		}
@@ -48,47 +48,53 @@ func NewProtectorConfig(config *Config) (ProtectorConfig, error) {
 // noProtectorConfig is used when no protection is needed for the network.
 type noProtectorConfig struct{}
 
-func (c *noProtectorConfig) Configure(_ context.Context, _ *Service, _ peerstore.Peerstore) (ipnet.Protector, error) {
-	return nil, nil
+func (c *noProtectorConfig) Configure(_ context.Context, _ *Service, _ peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error) {
+	return nil, nil, nil
 }
 
 // coordinatorConfig is used for the coordinator of a private network.
 type coordinatorConfig struct{}
 
-func (c *coordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, error) {
+func (c *coordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error) {
 	p := protector.NewPrivateNetworkWithBootstrap(pstore)
 
-	var err error
-	s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
+	networkConfig, err := protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if err = s.networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
-		return nil, err
+	if err = networkConfig.AddPeer(ctx, s.peerID, s.addrs); err != nil {
+		return nil, nil, err
 	}
 
-	return p, nil
+	return p, networkConfig, nil
 }
 
 // withCoordinatorConfig is used for a node in a private network
 // that uses a coordinator.
 type withCoordinatorConfig struct{}
 
-func (c *withCoordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, error) {
+func (c *withCoordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error) {
 	p := protector.NewPrivateNetwork(pstore)
 
-	var err error
-	s.networkConfig, err = protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
+	networkConfig, err := protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	pstore.AddAddrs(s.coordinatorID, s.coordinatorAddrs, peerstore.PermanentAddrTTL)
+	pstore.AddAddrs(
+		s.networkMode.CoordinatorID,
+		s.networkMode.CoordinatorAddrs,
+		peerstore.PermanentAddrTTL,
+	)
 
-	if err = s.networkConfig.AddPeer(ctx, s.coordinatorID, s.coordinatorAddrs); err != nil {
-		return nil, err
+	if err = networkConfig.AddPeer(
+		ctx,
+		s.networkMode.CoordinatorID,
+		s.networkMode.CoordinatorAddrs,
+	); err != nil {
+		return nil, nil, err
 	}
 
-	return p, nil
+	return p, networkConfig, nil
 }

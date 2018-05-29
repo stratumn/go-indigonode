@@ -13,7 +13,8 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockbootstrap.go github.com/stratumn/alice/core/service/bootstrap Host
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net Network
+//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network
+//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknetworkconfig.go github.com/stratumn/alice/core/protector NetworkConfig
 
 // Package bootstrap defines a service that bootstraps a host from a set of
 // well known peers.
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/release"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -44,6 +46,9 @@ var (
 	// ErrNotHost is returned when the connected service is not a host.
 	ErrNotHost = errors.New("connected service is not a host")
 
+	// ErrNotSwarm is returned when the connected service is not a swarm.
+	ErrNotSwarm = errors.New("connected service is not a swarm")
+
 	// ErrNotEnoughPeers is returned when not enough peers are connected.
 	ErrNotEnoughPeers = errors.New("number of connected peers is under configuration threshold")
 )
@@ -61,6 +66,7 @@ type Service struct {
 	interval time.Duration
 	timeout  time.Duration
 	host     Host
+	swarm    *swarm.Swarm
 }
 
 // ID returns the unique identifier of the service.
@@ -87,7 +93,8 @@ func (s *Service) Config() interface{} {
 
 	return Config{
 		Host:              "host",
-		Needs:             []string{"network", "p2p"},
+		Swarm:             "swarm",
+		Needs:             []string{"p2p"},
 		Addresses:         release.BootstrapAddresses,
 		MinPeerThreshold:  4,
 		Interval:          "30s",
@@ -137,6 +144,7 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Host] = struct{}{}
+	needs[s.config.Swarm] = struct{}{}
 
 	for _, service := range s.config.Needs {
 		needs[service] = struct{}{}
@@ -151,6 +159,10 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.host, ok = exposed[s.config.Host].(Host); !ok {
 		return errors.Wrap(ErrNotHost, s.config.Host)
+	}
+
+	if s.swarm, ok = exposed[s.config.Swarm].(*swarm.Swarm); !ok {
+		return errors.Wrap(ErrNotSwarm, s.config.Swarm)
 	}
 
 	return nil

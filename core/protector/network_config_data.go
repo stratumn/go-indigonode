@@ -35,7 +35,7 @@ type ConfigData struct {
 // NewConfigData creates a new ConfigData object.
 func NewConfigData() *ConfigData {
 	return &ConfigData{
-		NetworkState: Bootstrap,
+		NetworkState: NetworkStateBootstrap,
 		PeersAddrs:   make(map[string][]string),
 	}
 }

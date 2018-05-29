@@ -44,7 +44,7 @@ type PrivateNetworkWithBootstrap struct {
 func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
 	p := PrivateNetworkWithBootstrap{
 		privateNetwork: NewPrivateNetwork(peerStore),
-		networkState:   Bootstrap,
+		networkState:   NetworkStateBootstrap,
 	}
 
 	// We initially allow all requests.
@@ -57,7 +57,7 @@ func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
 // Then it switches to private network mode.
 func (p *PrivateNetworkWithBootstrap) Protect(conn transport.Conn) (transport.Conn, error) {
 	p.networkStateLock.RLock()
-	bootstrapDone := p.networkState != Bootstrap
+	bootstrapDone := p.networkState != NetworkStateBootstrap
 	p.networkStateLock.RUnlock()
 
 	if !bootstrapDone {
@@ -97,7 +97,7 @@ func (p *PrivateNetworkWithBootstrap) SetNetworkState(_ context.Context, network
 
 	p.networkState = networkState
 	switch p.networkState {
-	case Bootstrap:
+	case NetworkStateBootstrap:
 		ipnet.ForcePrivateNetwork = false
 	default:
 		ipnet.ForcePrivateNetwork = true

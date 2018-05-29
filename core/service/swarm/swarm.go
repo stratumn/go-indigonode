@@ -74,15 +74,15 @@ type Service struct {
 	addrs   []ma.Multiaddr
 	swarm   *swarm.Swarm
 
-	networkConfig    protector.NetworkConfig
-	coordinatorID    peer.ID
-	coordinatorAddrs []ma.Multiaddr
+	networkConfig protector.NetworkConfig
+	networkMode   *protector.NetworkMode
 }
 
 // Swarm wraps a swarm with other data that could be useful to services.
 // It's the type exposed by the swarm service.
 type Swarm struct {
 	NetworkConfig protector.NetworkConfig
+	NetworkMode   *protector.NetworkMode
 	PrivKey       crypto.PrivKey
 	Swarm         *swarm.Swarm
 }
@@ -170,13 +170,15 @@ func (s *Service) SetConfig(config interface{}) error {
 		}
 	}
 
-	if err = conf.ValidateProtectionMode(s); err != nil {
+	networkMode, err := conf.ParseNetworkMode()
+	if err != nil {
 		return err
 	}
 
 	s.peerID = peerID
 	s.privKey = privKey
 	s.addrs = addrs
+	s.networkMode = networkMode
 
 	s.config = &conf
 	return nil
@@ -219,6 +221,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 func (s *Service) Expose() interface{} {
 	return &Swarm{
 		NetworkConfig: s.networkConfig,
+		NetworkMode:   s.networkMode,
 		PrivKey:       s.privKey,
 		Swarm:         s.swarm,
 	}
@@ -241,7 +244,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return err
 	}
 
-	protect, err := protectCfg.Configure(ctx, s, pstore)
+	protect, networkConfig, err := protectCfg.Configure(ctx, s, pstore)
 	if err != nil {
 		return err
 	}
@@ -254,6 +257,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return errors.WithStack(err)
 	}
 
+	s.networkConfig = networkConfig
 	s.swarm = swm
 
 	var cancelPeriodicMetrics func()

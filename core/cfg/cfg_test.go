@@ -26,12 +26,14 @@ import (
 type testConfig struct {
 	Name    string `toml:"name"`
 	Version string `toml:"version"`
+	Author  string `toml:"author"`
 }
 
 type testHandler struct {
 	config  *testConfig
 	name    string
 	version string
+	author  string
 }
 
 func (h *testHandler) ID() string {
@@ -43,7 +45,7 @@ func (h *testHandler) Config() interface{} {
 		return *h.config
 	}
 
-	return testConfig{h.name, "v0.1.0"}
+	return testConfig{h.name, "v0.1.0", h.author}
 }
 
 func (h *testHandler) SetConfig(config interface{}) error {
@@ -51,6 +53,7 @@ func (h *testHandler) SetConfig(config interface{}) error {
 	h.config = &c
 	h.name = c.Name
 	h.version = c.Version
+	h.author = c.Author
 	return nil
 }
 

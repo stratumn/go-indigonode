@@ -52,6 +52,19 @@ func (h *testVersionHandler) SetConfig(config interface{}) error {
 	return nil
 }
 
+type testHandlerWithMigrations struct {
+	*testHandler
+	migrations []MigrateHandler
+}
+
+func (h *testHandlerWithMigrations) VersionKey() string {
+	return "local_version"
+}
+
+func (h *testHandlerWithMigrations) Migrations() []MigrateHandler {
+	return h.migrations
+}
+
 func createOld(t *testing.T, filename string, version interface{}) {
 	old := map[string]interface{}{
 		"version": map[string]interface{}{"version": version},
@@ -94,14 +107,21 @@ func TestMigrate(t *testing.T) {
 		},
 	}
 
-	version := testVersionHandler{}
-	zip := testHandler{}
-	tar := testHandler{}
+	version := &testVersionHandler{}
+	zip := &testHandler{}
+	tar := &testHandlerWithMigrations{
+		&testHandler{},
+		[]MigrateHandler{
+			func(tree *Tree) error {
+				return tree.Set("author", "alice")
+			},
+		},
+	}
 
 	set := Set{
-		"version": &version,
-		"zip":     &zip,
-		"tar":     &tar,
+		"version": version,
+		"zip":     zip,
+		"tar":     tar,
 	}
 
 	err = Migrate(set, filename, "version.version", migrations, 0600)
@@ -109,7 +129,8 @@ func TestMigrate(t *testing.T) {
 
 	assert.Equal(3, version.config.Version, "version.config.Version")
 	assert.Equal("2.0.0", zip.version, "zip.version")
-	assert.Equal("tar", tar.name, "tar.name")
+	assert.Equal("tar", tar.testHandler.name, "tar.name")
+	assert.Equal("alice", tar.testHandler.author, "tar.author")
 }
 
 func TestMigrate_migrationError(t *testing.T) {

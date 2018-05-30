@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clock
+// Package protocol defines types for the clock protocol.
+package protocol
 
 import (
 	"context"

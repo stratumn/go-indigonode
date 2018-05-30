@@ -14,18 +14,15 @@
 
 //go:generate mockgen -package mockclock -destination mockclock/mockclock.go github.com/stratumn/alice/core/service/clock Host
 
-// Package clock is a simple service that sends the local time to a peer every
-// time it receives a byte from that peer.
-//
-// It is meant to illustrate how to create network services.
-package clock
+// Package service defines types for the clock service.
+package service
 
 import (
 	"context"
 	"time"
 
 	"github.com/pkg/errors"
-	protocol "github.com/stratumn/alice/core/protocol/clock"
+	"github.com/stratumn/alice/app/clock/protocol"
 	pb "github.com/stratumn/alice/grpc/clock"
 	"google.golang.org/grpc"
 

@@ -45,12 +45,13 @@ func NewCoordinatorHandler(
 ) (Handler, error) {
 	handler := CoordinatorHandler{host: host, networkConfig: networkConfig}
 
-	host.SetStreamHandler(PrivateWithCoordinatorProtocolID, handler.handle)
+	host.SetStreamHandler(PrivateWithCoordinatorProtocolID, handler.Handle)
 
 	return &handler, nil
 }
 
-func (h *CoordinatorHandler) handle(stream inet.Stream) {
+// Handle handles an incoming stream.
+func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 	ctx := context.Background()
 	defer log.EventBegin(ctx, "Coordinator.Handle").Done()
 }

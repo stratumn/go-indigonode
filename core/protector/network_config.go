@@ -17,8 +17,9 @@ package protector
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/pb/protector"
 
+	"gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
@@ -28,43 +29,19 @@ const (
 	DefaultConfigPath = "data/network/config.json"
 )
 
-var (
-	// ErrInvalidConfig is returned when an invalid configuration file
-	// is provided.
-	ErrInvalidConfig = errors.New("invalid configuration file")
-
-	// ErrInvalidSignature is returned when an existing configuration file
-	// contains an invalid signature.
-	ErrInvalidSignature = errors.New("invalid configuration signature")
-
-	// ErrInvalidNetworkState is returned when trying to set an
-	// invalid network state.
-	ErrInvalidNetworkState = errors.New("invalid network state")
-)
-
-// NetworkState is the state of a private network.
-type NetworkState string
-
-// NetworkState values.
-const (
-	// The network is in the bootstrap phase (not fully private yet).
-	NetworkStateBootstrap = NetworkState("bootstrap")
-	// The network bootstrap phase is complete and the network is now protected.
-	NetworkStateProtected = NetworkState("protected")
-)
-
 // NetworkStateReader provides read access to the network state.
 type NetworkStateReader interface {
-	NetworkState(context.Context) NetworkState
+	NetworkState(context.Context) pb.NetworkState
 }
 
 // NetworkStateWriter provides write access to the network state.
 type NetworkStateWriter interface {
-	SetNetworkState(context.Context, NetworkState) error
+	SetNetworkState(context.Context, pb.NetworkState) error
 }
 
 // NetworkPeersReader provides read access to the network peers list.
 type NetworkPeersReader interface {
+	IsAllowed(context.Context, peer.ID) bool
 	AllowedPeers(context.Context) []peer.ID
 }
 
@@ -81,4 +58,7 @@ type NetworkConfig interface {
 
 	NetworkStateReader
 	NetworkStateWriter
+
+	// Encode encodes the configuration with the given encoder.
+	Encode(multicodec.Encoder) error
 }

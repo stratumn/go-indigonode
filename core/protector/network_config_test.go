@@ -26,6 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/mocks"
+	pb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,11 +37,13 @@ import (
 )
 
 var (
-	testKey crypto.PrivKey
+	testKey    crypto.PrivKey
+	testPeerID peer.ID
 )
 
 func init() {
 	testKey, _, _ = crypto.GenerateEd25519Key(rand.Reader)
+	testPeerID, _ = peer.IDFromPrivateKey(testKey)
 }
 
 func TestLocalConfig_InitConfig_Success(t *testing.T) {
@@ -102,13 +105,15 @@ func TestLocalConfig_InitConfig_Success(t *testing.T) {
 		peerAddr1 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8903")
 		peerAddr2 := multiaddr.StringCast("/ip4/127.0.0.1/tcp/8913")
 
-		configData := protector.ConfigData{
-			PeersAddrs: map[string][]string{
-				peerID.Pretty(): []string{peerAddr1.String(), peerAddr2.String()},
+		configData := pb.NetworkConfig{
+			Participants: map[string]*pb.PeerAddrs{
+				peerID.Pretty(): &pb.PeerAddrs{
+					Addresses: []string{peerAddr1.String(), peerAddr2.String()},
+				},
 			},
 		}
 
-		require.NoError(t, configData.Flush(ctx, configPath, testKey))
+		require.NoError(t, configData.SaveToFile(ctx, configPath, testKey))
 
 		peerStore := mocks.NewMockPeerstore(ctrl)
 		peerStore.EXPECT().AddAddr(peerID, peerAddr1, gomock.Any()).Times(1)
@@ -142,44 +147,50 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 			)
 			require.NoError(t, err)
 		},
-		protector.ErrInvalidConfig,
+		pb.ErrInvalidConfig,
 	}, {
 		"invalid-config-signature",
 		func(t *testing.T, configPath string) {
 			otherKey, _, _ := crypto.GenerateEd25519Key(rand.Reader)
-			configData := protector.ConfigData{
-				PeersAddrs: map[string][]string{
-					test.GeneratePeerID(t).Pretty(): []string{"/ip4/127.0.0.1/tcp/8903"},
+			configData := pb.NetworkConfig{
+				Participants: map[string]*pb.PeerAddrs{
+					test.GeneratePeerID(t).Pretty(): &pb.PeerAddrs{
+						Addresses: []string{"/ip4/127.0.0.1/tcp/8903"},
+					},
 				},
 			}
 
-			require.NoError(t, configData.Flush(ctx, configPath, otherKey))
+			require.NoError(t, configData.SaveToFile(ctx, configPath, otherKey))
 		},
-		protector.ErrInvalidSignature,
+		pb.ErrInvalidSignature,
 	}, {
 		"invalid-peer-id",
 		func(t *testing.T, configPath string) {
-			configData := protector.ConfigData{
-				PeersAddrs: map[string][]string{
-					"not-a-peer-id": []string{"/ip4/127.0.0.1/tcp/8903"},
+			configData := pb.NetworkConfig{
+				Participants: map[string]*pb.PeerAddrs{
+					"not-a-peer-id": &pb.PeerAddrs{
+						Addresses: []string{"/ip4/127.0.0.1/tcp/8903"},
+					},
 				},
 			}
 
-			require.NoError(t, configData.Flush(ctx, configPath, testKey))
+			require.NoError(t, configData.SaveToFile(ctx, configPath, testKey))
 		},
-		protector.ErrInvalidConfig,
+		pb.ErrInvalidConfig,
 	}, {
 		"invalid-peer-address",
 		func(t *testing.T, configPath string) {
-			configData := protector.ConfigData{
-				PeersAddrs: map[string][]string{
-					test.GeneratePeerID(t).Pretty(): []string{"/not/a/multiaddr"},
+			configData := pb.NetworkConfig{
+				Participants: map[string]*pb.PeerAddrs{
+					test.GeneratePeerID(t).Pretty(): &pb.PeerAddrs{
+						Addresses: []string{"/not/a/multiaddr"},
+					},
 				},
 			}
 
-			require.NoError(t, configData.Flush(ctx, configPath, testKey))
+			require.NoError(t, configData.SaveToFile(ctx, configPath, testKey))
 		},
-		protector.ErrInvalidConfig,
+		pb.ErrInvalidConfig,
 	}}
 
 	for _, tt := range testCases {
@@ -228,6 +239,8 @@ func TestLocalConfig_AddPeer(t *testing.T) {
 
 	waitUntilAllowed(t, p, peer2, 2)
 	assert.ElementsMatch(t, []peer.ID{peer1, peer2}, conf.AllowedPeers(ctx))
+	assert.True(t, conf.IsAllowed(ctx, peer1))
+	assert.True(t, conf.IsAllowed(ctx, peer2))
 }
 
 func TestLocalConfig_RemovePeer(t *testing.T) {
@@ -256,6 +269,8 @@ func TestLocalConfig_RemovePeer(t *testing.T) {
 	waitUntilAllowed(t, p, peer2, 1)
 
 	assert.ElementsMatch(t, []peer.ID{peer2}, conf.AllowedPeers(ctx))
+	assert.False(t, conf.IsAllowed(ctx, peer1))
+	assert.True(t, conf.IsAllowed(ctx, peer2))
 }
 
 func TestLocalConfig_NetworkState(t *testing.T) {
@@ -275,14 +290,14 @@ func TestLocalConfig_NetworkState(t *testing.T) {
 		name         string
 		newProtector func(*gomock.Controller, chan<- struct{}) protector.Protector
 		afterInit    func(protector.Protector)
-		networkState protector.NetworkState
+		networkState pb.NetworkState
 		err          error
 	}{{
 		"rejects-invalid-network-state",
 		newMockProtector,
 		func(protector.Protector) {},
-		"broken",
-		protector.ErrInvalidNetworkState,
+		42,
+		pb.ErrInvalidNetworkState,
 	}, {
 		"configures-state-aware-protector",
 		func(ctrl *gomock.Controller, listenChan chan<- struct{}) protector.Protector {
@@ -297,15 +312,15 @@ func TestLocalConfig_NetworkState(t *testing.T) {
 			return p
 		},
 		func(p protector.Protector) {
-			p.(*mocks.MockStateAwareProtector).EXPECT().SetNetworkState(gomock.Any(), protector.NetworkStateProtected).Times(1)
+			p.(*mocks.MockStateAwareProtector).EXPECT().SetNetworkState(gomock.Any(), pb.NetworkState_PROTECTED).Times(1)
 		},
-		protector.NetworkStateProtected,
+		pb.NetworkState_PROTECTED,
 		nil,
 	}, {
 		"ignores-state-agnostic-protector",
 		newMockProtector,
 		func(p protector.Protector) {},
-		protector.NetworkStateProtected,
+		pb.NetworkState_PROTECTED,
 		nil,
 	}}
 
@@ -344,7 +359,7 @@ func TestLocalConfig_NetworkState(t *testing.T) {
 	}
 }
 
-func TestLocalConfig_Flush(t *testing.T) {
+func TestLocalConfig_Save(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -366,17 +381,17 @@ func TestLocalConfig_Flush(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, conf.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr1}))
 	require.NoError(t, conf.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peer2Addr1}))
-	require.NoError(t, conf.SetNetworkState(ctx, protector.NetworkStateProtected))
+	require.NoError(t, conf.SetNetworkState(ctx, pb.NetworkState_PROTECTED))
 
-	configData := protector.NewConfigData()
-	require.NoError(t, configData.Load(ctx, configPath, testKey))
-	assert.Len(t, configData.PeersAddrs, 2)
-	assert.ElementsMatch(t, []string{peer1Addr1.String()}, configData.PeersAddrs[peer1.Pretty()])
-	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
-	assert.Equal(t, protector.NetworkStateProtected, configData.NetworkState)
+	configData := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+	require.NoError(t, configData.LoadFromFile(ctx, configPath, testPeerID))
+	assert.Len(t, configData.Participants, 2)
+	assert.ElementsMatch(t, []string{peer1Addr1.String()}, configData.Participants[peer1.Pretty()].Addresses)
+	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.Participants[peer2.Pretty()].Addresses)
+	assert.Equal(t, pb.NetworkState_PROTECTED, configData.NetworkState)
 
 	require.NoError(t, conf.RemovePeer(ctx, peer1))
-	require.NoError(t, configData.Load(ctx, configPath, testKey))
-	assert.Len(t, configData.PeersAddrs, 1)
-	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.PeersAddrs[peer2.Pretty()])
+	require.NoError(t, configData.LoadFromFile(ctx, configPath, testPeerID))
+	assert.Len(t, configData.Participants, 1)
+	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.Participants[peer2.Pretty()].Addresses)
 }

@@ -6,7 +6,8 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	protector "github.com/stratumn/alice/core/protector"
+	protector "github.com/stratumn/alice/pb/protector"
+	go_multicodec "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	reflect "reflect"
@@ -57,6 +58,30 @@ func (_m *MockNetworkConfig) AllowedPeers(_param0 context.Context) []go_libp2p_p
 // AllowedPeers indicates an expected call of AllowedPeers
 func (_mr *MockNetworkConfigMockRecorder) AllowedPeers(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedPeers", reflect.TypeOf((*MockNetworkConfig)(nil).AllowedPeers), arg0)
+}
+
+// Encode mocks base method
+func (_m *MockNetworkConfig) Encode(_param0 go_multicodec.Encoder) error {
+	ret := _m.ctrl.Call(_m, "Encode", _param0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Encode indicates an expected call of Encode
+func (_mr *MockNetworkConfigMockRecorder) Encode(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Encode", reflect.TypeOf((*MockNetworkConfig)(nil).Encode), arg0)
+}
+
+// IsAllowed mocks base method
+func (_m *MockNetworkConfig) IsAllowed(_param0 context.Context, _param1 go_libp2p_peer.ID) bool {
+	ret := _m.ctrl.Call(_m, "IsAllowed", _param0, _param1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsAllowed indicates an expected call of IsAllowed
+func (_mr *MockNetworkConfigMockRecorder) IsAllowed(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "IsAllowed", reflect.TypeOf((*MockNetworkConfig)(nil).IsAllowed), arg0, arg1)
 }
 
 // NetworkState mocks base method

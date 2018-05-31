@@ -21,7 +21,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/pb/protector"
 
+	"gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -33,7 +35,7 @@ import (
 // It keeps a signed config file on the filesystem.
 type LocalConfig struct {
 	dataLock sync.RWMutex
-	data     *ConfigData
+	data     *pb.NetworkConfig
 	dataPath string
 
 	peerStore   peerstore.Peerstore
@@ -67,7 +69,7 @@ func InitLocalConfig(
 	}
 
 	conf := &LocalConfig{
-		data:        NewConfigData(),
+		data:        pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
 		dataPath:    configPath,
 		peerStore:   peerStore,
 		privKey:     privKey,
@@ -83,12 +85,17 @@ func InitLocalConfig(
 
 	_, err = os.Stat(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, ErrInvalidConfig
+		return nil, pb.ErrInvalidConfig
 	}
 
 	// Load previous configuration.
 	if err == nil {
-		err = conf.data.Load(ctx, configPath, privKey)
+		peerID, err := peer.IDFromPrivateKey(privKey)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		err = conf.data.LoadFromFile(ctx, configPath, peerID)
 		if err != nil {
 			return nil, err
 		}
@@ -106,16 +113,16 @@ func (c *LocalConfig) addDataToPeerStore() error {
 	c.dataLock.RLock()
 	defer c.dataLock.RUnlock()
 
-	for peerID, peerAddrs := range c.data.PeersAddrs {
+	for peerID, peerAddrs := range c.data.Participants {
 		decodedPeerID, err := peer.IDB58Decode(peerID)
 		if err != nil {
-			return ErrInvalidConfig
+			return pb.ErrInvalidConfig
 		}
 
-		for _, peerAddr := range peerAddrs {
+		for _, peerAddr := range peerAddrs.Addresses {
 			decodedPeerAddr, err := multiaddr.NewMultiaddr(peerAddr)
 			if err != nil {
-				return ErrInvalidConfig
+				return pb.ErrInvalidConfig
 			}
 
 			c.peerStore.AddAddr(decodedPeerID, decodedPeerAddr, peerstore.PermanentAddrTTL)
@@ -145,8 +152,8 @@ func (c *LocalConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []multi
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
-	c.data.PeersAddrs[peerID.Pretty()] = marshalledAddrs
-	return c.data.Flush(ctx, c.dataPath, c.privKey)
+	c.data.Participants[peerID.Pretty()] = &pb.PeerAddrs{Addresses: marshalledAddrs}
+	return c.data.SaveToFile(ctx, c.dataPath, c.privKey)
 }
 
 // RemovePeer removes a peer from the network configuration.
@@ -160,8 +167,17 @@ func (c *LocalConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
-	delete(c.data.PeersAddrs, peerID.Pretty())
-	return c.data.Flush(ctx, c.dataPath, c.privKey)
+	delete(c.data.Participants, peerID.Pretty())
+	return c.data.SaveToFile(ctx, c.dataPath, c.privKey)
+}
+
+// IsAllowed returns true if the given peer is allowed in the network.
+func (c *LocalConfig) IsAllowed(ctx context.Context, peerID peer.ID) bool {
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	_, ok := c.data.Participants[peerID.Pretty()]
+	return ok
 }
 
 // AllowedPeers returns the IDs of the peers in the network.
@@ -170,7 +186,7 @@ func (c *LocalConfig) AllowedPeers(ctx context.Context) []peer.ID {
 }
 
 // NetworkState returns the current state of the network protection.
-func (c *LocalConfig) NetworkState(ctx context.Context) NetworkState {
+func (c *LocalConfig) NetworkState(ctx context.Context) pb.NetworkState {
 	event := log.EventBegin(ctx, "LocalConfig.NetworkState")
 	defer event.Done()
 
@@ -178,17 +194,17 @@ func (c *LocalConfig) NetworkState(ctx context.Context) NetworkState {
 	defer c.dataLock.RUnlock()
 
 	event.Append(logging.Metadata{"state": c.data.NetworkState})
-	return c.data.NetworkState
+	return pb.NetworkState(c.data.NetworkState)
 }
 
 // SetNetworkState sets the current state of the network protection.
-func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState NetworkState) error {
+func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
 	defer log.EventBegin(ctx, "LocalConfig.SetNetworkState", logging.Metadata{
 		"state": networkState,
 	}).Done()
 
 	switch networkState {
-	case NetworkStateBootstrap, NetworkStateProtected:
+	case pb.NetworkState_BOOTSTRAP, pb.NetworkState_PROTECTED:
 		c.dataLock.Lock()
 		defer c.dataLock.Unlock()
 
@@ -202,8 +218,16 @@ func (c *LocalConfig) SetNetworkState(ctx context.Context, networkState NetworkS
 			}
 		}
 
-		return c.data.Flush(ctx, c.dataPath, c.privKey)
+		return c.data.SaveToFile(ctx, c.dataPath, c.privKey)
 	default:
-		return ErrInvalidNetworkState
+		return pb.ErrInvalidNetworkState
 	}
+}
+
+// Encode encodes the configuration with the given encoder.
+func (c *LocalConfig) Encode(enc multicodec.Encoder) error {
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	return enc.Encode(c.data)
 }

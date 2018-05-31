@@ -21,6 +21,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/mocks"
+	pb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,7 +40,7 @@ func TestPrivateNetworkWithBootstrap_New(t *testing.T) {
 	networkStateWriter, ok := p.(protector.NetworkStateWriter)
 	require.True(t, ok, "p.(protector.NetworkStateWriter)")
 
-	networkStateWriter.SetNetworkState(context.Background(), protector.NetworkStateProtected)
+	networkStateWriter.SetNetworkState(context.Background(), pb.NetworkState_PROTECTED)
 	assert.True(t, ipnet.ForcePrivateNetwork)
 }
 
@@ -75,7 +76,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	// Notifying the bootstrap channel starts rejecting unauthorized requests.
 	networkStateWriter, ok := p.(protector.NetworkStateWriter)
 	require.True(t, ok, "p.(networkStateWriter)")
-	networkStateWriter.SetNetworkState(ctx, protector.NetworkStateProtected)
+	networkStateWriter.SetNetworkState(ctx, pb.NetworkState_PROTECTED)
 
 	invalidConn := mocks.NewMockConn(ctrl)
 	invalidConn.EXPECT().LocalMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)

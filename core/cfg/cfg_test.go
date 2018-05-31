@@ -67,7 +67,7 @@ func TestCfg(t *testing.T) {
 		"tar": &tarSave,
 	}
 
-	err = Save(setSave, filename, 0644, false)
+	err = setSave.Save(filename, 0644, false)
 	require.NoError(t, err, "Save(filename)")
 
 	zipLoad := testHandler{name: "default"}
@@ -77,7 +77,7 @@ func TestCfg(t *testing.T) {
 		"tar": &tarLoad,
 	}
 
-	err = Load(setLoad, filename)
+	err = setLoad.Load(filename)
 	require.NoError(t, err, "Load(filename)")
 
 	assert.Equal(t, zipSave.name, zipLoad.name, "zipLoad")

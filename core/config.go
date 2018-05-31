@@ -73,41 +73,27 @@ var DefaultConfig = Config{
 //
 // This avoids packages depending on the core package to have to depend on the
 // cfg package.
-type ConfigurableSet = cfg.Set
+// type ConfigurableSet = cfg.Set
 
 // NewConfigurableSet creates a new set of configurables bound to the given
 // services.
-//
-// If no services are given, the builtin services are used.
-func NewConfigurableSet(services []manager.Service) ConfigurableSet {
+func NewConfigurableSet(services []manager.Service) cfg.Set {
 	if services == nil {
 		services = BuiltinServices()
 	}
-
-	set := ConfigurableSet{
-		"core": &ConfigHandler{},
-		"log":  &logging.ConfigHandler{},
-	}
-
-	for _, serv := range services {
-		// Register configurable if it is one.
-		if configurable, ok := serv.(cfg.Configurable); ok {
-			set[configurable.ID()] = configurable
+	configurables := make([]cfg.Configurable, 0)
+	for _, service := range services {
+		if configurable, ok := service.(cfg.Configurable); ok {
+			configurables = append(configurables, configurable)
 		}
 	}
-
-	return set
-}
-
-// InitConfig creates a configuration file.
-//
-// It fails if the file already exists.
-func InitConfig(set ConfigurableSet, filename string) error {
-	return cfg.Save(set, filename, 0600, false)
+	configurables = append(configurables, &ConfigHandler{})
+	configurables = append(configurables, &logging.ConfigHandler{})
+	return cfg.NewSet(configurables)
 }
 
 // LoadConfig loads the configuration file and applies migrations.
-func LoadConfig(set ConfigurableSet, filename string) error {
+func LoadConfig(set cfg.Set, filename string) error {
 	return cfg.Migrate(set, filename, ConfigVersionKey, migrations, 0600)
 }
 

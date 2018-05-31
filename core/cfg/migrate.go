@@ -46,7 +46,7 @@ var (
 	ErrOutdatedExec = errors.New("exec is out of date with config version")
 )
 
-// Tree is used by migrations to modify the configuration tree.
+// Tree is used to modify the configuration tree.
 type Tree struct {
 	tree *toml.Tree
 }
@@ -186,7 +186,7 @@ func Migrate(
 
 	// Save config file if there were migrations.
 	if len(migrations) > 0 {
-		return Save(set, filename, perms, true)
+		return set.Save(filename, perms, true)
 	}
 
 	return nil

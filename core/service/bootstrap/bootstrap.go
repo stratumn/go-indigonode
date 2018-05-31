@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockbootstrap.go github.com/stratumn/alice/core/service/bootstrap Host
 //go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknetworkconfig.go github.com/stratumn/alice/core/protector NetworkConfig
 
 // Package bootstrap defines a service that bootstraps a host from a set of
 // well known peers.

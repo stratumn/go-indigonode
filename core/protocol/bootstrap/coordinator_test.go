@@ -21,13 +21,13 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	"gx/ipfs/QmVxf27kucSvCLiCq6dAXjDU2WG3xZN9ae7Ny6osroP28u/yamux"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
@@ -69,31 +69,34 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		networkConfig func(*gomock.Controller) protector.NetworkConfig
+		networkConfig func(*testing.T, *gomock.Controller) protector.NetworkConfig
 		send          func(*testing.T, inet.Stream)
 		validate      func(*testing.T, *protectorpb.NetworkConfig)
 		receiveErr    error
 	}{{
 		"during-bootstrap-send-participants-to-white-listed-peer",
-		func(ctrl *gomock.Controller) protector.NetworkConfig {
-			networkConfig := mocks.NewMockNetworkConfig(ctrl)
-			networkConfig.EXPECT().NetworkState(gomock.Any()).AnyTimes().Return(protectorpb.NetworkState_BOOTSTRAP)
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), sender.ID()).Times(1).Return(true)
-			networkConfig.EXPECT().Encode(gomock.Any()).Times(1).Do(func(enc multicodec.Encoder) error {
-				return enc.Encode(&protectorpb.NetworkConfig{})
-			})
-			return networkConfig
+		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
+			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
+				WithAllowedPeer(coordinator.ID()).
+				WithAllowedPeer(sender.ID()).
+				Build()
 		},
 		sendHello,
-		func(*testing.T, *protectorpb.NetworkConfig) {},
+		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
+			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState)
+			assert.Len(t, networkConfig.Participants, 2)
+			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
+			assert.Contains(t, networkConfig.Participants, coordinator.ID().Pretty())
+		},
 		nil,
 	}, {
 		"during-bootstrap-do-not-send-participants-to-non-white-listed-peer",
-		func(ctrl *gomock.Controller) protector.NetworkConfig {
-			networkConfig := mocks.NewMockNetworkConfig(ctrl)
-			networkConfig.EXPECT().NetworkState(gomock.Any()).AnyTimes().Return(protectorpb.NetworkState_BOOTSTRAP)
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), sender.ID()).Times(1).Return(false)
-			return networkConfig
+		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
+			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
+				WithAllowedPeer(coordinator.ID()).
+				Build()
 		},
 		sendHello,
 		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
@@ -104,25 +107,26 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"after-bootstrap-send-participants-to-white-listed-peer",
-		func(ctrl *gomock.Controller) protector.NetworkConfig {
-			networkConfig := mocks.NewMockNetworkConfig(ctrl)
-			networkConfig.EXPECT().NetworkState(gomock.Any()).AnyTimes().Return(protectorpb.NetworkState_PROTECTED)
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), sender.ID()).Times(1).Return(true)
-			networkConfig.EXPECT().Encode(gomock.Any()).Times(1).Do(func(enc multicodec.Encoder) error {
-				return enc.Encode(&protectorpb.NetworkConfig{})
-			})
-			return networkConfig
+		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
+			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_PROTECTED).
+				WithAllowedPeer(sender.ID()).
+				Build()
 		},
 		sendHello,
-		func(*testing.T, *protectorpb.NetworkConfig) {},
+		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
+			assert.Equal(t, protectorpb.NetworkState_PROTECTED, networkConfig.NetworkState)
+			assert.Len(t, networkConfig.Participants, 1)
+			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
+		},
 		nil,
 	}, {
 		"after-bootstrap-reject-non-white-listed-peer",
-		func(ctrl *gomock.Controller) protector.NetworkConfig {
-			networkConfig := mocks.NewMockNetworkConfig(ctrl)
-			networkConfig.EXPECT().NetworkState(gomock.Any()).AnyTimes().Return(protectorpb.NetworkState_PROTECTED)
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), sender.ID()).Times(1).Return(false)
-			return networkConfig
+		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
+			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_PROTECTED).
+				WithAllowedPeer(coordinator.ID()).
+				Build()
 		},
 		sendHello,
 		nil,
@@ -134,7 +138,10 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler, err := bootstrap.NewCoordinatorHandler(coordinator, tt.networkConfig(ctrl))
+			handler, err := bootstrap.NewCoordinatorHandler(
+				coordinator,
+				tt.networkConfig(t, ctrl),
+			)
 			require.NoError(t, err)
 			defer handler.Close(ctx)
 

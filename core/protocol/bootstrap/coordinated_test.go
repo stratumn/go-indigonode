@@ -44,7 +44,7 @@ func TestCoordinated_Close(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateWithCoordinatorProtocolID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedProtocolID, gomock.Any()).Times(1)
 
 	handler, err := bootstrap.NewCoordinatedHandler(
 		host,
@@ -54,6 +54,6 @@ func TestCoordinated_Close(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, handler)
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateWithCoordinatorProtocolID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedProtocolID).Times(1)
 	handler.Close(context.Background())
 }

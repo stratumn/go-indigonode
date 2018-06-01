@@ -15,9 +15,7 @@
 package cfg
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"os"
 
 	toml "github.com/pelletier/go-toml"
@@ -40,6 +38,9 @@ var (
 	// ErrInvalidVersion is returned when the config version is invalid.
 	ErrInvalidVersion = errors.New("config version is invalid")
 
+	// ErrInvalidSubtree is returned when a config subtree is invalid.
+	ErrInvalidSubtree = errors.New("subtree is invalid")
+
 	// ErrOutdatedExec is returned when the config version is more recent
 	// than the executable.
 	ErrOutdatedExec = errors.New("exec is out of date with config version")
@@ -49,15 +50,29 @@ var (
 // next.
 type MigrateHandler func(*Tree) error
 
+// Migrator declares migrations specific to a configurable.
+type Migrator interface {
+	// Version key returns the key containing the current int version relative
+	// to the subtree of the configurable.
+	VersionKey() string
+
+	// Migrations returns all the migrations from first to last. Keys are
+	// relative to the subtree of the configurable.
+	Migrations() []MigrateHandler
+}
+
 // Migrate loads a TOML file and sets the configurations of a set of
 // configurables, applying migrations if needed.
 //
 // The version key should point to the tree path that contains the int config
-// file version.
+// file version for global migrations.
 //
 // The migrations should be a slice of MigrateHandler that upgrade the
 // configuration from the version corresponding to its index in the slice to
 // the next version.
+//
+// Each configurable can have its own migrations if it implements the
+// Migrator interface.
 func Migrate(
 	set Set,
 	filename string,
@@ -80,55 +95,46 @@ func Migrate(
 
 	t := &Tree{tree}
 
-	version, ok := t.GetDefault(versionKey, int64(0)).(int64)
-	if !ok {
-		err := errors.WithStack(ErrInvalidVersion)
+	// Apply global migrations.
+	updated, err := t.migrate(migrations, versionKey)
+	if err != nil {
 		event.SetError(err)
 		return err
 	}
 
-	if version > int64(len(migrations)) {
-		return errors.WithStack(ErrOutdatedExec)
-	}
-
-	migrations = migrations[version:]
-
-	for _, m := range migrations {
-		if err := m(t); err != nil {
-			event.SetError(err)
-			return errors.Wrap(err, fmt.Sprintf("migration %d", version))
+	// Apply per configurable migrations.
+	for name, configurable := range set {
+		migrator, ok := configurable.(Migrator)
+		if !ok {
+			continue
 		}
 
-		version++
-
-		if err := t.Set(versionKey, version); err != nil {
+		// Migrations are namespaced to the configurable.
+		subtree, ok := t.Get(name).(*Tree)
+		if !ok {
+			err = errors.WithStack(ErrInvalidSubtree)
+			event.SetError(err)
 			return err
 		}
+
+		u, err := subtree.migrate(migrator.Migrations(), migrator.VersionKey())
+		if err != nil {
+			event.SetError(err)
+			return err
+		}
+
+		updated = updated || u
 	}
 
+	// Remember to set the values even if there are no migrations.
 	if err := set.fromTree(ctx, tree); err != nil {
 		event.SetError(err)
 		return err
 	}
 
-	// Save config file if there were migrations.
-	if len(migrations) > 0 {
-		return set.Save(filename, perms, true)
+	if !updated {
+		return nil
 	}
 
-	return nil
-}
-
-// treeFromStruct creates a TOML tree from a struct.
-func treeFromStruct(s interface{}) (*toml.Tree, error) {
-	b := bytes.NewBuffer(nil)
-	enc := toml.NewEncoder(b)
-	enc.QuoteMapKeys(true)
-
-	if err := enc.Encode(s); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	tree, err := toml.LoadBytes(b.Bytes())
-	return tree, errors.WithStack(err)
+	return set.Save(filename, perms, true)
 }

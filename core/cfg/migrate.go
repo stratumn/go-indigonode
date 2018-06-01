@@ -179,7 +179,7 @@ func Migrate(
 		}
 	}
 
-	if err := setValuesFromTree(ctx, set, tree); err != nil {
+	if err := set.fromTree(ctx, tree); err != nil {
 		event.SetError(err)
 		return err
 	}

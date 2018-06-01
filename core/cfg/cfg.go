@@ -84,7 +84,7 @@ func (s Set) Load(filename string) error {
 		return errors.WithStack(err)
 	}
 
-	if err := setValuesFromTree(ctx, s, tree); err != nil {
+	if err := s.fromTree(ctx, tree); err != nil {
 		event.SetError(err)
 		return err
 	}
@@ -160,7 +160,7 @@ func (s Set) Set(key string, value string) error {
 	case *Tree:
 		return errors.Errorf("could not set \"%s\": cannot edit a group of attribute", key)
 	default:
-		return errors.Errorf("could not set \"%s\": unsupported type : %T", key, t)
+		return errors.Errorf("could not set \"%s\": unsupported type: %T", key, t)
 	}
 
 	if err != nil {
@@ -170,7 +170,33 @@ func (s Set) Set(key string, value string) error {
 	if err := tree.Set(key, currentVal); err != nil {
 		return err
 	}
-	return setValuesFromTree(context.Background(), s, tree.tree)
+	return s.fromTree(context.Background(), tree.tree)
+}
+
+// setValuesFromTree sets the values of a set from a TOML tree.
+func (s Set) fromTree(ctx context.Context, tree *toml.Tree) error {
+	structuredSet := structuralize(ctx, s.Configs())
+
+	if err := tree.Unmarshal(structuredSet); err != nil {
+		return errors.WithStack(err)
+	}
+
+	// Use reflect to get the values from the struct.
+	v := reflect.Indirect(reflect.ValueOf(structuredSet))
+
+	for id, configurable := range s {
+		f := v.FieldByName(ucFirst(id)).Interface()
+
+		if f == nil {
+			continue
+		}
+
+		if err := configurable.SetConfig(f); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Configs returns the current configurations of a set of configurables.
@@ -246,32 +272,6 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 	}
 
 	return errors.WithStack(f.Sync())
-}
-
-// setValuesFromTree sets the values of a set from a TOML tree.
-func setValuesFromTree(ctx context.Context, set Set, tree *toml.Tree) error {
-	s := structuralize(ctx, set.Configs())
-
-	if err := tree.Unmarshal(s); err != nil {
-		return errors.WithStack(err)
-	}
-
-	// Use reflect to get the values from the struct.
-	v := reflect.Indirect(reflect.ValueOf(s))
-
-	for id, configurable := range set {
-		f := v.FieldByName(ucFirst(id)).Interface()
-
-		if f == nil {
-			continue
-		}
-
-		if err := configurable.SetConfig(f); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Complicated, but go-toml wants a struct.

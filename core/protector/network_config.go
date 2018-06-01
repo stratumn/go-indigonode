@@ -61,4 +61,8 @@ type NetworkConfig interface {
 
 	// Encode encodes the configuration with the given encoder.
 	Encode(multicodec.Encoder) error
+
+	// Reset clears the current configuration and applies the given one.
+	// It assumes that the incoming configuration signature has been validated.
+	Reset(context.Context, *pb.NetworkConfig) error
 }

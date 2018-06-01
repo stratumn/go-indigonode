@@ -23,24 +23,21 @@ import (
 	cryptopb "github.com/stratumn/alice/pb/crypto"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 var log = logging.Logger("bootstrap")
 
+// Errors used by the NetworkConfig.
 var (
-	// ErrInvalidConfig is returned when an invalid configuration file
-	// is provided.
-	ErrInvalidConfig = errors.New("invalid configuration file")
-
-	// ErrInvalidSignature is returned when an existing configuration file
-	// contains an invalid signature.
-	ErrInvalidSignature = errors.New("invalid configuration signature")
-
-	// ErrInvalidNetworkState is returned when trying to set an
-	// invalid network state.
+	ErrInvalidConfig       = errors.New("invalid configuration file")
+	ErrInvalidSignature    = errors.New("invalid configuration signature")
 	ErrInvalidNetworkState = errors.New("invalid network state")
+	ErrInvalidPeerID       = errors.New("invalid peer ID")
+	ErrMissingPeerAddrs    = errors.New("missing peer addresses")
+	ErrInvalidPeerAddr     = errors.New("invalid peer address")
 )
 
 // NewNetworkConfig creates a signed NetworkConfig.
@@ -70,6 +67,35 @@ func (c *NetworkConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error 
 	if err != nil {
 		event.SetError(err)
 		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+// ValidateContent valides that the contents of the configuration
+// is correctly typed (peerIDs, addresses, etc).
+func (c *NetworkConfig) ValidateContent(ctx context.Context) error {
+	_, ok := NetworkState_name[int32(c.NetworkState)]
+	if !ok {
+		return ErrInvalidNetworkState
+	}
+
+	for peerID, peerAddrs := range c.Participants {
+		_, err := peer.IDB58Decode(peerID)
+		if err != nil {
+			return ErrInvalidPeerID
+		}
+
+		if peerAddrs == nil || len(peerAddrs.Addresses) == 0 {
+			return ErrMissingPeerAddrs
+		}
+
+		for _, peerAddr := range peerAddrs.Addresses {
+			_, err := multiaddr.NewMultiaddr(peerAddr)
+			if err != nil {
+				return ErrInvalidPeerAddr
+			}
+		}
 	}
 
 	return nil

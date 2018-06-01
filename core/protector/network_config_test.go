@@ -176,7 +176,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 
 			require.NoError(t, configData.SaveToFile(ctx, configPath, testKey))
 		},
-		pb.ErrInvalidConfig,
+		pb.ErrInvalidPeerID,
 	}, {
 		"invalid-peer-address",
 		func(t *testing.T, configPath string) {
@@ -190,7 +190,7 @@ func TestLocalConfig_InitConfig_Error(t *testing.T) {
 
 			require.NoError(t, configData.SaveToFile(ctx, configPath, testKey))
 		},
-		pb.ErrInvalidConfig,
+		pb.ErrInvalidPeerAddr,
 	}}
 
 	for _, tt := range testCases {
@@ -394,4 +394,78 @@ func TestLocalConfig_Save(t *testing.T) {
 	require.NoError(t, configData.LoadFromFile(ctx, configPath, testPeerID))
 	assert.Len(t, configData.Participants, 1)
 	assert.ElementsMatch(t, []string{peer2Addr1.String()}, configData.Participants[peer2.Pretty()].Addresses)
+}
+
+func TestLocalConfig_Reset(t *testing.T) {
+	ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	configDir, _ := ioutil.TempDir("", "alice")
+	configPath := filepath.Join(configDir, "config.json")
+
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+
+	peerStore := mocks.NewMockPeerstore(ctrl)
+	peerStore.EXPECT().AddAddrs(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+	p := protector.NewPrivateNetwork(peerStore)
+	conf, err := protector.InitLocalConfig(ctx, configPath, testKey, p, peerStore)
+	require.NoError(t, err, "protector.InitLocalConfig()")
+
+	t.Run("reject-invalid-network-state", func(t *testing.T) {
+		assert.EqualError(
+			t,
+			conf.Reset(ctx, &pb.NetworkConfig{NetworkState: 42}),
+			pb.ErrInvalidNetworkState.Error(),
+		)
+	})
+
+	t.Run("reject-invalid-peer-id", func(t *testing.T) {
+		assert.EqualError(
+			t,
+			conf.Reset(ctx, &pb.NetworkConfig{
+				Participants: map[string]*pb.PeerAddrs{
+					"b4tm4n": &pb.PeerAddrs{Addresses: []string{test.GenerateMultiaddr(t).String()}},
+				},
+			}),
+			pb.ErrInvalidPeerID.Error(),
+		)
+	})
+
+	t.Run("reject-invalid-addr", func(t *testing.T) {
+		assert.EqualError(
+			t,
+			conf.Reset(ctx, &pb.NetworkConfig{
+				Participants: map[string]*pb.PeerAddrs{
+					peer1.Pretty(): &pb.PeerAddrs{Addresses: []string{"not/a/multi/addr"}},
+				},
+			}),
+			pb.ErrInvalidPeerAddr.Error(),
+		)
+	})
+
+	t.Run("save-valid-config", func(t *testing.T) {
+		err := conf.Reset(ctx, &pb.NetworkConfig{
+			NetworkState: pb.NetworkState_PROTECTED,
+			Participants: map[string]*pb.PeerAddrs{
+				peer1.Pretty(): &pb.PeerAddrs{
+					Addresses: []string{test.GeneratePeerMultiaddr(t, peer1).String()},
+				},
+				peer2.Pretty(): &pb.PeerAddrs{
+					Addresses: []string{test.GeneratePeerMultiaddr(t, peer2).String()},
+				},
+			},
+		})
+		require.NoError(t, err, "conf.Reset()")
+
+		configData := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+		require.NoError(t, configData.LoadFromFile(ctx, configPath, testPeerID))
+
+		assert.Equal(t, pb.NetworkState_PROTECTED, configData.NetworkState)
+		assert.Len(t, configData.Participants, 2)
+		assert.Contains(t, configData.Participants, peer1.Pretty())
+		assert.Contains(t, configData.Participants, peer2.Pretty())
+	})
 }

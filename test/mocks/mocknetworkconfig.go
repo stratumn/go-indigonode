@@ -108,6 +108,18 @@ func (_mr *MockNetworkConfigMockRecorder) RemovePeer(arg0, arg1 interface{}) *go
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemovePeer", reflect.TypeOf((*MockNetworkConfig)(nil).RemovePeer), arg0, arg1)
 }
 
+// Reset mocks base method
+func (_m *MockNetworkConfig) Reset(_param0 context.Context, _param1 *protector.NetworkConfig) error {
+	ret := _m.ctrl.Call(_m, "Reset", _param0, _param1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Reset indicates an expected call of Reset
+func (_mr *MockNetworkConfigMockRecorder) Reset(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Reset", reflect.TypeOf((*MockNetworkConfig)(nil).Reset), arg0, arg1)
+}
+
 // SetNetworkState mocks base method
 func (_m *MockNetworkConfig) SetNetworkState(_param0 context.Context, _param1 protector.NetworkState) error {
 	ret := _m.ctrl.Call(_m, "SetNetworkState", _param0, _param1)

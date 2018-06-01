@@ -116,13 +116,17 @@ func (c *LocalConfig) addDataToPeerStore() error {
 	for peerID, peerAddrs := range c.data.Participants {
 		decodedPeerID, err := peer.IDB58Decode(peerID)
 		if err != nil {
-			return pb.ErrInvalidConfig
+			return pb.ErrInvalidPeerID
+		}
+
+		if peerAddrs == nil || len(peerAddrs.Addresses) == 0 {
+			return pb.ErrMissingPeerAddrs
 		}
 
 		for _, peerAddr := range peerAddrs.Addresses {
 			decodedPeerAddr, err := multiaddr.NewMultiaddr(peerAddr)
 			if err != nil {
-				return pb.ErrInvalidConfig
+				return pb.ErrInvalidPeerAddr
 			}
 
 			c.peerStore.AddAddr(decodedPeerID, decodedPeerAddr, peerstore.PermanentAddrTTL)
@@ -230,4 +234,23 @@ func (c *LocalConfig) Encode(enc multicodec.Encoder) error {
 	defer c.dataLock.RUnlock()
 
 	return enc.Encode(c.data)
+}
+
+// Reset clears the current configuration and applies the given one.
+// It assumes that the incoming configuration signature has been validated.
+func (c *LocalConfig) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
+	event := log.EventBegin(ctx, "LocalConfig.Reset")
+	defer event.Done()
+
+	err := networkConfig.ValidateContent(ctx)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
+	c.data = networkConfig
+	return c.data.SaveToFile(ctx, c.dataPath, c.privKey)
 }

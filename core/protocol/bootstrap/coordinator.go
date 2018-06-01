@@ -58,7 +58,7 @@ func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 	var protocolErr error
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "Coordinator.Handle", logging.Metadata{
-		"remote": stream.Conn().RemotePeer(),
+		"remote": stream.Conn().RemotePeer().Pretty(),
 	})
 	defer func() {
 		if protocolErr != nil {

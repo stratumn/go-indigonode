@@ -79,9 +79,6 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 	event := log.EventBegin(ctx, "Coordinated.handshake")
 	defer event.Done()
 
-	// Connect to the coordinator to receive participants list
-	// Ingest participants list (if correctly signed by coordinator),
-	// otherwise return an error.
 	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
 	if err != nil {
 		return protector.ErrConnectionRefused
@@ -122,10 +119,7 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 		return protectorpb.ErrInvalidSignature
 	}
 
-	// TODO: networkConfig should provide a Reset(participants) method
-	// that assumes that the incoming config has been validated (sig).
-
-	return nil
+	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
 // Handle handles an incoming stream.

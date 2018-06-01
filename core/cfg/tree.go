@@ -15,6 +15,8 @@
 package cfg
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 
 	toml "github.com/pelletier/go-toml"
@@ -91,4 +93,51 @@ func (t *Tree) Set(key string, val interface{}) (err error) {
 	t.tree.Set(key, "", false, val)
 
 	return
+}
+
+// migrate applies migrations to a tree.
+//
+// It returns whether migrations were applied.
+func (t *Tree) migrate(
+	migrations []MigrateHandler,
+	versionKey string,
+) (bool, error) {
+	version, ok := t.GetDefault(versionKey, int64(0)).(int64)
+	if !ok {
+		return false, errors.WithStack(ErrInvalidVersion)
+	}
+
+	if version > int64(len(migrations)) {
+		return false, errors.WithStack(ErrOutdatedExec)
+	}
+
+	migrations = migrations[version:]
+
+	for _, m := range migrations {
+		if err := m(t); err != nil {
+			return false, errors.Wrap(err, fmt.Sprintf("migration %d", version))
+		}
+
+		version++
+
+		if err := t.Set(versionKey, version); err != nil {
+			return false, err
+		}
+	}
+
+	return len(migrations) > 0, nil
+}
+
+// treeFromStruct creates a TOML tree from a struct.
+func treeFromStruct(s interface{}) (*toml.Tree, error) {
+	b := bytes.NewBuffer(nil)
+	enc := toml.NewEncoder(b)
+	enc.QuoteMapKeys(true)
+
+	if err := enc.Encode(s); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	tree, err := toml.LoadBytes(b.Bytes())
+	return tree, errors.WithStack(err)
 }

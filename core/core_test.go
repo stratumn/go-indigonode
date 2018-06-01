@@ -142,7 +142,7 @@ func TestConfigurableSet(t *testing.T) {
 	services, close := withValidServices(context.Background(), t)
 	defer close()
 
-	// it only adds services that implement the Configurable interface.
+	// It only adds services that implement the Configurable interface.
 	setCustom := NewConfigurableSet(services)
 	assert.Len(t, setCustom, 2)
 }

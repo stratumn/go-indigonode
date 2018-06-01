@@ -71,11 +71,12 @@ var DefaultConfig = Config{
 
 // NewConfigurableSet creates a new set of configurables bound to the given
 // services.
+// If no services are given, the builtin services are used.
 func NewConfigurableSet(services []manager.Service) cfg.Set {
 	if services == nil {
 		services = BuiltinServices()
 	}
-	configurables := make([]cfg.Configurable, 0)
+	configurables := make([]cfg.Configurable, 0, len(services)+2)
 	for _, service := range services {
 		if configurable, ok := service.(cfg.Configurable); ok {
 			configurables = append(configurables, configurable)

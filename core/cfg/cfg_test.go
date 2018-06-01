@@ -138,7 +138,7 @@ func TestCfg(t *testing.T) {
 
 		t.Run("Key does not exist", func(t *testing.T) {
 			err := setSave.Set("none", "something")
-			assert.EqualError(t, err, "could not set \"none\": not a configuration setting")
+			assert.EqualError(t, err, "could not set \"none\": setting not found")
 		})
 
 		t.Run("Group of settings", func(t *testing.T) {

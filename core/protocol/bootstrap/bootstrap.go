@@ -60,7 +60,7 @@ func New(
 			return NewCoordinatorHandler(host, networkConfig)
 		}
 
-		return NewCoordinatedHandler(host, networkMode, networkConfig)
+		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

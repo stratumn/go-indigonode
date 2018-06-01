@@ -17,8 +17,13 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	pb "github.com/stratumn/alice/pb/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -41,19 +46,86 @@ type CoordinatedHandler struct {
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
 func NewCoordinatedHandler(
+	ctx context.Context,
 	host ihost.Host,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 ) (Handler, error) {
+	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
+		"coordinatorID": networkMode.CoordinatorID.Pretty(),
+	})
+	defer event.Done()
+
 	handler := CoordinatedHandler{
 		coordinatorID: networkMode.CoordinatorID,
 		host:          host,
 		networkConfig: networkConfig,
 	}
 
+	err := handler.handshake(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	host.SetStreamHandler(PrivateCoordinatedProtocolID, handler.Handle)
 
 	return &handler, nil
+}
+
+// handshake connects to the coordinator for the initial handshake.
+// The node is expected to receive the network configuration during
+// that handshake.
+func (h *CoordinatedHandler) handshake(ctx context.Context) error {
+	event := log.EventBegin(ctx, "Coordinated.handshake")
+	defer event.Done()
+
+	// Connect to the coordinator to receive participants list
+	// Ingest participants list (if correctly signed by coordinator),
+	// otherwise return an error.
+	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
+	if err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProtocolID)
+	if err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	defer func() {
+		err := stream.Close()
+		if err != nil {
+			event.Append(logging.Metadata{"close_err": err.Error()})
+		}
+	}()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	if err := enc.Encode(&pb.Hello{}); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var networkConfig protectorpb.NetworkConfig
+	if err := dec.Decode(&networkConfig); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	if len(networkConfig.Participants) == 0 {
+		event.SetError(protector.ErrConnectionRefused)
+		return protector.ErrConnectionRefused
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		event.SetError(protectorpb.ErrInvalidSignature)
+		return protectorpb.ErrInvalidSignature
+	}
+
+	// TODO: networkConfig should provide a Reset(participants) method
+	// that assumes that the incoming config has been validated (sig).
+
+	return nil
 }
 
 // Handle handles an incoming stream.

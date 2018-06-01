@@ -21,13 +21,18 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
-	"github.com/stratumn/alice/test/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
+	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-func generateCoordinatedNetworkMode(t *testing.T) *protector.NetworkMode {
-	peerID := test.GeneratePeerID(t)
+func generateCoordinatedNetworkMode(t *testing.T, peerID peer.ID) *protector.NetworkMode {
 	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
 
 	mode, err := protector.NewCoordinatedNetworkMode(
@@ -39,21 +44,73 @@ func generateCoordinatedNetworkMode(t *testing.T) *protector.NetworkMode {
 	return mode
 }
 
-func TestCoordinated_Close(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func TestCoordinated_Handshake_Error(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		configureCoordinator func(*testing.T, *gomock.Controller, *bootstraptesting.CoordinatorBuilder, peer.ID)
+		err                  error
+	}{{
+		"fails-if-coordinator-unavailable",
+		func(_ *testing.T, _ *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
+			b.Unavailable().Build()
+		},
+		protector.ErrConnectionRefused,
+	}, {
+		"fails-if-coordinated-not-allowed",
+		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
+			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_PROTECTED).
+				Build()
 
-	host := mocks.NewMockHost(ctrl)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedProtocolID, gomock.Any()).Times(1)
+			b.WithNetworkConfig(networkConfig).Build()
+		},
+		protector.ErrConnectionRefused,
+	}, {
+		"fails-if-coordinator-sends-empty-config",
+		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
+			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
+				Build()
 
-	handler, err := bootstrap.NewCoordinatedHandler(
-		host,
-		generateCoordinatedNetworkMode(t),
-		nil,
-	)
-	require.NoError(t, err)
-	require.NotNil(t, handler)
+			b.WithNetworkConfig(networkConfig).Build()
+		},
+		protector.ErrConnectionRefused,
+	}, {
+		"fails-if-coordinator-sends-invalid-signature",
+		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, peerID peer.ID) {
+			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
+				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
+				WithAllowedPeer(peerID).
+				WithInvalidSignature().
+				Build()
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedProtocolID).Times(1)
-	handler.Close(context.Background())
+			b.WithNetworkConfig(networkConfig).Build()
+		},
+		protectorpb.ErrInvalidSignature,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer h.Close()
+
+			coordinatorBuilder := bootstraptesting.NewCoordinatorBuilder(ctx, t)
+			defer coordinatorBuilder.Close(ctx)
+
+			require.NoError(t, h.Connect(ctx, coordinatorBuilder.Host().Peerstore().PeerInfo(coordinatorBuilder.PeerID())))
+
+			tt.configureCoordinator(t, ctrl, coordinatorBuilder, h.ID())
+
+			networkMode := generateCoordinatedNetworkMode(t, coordinatorBuilder.PeerID())
+			handler, err := bootstrap.NewCoordinatedHandler(ctx, h, networkMode, nil)
+			assert.EqualError(t, err, tt.err.Error())
+			assert.Nil(t, handler)
+		})
+	}
 }

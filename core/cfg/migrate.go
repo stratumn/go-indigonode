@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"reflect"
 
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
@@ -45,78 +44,6 @@ var (
 	// than the executable.
 	ErrOutdatedExec = errors.New("exec is out of date with config version")
 )
-
-// Tree is used by migrations to modify the configuration tree.
-type Tree struct {
-	tree *toml.Tree
-}
-
-// TreeFromMap creates a tree from a map.
-func TreeFromMap(m map[string]interface{}) (*Tree, error) {
-	t, err := toml.TreeFromMap(m)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return &Tree{t}, nil
-}
-
-// Get returns the value of a key.
-//
-// The key can be a path such as "core.boot_service".
-func (t *Tree) Get(key string) interface{} {
-	val := t.tree.Get(key)
-
-	switch v := val.(type) {
-	case (*toml.Tree):
-		return &Tree{v}
-	case ([]*toml.Tree):
-		trees := make([]*Tree, len(v))
-		for i, child := range v {
-			trees[i] = &Tree{child}
-		}
-		return trees
-	default:
-		return val
-	}
-}
-
-// GetDefault returns the value of a key or a default value.
-//
-// The key can be a path such as "core.boot_service".
-func (t *Tree) GetDefault(key string, def interface{}) interface{} {
-	return t.tree.GetDefault(key, def)
-}
-
-// Set sets the value of a key.
-//
-// The key can be a path such as "core.boot_service".
-func (t *Tree) Set(key string, val interface{}) (err error) {
-	switch v := val.(type) {
-	case *Tree:
-		t.tree.Set(key, "", false, v.tree)
-		return
-	case []*Tree:
-		trees := make([]*toml.Tree, len(v))
-		for i, child := range v {
-			trees[i] = child.tree
-		}
-		t.tree.Set(key, "", false, trees)
-		return
-	}
-
-	// Struct must be converted to a tree before calling tree.Set().
-	if reflect.ValueOf(val).Kind() == reflect.Struct {
-		val, err = treeFromStruct(val)
-		if err != nil {
-			return
-		}
-	}
-
-	t.tree.Set(key, "", false, val)
-
-	return
-}
 
 // MigrateHandler mutates a TOML tree to update it from one version to the
 // next.
@@ -179,14 +106,14 @@ func Migrate(
 		}
 	}
 
-	if err := setValuesFromTree(ctx, set, tree); err != nil {
+	if err := set.fromTree(ctx, tree); err != nil {
 		event.SetError(err)
 		return err
 	}
 
 	// Save config file if there were migrations.
 	if len(migrations) > 0 {
-		return Save(set, filename, perms, true)
+		return set.Save(filename, perms, true)
 	}
 
 	return nil

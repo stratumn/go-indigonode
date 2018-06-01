@@ -33,28 +33,13 @@ var DefaultConfig = Config{
 	EnableDebugOutput: false,
 }
 
-// ConfigurableSet represents a set of configurables.
-//
-// This avoids packages depending on the core package to have to depend on the
-// cfg package.
-type ConfigurableSet = cfg.Set
-
 // NewConfigurableSet creates a new set of configurables.
-func NewConfigurableSet() ConfigurableSet {
-	return ConfigurableSet{
-		"cli": &ConfigHandler{},
-	}
-}
-
-// InitConfig creates a configuration file.
-//
-// It fails if the file already exists.
-func InitConfig(set ConfigurableSet, filename string) error {
-	return cfg.Save(set, filename, 0600, false)
+func NewConfigurableSet() cfg.Set {
+	return cfg.NewSet([]cfg.Configurable{&ConfigHandler{}})
 }
 
 // LoadConfig loads the configuration file and applies migrations.
-func LoadConfig(set ConfigurableSet, filename string) error {
+func LoadConfig(set cfg.Set, filename string) error {
 	return cfg.Migrate(set, filename, ConfigVersionKey, migrations, 0600)
 }
 

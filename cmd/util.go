@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
+	"github.com/stratumn/alice/core/cfg"
 )
 
 // fail prints an error and exits if the error is not nil.
@@ -43,7 +44,7 @@ func cliCfgFilename() string {
 }
 
 // requireCoreConfigSet loads the core's configuration file and exits on failure.
-func requireCoreConfigSet() core.ConfigurableSet {
+func requireCoreConfigSet() cfg.Set {
 	set := core.NewConfigurableSet(services)
 
 	if err := core.LoadConfig(set, coreCfgFilename()); err != nil {
@@ -60,7 +61,7 @@ func requireCoreConfigSet() core.ConfigurableSet {
 }
 
 // requireCLIConfig loads the CLI's configuration file and exits on failure.
-func requireCLIConfigSet() cli.ConfigurableSet {
+func requireCLIConfigSet() cfg.Set {
 	set := cli.NewConfigurableSet()
 
 	if err := cli.LoadConfig(set, cliCfgFilename()); err != nil {

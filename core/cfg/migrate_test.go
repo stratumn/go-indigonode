@@ -87,7 +87,7 @@ func TestMigrate(t *testing.T) {
 			return nil
 		},
 		func(tree *Tree) error {
-			return tree.Set("zip.version", "2.0.0")
+			return tree.Set("zip.version", int64(2))
 		},
 		func(tree *Tree) error {
 			return tree.Set("tar", testConfig{Name: "tar"})
@@ -108,7 +108,7 @@ func TestMigrate(t *testing.T) {
 	require.NoError(err, "Migrate()")
 
 	assert.Equal(3, version.config.Version, "version.config.Version")
-	assert.Equal("2.0.0", zip.version, "zip.version")
+	assert.Equal(2, zip.version, "zip.version")
 	assert.Equal("tar", tar.name, "tar.name")
 }
 

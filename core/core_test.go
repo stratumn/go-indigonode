@@ -133,6 +133,20 @@ func validateRegexp(pattern string) validator {
 	}
 }
 
+func TestConfigurableSet(t *testing.T) {
+	// NewConfigurableSet creates a configuration set for
+	// builtins services and adds the core and logging configurables.
+	setDefault := NewConfigurableSet(nil)
+	assert.Len(t, setDefault, len(BuiltinServices())+2)
+
+	services, close := withValidServices(context.Background(), t)
+	defer close()
+
+	// It only adds services that implement the Configurable interface.
+	setCustom := NewConfigurableSet(services)
+	assert.Len(t, setCustom, 2)
+}
+
 func TestCore(t *testing.T) {
 	for _, tt := range coreTests {
 		t.Run(tt.name, func(t *testing.T) {

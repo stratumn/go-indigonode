@@ -39,8 +39,17 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
-// log is the logger for the configuration package.
-var log = logging.Logger("cfg")
+var (
+	// log is the logger for the configuration package.
+	log = logging.Logger("cfg")
+
+	// ErrUnexistingKey is the error returned when trying to get/set an unknown key.
+	ErrUnexistingKey = errors.New("setting not found")
+
+	// ErrEditGroupConfig is the error returned when trying to set
+	// group of configuration attributes.
+	ErrEditGroupConfig = errors.New("cannot edit a group of attribute")
+)
 
 // Configurable represents something that can be configured.
 type Configurable interface {
@@ -59,10 +68,10 @@ type Configurable interface {
 type Set map[string]Configurable
 
 // NewSet returns a new set of configurables.
-func NewSet(services []Configurable) Set {
+func NewSet(configurables []Configurable) Set {
 	set := Set{}
-	for _, serv := range services {
-		set[serv.ID()] = serv
+	for _, cfg := range configurables {
+		set[cfg.ID()] = cfg
 	}
 
 	return set
@@ -131,7 +140,7 @@ func (s Set) Get(key string) (interface{}, error) {
 	}
 	value := tree.GetDefault(key, nil)
 	if value == nil {
-		return nil, errors.Errorf("could not get \"%s\": setting not found", key)
+		return nil, errors.Wrapf(ErrUnexistingKey, "could not get %q", key)
 	}
 	return value, nil
 }
@@ -147,7 +156,7 @@ func (s Set) Set(key string, value string) error {
 
 	currentVal := tree.Get(key)
 	if currentVal == nil {
-		return errors.Errorf("could not set \"%s\": not a configuration setting", key)
+		return errors.Wrapf(ErrUnexistingKey, "could not get %q", key)
 	}
 
 	switch t := currentVal.(type) {
@@ -158,13 +167,13 @@ func (s Set) Set(key string, value string) error {
 	case string:
 		currentVal = value
 	case *Tree:
-		return errors.Errorf("could not set \"%s\": cannot edit a group of attribute", key)
+		return errors.Wrapf(ErrEditGroupConfig, "could not set %q: ", key)
 	default:
-		return errors.Errorf("could not set \"%s\": unsupported type: %T", key, t)
+		return errors.Errorf("could not set %q: unsupported type: %T", key, t)
 	}
 
 	if err != nil {
-		return errors.Errorf("could not set \"%s\": wrong type for value \"%s\"", key, value)
+		return errors.Errorf("could not set %q: wrong type for value %q", key, value)
 	}
 
 	if err := tree.Set(key, currentVal); err != nil {

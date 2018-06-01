@@ -62,7 +62,6 @@ type Set map[string]Configurable
 func NewSet(services []Configurable) Set {
 	set := Set{}
 	for _, serv := range services {
-		// Register configurable.
 		set[serv.ID()] = serv
 	}
 
@@ -132,7 +131,7 @@ func (s Set) Get(key string) (interface{}, error) {
 	}
 	value := tree.GetDefault(key, nil)
 	if value == nil {
-		return nil, errors.Errorf("could not get %s: setting not found", key)
+		return nil, errors.Errorf("could not get \"%s\": setting not found", key)
 	}
 	return value, nil
 }
@@ -148,7 +147,7 @@ func (s Set) Set(key string, value string) error {
 
 	currentVal := tree.Get(key)
 	if currentVal == nil {
-		return errors.Errorf("could not set %s: not a configuration setting", key)
+		return errors.Errorf("could not set \"%s\": not a configuration setting", key)
 	}
 
 	switch t := currentVal.(type) {
@@ -158,12 +157,14 @@ func (s Set) Set(key string, value string) error {
 		currentVal, err = strconv.ParseBool(value)
 	case string:
 		currentVal = value
+	case *Tree:
+		return errors.Errorf("could not set \"%s\": cannot edit a group of attribute", key)
 	default:
-		return errors.Errorf("could not set %s: unsupported type : %T", key, t)
+		return errors.Errorf("could not set \"%s\": unsupported type : %T", key, t)
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "could not set %s: wrong type for value %s", key, value)
+		return errors.Errorf("could not set \"%s\": wrong type for value \"%s\"", key, value)
 	}
 
 	if err := tree.Set(key, currentVal); err != nil {

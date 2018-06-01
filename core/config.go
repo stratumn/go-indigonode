@@ -69,12 +69,6 @@ var DefaultConfig = Config{
 	BootScreenMetrics: "metrics",
 }
 
-// ConfigurableSet represents a set of configurables.
-//
-// This avoids packages depending on the core package to have to depend on the
-// cfg package.
-// type ConfigurableSet = cfg.Set
-
 // NewConfigurableSet creates a new set of configurables bound to the given
 // services.
 func NewConfigurableSet(services []manager.Service) cfg.Set {

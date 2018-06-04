@@ -56,14 +56,20 @@ var initCmd = &cobra.Command{
 		} else if initPrivateWithCoordinator {
 			configurePrivateWithCoordinatorMode(configSet)
 		}
-		if err := configSet.Save(coreCfgFilename(), 0600, false, false); err != nil {
+		if err := configSet.Save(coreCfgFilename(), 0600, &cfg.ConfigSaveOpts{
+			Overwrite: false,
+			Backup:    false,
+		}); err != nil {
 			osExit(1, fmt.Sprintf("Could not save the core configuration file: %s.", err))
 		}
 
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
 		fmt.Println("Keep this file private!!!")
 
-		if err := cli.NewConfigurableSet().Save(cliCfgFilename(), 0600, false, false); err != nil {
+		if err := cli.NewConfigurableSet().Save(cliCfgFilename(), 0600, &cfg.ConfigSaveOpts{
+			Overwrite: false,
+			Backup:    false,
+		}); err != nil {
 			osExit(1, fmt.Sprintf("Could not save the command line interface configuration file: %s.", err))
 		}
 

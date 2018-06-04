@@ -82,7 +82,7 @@ func TestCfg(t *testing.T) {
 		tarHandlerName: &tarSave,
 	}, setSave)
 
-	err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+	err = setSave.Save(filename, 0644, ConfigSaveOpts{
 		Overwrite: false,
 		Backup:    true,
 	})
@@ -104,7 +104,7 @@ func TestCfg(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should create a backup.
-		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+		err = setSave.Save(filename, 0644, ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,
 		})
@@ -113,7 +113,7 @@ func TestCfg(t *testing.T) {
 		assert.Equal(t, len(files)+1, len(filesPlusBackup))
 
 		// Should not create a backup.
-		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+		err = setSave.Save(filename, 0644, ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    false,
 		})
@@ -122,7 +122,7 @@ func TestCfg(t *testing.T) {
 		assert.Equal(t, len(filesPlusBackup), len(filesNoBackup))
 
 		// Should return an error because file already exists.
-		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+		err = setSave.Save(filename, 0644, ConfigSaveOpts{
 			Overwrite: false,
 			Backup:    false,
 		})

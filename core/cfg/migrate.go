@@ -113,7 +113,7 @@ func Migrate(
 
 	// Save config file if there were migrations.
 	if len(migrations) > 0 {
-		return set.Save(filename, perms, &ConfigSaveOpts{
+		return set.Save(filename, perms, ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,
 		})

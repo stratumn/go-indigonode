@@ -105,7 +105,7 @@ func (s Set) Load(filename string) error {
 }
 
 // Save saves the configurations of a set of configurables to a TOML file.
-func (s Set) Save(filename string, perms os.FileMode, opts *ConfigSaveOpts) error {
+func (s Set) Save(filename string, perms os.FileMode, opts ConfigSaveOpts) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,
@@ -222,7 +222,7 @@ type ConfigSaveOpts struct {
 
 // Save saves a set of configurations to a file. It will return an error if the
 // file already exists unless overwrite is true.
-func (cs ConfigSet) Save(filename string, perms os.FileMode, opts *ConfigSaveOpts) error {
+func (cs ConfigSet) Save(filename string, perms os.FileMode, opts ConfigSaveOpts) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,

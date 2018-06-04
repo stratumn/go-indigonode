@@ -56,7 +56,7 @@ var initCmd = &cobra.Command{
 		} else if initPrivateWithCoordinator {
 			configurePrivateWithCoordinatorMode(configSet)
 		}
-		if err := configSet.Save(coreCfgFilename(), 0600, &cfg.ConfigSaveOpts{
+		if err := configSet.Save(coreCfgFilename(), 0600, cfg.ConfigSaveOpts{
 			Overwrite: false,
 			Backup:    false,
 		}); err != nil {
@@ -66,7 +66,7 @@ var initCmd = &cobra.Command{
 		fmt.Printf("Created configuration file %q.\n", coreCfgFilename())
 		fmt.Println("Keep this file private!!!")
 
-		if err := cli.NewConfigurableSet().Save(cliCfgFilename(), 0600, &cfg.ConfigSaveOpts{
+		if err := cli.NewConfigurableSet().Save(cliCfgFilename(), 0600, cfg.ConfigSaveOpts{
 			Overwrite: false,
 			Backup:    false,
 		}); err != nil {

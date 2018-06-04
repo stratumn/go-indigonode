@@ -113,7 +113,7 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 	}
 
 	confFile := filepath.Join(dir, "alice.core.toml")
-	if err := config.Save(confFile, 0600, false); err != nil {
+	if err := config.Save(confFile, 0600, false, false); err != nil {
 		return nil, err
 	}
 
@@ -302,7 +302,7 @@ func NewTestNodeSet(dir string, n int, config cfg.ConfigSet) (TestNodeSet, error
 
 	for _, node := range nodes {
 		confFile := filepath.Join(node.dir, "alice.core.toml")
-		if err := node.conf.Save(confFile, 0600, true); err != nil {
+		if err := node.conf.Save(confFile, 0600, true, true); err != nil {
 			return nil, err
 		}
 	}
@@ -338,7 +338,7 @@ func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (Test
 
 	for _, node := range nodes {
 		confFile := filepath.Join(node.dir, "alice.core.toml")
-		if err := node.conf.Save(confFile, 0600, true); err != nil {
+		if err := node.conf.Save(confFile, 0600, true, true); err != nil {
 			return nil, err
 		}
 	}

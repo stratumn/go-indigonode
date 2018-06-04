@@ -51,7 +51,7 @@ var (
 	ErrEditGroupConfig = errors.New("cannot edit a group of attribute")
 )
 
-//sliceSeparator is the separator used for delimiting the elements of a slice.
+// sliceSeparator is the separator used for delimiting the elements of a slice.
 const sliceSeparator = ","
 
 // Configurable represents something that can be configured.
@@ -350,7 +350,7 @@ func backup(ctx context.Context, filename string) error {
 }
 
 // getArgValue converts value to its right type based on the current value's type.
-// the value can be a coma-separated list of items if the value is a slice.
+// The value can be a coma-separated list of items if the value is a slice.
 func getArgValue(current interface{}, value string) (interface{}, error) {
 
 	// We may not know the slice underlying value's type, in which case
@@ -390,7 +390,7 @@ func getArgValue(current interface{}, value string) (interface{}, error) {
 	case []interface{}:
 		return caseSlice(t)
 	case *Tree:
-		return nil, ErrEditGroupConfig
+		return nil, errors.WithStack(ErrEditGroupConfig)
 	default:
 		return nil, errors.Errorf("unsupported type: %T", t)
 	}

@@ -29,6 +29,7 @@ type testConfig struct {
 	Name        string   `toml:"name"`
 	Version     int      `toml:"version"`
 	Started     bool     `toml:"started"`
+	Author      string   `toml:"author"`
 	StringStuff []string `toml:"string_stuff"`
 	IntStuff    []int    `toml:"int_stuff"`
 }
@@ -38,6 +39,7 @@ type testHandler struct {
 	name        string
 	version     int
 	started     bool
+	author      string
 	stringStuff []string
 	intStuff    []int
 }
@@ -51,7 +53,7 @@ func (h *testHandler) Config() interface{} {
 		return *h.config
 	}
 
-	return testConfig{h.name, h.version, h.started, h.stringStuff, h.intStuff}
+	return testConfig{h.name, h.version, h.started, h.author, h.stringStuff, h.intStuff}
 }
 
 func (h *testHandler) SetConfig(config interface{}) error {
@@ -62,6 +64,7 @@ func (h *testHandler) SetConfig(config interface{}) error {
 	h.started = c.Started
 	h.stringStuff = c.StringStuff
 	h.intStuff = c.IntStuff
+	h.author = c.Author
 	return nil
 }
 

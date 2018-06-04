@@ -136,5 +136,5 @@ func Migrate(
 		return nil
 	}
 
-	return set.Save(filename, perms, true)
+	return set.Save(filename, perms, true, true)
 }

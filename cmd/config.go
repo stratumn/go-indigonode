@@ -22,6 +22,8 @@ import (
 	"github.com/stratumn/alice/core/cfg"
 )
 
+var backup bool
+
 const (
 	keySeparator = "."
 )
@@ -50,7 +52,7 @@ var setConfig = &cobra.Command{
 		if err := config.Set(key, value); err != nil {
 			fail(err)
 		}
-		if err := config.Save(filename, 0600, true); err != nil {
+		if err := config.Save(filename, 0600, true, backup); err != nil {
 			fail(err)
 		}
 	},
@@ -81,6 +83,7 @@ var getConfig = &cobra.Command{
 
 func init() {
 	configCmd := &cobra.Command{Use: "config", Short: "Manage alice configurations"}
+	setConfig.Flags().BoolVar(&backup, "backup", true, "save configuration backup when editing")
 	configCmd.AddCommand(setConfig)
 	configCmd.AddCommand(getConfig)
 	RootCmd.AddCommand(configCmd)

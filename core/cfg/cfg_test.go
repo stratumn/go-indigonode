@@ -85,7 +85,7 @@ func TestCfg(t *testing.T) {
 		tarHandlerName: &tarSave,
 	}, setSave)
 
-	err = setSave.Save(filename, 0644, false)
+	err = setSave.Save(filename, 0644, false, true)
 	require.NoError(t, err, "Save(filename)")
 
 	zipLoad := testHandler{name: zipHandlerName, version: 1}
@@ -98,6 +98,27 @@ func TestCfg(t *testing.T) {
 	assert.Equal(t, zipSave.version, zipLoad.version, "zipLoad")
 	assert.Equal(t, zipSave.intStuff, zipLoad.intStuff, "zipLoad")
 	assert.Equal(t, tarSave.version, tarLoad.version, "tarLoad")
+
+	t.Run("Save", func(t *testing.T) {
+		files, err := ioutil.ReadDir(dir)
+		require.NoError(t, err)
+
+		// Should create a backup.
+		err = setSave.Save(filename, 0644, true, true)
+		require.NoError(t, err, "Save(filename)")
+		filesPlusBackup, _ := ioutil.ReadDir(dir)
+		assert.Equal(t, len(files)+1, len(filesPlusBackup))
+
+		// Should not create a backup.
+		err = setSave.Save(filename, 0644, true, false)
+		require.NoError(t, err, "Save(filename)")
+		filesNoBackup, _ := ioutil.ReadDir(dir)
+		assert.Equal(t, len(filesPlusBackup), len(filesNoBackup))
+
+		// Should return an error because file already exists.
+		err = setSave.Save(filename, 0644, false, false)
+		require.Error(t, err, "Save(filename)")
+	})
 
 	t.Run("Tree", func(t *testing.T) {
 		tree, err := setSave.Tree()

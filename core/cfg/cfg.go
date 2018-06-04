@@ -105,7 +105,7 @@ func (s Set) Load(filename string) error {
 }
 
 // Save saves the configurations of a set of configurables to a TOML file.
-func (s Set) Save(filename string, perms os.FileMode, overwrite bool) error {
+func (s Set) Save(filename string, perms os.FileMode, overwrite, backup bool) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,
@@ -114,7 +114,7 @@ func (s Set) Save(filename string, perms os.FileMode, overwrite bool) error {
 	event := log.EventBegin(ctx, "Save")
 	defer event.Done()
 
-	err := s.Configs().Save(filename, perms, overwrite)
+	err := s.Configs().Save(filename, perms, overwrite, backup)
 	if err != nil {
 		event.SetError(err)
 	}
@@ -215,7 +215,7 @@ type ConfigSet map[string]interface{}
 
 // Save saves a set of configurations to a file. It will return an error if the
 // file already exists unless overwrite is true.
-func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) error {
+func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite, saveBackup bool) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,
@@ -225,7 +225,7 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite bool) err
 	defer event.Done()
 
 	// Backup file.
-	if overwrite {
+	if overwrite && saveBackup {
 		if _, err := os.Stat(filename); !os.IsNotExist(err) {
 			if err := backup(ctx, filename); err != nil {
 				event.SetError(err)

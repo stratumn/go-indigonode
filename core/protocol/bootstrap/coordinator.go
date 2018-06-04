@@ -104,7 +104,8 @@ func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 		return
 	}
 
-	protocolErr = h.networkConfig.Encode(enc)
+	networkConfig := h.networkConfig.Copy(ctx)
+	protocolErr = enc.Encode(&networkConfig)
 }
 
 // Close removes the protocol handlers.

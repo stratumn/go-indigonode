@@ -16,12 +16,17 @@ package protector
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
+	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/protector"
 
-	"gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 const (
@@ -59,10 +64,95 @@ type NetworkConfig interface {
 	NetworkStateReader
 	NetworkStateWriter
 
-	// Encode encodes the configuration with the given encoder.
-	Encode(multicodec.Encoder) error
+	// Sign signs the underlying configuration.
+	Sign(context.Context, crypto.PrivKey) error
+
+	// Copy returns a copy of the underlying configuration.
+	Copy(context.Context) pb.NetworkConfig
 
 	// Reset clears the current configuration and applies the given one.
 	// It assumes that the incoming configuration signature has been validated.
 	Reset(context.Context, *pb.NetworkConfig) error
+}
+
+// LoadOrInitNetworkConfig loads a NetworkConfig from the given file
+// or creates it if missing.
+func LoadOrInitNetworkConfig(
+	ctx context.Context,
+	configPath string,
+	privKey crypto.PrivKey,
+	protect Protector,
+	peerStore peerstore.Peerstore,
+) (NetworkConfig, error) {
+	event := log.EventBegin(ctx, "LoadOrInitNetworkConfig", logging.Metadata{"path": configPath})
+	defer event.Done()
+
+	conf, err := NewInMemoryConfig(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
+	if err != nil {
+		event.SetError(err)
+		return nil, err
+	}
+
+	// Create the directory if it doesn't exist.
+	configDir, _ := filepath.Split(configPath)
+	if err := os.MkdirAll(configDir, 0744); err != nil {
+		event.SetError(err)
+		return nil, errors.WithStack(err)
+	}
+
+	_, err = os.Stat(configPath)
+	if err != nil && !os.IsNotExist(err) {
+		event.SetError(err)
+		return nil, pb.ErrInvalidConfig
+	}
+
+	wrappedConf := WrapWithSaver(
+		WrapWithProtectUpdater(
+			WrapWithSignature(conf, privKey),
+			protect,
+			peerStore,
+		),
+		configPath,
+	)
+
+	// Load previous configuration.
+	if err == nil {
+		peerID, err := peer.IDFromPrivateKey(privKey)
+		if err != nil {
+			event.SetError(err)
+			return nil, errors.WithStack(err)
+		}
+
+		previousConf := &pb.NetworkConfig{}
+		err = previousConf.LoadFromFile(ctx, configPath, peerID)
+		if err != nil {
+			event.SetError(err)
+			return nil, err
+		}
+
+		err = wrappedConf.SetNetworkState(ctx, previousConf.NetworkState)
+		if err != nil {
+			event.SetError(err)
+			return nil, err
+		}
+
+		// previousConf.LoadFromFile has already validated that the
+		// configuration data is ok, so we're ignoring parsing errors.
+		for peerID, peerAddrs := range previousConf.Participants {
+			decodedPeerID, _ := peer.IDB58Decode(peerID)
+			var peerMultiAddrs []multiaddr.Multiaddr
+			for _, peerAddr := range peerAddrs.Addresses {
+				decodedPeerAddr, _ := multiaddr.NewMultiaddr(peerAddr)
+				peerMultiAddrs = append(peerMultiAddrs, decodedPeerAddr)
+			}
+
+			err = wrappedConf.AddPeer(ctx, decodedPeerID, peerMultiAddrs)
+			if err != nil {
+				event.SetError(err)
+				return nil, err
+			}
+		}
+	}
+
+	return wrappedConf, nil
 }

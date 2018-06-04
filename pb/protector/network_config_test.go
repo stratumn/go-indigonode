@@ -20,6 +20,7 @@ import (
 	"path"
 	"testing"
 
+	json "github.com/gibson042/canonicaljson-go"
 	pb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
@@ -29,9 +30,14 @@ import (
 )
 
 func generatePeerAddrs(t *testing.T, peerID peer.ID) *pb.PeerAddrs {
-	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
+	if peerID == "" {
+		return &pb.PeerAddrs{
+			Addresses: []string{test.GenerateMultiaddr(t).String()},
+		}
+	}
+
 	return &pb.PeerAddrs{
-		Addresses: []string{peerAddr.String()},
+		Addresses: []string{test.GeneratePeerMultiaddr(t, peerID).String()},
 	}
 }
 
@@ -112,101 +118,176 @@ func TestNetworkConfig_Signature(t *testing.T) {
 	}
 }
 
-func TestNetworkConfig_Save(t *testing.T) {
-	sk1 := test.GeneratePrivateKey(t)
-	peer1 := test.GetPeerIDFromKey(t, sk1)
-
-	sk2 := test.GeneratePrivateKey(t)
-	peer2 := test.GetPeerIDFromKey(t, sk2)
+func TestNetworkConfig_ValidateContent(t *testing.T) {
+	peerID := test.GeneratePeerID(t)
 
 	testCases := []struct {
-		name                 string
-		saveInitialConfig    func(*testing.T) string
-		expectedSignerID     peer.ID
-		expectedErr          error
-		validateLoadedConfig func(*testing.T, *pb.NetworkConfig)
+		name          string
+		networkConfig *pb.NetworkConfig
+		err           error
 	}{{
-		"rejects-missing-file",
-		func(*testing.T) string { return "not/a/valid/path/config.json" },
-		peer1,
-		pb.ErrInvalidConfig,
-		func(*testing.T, *pb.NetworkConfig) {},
-	}, {
-		"rejects-invalid-file",
-		func(t *testing.T) string {
-			dir, _ := ioutil.TempDir("", "alice")
-			path := path.Join(dir, "config.json")
-			require.NoError(t, ioutil.WriteFile(path, []byte("not a valid format"), 0644), "ioutil.WriteFile()")
-			return path
-		},
-		peer1,
-		pb.ErrInvalidConfig,
-		func(*testing.T, *pb.NetworkConfig) {},
-	}, {
-		"rejects-invalid-network-state",
-		func(t *testing.T) string {
-			dir, _ := ioutil.TempDir("", "alice")
-			path := path.Join(dir, "config.json")
-
-			networkConfig := pb.NewNetworkConfig(42)
-			err := networkConfig.SaveToFile(context.Background(), path, sk1)
-			require.NoError(t, err, "networkConfig.SaveToFile()")
-
-			return path
-		},
-		peer1,
+		"invalid-network-state",
+		&pb.NetworkConfig{NetworkState: 42},
 		pb.ErrInvalidNetworkState,
-		func(*testing.T, *pb.NetworkConfig) {},
 	}, {
-		"rejects-signer-mismatch",
-		func(t *testing.T) string {
-			dir, _ := ioutil.TempDir("", "alice")
-			path := path.Join(dir, "config.json")
-
-			networkConfig := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
-			err := networkConfig.SaveToFile(context.Background(), path, sk1)
-			require.NoError(t, err, "networkConfig.SaveToFile()")
-
-			return path
+		"invalid-peer-id",
+		&pb.NetworkConfig{
+			Participants: map[string]*pb.PeerAddrs{
+				"b4tm4n": generatePeerAddrs(t, ""),
+			},
 		},
-		peer2,
-		pb.ErrInvalidSignature,
-		func(*testing.T, *pb.NetworkConfig) {},
+		pb.ErrInvalidPeerID,
 	}, {
-		"saves-and-loads",
-		func(t *testing.T) string {
-			dir, _ := ioutil.TempDir("", "alice")
-			path := path.Join(dir, "config.json")
-
-			networkConfig := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
-			networkConfig.Participants[peer1.Pretty()] = generatePeerAddrs(t, peer1)
-			err := networkConfig.SaveToFile(context.Background(), path, sk1)
-			require.NoError(t, err, "networkConfig.SaveToFile()")
-
-			return path
+		"missing-peer-address",
+		&pb.NetworkConfig{
+			Participants: map[string]*pb.PeerAddrs{
+				peerID.Pretty(): nil,
+			},
 		},
-		peer1,
+		pb.ErrMissingPeerAddrs,
+	}, {
+		"invalid-peer-address",
+		&pb.NetworkConfig{
+			Participants: map[string]*pb.PeerAddrs{
+				peerID.Pretty(): &pb.PeerAddrs{
+					Addresses: []string{"not/a/multi/addr"},
+				},
+			},
+		},
+		pb.ErrInvalidPeerAddr,
+	}, {
+		"valid-config",
+		pb.NewNetworkConfig(pb.NetworkState_PROTECTED),
 		nil,
-		func(t *testing.T, networkConfig *pb.NetworkConfig) {
-			assert.Equal(t, pb.NetworkState_BOOTSTRAP, networkConfig.NetworkState)
-			assert.Len(t, networkConfig.Participants, 1)
-			assert.Contains(t, networkConfig.Participants, peer1.Pretty())
-			assert.Len(t, networkConfig.Participants[peer1.Pretty()].Addresses, 1)
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.networkConfig.ValidateContent(context.Background())
+			if tt.err == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.err.Error())
+			}
+		})
+	}
+}
+
+func TestNetworkConfig_Load(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "alice")
+
+	signerKey := test.GeneratePrivateKey(t)
+	signerID := test.GetPeerIDFromKey(t, signerKey)
+
+	testCases := []struct {
+		name       string
+		createFile func(*testing.T) string
+		validate   func(*testing.T, *pb.NetworkConfig)
+		err        error
+	}{{
+		"file-missing",
+		func(t *testing.T) string {
+			return "does-not-exist.json"
 		},
+		nil,
+		pb.ErrInvalidConfig,
+	}, {
+		"invalid-file-format",
+		func(t *testing.T) string {
+			err := ioutil.WriteFile(path.Join(dir, "invalid.json"), []byte("not hotdog"), 0644)
+			require.NoError(t, err, "ioutil.WriteFile()")
+			return "invalid.json"
+		},
+		nil,
+		pb.ErrInvalidConfig,
+	}, {
+		"invalid-peer-id",
+		func(t *testing.T) string {
+			networkConfig := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+			networkConfig.Participants["b4tm4n"] = generatePeerAddrs(t, signerID)
+
+			configBytes, err := json.Marshal(networkConfig)
+			require.NoError(t, err, "json.Marshal()")
+
+			err = ioutil.WriteFile(path.Join(dir, "invalid-peer-id.json"), configBytes, 0644)
+			require.NoError(t, err, "ioutil.WriteFile()")
+
+			return "invalid-peer-id.json"
+		},
+		nil,
+		pb.ErrInvalidPeerID,
+	}, {
+		"invalid-network-state",
+		func(t *testing.T) string {
+			networkConfig := &pb.NetworkConfig{NetworkState: 42}
+
+			configBytes, err := json.Marshal(networkConfig)
+			require.NoError(t, err, "json.Marshal()")
+
+			err = ioutil.WriteFile(path.Join(dir, "invalid-network-state.json"), configBytes, 0644)
+			require.NoError(t, err, "ioutil.WriteFile()")
+
+			return "invalid-network-state.json"
+		},
+		nil,
+		pb.ErrInvalidNetworkState,
+	}, {
+		"invalid-config-signature",
+		func(t *testing.T) string {
+			networkConfig := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+
+			unknownKey := test.GeneratePrivateKey(t)
+			err := networkConfig.Sign(context.Background(), unknownKey)
+			require.NoError(t, err, "networkConfig.Sign()")
+
+			configBytes, err := json.Marshal(networkConfig)
+			require.NoError(t, err, "json.Marshal()")
+
+			err = ioutil.WriteFile(path.Join(dir, "invalid-signature.json"), configBytes, 0644)
+			require.NoError(t, err, "ioutil.WriteFile()")
+
+			return "invalid-signature.json"
+		},
+		nil,
+		pb.ErrInvalidSignature,
+	}, {
+		"valid-config",
+		func(t *testing.T) string {
+			networkConfig := pb.NewNetworkConfig(pb.NetworkState_PROTECTED)
+			networkConfig.Participants[signerID.Pretty()] = generatePeerAddrs(t, signerID)
+
+			err := networkConfig.Sign(context.Background(), signerKey)
+			require.NoError(t, err, "networkConfig.Sign()")
+
+			configBytes, err := json.Marshal(networkConfig)
+			require.NoError(t, err, "json.Marshal()")
+
+			err = ioutil.WriteFile(path.Join(dir, "config.json"), configBytes, 0644)
+			require.NoError(t, err, "ioutil.WriteFile()")
+
+			return "config.json"
+		},
+		func(t *testing.T, networkConfig *pb.NetworkConfig) {
+			assert.Equal(t, pb.NetworkState_PROTECTED, networkConfig.NetworkState)
+			assert.Len(t, networkConfig.Participants, 1)
+			assert.Contains(t, networkConfig.Participants, signerID.Pretty())
+		},
+		nil,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			path := tt.saveInitialConfig(t)
 
-			networkConfig := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
-			err := networkConfig.LoadFromFile(ctx, path, tt.expectedSignerID)
-			if tt.expectedErr != nil {
-				assert.EqualError(t, err, tt.expectedErr.Error())
+			configPath := path.Join(dir, tt.createFile(t))
+			networkConfig := &pb.NetworkConfig{}
+			err := networkConfig.LoadFromFile(ctx, configPath, signerID)
+
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				require.NoError(t, err)
-				tt.validateLoadedConfig(t, networkConfig)
+				tt.validate(t, networkConfig)
 			}
 		})
 	}

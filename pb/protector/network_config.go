@@ -40,7 +40,7 @@ var (
 	ErrInvalidPeerAddr     = errors.New("invalid peer address")
 )
 
-// NewNetworkConfig creates a signed NetworkConfig.
+// NewNetworkConfig creates a NetworkConfig.
 func NewNetworkConfig(networkState NetworkState) *NetworkConfig {
 	networkConfig := &NetworkConfig{
 		NetworkState: networkState,
@@ -67,35 +67,6 @@ func (c *NetworkConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error 
 	if err != nil {
 		event.SetError(err)
 		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
-// ValidateContent valides that the contents of the configuration
-// is correctly typed (peerIDs, addresses, etc).
-func (c *NetworkConfig) ValidateContent(ctx context.Context) error {
-	_, ok := NetworkState_name[int32(c.NetworkState)]
-	if !ok {
-		return ErrInvalidNetworkState
-	}
-
-	for peerID, peerAddrs := range c.Participants {
-		_, err := peer.IDB58Decode(peerID)
-		if err != nil {
-			return ErrInvalidPeerID
-		}
-
-		if peerAddrs == nil || len(peerAddrs.Addresses) == 0 {
-			return ErrMissingPeerAddrs
-		}
-
-		for _, peerAddr := range peerAddrs.Addresses {
-			_, err := multiaddr.NewMultiaddr(peerAddr)
-			if err != nil {
-				return ErrInvalidPeerAddr
-			}
-		}
 	}
 
 	return nil
@@ -133,6 +104,35 @@ func (c *NetworkConfig) ValidateSignature(ctx context.Context, peerID peer.ID) b
 	return c.Signature.Verify(payload)
 }
 
+// ValidateContent validates that the contents of the configuration
+// is correctly typed (peerIDs, addresses, etc).
+func (c *NetworkConfig) ValidateContent(ctx context.Context) error {
+	_, ok := NetworkState_name[int32(c.NetworkState)]
+	if !ok {
+		return ErrInvalidNetworkState
+	}
+
+	for peerID, peerAddrs := range c.Participants {
+		_, err := peer.IDB58Decode(peerID)
+		if err != nil {
+			return ErrInvalidPeerID
+		}
+
+		if peerAddrs == nil || len(peerAddrs.Addresses) == 0 {
+			return ErrMissingPeerAddrs
+		}
+
+		for _, peerAddr := range peerAddrs.Addresses {
+			_, err := multiaddr.NewMultiaddr(peerAddr)
+			if err != nil {
+				return ErrInvalidPeerAddr
+			}
+		}
+	}
+
+	return nil
+}
+
 // LoadFromFile loads the given configuration and validates it.
 func (c *NetworkConfig) LoadFromFile(ctx context.Context, path string, signerID peer.ID) (err error) {
 	event := log.EventBegin(ctx, "NetworkConfig.Load", logging.Metadata{"path": path})
@@ -155,6 +155,11 @@ func (c *NetworkConfig) LoadFromFile(ctx context.Context, path string, signerID 
 		return ErrInvalidConfig
 	}
 
+	err = confData.ValidateContent(ctx)
+	if err != nil {
+		return err
+	}
+
 	if !confData.ValidateSignature(ctx, signerID) {
 		return ErrInvalidSignature
 	}
@@ -169,29 +174,4 @@ func (c *NetworkConfig) LoadFromFile(ctx context.Context, path string, signerID 
 	c.Signature = confData.Signature
 
 	return nil
-}
-
-// SaveToFile signs the configuration data and writes it to disk.
-func (c *NetworkConfig) SaveToFile(ctx context.Context, path string, privKey crypto.PrivKey) error {
-	event := log.EventBegin(ctx, "NetworkConfig.Save", logging.Metadata{"path": path})
-	defer event.Done()
-
-	err := c.Sign(ctx, privKey)
-	if err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	signedBytes, err := json.Marshal(c)
-	if err != nil {
-		event.SetError(err)
-		return errors.WithStack(err)
-	}
-
-	err = ioutil.WriteFile(path, signedBytes, 0644)
-	if err != nil {
-		event.SetError(err)
-	}
-
-	return err
 }

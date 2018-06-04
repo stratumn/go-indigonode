@@ -85,7 +85,10 @@ func TestCfg(t *testing.T) {
 		tarHandlerName: &tarSave,
 	}, setSave)
 
-	err = setSave.Save(filename, 0644, false, true)
+	err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+		Overwrite: false,
+		Backup:    true,
+	})
 	require.NoError(t, err, "Save(filename)")
 
 	zipLoad := testHandler{name: zipHandlerName, version: 1}
@@ -104,19 +107,28 @@ func TestCfg(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should create a backup.
-		err = setSave.Save(filename, 0644, true, true)
+		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+			Overwrite: true,
+			Backup:    true,
+		})
 		require.NoError(t, err, "Save(filename)")
 		filesPlusBackup, _ := ioutil.ReadDir(dir)
 		assert.Equal(t, len(files)+1, len(filesPlusBackup))
 
 		// Should not create a backup.
-		err = setSave.Save(filename, 0644, true, false)
+		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+			Overwrite: true,
+			Backup:    false,
+		})
 		require.NoError(t, err, "Save(filename)")
 		filesNoBackup, _ := ioutil.ReadDir(dir)
 		assert.Equal(t, len(filesPlusBackup), len(filesNoBackup))
 
 		// Should return an error because file already exists.
-		err = setSave.Save(filename, 0644, false, false)
+		err = setSave.Save(filename, 0644, &ConfigSaveOpts{
+			Overwrite: false,
+			Backup:    false,
+		})
 		require.Error(t, err, "Save(filename)")
 	})
 

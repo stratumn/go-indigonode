@@ -105,16 +105,17 @@ func (s Set) Load(filename string) error {
 }
 
 // Save saves the configurations of a set of configurables to a TOML file.
-func (s Set) Save(filename string, perms os.FileMode, overwrite, backup bool) error {
+func (s Set) Save(filename string, perms os.FileMode, opts *ConfigSaveOpts) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,
-		"overwrite": overwrite,
+		"overwrite": opts.Overwrite,
+		"Backup":    opts.Backup,
 	})
 	event := log.EventBegin(ctx, "Save")
 	defer event.Done()
 
-	err := s.Configs().Save(filename, perms, overwrite, backup)
+	err := s.Configs().Save(filename, perms, opts)
 	if err != nil {
 		event.SetError(err)
 	}
@@ -213,19 +214,26 @@ func (s Set) Configs() ConfigSet {
 // ConfigSet represents a set of configurations.
 type ConfigSet map[string]interface{}
 
+// ConfigSaveOpts are the options passed to ConfigSet.Save().
+type ConfigSaveOpts struct {
+	Overwrite bool
+	Backup    bool
+}
+
 // Save saves a set of configurations to a file. It will return an error if the
 // file already exists unless overwrite is true.
-func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite, saveBackup bool) error {
+func (cs ConfigSet) Save(filename string, perms os.FileMode, opts *ConfigSaveOpts) error {
 	ctx := logging.ContextWithLoggable(context.Background(), logging.Metadata{
 		"filename":  filename,
 		"perms":     perms,
-		"overwrite": overwrite,
+		"overwrite": opts.Overwrite,
+		"backup":    opts.Backup,
 	})
 	event := log.EventBegin(ctx, "configSave")
 	defer event.Done()
 
 	// Backup file.
-	if overwrite && saveBackup {
+	if opts.Overwrite && opts.Backup {
 		if _, err := os.Stat(filename); !os.IsNotExist(err) {
 			if err := backup(ctx, filename); err != nil {
 				event.SetError(err)
@@ -236,7 +244,9 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, overwrite, saveBack
 
 	mode := os.O_WRONLY | os.O_CREATE
 
-	if !overwrite {
+	if opts.Overwrite {
+		mode |= os.O_TRUNC
+	} else {
 		mode |= os.O_EXCL
 	}
 

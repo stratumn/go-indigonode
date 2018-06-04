@@ -26,16 +26,20 @@ import (
 )
 
 type testConfig struct {
-	Name    string `toml:"name"`
-	Version int    `toml:"version"`
-	Started bool   `toml:"started"`
+	Name        string   `toml:"name"`
+	Version     int      `toml:"version"`
+	Started     bool     `toml:"started"`
+	StringStuff []string `toml:"string_stuff"`
+	IntStuff    []int    `toml:"int_stuff"`
 }
 
 type testHandler struct {
-	config  *testConfig
-	name    string
-	version int
-	started bool
+	config      *testConfig
+	name        string
+	version     int
+	started     bool
+	stringStuff []string
+	intStuff    []int
 }
 
 func (h *testHandler) ID() string {
@@ -47,7 +51,7 @@ func (h *testHandler) Config() interface{} {
 		return *h.config
 	}
 
-	return testConfig{h.name, 0, false}
+	return testConfig{h.name, h.version, h.started, h.stringStuff, h.intStuff}
 }
 
 func (h *testHandler) SetConfig(config interface{}) error {
@@ -56,6 +60,8 @@ func (h *testHandler) SetConfig(config interface{}) error {
 	h.name = c.Name
 	h.version = c.Version
 	h.started = c.Started
+	h.stringStuff = c.StringStuff
+	h.intStuff = c.IntStuff
 	return nil
 }
 
@@ -68,7 +74,7 @@ func TestCfg(t *testing.T) {
 	zipHandlerName := "zip"
 	tarHandlerName := "tar"
 
-	zipSave := testHandler{name: zipHandlerName}
+	zipSave := testHandler{name: zipHandlerName, intStuff: []int{1}}
 	tarSave := testHandler{name: tarHandlerName}
 	setSave := NewSet([]Configurable{&zipSave, &tarSave})
 	assert.EqualValues(t, Set{
@@ -87,6 +93,7 @@ func TestCfg(t *testing.T) {
 	require.NoError(t, err, "Load(filename)")
 
 	assert.Equal(t, zipSave.version, zipLoad.version, "zipLoad")
+	assert.Equal(t, zipSave.intStuff, zipLoad.intStuff, "zipLoad")
 	assert.Equal(t, tarSave.version, tarLoad.version, "tarLoad")
 
 	t.Run("Tree", func(t *testing.T) {
@@ -98,10 +105,31 @@ func TestCfg(t *testing.T) {
 	})
 
 	t.Run("Get", func(t *testing.T) {
-		t.Run("Key exists", func(t *testing.T) {
+		t.Run("Key exists - string value", func(t *testing.T) {
 			val, err := setSave.Get("zip.name")
 			assert.NoError(t, err, "Get")
 			assert.Equal(t, zipHandlerName, val)
+		})
+		t.Run("Key exists - int value", func(t *testing.T) {
+			val, err := setSave.Get("zip.version")
+			assert.NoError(t, err, "Get")
+			assert.Equal(t, int64(0), val)
+		})
+		t.Run("Key exists - bool value", func(t *testing.T) {
+			val, err := setSave.Get("zip.started")
+			assert.NoError(t, err, "Get")
+			assert.Equal(t, false, val)
+		})
+
+		t.Run("Key exists - slice string value", func(t *testing.T) {
+			val, err := setSave.Get("zip.string_stuff")
+			assert.NoError(t, err, "Get")
+			assert.EqualValues(t, []interface{}(nil), val)
+		})
+		t.Run("Key exists - slice int value", func(t *testing.T) {
+			val, err := setSave.Get("zip.int_stuff")
+			assert.NoError(t, err, "Get")
+			assert.EqualValues(t, []interface{}{int64(1)}, val)
 		})
 
 		t.Run("Returns a node of the tree", func(t *testing.T) {
@@ -135,6 +163,19 @@ func TestCfg(t *testing.T) {
 			val, _ := setSave.Get("zip.version")
 			assert.Equal(t, int64(2), val)
 		})
+		t.Run("Value is set - slice of strings", func(t *testing.T) {
+			err := setSave.Set("zip.string_stuff", "one,two,three")
+			assert.NoError(t, err, "Set")
+			val, _ := setSave.Get("zip.string_stuff")
+			assert.EqualValues(t, []interface{}{"one", "two", "three"}, val)
+		})
+
+		t.Run("Value is set - slice of ints", func(t *testing.T) {
+			err := setSave.Set("zip.int_stuff", "1,2,3")
+			assert.NoError(t, err, "Set")
+			val, _ := setSave.Get("zip.int_stuff")
+			assert.EqualValues(t, []interface{}{int64(1), int64(2), int64(3)}, val)
+		})
 
 		t.Run("Key does not exist", func(t *testing.T) {
 			err := setSave.Set("none", "something")
@@ -148,7 +189,7 @@ func TestCfg(t *testing.T) {
 
 		t.Run("Wrong value type", func(t *testing.T) {
 			err := setSave.Set("zip.version", "wrongtype")
-			assert.EqualError(t, err, "could not set \"zip.version\": wrong type for value \"wrongtype\"")
+			assert.EqualError(t, err, "could not set \"zip.version\": wrong type for value \"wrongtype\" (expected int)")
 		})
 	})
 }

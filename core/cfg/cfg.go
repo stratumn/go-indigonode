@@ -51,6 +51,9 @@ var (
 	ErrEditGroupConfig = errors.New("cannot edit a group of attribute")
 )
 
+//sliceSeparator is the separator used for delimiting the elements of a slice.
+const sliceSeparator = ","
+
 // Configurable represents something that can be configured.
 type Configurable interface {
 	// ID returns the unique identifier of the configurable.
@@ -146,7 +149,7 @@ func (s Set) Get(key string) (interface{}, error) {
 }
 
 // Set edits the value of the tree indexed by the provided key.
-// The value must be convertible to the right type for this setting (int, bool or str).
+// The value must be convertible to the right type for this setting (int, bool, str or slice).
 // It fails if the key does not exist.
 func (s Set) Set(key string, value string) error {
 	tree, err := s.Tree()
@@ -159,24 +162,12 @@ func (s Set) Set(key string, value string) error {
 		return errors.Wrapf(ErrUnexistingKey, "could not set %q", key)
 	}
 
-	switch t := currentVal.(type) {
-	case int64:
-		currentVal, err = strconv.ParseInt(value, 10, 64)
-	case bool:
-		currentVal, err = strconv.ParseBool(value)
-	case string:
-		currentVal = value
-	case *Tree:
-		return errors.Wrapf(ErrEditGroupConfig, "could not set %q", key)
-	default:
-		return errors.Errorf("could not set %q: unsupported type: %T", key, t)
-	}
-
+	newValue, err := getArgValue(currentVal, value)
 	if err != nil {
-		return errors.Errorf("could not set %q: wrong type for value %q", key, value)
+		return errors.Wrapf(err, "could not set %q", key)
 	}
 
-	if err := tree.Set(key, currentVal); err != nil {
+	if err := tree.Set(key, newValue); err != nil {
 		return err
 	}
 	return s.fromTree(context.Background(), tree.tree)
@@ -356,4 +347,51 @@ func backup(ctx context.Context, filename string) error {
 	}
 
 	return nil
+}
+
+// getArgValue converts value to its right type based on the current value's type.
+// the value can be a coma-separated list of items if the value is a slice.
+func getArgValue(current interface{}, value string) (interface{}, error) {
+
+	// We may not know the slice underlying value's type, in which case
+	// a slice of strings is returned.
+	caseSlice := func(currentSlice []interface{}) (ret []interface{}, err error) {
+		sliceValues := strings.Split(value, sliceSeparator)
+		for _, elem := range sliceValues {
+			var val interface{}
+			if len(currentSlice) > 0 {
+				val, err = getArgValue(currentSlice[0], elem)
+			} else {
+				val, err = getArgValue(elem, elem)
+			}
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, val)
+		}
+		return ret, nil
+	}
+
+	switch t := current.(type) {
+	case string:
+		return value, nil
+	case int64:
+		val, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, errors.Errorf("wrong type for value %q (expected int)", value)
+		}
+		return val, nil
+	case bool:
+		val, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, errors.Errorf("wrong type for value %q (expected bool)", value)
+		}
+		return val, nil
+	case []interface{}:
+		return caseSlice(t)
+	case *Tree:
+		return nil, ErrEditGroupConfig
+	default:
+		return nil, errors.Errorf("unsupported type: %T", t)
+	}
 }

@@ -21,9 +21,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
+	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,18 +69,30 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		networkConfig func(*testing.T, *gomock.Controller) protector.NetworkConfig
+		networkConfig func() protector.NetworkConfig
 		send          func(*testing.T, inet.Stream)
 		validate      func(*testing.T, *protectorpb.NetworkConfig)
 		receiveErr    error
 	}{{
 		"during-bootstrap-send-participants-to-white-listed-peer",
-		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
-			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
-				WithAllowedPeer(coordinator.ID()).
-				WithAllowedPeer(sender.ID()).
-				Build()
+		func() protector.NetworkConfig {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
+			)
+
+			networkConfig.AddPeer(
+				ctx,
+				coordinator.ID(),
+				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
+			)
+			networkConfig.AddPeer(
+				ctx,
+				sender.ID(),
+				test.GeneratePeerMultiaddrs(t, sender.ID()),
+			)
+
+			return networkConfig
 		},
 		sendHello,
 		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
@@ -92,11 +104,19 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"during-bootstrap-do-not-send-participants-to-non-white-listed-peer",
-		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
-			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
-				WithAllowedPeer(coordinator.ID()).
-				Build()
+		func() protector.NetworkConfig {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
+			)
+
+			networkConfig.AddPeer(
+				ctx,
+				coordinator.ID(),
+				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
+			)
+
+			return networkConfig
 		},
 		sendHello,
 		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
@@ -107,11 +127,19 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"after-bootstrap-send-participants-to-white-listed-peer",
-		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
-			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_PROTECTED).
-				WithAllowedPeer(sender.ID()).
-				Build()
+		func() protector.NetworkConfig {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
+			)
+
+			networkConfig.AddPeer(
+				ctx,
+				sender.ID(),
+				test.GeneratePeerMultiaddrs(t, sender.ID()),
+			)
+
+			return networkConfig
 		},
 		sendHello,
 		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
@@ -122,11 +150,19 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"after-bootstrap-reject-non-white-listed-peer",
-		func(t *testing.T, ctrl *gomock.Controller) protector.NetworkConfig {
-			return bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_PROTECTED).
-				WithAllowedPeer(coordinator.ID()).
-				Build()
+		func() protector.NetworkConfig {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
+			)
+
+			networkConfig.AddPeer(
+				ctx,
+				coordinator.ID(),
+				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
+			)
+
+			return networkConfig
 		},
 		sendHello,
 		nil,
@@ -140,7 +176,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
-				tt.networkConfig(t, ctrl),
+				tt.networkConfig(),
 			)
 			require.NoError(t, err)
 			defer handler.Close(ctx)

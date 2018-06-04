@@ -18,99 +18,166 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-func generateCoordinatedNetworkMode(t *testing.T, peerID peer.ID) *protector.NetworkMode {
-	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
-
-	mode, err := protector.NewCoordinatedNetworkMode(
-		peerID.Pretty(),
-		[]string{peerAddr.String()},
+func newNetworkConfig(t *testing.T) protector.NetworkConfig {
+	config, err := protector.NewInMemoryConfig(
+		context.Background(),
+		protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
 	)
-
-	require.NoError(t, err)
-	return mode
+	require.NoError(t, err, "protector.NewInMemoryConfig()")
+	return config
 }
 
-func TestCoordinated_Handshake_Error(t *testing.T) {
-	testCases := []struct {
-		name                 string
-		configureCoordinator func(*testing.T, *gomock.Controller, *bootstraptesting.CoordinatorBuilder, peer.ID)
-		err                  error
-	}{{
-		"fails-if-coordinator-unavailable",
-		func(_ *testing.T, _ *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
-			b.Unavailable().Build()
-		},
-		protector.ErrConnectionRefused,
-	}, {
-		"fails-if-coordinated-not-allowed",
-		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
-			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_PROTECTED).
-				Build()
+func TestCoordinated_Handshake(t *testing.T) {
+	t.Run("coordinator-unavailable", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-			b.WithNetworkConfig(networkConfig).Build()
-		},
-		protector.ErrConnectionRefused,
-	}, {
-		"fails-if-coordinator-sends-empty-config",
-		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, _ peer.ID) {
-			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
-				Build()
+		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		defer testNetwork.Close()
 
-			b.WithNetworkConfig(networkConfig).Build()
-		},
-		protector.ErrConnectionRefused,
-	}, {
-		"fails-if-coordinator-sends-invalid-signature",
-		func(t *testing.T, ctrl *gomock.Controller, b *bootstraptesting.CoordinatorBuilder, peerID peer.ID) {
-			networkConfig := bootstraptesting.NewNetworkConfigBuilder(t, ctrl).
-				WithNetworkState(protectorpb.NetworkState_BOOTSTRAP).
-				WithAllowedPeer(peerID).
-				WithInvalidSignature().
-				Build()
+		unavailableCoordinatorID := test.GeneratePeerID(t)
 
-			b.WithNetworkConfig(networkConfig).Build()
-		},
-		protectorpb.ErrInvalidSignature,
-	}}
+		config := newNetworkConfig(t)
+		handler, err := testNetwork.AddCoordinatedNode(
+			unavailableCoordinatorID,
+			config,
+		)
 
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
+		assert.EqualError(t, err, protector.ErrConnectionRefused.Error())
+		assert.Nil(t, handler)
+	})
 
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	t.Run("coordinator-closes-conn", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-			h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-			defer h.Close()
+		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		defer testNetwork.Close()
 
-			coordinatorBuilder := bootstraptesting.NewCoordinatorBuilder(ctx, t)
-			defer coordinatorBuilder.Close(ctx)
+		coordinatorConfig := newNetworkConfig(t)
+		coordinatorConfig.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
 
-			require.NoError(t, h.Connect(ctx, coordinatorBuilder.Host().Peerstore().PeerInfo(coordinatorBuilder.PeerID())))
+		_, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
+		require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
 
-			tt.configureCoordinator(t, ctrl, coordinatorBuilder, h.ID())
+		coordinatorID := testNetwork.CoordinatorID()
+		coordinatedConfig := newNetworkConfig(t)
+		handler, err := testNetwork.AddCoordinatedNode(
+			coordinatorID,
+			coordinatedConfig,
+		)
 
-			networkMode := generateCoordinatedNetworkMode(t, coordinatorBuilder.PeerID())
-			handler, err := bootstrap.NewCoordinatedHandler(ctx, h, networkMode, nil)
-			assert.EqualError(t, err, tt.err.Error())
-			assert.Nil(t, handler)
-		})
-	}
+		assert.EqualError(t, err, protector.ErrConnectionRefused.Error())
+		assert.Nil(t, handler)
+	})
+
+	t.Run("coordinator-invalid-signature", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		defer testNetwork.Close()
+
+		coordinatorConfig := newNetworkConfig(t)
+		_, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
+		require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+		coordinatorID := testNetwork.CoordinatorID()
+		coordinatedConfig := newNetworkConfig(t)
+		coordinatedNode, connect := testNetwork.PrepareCoordinatedNode(
+			coordinatorID,
+			coordinatedConfig,
+		)
+
+		err = coordinatorConfig.AddPeer(ctx, coordinatedNode.ID(), coordinatedNode.Addrs())
+		require.NoError(t, err, "coordinatorConfig.AddPeer()")
+
+		unknownKey := test.GeneratePrivateKey(t)
+		err = coordinatorConfig.Sign(ctx, unknownKey)
+		require.NoError(t, err, "coordinatorConfig.Sign()")
+
+		handler, err := connect()
+		assert.EqualError(t, err, protectorpb.ErrInvalidSignature.Error())
+		assert.Nil(t, handler)
+	})
+
+	t.Run("coordinator-empty-config", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		defer testNetwork.Close()
+
+		coordinatorConfig := newNetworkConfig(t)
+		_, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
+		require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+		err = coordinatorConfig.Sign(ctx, testNetwork.CoordinatorKey())
+		require.NoError(t, err, "coordinatorConfig.Sign()")
+
+		coordinatedConfig := newNetworkConfig(t)
+		_, connect := testNetwork.PrepareCoordinatedNode(
+			testNetwork.CoordinatorID(),
+			coordinatedConfig,
+		)
+
+		handler, err := connect()
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+
+		// When the coordinator returns an empty config, this is not a handshake error.
+		// It means we're not whitelisted yet, but the network is still bootstrapping.
+		assert.Len(t, coordinatedConfig.AllowedPeers(ctx), 0)
+	})
+
+	t.Run("coordinator-valid-config", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		defer testNetwork.Close()
+
+		coordinatorConfig := newNetworkConfig(t)
+		_, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
+		require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+		coordinatedConfig := newNetworkConfig(t)
+		coordinatedNode, connect := testNetwork.PrepareCoordinatedNode(
+			testNetwork.CoordinatorID(),
+			coordinatedConfig,
+		)
+
+		err = coordinatorConfig.AddPeer(
+			ctx,
+			testNetwork.CoordinatorID(),
+			test.GeneratePeerMultiaddrs(t, testNetwork.CoordinatorID()),
+		)
+		require.NoError(t, err, "coordinatorConfig.AddPeer")
+
+		err = coordinatorConfig.AddPeer(
+			ctx,
+			coordinatedNode.ID(),
+			coordinatedNode.Addrs(),
+		)
+		require.NoError(t, err, "coordinatorConfig.AddPeer")
+
+		err = coordinatorConfig.Sign(ctx, testNetwork.CoordinatorKey())
+		require.NoError(t, err, "coordinatorConfig.Sign()")
+
+		handler, err := connect()
+		assert.NoError(t, err)
+		assert.NotNil(t, handler)
+
+		assert.Len(t, coordinatedConfig.AllowedPeers(ctx), 2)
+		assert.True(t, coordinatedConfig.IsAllowed(ctx, testNetwork.CoordinatorID()))
+		assert.True(t, coordinatedConfig.IsAllowed(ctx, coordinatedNode.ID()))
+	})
 }

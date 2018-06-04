@@ -61,8 +61,24 @@ func GeneratePeerMultiaddr(t *testing.T, peerID peer.ID) multiaddr.Multiaddr {
 	return peerAddr
 }
 
+// GeneratePeerMultiaddrs generates semantically valid multiaddrs for the given peer.
+func GeneratePeerMultiaddrs(t *testing.T, peerID peer.ID) []multiaddr.Multiaddr {
+	return []multiaddr.Multiaddr{
+		GeneratePeerMultiaddr(t, peerID),
+		GeneratePeerMultiaddr(t, peerID),
+	}
+}
+
 // GenerateMultiaddr generates a valid multiaddr.
 func GenerateMultiaddr(t *testing.T) multiaddr.Multiaddr {
 	peerID := GeneratePeerID(t)
 	return GeneratePeerMultiaddr(t, peerID)
+}
+
+// GenerateMultiaddrs generates semantically valid multiaddrs.
+func GenerateMultiaddrs(t *testing.T) []multiaddr.Multiaddr {
+	return []multiaddr.Multiaddr{
+		GenerateMultiaddr(t),
+		GenerateMultiaddr(t),
+	}
 }

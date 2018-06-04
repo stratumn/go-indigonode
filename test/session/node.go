@@ -338,7 +338,10 @@ func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (Test
 
 	for _, node := range nodes {
 		confFile := filepath.Join(node.dir, "alice.core.toml")
-		if err := node.conf.Save(confFile, 0600, true, true); err != nil {
+		if err := node.conf.Save(confFile, 0600, &cfg.ConfigSaveOpts{
+			Overwrite: true,
+			Backup:    true,
+		}); err != nil {
 			return nil, err
 		}
 	}

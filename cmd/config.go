@@ -52,8 +52,8 @@ var setConfig = &cobra.Command{
 		if err := config.Set(key, value); err != nil {
 			fail(err)
 		}
-		if err := config.Save(filename, 0600, &cfg.ConfigSaveOpts{
-			Overwrite: false,
+		if err := config.Save(filename, 0600, cfg.ConfigSaveOpts{
+			Overwrite: true,
 			Backup:    backup,
 		}); err != nil {
 			fail(err)

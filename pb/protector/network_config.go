@@ -164,11 +164,6 @@ func (c *NetworkConfig) LoadFromFile(ctx context.Context, path string, signerID 
 		return ErrInvalidSignature
 	}
 
-	_, ok := NetworkState_name[int32(confData.NetworkState)]
-	if !ok {
-		return ErrInvalidNetworkState
-	}
-
 	c.NetworkState = confData.NetworkState
 	c.Participants = confData.Participants
 	c.Signature = confData.Signature

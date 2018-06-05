@@ -59,9 +59,10 @@ func (c *ConfigSaver) Save(ctx context.Context) error {
 	err = ioutil.WriteFile(c.configPath, configBytes, 0644)
 	if err != nil {
 		event.SetError(err)
+		return errors.WithStack(err)
 	}
 
-	return err
+	return nil
 }
 
 // AddPeer adds a peer to the network configuration

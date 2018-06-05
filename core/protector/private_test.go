@@ -36,7 +36,7 @@ import (
 // and the allowed list contains allowedCount elements.
 // It fails after a short polling period.
 func waitUntilAllowed(t *testing.T, p protector.Protector, peer peer.ID, allowedCount int) {
-	test.WaitUntil(t, 20*time.Millisecond, 5*time.Millisecond, func() error {
+	test.WaitUntil(t, 50*time.Millisecond, 5*time.Millisecond, func() error {
 		allowedPeers := p.AllowedPeers(context.Background())
 		if allowedCount == 0 && len(allowedPeers) == 0 {
 			return nil

@@ -494,6 +494,8 @@ func TestConfigProtectUpdater(t *testing.T) {
 		err = networkConfig.AddPeer(ctx, peer2, peer2Addrs)
 		require.NoError(t, err, "networkConfig.AddPeer()")
 
+		waitUntilAllowed(t, p, peer2, 2)
+
 		err = networkConfig.Reset(ctx, &pb.NetworkConfig{
 			NetworkState: pb.NetworkState_PROTECTED,
 			Participants: map[string]*pb.PeerAddrs{

@@ -27,7 +27,10 @@ import (
 	"github.com/pkg/errors"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
+	pb "github.com/stratumn/alice/grpc/bootstrap"
 	"github.com/stratumn/alice/release"
+
+	"google.golang.org/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -317,4 +320,9 @@ func randPeers(pool []pstore.PeerInfo, n int) []pstore.PeerInfo {
 	}
 
 	return peers
+}
+
+// AddToGRPCServer adds the service to a gRPC server.
+func (s *Service) AddToGRPCServer(gs *grpc.Server) {
+	pb.RegisterBootstrapServer(gs, grpcServer{})
 }

@@ -7,9 +7,9 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	protector "github.com/stratumn/alice/pb/protector"
-	go_multicodec "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec"
 	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	go_libp2p_crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	reflect "reflect"
 )
 
@@ -60,16 +60,16 @@ func (_mr *MockNetworkConfigMockRecorder) AllowedPeers(arg0 interface{}) *gomock
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedPeers", reflect.TypeOf((*MockNetworkConfig)(nil).AllowedPeers), arg0)
 }
 
-// Encode mocks base method
-func (_m *MockNetworkConfig) Encode(_param0 go_multicodec.Encoder) error {
-	ret := _m.ctrl.Call(_m, "Encode", _param0)
-	ret0, _ := ret[0].(error)
+// Copy mocks base method
+func (_m *MockNetworkConfig) Copy(_param0 context.Context) protector.NetworkConfig {
+	ret := _m.ctrl.Call(_m, "Copy", _param0)
+	ret0, _ := ret[0].(protector.NetworkConfig)
 	return ret0
 }
 
-// Encode indicates an expected call of Encode
-func (_mr *MockNetworkConfigMockRecorder) Encode(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Encode", reflect.TypeOf((*MockNetworkConfig)(nil).Encode), arg0)
+// Copy indicates an expected call of Copy
+func (_mr *MockNetworkConfigMockRecorder) Copy(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Copy", reflect.TypeOf((*MockNetworkConfig)(nil).Copy), arg0)
 }
 
 // IsAllowed mocks base method
@@ -130,4 +130,16 @@ func (_m *MockNetworkConfig) SetNetworkState(_param0 context.Context, _param1 pr
 // SetNetworkState indicates an expected call of SetNetworkState
 func (_mr *MockNetworkConfigMockRecorder) SetNetworkState(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "SetNetworkState", reflect.TypeOf((*MockNetworkConfig)(nil).SetNetworkState), arg0, arg1)
+}
+
+// Sign mocks base method
+func (_m *MockNetworkConfig) Sign(_param0 context.Context, _param1 go_libp2p_crypto.PrivKey) error {
+	ret := _m.ctrl.Call(_m, "Sign", _param0, _param1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Sign indicates an expected call of Sign
+func (_mr *MockNetworkConfigMockRecorder) Sign(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Sign", reflect.TypeOf((*MockNetworkConfig)(nil).Sign), arg0, arg1)
 }

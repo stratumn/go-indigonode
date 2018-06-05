@@ -22,16 +22,15 @@ import (
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // ProtectUpdater wraps a NetworkConfig implementation and updates a
 // protector when the configuration changes.
 type ProtectUpdater struct {
-	networkConfig NetworkConfig
-	peerStore     peerstore.Peerstore
-	protect       Protector
-	protectChan   chan NetworkUpdate
+	NetworkConfig
+	peerStore   peerstore.Peerstore
+	protect     Protector
+	protectChan chan NetworkUpdate
 }
 
 // WrapWithProtectUpdater wraps a NetworkConfig implementation and updates
@@ -42,7 +41,7 @@ func WrapWithProtectUpdater(
 	peerStore peerstore.Peerstore,
 ) NetworkConfig {
 	conf := ProtectUpdater{
-		networkConfig: networkConfig,
+		NetworkConfig: networkConfig,
 		peerStore:     peerStore,
 		protect:       protect,
 		protectChan:   make(chan NetworkUpdate),
@@ -62,7 +61,7 @@ func WrapWithProtectUpdater(
 func (c *ProtectUpdater) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
 	defer log.EventBegin(ctx, "ProtectUpdater.AddPeer").Done()
 
-	err := c.networkConfig.AddPeer(ctx, peerID, addrs)
+	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
 		return err
 	}
@@ -78,7 +77,7 @@ func (c *ProtectUpdater) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 func (c *ProtectUpdater) RemovePeer(ctx context.Context, peerID peer.ID) error {
 	defer log.EventBegin(ctx, "ProtectUpdater.RemovePeer").Done()
 
-	err := c.networkConfig.RemovePeer(ctx, peerID)
+	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
 		return err
 	}
@@ -88,28 +87,13 @@ func (c *ProtectUpdater) RemovePeer(ctx context.Context, peerID peer.ID) error {
 	return nil
 }
 
-// IsAllowed returns true if the given peer is allowed in the network.
-func (c *ProtectUpdater) IsAllowed(ctx context.Context, peerID peer.ID) bool {
-	return c.networkConfig.IsAllowed(ctx, peerID)
-}
-
-// AllowedPeers returns the IDs of the peers in the network.
-func (c *ProtectUpdater) AllowedPeers(ctx context.Context) []peer.ID {
-	return c.networkConfig.AllowedPeers(ctx)
-}
-
-// NetworkState returns the current state of the network protection.
-func (c *ProtectUpdater) NetworkState(ctx context.Context) pb.NetworkState {
-	return c.networkConfig.NetworkState(ctx)
-}
-
 // SetNetworkState sets the current state of the network protection
 // and updates the protector if it's interested in state changes.
 func (c *ProtectUpdater) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
 	event := log.EventBegin(ctx, "ProtectUpdater.SetNetworkState")
 	defer event.Done()
 
-	err := c.networkConfig.SetNetworkState(ctx, networkState)
+	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
 		return err
 	}
@@ -126,16 +110,6 @@ func (c *ProtectUpdater) SetNetworkState(ctx context.Context, networkState pb.Ne
 	return nil
 }
 
-// Sign signs the underlying configuration.
-func (c *ProtectUpdater) Sign(ctx context.Context, privKey crypto.PrivKey) error {
-	return c.networkConfig.Sign(ctx, privKey)
-}
-
-// Copy returns a copy of the underlying configuration.
-func (c *ProtectUpdater) Copy(ctx context.Context) pb.NetworkConfig {
-	return c.networkConfig.Copy(ctx)
-}
-
 // Reset clears the current configuration and applies the given one.
 // It assumes that the incoming configuration signature has been validated.
 // It updates the protector accordingly.
@@ -143,7 +117,7 @@ func (c *ProtectUpdater) Reset(ctx context.Context, networkConfig *pb.NetworkCon
 	event := log.EventBegin(ctx, "ProtectUpdater.Reset")
 	defer event.Done()
 
-	err := c.networkConfig.Reset(ctx, networkConfig)
+	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {
 		return err
 	}

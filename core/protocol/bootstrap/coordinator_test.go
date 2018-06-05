@@ -182,7 +182,14 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			defer handler.Close(ctx)
 
 			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorProtocolID)
-			require.NoError(t, err, "sender.NewStream()")
+			// If the coordinator is expected to reject streams, it can happen either
+			// when initiating the stream (sender.NewStream()) or when writing to it (below).
+			// It depends on the underlying yamux implementation but both are ok for our usecase.
+			if err != nil {
+				require.Error(t, tt.receiveErr)
+				require.EqualError(t, err, tt.receiveErr.Error())
+				return
+			}
 
 			tt.send(t, stream)
 

@@ -51,17 +51,6 @@ func TestCoordinator_Close(t *testing.T) {
 }
 
 func TestCoordinator_Handle_Hello(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	coordinator := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-	defer coordinator.Close()
-
-	sender := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-	defer sender.Close()
-
-	require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
-
 	sendHello := func(t *testing.T, stream inet.Stream) {
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		require.NoError(t, enc.Encode(&pb.Hello{}), "enc.Encode()")
@@ -69,13 +58,13 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		networkConfig func() protector.NetworkConfig
+		networkConfig func(context.Context, *bhost.BlankHost, *bhost.BlankHost) protector.NetworkConfig
 		send          func(*testing.T, inet.Stream)
-		validate      func(*testing.T, *protectorpb.NetworkConfig)
+		validate      func(*testing.T, *protectorpb.NetworkConfig, *bhost.BlankHost, *bhost.BlankHost)
 		receiveErr    error
 	}{{
 		"during-bootstrap-send-participants-to-white-listed-peer",
-		func() protector.NetworkConfig {
+		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
 			networkConfig, _ := protector.NewInMemoryConfig(
 				ctx,
 				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
@@ -95,7 +84,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			return networkConfig
 		},
 		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
+		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
 			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState)
 			assert.Len(t, networkConfig.Participants, 2)
 			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
@@ -104,7 +93,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"during-bootstrap-do-not-send-participants-to-non-white-listed-peer",
-		func() protector.NetworkConfig {
+		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
 			networkConfig, _ := protector.NewInMemoryConfig(
 				ctx,
 				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
@@ -119,7 +108,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			return networkConfig
 		},
 		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
+		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
 			assert.Nil(t, networkConfig.Signature, "networkConfig.Signature")
 			assert.Zero(t, networkConfig.NetworkState, "networkConfig.NetworkState")
 			assert.Nil(t, networkConfig.Participants, "networkConfig.Participants")
@@ -127,7 +116,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"after-bootstrap-send-participants-to-white-listed-peer",
-		func() protector.NetworkConfig {
+		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
 			networkConfig, _ := protector.NewInMemoryConfig(
 				ctx,
 				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
@@ -142,7 +131,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			return networkConfig
 		},
 		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig) {
+		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
 			assert.Equal(t, protectorpb.NetworkState_PROTECTED, networkConfig.NetworkState)
 			assert.Len(t, networkConfig.Participants, 1)
 			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
@@ -150,7 +139,7 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 		nil,
 	}, {
 		"after-bootstrap-reject-non-white-listed-peer",
-		func() protector.NetworkConfig {
+		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
 			networkConfig, _ := protector.NewInMemoryConfig(
 				ctx,
 				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
@@ -171,12 +160,23 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			coordinator := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer coordinator.Close()
+
+			sender := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer sender.Close()
+
+			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
-				tt.networkConfig(),
+				tt.networkConfig(ctx, coordinator, sender),
 			)
 			require.NoError(t, err)
 			defer handler.Close(ctx)
@@ -193,7 +193,8 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			if tt.receiveErr != nil {
 				assert.EqualError(t, err, tt.receiveErr.Error())
 			} else {
-				tt.validate(t, &response)
+				require.NoError(t, err)
+				tt.validate(t, &response, coordinator, sender)
 			}
 		})
 	}

@@ -19,7 +19,9 @@ RUN chmod 0700 /usr/local/var/alice
 
 USER alice
 
-CMD ["start-alice.sh"]
+WORKDIR /usr/local/var/alice
+
+ENTRYPOINT [ "/usr/local/bin/alice" ]
 
 EXPOSE 8903 8904 8905 8906
 

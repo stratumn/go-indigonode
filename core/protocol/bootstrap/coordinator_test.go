@@ -153,7 +153,13 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 
 			return networkConfig
 		},
-		sendHello,
+		func(t *testing.T, stream inet.Stream) {
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err := enc.Encode(&pb.Hello{})
+			if err != nil {
+				assert.EqualError(t, err, yamux.ErrConnectionReset.Error())
+			}
+		},
 		nil,
 		yamux.ErrConnectionReset,
 	}}

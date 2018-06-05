@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network
+//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockprotocol.go github.com/stratumn/alice/core/protocol/bootstrap Handler
 
 // Package bootstrap defines a service that bootstraps a host from a set of
 // well known peers.
@@ -25,9 +26,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
+	pb "github.com/stratumn/alice/grpc/bootstrap"
 	"github.com/stratumn/alice/release"
+
+	"google.golang.org/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -50,6 +55,14 @@ var (
 
 	// ErrNotEnoughPeers is returned when not enough peers are connected.
 	ErrNotEnoughPeers = errors.New("number of connected peers is under configuration threshold")
+
+	// ErrUnavailable is returned from gRPC methods when the service is not
+	// available.
+	ErrUnavailable = errors.New("the service is not available")
+
+	// ErrNotAllowed is return from gRPC methods when the command is not allowed
+	// in the current configuration.
+	ErrNotAllowed = errors.New("operation not allowed")
 )
 
 // log is the logger for the service.
@@ -66,6 +79,7 @@ type Service struct {
 	timeout  time.Duration
 	host     Host
 	swarm    *swarm.Swarm
+	protocol protocol.Handler
 }
 
 // ID returns the unique identifier of the service.
@@ -200,6 +214,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
+	s.protocol = protocolHandler
+
 	ticker := time.NewTicker(s.interval)
 
 	running()
@@ -222,7 +238,8 @@ RUN_LOOP:
 
 	ticker.Stop()
 
-	protocolHandler.Close(protocolCtx)
+	s.protocol.Close(protocolCtx)
+	s.protocol = nil
 
 	return errors.WithStack(ctx.Err())
 }
@@ -317,4 +334,20 @@ func randPeers(pool []pstore.PeerInfo, n int) []pstore.PeerInfo {
 	}
 
 	return peers
+}
+
+// AddToGRPCServer adds the service to a gRPC server.
+func (s *Service) AddToGRPCServer(gs *grpc.Server) {
+	pb.RegisterBootstrapServer(gs, grpcServer{
+		GetNetworkMode: func() *protector.NetworkMode {
+			if s.swarm == nil {
+				return nil
+			}
+
+			return s.swarm.NetworkMode
+		},
+		GetProtocolHandler: func() protocol.Handler {
+			return s.protocol
+		},
+	})
 }

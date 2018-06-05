@@ -25,6 +25,7 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -106,6 +107,18 @@ func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 
 	networkConfig := h.networkConfig.Copy(ctx)
 	protocolErr = enc.Encode(&networkConfig)
+}
+
+// AddNode adds the node to the network configuration
+// and notifies network participants.
+func (h *CoordinatorHandler) AddNode(context.Context, peer.ID, []byte) error {
+	return nil
+}
+
+// Accept accepts a proposal to add or remove a node
+// and notifies network participants.
+func (h *CoordinatorHandler) Accept(context.Context, peer.ID) error {
+	return nil
 }
 
 // Close removes the protocol handlers.

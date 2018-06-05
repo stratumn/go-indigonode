@@ -130,6 +130,18 @@ func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 	defer log.EventBegin(ctx, "Coordinated.Handle").Done()
 }
 
+// AddNode sends a proposal to add the node to the coordinator.
+// Only the coordinator is allowed to make changes to the network config.
+func (h *CoordinatedHandler) AddNode(context.Context, peer.ID, []byte) error {
+	return nil
+}
+
+// Accept broadcasts a signed message to accept a proposal to add
+// or remove a node.
+func (h *CoordinatedHandler) Accept(context.Context, peer.ID) error {
+	return nil
+}
+
 // Close removes the protocol handlers.
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")

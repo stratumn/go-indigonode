@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/app/clock/grpc"
 	"github.com/stratumn/alice/app/clock/protocol"
-	pb "github.com/stratumn/alice/grpc/clock"
 	"google.golang.org/grpc"
 
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"

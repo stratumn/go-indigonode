@@ -18,7 +18,7 @@ import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
 package stratumn.alice.grpc.clock;
 
-option go_package = "github.com/stratumn/alice/grpc/clock;clock";
+option go_package = "github.com/stratumn/alice/app/clock/grpc;grpc";
 
 // The clock service definition.
 service Clock {

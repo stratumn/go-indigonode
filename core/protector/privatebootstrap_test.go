@@ -68,6 +68,8 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	updateChan <- protector.CreateAddNetworkUpdate(peer1)
 	updateChan <- protector.CreateAddNetworkUpdate(peer2)
 
+	waitUntilAllowed(t, p, peer2, 2)
+
 	// All connections are accepted during bootstrap.
 	bootstrapConn := mocks.NewMockConn(ctrl)
 	wrappedConn, err := p.Protect(bootstrapConn)

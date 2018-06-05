@@ -6,6 +6,7 @@ package mockbootstrap
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	reflect "reflect"
 )
 
@@ -30,6 +31,30 @@ func NewMockHandler(ctrl *gomock.Controller) *MockHandler {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (_m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return _m.recorder
+}
+
+// Accept mocks base method
+func (_m *MockHandler) Accept(_param0 context.Context, _param1 go_libp2p_peer.ID) error {
+	ret := _m.ctrl.Call(_m, "Accept", _param0, _param1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Accept indicates an expected call of Accept
+func (_mr *MockHandlerMockRecorder) Accept(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Accept", reflect.TypeOf((*MockHandler)(nil).Accept), arg0, arg1)
+}
+
+// AddNode mocks base method
+func (_m *MockHandler) AddNode(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 []byte) error {
+	ret := _m.ctrl.Call(_m, "AddNode", _param0, _param1, _param2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNode indicates an expected call of AddNode
+func (_mr *MockHandlerMockRecorder) AddNode(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddNode", reflect.TypeOf((*MockHandler)(nil).AddNode), arg0, arg1, arg2)
 }
 
 // Close mocks base method

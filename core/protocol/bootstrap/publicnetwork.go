@@ -14,11 +14,27 @@
 
 package bootstrap
 
-import "context"
+import (
+	"context"
+
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+)
 
 // PublicNetworkHandler is the handler for public networks.
 // Public networks are completely open, so this handler doesn't do anything.
 type PublicNetworkHandler struct{}
+
+// AddNode can't be used in a public network.
+// You can directly connect to any node freely.
+func (h *PublicNetworkHandler) AddNode(context.Context, peer.ID, []byte) error {
+	return ErrInvalidOperation
+}
+
+// Accept can't be used in a public network.
+// You can directly connect to any node freely.
+func (h *PublicNetworkHandler) Accept(context.Context, peer.ID) error {
+	return ErrInvalidOperation
+}
 
 // Close doesn't do anything.
 func (h *PublicNetworkHandler) Close(context.Context) {}

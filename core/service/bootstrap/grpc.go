@@ -17,9 +17,12 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
+
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 // grpcServer is a gRPC server for the bootstrap service.
@@ -35,7 +38,17 @@ func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack,
 		return nil, ErrNotAllowed
 	}
 
-	return nil, nil
+	peerID, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	err = s.GetProtocolHandler().AddNode(ctx, peerID, req.IdentityProof)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Ack{}, nil
 }
 
 // Accept a proposal to add or remove a network node.
@@ -45,5 +58,15 @@ func (s grpcServer) Accept(ctx context.Context, req *pb.PeerID) (*pb.Ack, error)
 		return nil, ErrNotAllowed
 	}
 
-	return nil, nil
+	peerID, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	err = s.GetProtocolHandler().Accept(ctx, peerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Ack{}, nil
 }

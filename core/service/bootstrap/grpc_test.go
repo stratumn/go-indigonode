@@ -69,14 +69,16 @@ func TestGRPCServer_AddNode(t *testing.T) {
 		handler := mockbootstrap.NewMockHandler(ctrl)
 		s := testPrivateNetworkServer(handler)
 
+		peerID := test.GeneratePeerID(t)
 		nodeID := &pb.NodeIdentity{
-			PeerId:        []byte(test.GeneratePeerID(t)),
+			PeerId:        []byte(peerID),
 			IdentityProof: []byte("I'm the batman"),
 		}
+
+		handler.EXPECT().AddNode(gomock.Any(), peerID, nodeID.IdentityProof).Times(1)
+
 		_, err := s.AddNode(ctx, nodeID)
 		require.NoError(t, err)
-
-		assert.Fail(t, "TODO: expectations")
 	})
 }
 
@@ -98,10 +100,12 @@ func TestGRPCServer_Accept(t *testing.T) {
 		handler := mockbootstrap.NewMockHandler(ctrl)
 		s := testPrivateNetworkServer(handler)
 
-		peerID := &pb.PeerID{PeerId: []byte(test.GeneratePeerID(t))}
-		_, err := s.Accept(ctx, peerID)
-		require.NoError(t, err)
+		peerID := test.GeneratePeerID(t)
+		message := &pb.PeerID{PeerId: []byte(peerID)}
 
-		assert.Fail(t, "TODO: expectations")
+		handler.EXPECT().Accept(gomock.Any(), peerID).Times(1)
+
+		_, err := s.Accept(ctx, message)
+		require.NoError(t, err)
 	})
 }

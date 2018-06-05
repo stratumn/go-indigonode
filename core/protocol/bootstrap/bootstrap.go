@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/protector"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -32,10 +33,21 @@ var log = logging.Logger("bootstrap")
 // Errors returned by bootstrap.
 var (
 	ErrInvalidProtectionMode = errors.New("invalid protection mode")
+	ErrInvalidOperation      = errors.New("invalid operation")
 )
 
 // Handler defines the methods to bootstrap and administer a network.
 type Handler interface {
+	// AddNode adds a node to the network. Depending on the underlying
+	// protocol, adding the node might require other node's approval
+	// or even be rejected.
+	AddNode(context.Context, peer.ID, []byte) error
+
+	// Accept accepts a proposal to add or remove a node (identified
+	// by its PeerID).
+	Accept(context.Context, peer.ID) error
+
+	// Close closes all resources used by the protocol handler.
 	Close(context.Context)
 }
 

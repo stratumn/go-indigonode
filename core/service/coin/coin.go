@@ -19,6 +19,8 @@ package coin
 import (
 	"context"
 	"encoding/hex"
+	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/db"
@@ -168,6 +170,16 @@ func (s *Service) Config() interface{} {
 		return *s.config
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
+	coinDBPath, err := filepath.Abs(filepath.Join(cwd, "data", "coin", "db"))
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
 	// Set the default configuration settings of your service here.
 	return Config{
 		Host:            "host",
@@ -175,7 +187,7 @@ func (s *Service) Config() interface{} {
 		MaxTxPerBlock:   100,
 		MinerReward:     10,
 		BlockDifficulty: 29,
-		DbPath:          "data/coin/db",
+		DbPath:          coinDBPath,
 		PubSub:          "pubsub",
 		KadDHT:          "kaddht",
 	}

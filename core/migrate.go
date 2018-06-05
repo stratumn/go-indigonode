@@ -245,6 +245,33 @@ var migrations = []cfg.MigrateHandler{
 	func(tree *cfg.Tree) error {
 		return tree.Set("bootstrap.swarm", "swarm")
 	},
+	func(tree *cfg.Tree) error {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		coinDB, err := filepath.Abs(filepath.Join(cwd, "data", "coin", "db"))
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		localStoragePath, err := filepath.Abs(filepath.Join(cwd, "data", "storage", "files"))
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		storageDB, err := filepath.Abs(filepath.Join(cwd, "data", "storage", "db"))
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := tree.Set("coin.db_path", coinDB); err != nil {
+			return err
+		}
+		if err := tree.Set("storage.local_storage", localStoragePath); err != nil {
+			return err
+		}
+		return tree.Set("storage.db_path", storageDB)
+	},
 }
 
 // addGroup adds a group if it doesn't exist yet.

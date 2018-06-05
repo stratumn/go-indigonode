@@ -18,6 +18,7 @@ package storage
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
@@ -93,11 +94,26 @@ func (s *Service) Config() interface{} {
 		return *s.config
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
+	localStoragePath, err := filepath.Abs(filepath.Join(cwd, "data", "storage", "files"))
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
+	dbPath, err := filepath.Abs(filepath.Join(cwd, "data", "storage", "db"))
+	if err != nil {
+		panic(errors.WithStack(err))
+	}
+
 	// Set the default configuration settings of your service here.
 	return Config{
 		Host:          "host",
-		LocalStorage:  "data/storage/files",
-		DbPath:        "data/storage/db",
+		LocalStorage:  localStoragePath,
+		DbPath:        dbPath,
 		UploadTimeout: "10m",
 	}
 }

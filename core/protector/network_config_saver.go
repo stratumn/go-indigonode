@@ -25,21 +25,20 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 // ConfigSaver wraps a NetworkConfig implementation and saves it
 // to disk whenever it changes.
 type ConfigSaver struct {
-	networkConfig NetworkConfig
-	configPath    string
+	NetworkConfig
+	configPath string
 }
 
 // WrapWithSaver wraps a NetworkConfig implementation and saves it
 // to disk whenever it changes.
 func WrapWithSaver(networkConfig NetworkConfig, configPath string) NetworkConfig {
 	return &ConfigSaver{
-		networkConfig: networkConfig,
+		NetworkConfig: networkConfig,
 		configPath:    configPath,
 	}
 }
@@ -49,7 +48,7 @@ func (c *ConfigSaver) Save(ctx context.Context) error {
 	event := log.EventBegin(ctx, "ConfigSaver.Save", logging.Metadata{"path": c.configPath})
 	defer event.Done()
 
-	networkConfig := c.networkConfig.Copy(ctx)
+	networkConfig := c.NetworkConfig.Copy(ctx)
 	configBytes, err := json.Marshal(networkConfig)
 	if err != nil {
 		event.SetError(err)
@@ -70,7 +69,7 @@ func (c *ConfigSaver) Save(ctx context.Context) error {
 func (c *ConfigSaver) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
 	defer log.EventBegin(ctx, "ConfigSaver.AddPeer").Done()
 
-	err := c.networkConfig.AddPeer(ctx, peerID, addrs)
+	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
 		return err
 	}
@@ -83,27 +82,12 @@ func (c *ConfigSaver) AddPeer(ctx context.Context, peerID peer.ID, addrs []multi
 func (c *ConfigSaver) RemovePeer(ctx context.Context, peerID peer.ID) error {
 	defer log.EventBegin(ctx, "ConfigSaver.RemovePeer").Done()
 
-	err := c.networkConfig.RemovePeer(ctx, peerID)
+	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
 		return err
 	}
 
 	return c.Save(ctx)
-}
-
-// IsAllowed returns true if the given peer is allowed in the network.
-func (c *ConfigSaver) IsAllowed(ctx context.Context, peerID peer.ID) bool {
-	return c.networkConfig.IsAllowed(ctx, peerID)
-}
-
-// AllowedPeers returns the IDs of the peers in the network.
-func (c *ConfigSaver) AllowedPeers(ctx context.Context) []peer.ID {
-	return c.networkConfig.AllowedPeers(ctx)
-}
-
-// NetworkState returns the current state of the network protection.
-func (c *ConfigSaver) NetworkState(ctx context.Context) pb.NetworkState {
-	return c.networkConfig.NetworkState(ctx)
 }
 
 // SetNetworkState sets the current state of the network protection
@@ -111,22 +95,12 @@ func (c *ConfigSaver) NetworkState(ctx context.Context) pb.NetworkState {
 func (c *ConfigSaver) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
 	defer log.EventBegin(ctx, "ConfigSaver.SetNetworkState").Done()
 
-	err := c.networkConfig.SetNetworkState(ctx, networkState)
+	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
 		return err
 	}
 
 	return c.Save(ctx)
-}
-
-// Sign signs the underlying configuration.
-func (c *ConfigSaver) Sign(ctx context.Context, privKey crypto.PrivKey) error {
-	return c.networkConfig.Sign(ctx, privKey)
-}
-
-// Copy returns a copy of the underlying configuration.
-func (c *ConfigSaver) Copy(ctx context.Context) pb.NetworkConfig {
-	return c.networkConfig.Copy(ctx)
 }
 
 // Reset clears the current configuration and applies the given one.
@@ -135,7 +109,7 @@ func (c *ConfigSaver) Copy(ctx context.Context) pb.NetworkConfig {
 func (c *ConfigSaver) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
 	defer log.EventBegin(ctx, "ConfigSaver.Reset").Done()
 
-	err := c.networkConfig.Reset(ctx, networkConfig)
+	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {
 		return err
 	}

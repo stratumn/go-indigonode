@@ -27,15 +27,15 @@ import (
 // ConfigSigner wraps a NetworkConfig implementation and signs it
 // whenever it changes.
 type ConfigSigner struct {
-	networkConfig NetworkConfig
-	privKey       crypto.PrivKey
+	NetworkConfig
+	privKey crypto.PrivKey
 }
 
 // WrapWithSignature wraps a NetworkConfig implementation and signs it
 // whenever it changes.
 func WrapWithSignature(networkConfig NetworkConfig, privKey crypto.PrivKey) NetworkConfig {
 	return &ConfigSigner{
-		networkConfig: networkConfig,
+		NetworkConfig: networkConfig,
 		privKey:       privKey,
 	}
 }
@@ -45,12 +45,12 @@ func WrapWithSignature(networkConfig NetworkConfig, privKey crypto.PrivKey) Netw
 func (c *ConfigSigner) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
 	defer log.EventBegin(ctx, "ConfigSigner.AddPeer").Done()
 
-	err := c.networkConfig.AddPeer(ctx, peerID, addrs)
+	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
 		return err
 	}
 
-	return c.networkConfig.Sign(ctx, c.privKey)
+	return c.NetworkConfig.Sign(ctx, c.privKey)
 }
 
 // RemovePeer removes a peer from the network configuration
@@ -58,27 +58,12 @@ func (c *ConfigSigner) AddPeer(ctx context.Context, peerID peer.ID, addrs []mult
 func (c *ConfigSigner) RemovePeer(ctx context.Context, peerID peer.ID) error {
 	defer log.EventBegin(ctx, "ConfigSigner.RemovePeer").Done()
 
-	err := c.networkConfig.RemovePeer(ctx, peerID)
+	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
 		return err
 	}
 
-	return c.networkConfig.Sign(ctx, c.privKey)
-}
-
-// IsAllowed returns true if the given peer is allowed in the network.
-func (c *ConfigSigner) IsAllowed(ctx context.Context, peerID peer.ID) bool {
-	return c.networkConfig.IsAllowed(ctx, peerID)
-}
-
-// AllowedPeers returns the IDs of the peers in the network.
-func (c *ConfigSigner) AllowedPeers(ctx context.Context) []peer.ID {
-	return c.networkConfig.AllowedPeers(ctx)
-}
-
-// NetworkState returns the current state of the network protection.
-func (c *ConfigSigner) NetworkState(ctx context.Context) pb.NetworkState {
-	return c.networkConfig.NetworkState(ctx)
+	return c.NetworkConfig.Sign(ctx, c.privKey)
 }
 
 // SetNetworkState sets the current state of the network protection
@@ -86,22 +71,12 @@ func (c *ConfigSigner) NetworkState(ctx context.Context) pb.NetworkState {
 func (c *ConfigSigner) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
 	defer log.EventBegin(ctx, "ConfigSigner.SetNetworkState").Done()
 
-	err := c.networkConfig.SetNetworkState(ctx, networkState)
+	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
 		return err
 	}
 
-	return c.networkConfig.Sign(ctx, c.privKey)
-}
-
-// Sign signs the underlying configuration.
-func (c *ConfigSigner) Sign(ctx context.Context, privKey crypto.PrivKey) error {
-	return c.networkConfig.Sign(ctx, privKey)
-}
-
-// Copy returns a copy of the underlying configuration.
-func (c *ConfigSigner) Copy(ctx context.Context) pb.NetworkConfig {
-	return c.networkConfig.Copy(ctx)
+	return c.NetworkConfig.Sign(ctx, c.privKey)
 }
 
 // Reset clears the current configuration and applies the given one.
@@ -110,10 +85,10 @@ func (c *ConfigSigner) Copy(ctx context.Context) pb.NetworkConfig {
 func (c *ConfigSigner) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
 	defer log.EventBegin(ctx, "ConfigSigner.Reset").Done()
 
-	err := c.networkConfig.Reset(ctx, networkConfig)
+	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {
 		return err
 	}
 
-	return c.networkConfig.Sign(ctx, c.privKey)
+	return c.NetworkConfig.Sign(ctx, c.privKey)
 }

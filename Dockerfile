@@ -1,13 +1,10 @@
-FROM stratumn/gobase:0.2.0
+FROM stratumn/gobase:0.3.0
 
 RUN addgroup -S -g 999 alice
 RUN adduser -H -D -u 999 -G alice alice
 
 RUN mkdir -p /usr/local/bin
 COPY dist/linux-amd64/alice /usr/local/bin/
-
-COPY docker/start-alice.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/start-alice.sh
 
 RUN mkdir -p /usr/local/etc/alice
 RUN chown alice:alice /usr/local/etc/alice/
@@ -19,7 +16,9 @@ RUN chmod 0700 /usr/local/var/alice
 
 USER alice
 
-CMD ["start-alice.sh"]
+WORKDIR /usr/local/var/alice
+
+ENTRYPOINT [ "/usr/local/bin/alice" ]
 
 EXPOSE 8903 8904 8905 8906
 

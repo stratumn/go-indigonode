@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/grpc/clock"
+	clock "github.com/stratumn/alice/app/clock/grpc"
 	"github.com/stratumn/alice/test/session"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"

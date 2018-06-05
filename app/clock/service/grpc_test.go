@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clock
+package service
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/clock"
+	pb "github.com/stratumn/alice/app/clock/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clock
+package service
 
 import (
 	"context"
@@ -21,9 +21,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/app/clock/protocol"
+	"github.com/stratumn/alice/app/clock/service/mockclock"
 	"github.com/stratumn/alice/core/manager/testservice"
-	protocol "github.com/stratumn/alice/core/protocol/clock"
-	"github.com/stratumn/alice/core/service/clock/mockclock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

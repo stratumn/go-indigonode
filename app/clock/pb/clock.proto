@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package stratumn.alice.pb.clock;
 
-option go_package = "github.com/stratumn/alice/pb/clock;clock";
+option go_package = "github.com/stratumn/alice/app/clock/pb;pb";
 
 // The time message containing a Unix nano timestamp.
 message Time {

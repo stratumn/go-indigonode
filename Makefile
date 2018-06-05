@@ -55,10 +55,11 @@ COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test')
 LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
 BUILD_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
 CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
-GRPC_PROTOS=$(shell find grpc -name '*.proto')
+
+GRPC_PROTOS=$(shell find grpc -name '*.proto') $(shell find app -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
-PROTOS=$(shell find pb -name '*.proto')
+PROTOS=$(shell find pb -name '*.proto') $(shell find app -name '*.proto')
 PROTOS_GO=$(PROTOS:.proto=.pb.go)
 
 NIX_EXECS=$(foreach os-arch, $(NIX_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD))
@@ -120,12 +121,13 @@ protobuf: protodeps $(GRPC_GO) $(PROTOS_GO)
 protodeps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gofast
 
-grpc/%.pb.go: grpc/%.proto
-	protoc \
-		-I vendor/github.com/gogo/protobuf/protobuf \
-		-I vendor \
-		-I $(GOPATH)/src/ \
-		--gofast_out=\
+%.pb.go: %.proto
+	@if [[ $@ = *grpc* ]]; then \
+		protoc \
+			-I vendor/github.com/gogo/protobuf/protobuf \
+			-I vendor \
+			-I $(GOPATH)/src/ \
+			--gofast_out=\
 Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor,\
 Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
@@ -136,16 +138,13 @@ Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types,\
 plugins=grpc\
 :$(GOPATH)/src \
-		github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<
-	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
-	rm $@.bak
-
-pb/%.pb.go: pb/%.proto
-	protoc \
-		-I vendor/github.com/gogo/protobuf/protobuf \
-		-I vendor \
-		-I $(GOPATH)/src/ \
-		--gofast_out=\
+			github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<; \
+	else \
+		protoc \
+			-I vendor/github.com/gogo/protobuf/protobuf \
+			-I vendor \
+			-I $(GOPATH)/src/ \
+			--gofast_out=\
 Mgoogle/protobuf/descriptor.proto=github.com/golang/protobuf/protoc-gen-go/descriptor,\
 Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,\
@@ -155,7 +154,11 @@ Mgoogle/protobuf/struct.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,\
 Mgoogle/protobuf/wrappers.proto=github.com/gogo/protobuf/types\
 :$(GOPATH)/src\
-		github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<
+			github.com/$(GITHUB_USER)/$(GITHUB_REPO)/$<; \
+	fi
+
+	sed -i'.bak' 's|golang.org/x/net/context|context|g' $@
+	rm $@.bak
 
 # == doc ======================================================================
 

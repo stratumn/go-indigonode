@@ -153,7 +153,7 @@ func (c *InMemoryConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error
 	defer event.Done()
 
 	c.dataLock.Lock()
-	c.dataLock.Unlock()
+	defer c.dataLock.Unlock()
 
 	err := c.data.Sign(ctx, privKey)
 	if err != nil {

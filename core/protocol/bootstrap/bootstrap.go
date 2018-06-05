@@ -57,10 +57,10 @@ func New(
 		return &PublicNetworkHandler{}, nil
 	case protector.PrivateWithCoordinatorMode:
 		if networkMode.IsCoordinator {
-			return NewCoordinatorHandler(host, networkMode, networkConfig)
+			return NewCoordinatorHandler(host, networkConfig)
 		}
 
-		return NewCoordinatedHandler(host, networkMode, networkConfig)
+		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

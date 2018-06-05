@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocks -destination mocks/mockhost.go gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host Host
-//go:generate mockgen -package mocks -destination mocks/mockstream.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Stream
+syntax = "proto3";
 
-package test
+package stratumn.alice.pb.bootstrap;
+
+option go_package = "github.com/stratumn/alice/pb/bootstrap;bootstrap";
+
+// A simple Hello handshake message.
+message Hello {}

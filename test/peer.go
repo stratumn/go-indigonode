@@ -27,15 +27,26 @@ import (
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
-// GeneratePeerID generates a valid peerID.
-func GeneratePeerID(t *testing.T) peer.ID {
-	_, pk, err := crypto.GenerateEd25519Key(crand.Reader)
+// GeneratePrivateKey generates a valid private key.
+func GeneratePrivateKey(t *testing.T) crypto.PrivKey {
+	sk, _, err := crypto.GenerateEd25519Key(crand.Reader)
 	require.NoError(t, err, "crypto.GenerateEd25519Key()")
 
-	peerID, err := peer.IDFromPublicKey(pk)
-	require.NoError(t, err, "peer.IDFromPublicKey()")
+	return sk
+}
+
+// GetPeerIDFromKey returns the peer ID associated to a key.
+func GetPeerIDFromKey(t *testing.T, sk crypto.PrivKey) peer.ID {
+	peerID, err := peer.IDFromPrivateKey(sk)
+	require.NoError(t, err, "peer.IDFromPrivateKey()")
 
 	return peerID
+}
+
+// GeneratePeerID generates a valid peerID.
+func GeneratePeerID(t *testing.T) peer.ID {
+	sk := GeneratePrivateKey(t)
+	return GetPeerIDFromKey(t, sk)
 }
 
 // GeneratePeerMultiaddr generates a semantically valid multiaddr for the given peer.
@@ -50,8 +61,24 @@ func GeneratePeerMultiaddr(t *testing.T, peerID peer.ID) multiaddr.Multiaddr {
 	return peerAddr
 }
 
+// GeneratePeerMultiaddrs generates semantically valid multiaddrs for the given peer.
+func GeneratePeerMultiaddrs(t *testing.T, peerID peer.ID) []multiaddr.Multiaddr {
+	return []multiaddr.Multiaddr{
+		GeneratePeerMultiaddr(t, peerID),
+		GeneratePeerMultiaddr(t, peerID),
+	}
+}
+
 // GenerateMultiaddr generates a valid multiaddr.
 func GenerateMultiaddr(t *testing.T) multiaddr.Multiaddr {
 	peerID := GeneratePeerID(t)
 	return GeneratePeerMultiaddr(t, peerID)
+}
+
+// GenerateMultiaddrs generates semantically valid multiaddrs.
+func GenerateMultiaddrs(t *testing.T) []multiaddr.Multiaddr {
+	return []multiaddr.Multiaddr{
+		GenerateMultiaddr(t),
+		GenerateMultiaddr(t),
+	}
 }

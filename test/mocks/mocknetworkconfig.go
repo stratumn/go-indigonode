@@ -6,9 +6,10 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	protector "github.com/stratumn/alice/core/protector"
+	protector "github.com/stratumn/alice/pb/protector"
 	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	go_libp2p_crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	reflect "reflect"
 )
 
@@ -59,6 +60,30 @@ func (_mr *MockNetworkConfigMockRecorder) AllowedPeers(arg0 interface{}) *gomock
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AllowedPeers", reflect.TypeOf((*MockNetworkConfig)(nil).AllowedPeers), arg0)
 }
 
+// Copy mocks base method
+func (_m *MockNetworkConfig) Copy(_param0 context.Context) protector.NetworkConfig {
+	ret := _m.ctrl.Call(_m, "Copy", _param0)
+	ret0, _ := ret[0].(protector.NetworkConfig)
+	return ret0
+}
+
+// Copy indicates an expected call of Copy
+func (_mr *MockNetworkConfigMockRecorder) Copy(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Copy", reflect.TypeOf((*MockNetworkConfig)(nil).Copy), arg0)
+}
+
+// IsAllowed mocks base method
+func (_m *MockNetworkConfig) IsAllowed(_param0 context.Context, _param1 go_libp2p_peer.ID) bool {
+	ret := _m.ctrl.Call(_m, "IsAllowed", _param0, _param1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsAllowed indicates an expected call of IsAllowed
+func (_mr *MockNetworkConfigMockRecorder) IsAllowed(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "IsAllowed", reflect.TypeOf((*MockNetworkConfig)(nil).IsAllowed), arg0, arg1)
+}
+
 // NetworkState mocks base method
 func (_m *MockNetworkConfig) NetworkState(_param0 context.Context) protector.NetworkState {
 	ret := _m.ctrl.Call(_m, "NetworkState", _param0)
@@ -83,6 +108,18 @@ func (_mr *MockNetworkConfigMockRecorder) RemovePeer(arg0, arg1 interface{}) *go
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "RemovePeer", reflect.TypeOf((*MockNetworkConfig)(nil).RemovePeer), arg0, arg1)
 }
 
+// Reset mocks base method
+func (_m *MockNetworkConfig) Reset(_param0 context.Context, _param1 *protector.NetworkConfig) error {
+	ret := _m.ctrl.Call(_m, "Reset", _param0, _param1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Reset indicates an expected call of Reset
+func (_mr *MockNetworkConfigMockRecorder) Reset(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Reset", reflect.TypeOf((*MockNetworkConfig)(nil).Reset), arg0, arg1)
+}
+
 // SetNetworkState mocks base method
 func (_m *MockNetworkConfig) SetNetworkState(_param0 context.Context, _param1 protector.NetworkState) error {
 	ret := _m.ctrl.Call(_m, "SetNetworkState", _param0, _param1)
@@ -93,4 +130,16 @@ func (_m *MockNetworkConfig) SetNetworkState(_param0 context.Context, _param1 pr
 // SetNetworkState indicates an expected call of SetNetworkState
 func (_mr *MockNetworkConfigMockRecorder) SetNetworkState(arg0, arg1 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "SetNetworkState", reflect.TypeOf((*MockNetworkConfig)(nil).SetNetworkState), arg0, arg1)
+}
+
+// Sign mocks base method
+func (_m *MockNetworkConfig) Sign(_param0 context.Context, _param1 go_libp2p_crypto.PrivKey) error {
+	ret := _m.ctrl.Call(_m, "Sign", _param0, _param1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Sign indicates an expected call of Sign
+func (_mr *MockNetworkConfigMockRecorder) Sign(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "Sign", reflect.TypeOf((*MockNetworkConfig)(nil).Sign), arg0, arg1)
 }

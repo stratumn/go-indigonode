@@ -106,7 +106,14 @@ func TestVerify(t *testing.T) {
 		func() *crypto.Signature {
 			sk1, _, _ := ic.GenerateEd25519Key(rand.Reader)
 			sig, _ := crypto.Sign(sk1, []byte("h3ll0"))
-			sig.Signature[3] = sig.Signature[7]
+			swap := sig.Signature[3]
+			for i := 4; i < len(sig.Signature); i++ {
+				if sig.Signature[3] != sig.Signature[i] {
+					sig.Signature[3] = sig.Signature[i]
+					sig.Signature[i] = swap
+					break
+				}
+			}
 			return sig
 		},
 		[]byte("h3ll0"),

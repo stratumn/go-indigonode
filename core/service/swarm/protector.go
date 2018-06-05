@@ -58,7 +58,7 @@ type coordinatorConfig struct{}
 func (c *coordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error) {
 	p := protector.NewPrivateNetworkWithBootstrap(pstore)
 
-	networkConfig, err := protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
+	networkConfig, err := protector.LoadOrInitNetworkConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +77,7 @@ type withCoordinatorConfig struct{}
 func (c *withCoordinatorConfig) Configure(ctx context.Context, s *Service, pstore peerstore.Peerstore) (ipnet.Protector, protector.NetworkConfig, error) {
 	p := protector.NewPrivateNetwork(pstore)
 
-	networkConfig, err := protector.InitLocalConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
+	networkConfig, err := protector.LoadOrInitNetworkConfig(ctx, s.config.CoordinatorConfig.ConfigPath, s.privKey, p, pstore)
 	if err != nil {
 		return nil, nil, err
 	}

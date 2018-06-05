@@ -17,33 +17,115 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	pb "github.com/stratumn/alice/pb/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+)
+
+var (
+	// PrivateCoordinatedProtocolID is the protocol for receiving network
+	// updates in a private network. Network participants should implement this protocol.
+	PrivateCoordinatedProtocolID = protocol.ID("/alice/indigo/bootstrap/private/coordinated/v1.0.0")
 )
 
 // CoordinatedHandler is the handler for a non-coordinator node
 // in a private network that has a coordinator.
 type CoordinatedHandler struct {
+	coordinatorID peer.ID
 	host          ihost.Host
 	networkConfig protector.NetworkConfig
 }
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
 func NewCoordinatedHandler(
+	ctx context.Context,
 	host ihost.Host,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 ) (Handler, error) {
-	handler := CoordinatedHandler{host: host, networkConfig: networkConfig}
+	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
+		"coordinatorID": networkMode.CoordinatorID.Pretty(),
+	})
+	defer event.Done()
 
-	host.SetStreamHandler(PrivateWithCoordinatorProtocolID, handler.handle)
+	handler := CoordinatedHandler{
+		coordinatorID: networkMode.CoordinatorID,
+		host:          host,
+		networkConfig: networkConfig,
+	}
+
+	err := handler.handshake(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	host.SetStreamHandler(PrivateCoordinatedProtocolID, handler.Handle)
 
 	return &handler, nil
 }
 
-func (h *CoordinatedHandler) handle(stream inet.Stream) {
+// handshake connects to the coordinator for the initial handshake.
+// The node is expected to receive the network configuration during
+// that handshake.
+func (h *CoordinatedHandler) handshake(ctx context.Context) error {
+	event := log.EventBegin(ctx, "Coordinated.handshake")
+	defer event.Done()
+
+	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
+	if err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProtocolID)
+	if err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	defer func() {
+		err := stream.Close()
+		if err != nil {
+			event.Append(logging.Metadata{"close_err": err.Error()})
+		}
+	}()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	if err := enc.Encode(&pb.Hello{}); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var networkConfig protectorpb.NetworkConfig
+	if err := dec.Decode(&networkConfig); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	// The network is still bootstrapping and we're not
+	// whitelisted yet, so we do nothing.
+	if len(networkConfig.Participants) == 0 {
+		event.Append(logging.Metadata{"participants_count": 0})
+		return nil
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		event.SetError(protectorpb.ErrInvalidSignature)
+		return protectorpb.ErrInvalidSignature
+	}
+
+	return h.networkConfig.Reset(ctx, &networkConfig)
+}
+
+// Handle handles an incoming stream.
+func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 	ctx := context.Background()
 	defer log.EventBegin(ctx, "Coordinated.Handle").Done()
 }
@@ -51,5 +133,5 @@ func (h *CoordinatedHandler) handle(stream inet.Stream) {
 // Close removes the protocol handlers.
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")
-	h.host.RemoveStreamHandler(PrivateWithCoordinatorProtocolID)
+	h.host.RemoveStreamHandler(PrivateCoordinatedProtocolID)
 }

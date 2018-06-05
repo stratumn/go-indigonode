@@ -18,6 +18,8 @@ import (
 	"context"
 	"sync"
 
+	pb "github.com/stratumn/alice/pb/protector"
+
 	"gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -33,7 +35,7 @@ type PrivateNetworkWithBootstrap struct {
 	privateNetwork Protector
 
 	networkStateLock sync.RWMutex
-	networkState     NetworkState
+	networkState     pb.NetworkState
 }
 
 // NewPrivateNetworkWithBootstrap creates a protector for private networks
@@ -44,7 +46,7 @@ type PrivateNetworkWithBootstrap struct {
 func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
 	p := PrivateNetworkWithBootstrap{
 		privateNetwork: NewPrivateNetwork(peerStore),
-		networkState:   NetworkStateBootstrap,
+		networkState:   pb.NetworkState_BOOTSTRAP,
 	}
 
 	// We initially allow all requests.
@@ -57,7 +59,7 @@ func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
 // Then it switches to private network mode.
 func (p *PrivateNetworkWithBootstrap) Protect(conn transport.Conn) (transport.Conn, error) {
 	p.networkStateLock.RLock()
-	bootstrapDone := p.networkState != NetworkStateBootstrap
+	bootstrapDone := p.networkState != pb.NetworkState_BOOTSTRAP
 	p.networkStateLock.RUnlock()
 
 	if !bootstrapDone {
@@ -91,13 +93,13 @@ func (p *PrivateNetworkWithBootstrap) AllowedPeers(ctx context.Context) []peer.I
 
 // SetNetworkState sets the network state. The protector adapts to the
 // network state, so this method should be called when it changes.
-func (p *PrivateNetworkWithBootstrap) SetNetworkState(_ context.Context, networkState NetworkState) error {
+func (p *PrivateNetworkWithBootstrap) SetNetworkState(_ context.Context, networkState pb.NetworkState) error {
 	p.networkStateLock.Lock()
 	defer p.networkStateLock.Unlock()
 
 	p.networkState = networkState
 	switch p.networkState {
-	case NetworkStateBootstrap:
+	case pb.NetworkState_BOOTSTRAP:
 		ipnet.ForcePrivateNetwork = false
 	default:
 		ipnet.ForcePrivateNetwork = true

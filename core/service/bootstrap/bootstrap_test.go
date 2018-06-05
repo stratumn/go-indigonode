@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -66,7 +67,7 @@ func testService(
 	return serv
 }
 
-func expectHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwork, host *mockbootstrap.MockHost) {
+func expectHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwork, host *mocks.MockHost) {
 	seedID, err := peer.IDB58Decode(testPID)
 	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
@@ -93,7 +94,7 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockbootstrap.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 	net := mockbootstrap.NewMockNetwork(ctrl)
 	expectHost(ctx, t, net, host)
 
@@ -110,7 +111,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockbootstrap.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 	net := mockbootstrap.NewMockNetwork(ctrl)
 	expectHost(ctx, t, net, host)
 
@@ -199,7 +200,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockbootstrap.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 
 	tests := []struct {
 		name string

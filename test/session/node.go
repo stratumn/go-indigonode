@@ -35,6 +35,7 @@ import (
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/core/netutil"
 	"github.com/stratumn/alice/core/service/bootstrap"
+	"github.com/stratumn/alice/core/service/coin"
 	"github.com/stratumn/alice/core/service/grpcapi"
 	"github.com/stratumn/alice/core/service/grpcweb"
 	"github.com/stratumn/alice/core/service/kaddht"
@@ -107,6 +108,10 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 	dhtConf := config["kaddht"].(kaddht.Config)
 	dhtConf.LevelDBPath = filepath.Join(dir, "data", "kaddht")
 	config["kaddht"] = dhtConf
+
+	coinConf := config["coin"].(coin.Config)
+	coinConf.DbPath = filepath.Join(dir, "data", "coin", "db")
+	config["coin"] = coinConf
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, errors.WithStack(err)

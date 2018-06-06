@@ -121,6 +121,8 @@ protobuf: protodeps $(GRPC_GO) $(PROTOS_GO)
 protodeps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gofast
 
+vendor/%.pb.go:
+
 %.pb.go: %.proto
 	@if [[ $@ = *grpc* ]]; then \
 		protoc \

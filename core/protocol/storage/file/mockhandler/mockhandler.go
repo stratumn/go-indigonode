@@ -6,11 +6,10 @@ package mockhandler
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
-	go_uuid "github.com/satori/go.uuid"
 	file "github.com/stratumn/alice/core/protocol/storage/file"
+	go_uuid "github.com/satori/go.uuid"
+	reflect "reflect"
 )
 
 // MockHandler is a mock of Handler interface

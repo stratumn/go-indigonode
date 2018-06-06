@@ -6,11 +6,10 @@ package mocksynchronizer
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	chain "github.com/stratumn/alice/core/protocol/coin/chain"
 	coin "github.com/stratumn/alice/pb/coin"
+	reflect "reflect"
 )
 
 // MockSynchronizer is a mock of Synchronizer interface

@@ -1,4 +1,4 @@
-// Copyright © 2017-2018 Stratumn SAS
+// Copyright © 2017-2018  Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
-
-package stratumn.alice.pb.chat;
-
-option go_package = "github.com/stratumn/alice/pb/chat;chat";
-
-// The chat message containing a simple message.
-message Message {
-  string message = 1;
-}
+// Package chat is a simple application that allows two peers to exchange
+// messages.
+package chat

@@ -6,12 +6,11 @@ package mockvalidator
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	cs "github.com/stratumn/go-indigocore/cs"
 	store "github.com/stratumn/go-indigocore/store"
 	types "github.com/stratumn/go-indigocore/types"
+	reflect "reflect"
 )
 
 // MockValidator is a mock of Validator interface

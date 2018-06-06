@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+package service
 
 import (
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	pb "github.com/stratumn/alice/grpc/chat"
+	pb "github.com/stratumn/alice/app/chat/grpc"
 )
 
 var testPID1 peer.ID

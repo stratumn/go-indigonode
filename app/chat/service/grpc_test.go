@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+package service
 
 import (
 	"context"
@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	pb "github.com/stratumn/alice/grpc/chat"
-	mockpb "github.com/stratumn/alice/grpc/chat/mockchat"
+	pb "github.com/stratumn/alice/app/chat/grpc"
+	mockpb "github.com/stratumn/alice/app/chat/grpc/mockchat"
 	"github.com/stretchr/testify/assert"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

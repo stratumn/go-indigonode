@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+// Package protocol defines types for the chat protocol.
+package protocol
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
+	pbchat "github.com/stratumn/alice/app/chat/grpc"
+	"github.com/stratumn/alice/app/chat/pb"
 	"github.com/stratumn/alice/core/service/event"
-	pbchat "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
-	pb "github.com/stratumn/alice/pb/chat"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

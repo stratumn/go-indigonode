@@ -216,6 +216,16 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 	}
 }
 
+func TestCoordinator_Handle_Proposal(t *testing.T) {
+	// If addr in peerstore but not in request -> ok
+	// If addr not in peerstore but in request -> ok if addr maps to peerID
+	// Missing addr in both -> reject
+	// Invalid peer_id -> reject
+	// Already proposal -> no-op
+	// Valid proposal -> store
+	// TODO
+}
+
 func TestCoordinator_AddNode(t *testing.T) {
 	peer1 := test.GeneratePeerID(t)
 	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
@@ -224,15 +234,17 @@ func TestCoordinator_AddNode(t *testing.T) {
 	testCases := []struct {
 		name                   string
 		addNodeID              peer.ID
+		addNodeAddr            multiaddr.Multiaddr
 		configureHost          func(*gomock.Controller, *mocks.MockHost)
 		configureNetworkConfig func(*mocks.MockNetworkConfig)
 		err                    error
 	}{{
 		"node-addr-missing",
 		peer1,
+		nil,
 		func(_ *gomock.Controller, host *mocks.MockHost) {
 			// If the peer store doesn't have an address for the node,
-			// we reject the request.
+			// and it wasn't provided we reject the request.
 			peerStore := peerstore.NewPeerstore()
 			host.EXPECT().Peerstore().Times(1).Return(peerStore)
 		},
@@ -243,6 +255,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 	}, {
 		"node-already-white-listed",
 		peer1,
+		nil,
 		func(*gomock.Controller, *mocks.MockHost) {
 			// If the node is already white-listed we shouldn't notify
 			// participants, so we shouldn't use the host.
@@ -252,11 +265,34 @@ func TestCoordinator_AddNode(t *testing.T) {
 		},
 		nil,
 	}, {
-		"new-node-added",
+		"new-node-added-from-peerstore",
 		peer1,
+		nil,
 		func(ctrl *gomock.Controller, host *mocks.MockHost) {
 			peerStore := peerstore.NewPeerstore()
 			peerStore.AddAddrs(peer1, peer1Addrs, peerstore.PermanentAddrTTL)
+			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+		},
+		func(networkConfig *mocks.MockNetworkConfig) {
+			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+			networkConfig.EXPECT().AddPeer(gomock.Any(), peer1, peer1Addrs).Times(1)
+			networkConfig.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
+			networkConfig.EXPECT().Copy(gomock.Any()).Times(1)
+		},
+		nil,
+	}, {
+		"new-node-added-from-addr",
+		peer1,
+		peer1Addrs[0],
+		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+			peerStore := peerstore.NewPeerstore()
 			host.EXPECT().Peerstore().Times(1).Return(peerStore)
 
 			stream := mocks.NewMockStream(ctrl)
@@ -293,7 +329,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-			err = handler.AddNode(ctx, tt.addNodeID, []byte("I'm batman"))
+			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -305,6 +341,8 @@ func TestCoordinator_AddNode(t *testing.T) {
 
 func TestCoordinator_Accept(t *testing.T) {
 	// If no proposal in proposal store, reject
+	// If missing peer addrs, reject
 	// If node already added, should remove the proposal and do nothing
 	// If new node, notify partners (and remove proposal)
+	// TODO
 }

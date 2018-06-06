@@ -288,8 +288,9 @@ func TestCoordinated_AddNode(t *testing.T) {
 	assert.NotNil(t, handler)
 
 	randomPeer := test.GeneratePeerID(t)
+	randomPeerAddr := test.GeneratePeerMultiaddr(t, randomPeer)
 
-	err = handler.AddNode(ctx, randomPeer, []byte("trust me, he's b4tm4n"))
+	err = handler.AddNode(ctx, randomPeer, randomPeerAddr, []byte("trust me, he's b4tm4n"))
 	require.NoError(t, err, "handler.AddNode()")
 
 	// We shouldn't allow the node until the coordinator validates it.

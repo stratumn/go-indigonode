@@ -25,6 +25,7 @@ import (
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -157,7 +158,7 @@ func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
-func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, info []byte) error {
+func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
 	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
 	defer event.Done()
 
@@ -169,11 +170,16 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, info [
 
 	defer stream.Close()
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(&grpc.NodeIdentity{
+	req := &grpc.NodeIdentity{
 		PeerId:        []byte(peerID),
 		IdentityProof: info,
-	})
+	}
+	if addr != nil {
+		req.PeerAddr = addr.Bytes()
+	}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err

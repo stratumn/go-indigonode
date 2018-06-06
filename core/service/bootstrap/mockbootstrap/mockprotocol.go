@@ -6,9 +6,10 @@ package mockbootstrap
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockHandler is a mock of Handler interface

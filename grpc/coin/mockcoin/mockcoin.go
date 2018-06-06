@@ -6,11 +6,10 @@ package mockcoin
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	coin "github.com/stratumn/alice/pb/coin"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockCoin_AccountTransactionsServer is a mock of Coin_AccountTransactionsServer interface

@@ -15,10 +15,10 @@
 package core
 
 import (
+	chat "github.com/stratumn/alice/app/chat/service"
 	clock "github.com/stratumn/alice/app/clock/service"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/service/bootstrap"
-	"github.com/stratumn/alice/core/service/chat"
 	"github.com/stratumn/alice/core/service/coin"
 	"github.com/stratumn/alice/core/service/connmgr"
 	"github.com/stratumn/alice/core/service/contacts"

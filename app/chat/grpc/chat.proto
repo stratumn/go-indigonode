@@ -20,7 +20,7 @@ import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
 package stratumn.alice.grpc.chat;
 
-option go_package = "github.com/stratumn/alice/grpc/chat;chat";
+option go_package = "github.com/stratumn/alice/app/chat/grpc;grpc";
 
 // The chat service definition.
 service Chat {

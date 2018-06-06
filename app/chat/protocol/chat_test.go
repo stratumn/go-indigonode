@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+package protocol
 
 import (
 	"context"
@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
+	pbchat "github.com/stratumn/alice/app/chat/grpc"
 	"github.com/stratumn/alice/core/p2p"
 	"github.com/stratumn/alice/core/service/event"
-	pbchat "github.com/stratumn/alice/grpc/chat"
 	pbevent "github.com/stratumn/alice/grpc/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

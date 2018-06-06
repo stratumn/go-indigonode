@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package chat is a simple service that allows two peers to exchange messages.
-package chat
+// Package service defines types for the chat service.
+package service
 
 import (
 	"context"
@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/chat"
+	pb "github.com/stratumn/alice/app/chat/grpc"
+	chat "github.com/stratumn/alice/app/chat/protocol"
 	"github.com/stratumn/alice/core/service/event"
-	pb "github.com/stratumn/alice/grpc/chat"
 
 	"google.golang.org/grpc"
 

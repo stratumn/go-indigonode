@@ -6,10 +6,9 @@ package mockvalidator
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	validator "github.com/stratumn/go-indigocore/validator"
+	reflect "reflect"
 )
 
 // MockGovernanceManager is a mock of GovernanceManager interface

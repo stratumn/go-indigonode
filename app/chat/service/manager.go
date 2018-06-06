@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chat
+package service
 
 import (
 	"encoding/binary"
@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/app/chat/grpc"
 	"github.com/stratumn/alice/core/db"
-	pb "github.com/stratumn/alice/grpc/chat"
 )
 
 // PeerHistory represents a list of messages

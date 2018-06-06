@@ -127,7 +127,31 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 // Handle handles an incoming stream.
 func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 	ctx := context.Background()
-	defer log.EventBegin(ctx, "Coordinated.Handle").Done()
+	event := log.EventBegin(ctx, "Coordinated.Handle", stream.Conn().RemotePeer())
+	defer func() {
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"close-err": err.Error()})
+		}
+
+		event.Done()
+	}()
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var networkConfig protectorpb.NetworkConfig
+	if err := dec.Decode(&networkConfig); err != nil {
+		event.SetError(errors.WithStack(err))
+		return
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		event.SetError(protectorpb.ErrInvalidSignature)
+		return
+	}
+
+	err := h.networkConfig.Reset(ctx, &networkConfig)
+	if err != nil {
+		event.SetError(err)
+	}
 }
 
 // AddNode sends a proposal to add the node to the coordinator.

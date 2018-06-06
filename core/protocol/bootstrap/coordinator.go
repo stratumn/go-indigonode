@@ -156,6 +156,7 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
+	eventLock := &sync.Mutex{}
 	event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig")
 	defer event.Done()
 
@@ -172,26 +173,34 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 
 			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProtocolID)
 			if err != nil {
+				eventLock.Lock()
 				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
 				return
 			}
 
 			defer func() {
 				if err = stream.Close(); err != nil {
+					eventLock.Lock()
 					event.Append(logging.Metadata{
 						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
 					})
+					eventLock.Unlock()
 				}
 			}()
 
 			enc := protobuf.Multicodec(nil).Encoder(stream)
 			err = enc.Encode(&networkConfig)
 			if err != nil {
+				eventLock.Lock()
 				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
 				return
 			}
 
+			eventLock.Lock()
 			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
+			eventLock.Unlock()
 		}(peerID)
 	}
 

@@ -87,6 +87,11 @@ func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) 
 	return bootstrap.NewCoordinatorHandler(n.coordinator, networkConfig)
 }
 
+// CoordinatorHost returns the underlying host of the coordinator.
+func (n *TestNetwork) CoordinatorHost() ihost.Host {
+	return n.coordinator
+}
+
 // CoordinatorID returns the ID of the coordinator.
 func (n *TestNetwork) CoordinatorID() peer.ID {
 	if n.coordinator != nil {

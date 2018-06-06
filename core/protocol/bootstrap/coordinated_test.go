@@ -19,11 +19,14 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 )
 
 func newNetworkConfig(t *testing.T) protector.NetworkConfig {
@@ -180,4 +183,86 @@ func TestCoordinated_Handshake(t *testing.T) {
 		assert.True(t, coordinatedConfig.IsAllowed(ctx, testNetwork.CoordinatorID()))
 		assert.True(t, coordinatedConfig.IsAllowed(ctx, coordinatedNode.ID()))
 	})
+}
+
+func TestCoordinated_Handle(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	networkConfig := newNetworkConfig(t)
+	host, connect := testNetwork.PrepareCoordinatedNode(
+		testNetwork.CoordinatorID(),
+		networkConfig,
+	)
+
+	handler, err := connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	testCases := []struct {
+		name           string
+		receivedConfig func() *protectorpb.NetworkConfig
+		validateConfig func(*testing.T)
+	}{{
+		"invalid-config-content",
+		func() *protectorpb.NetworkConfig {
+			return protectorpb.NewNetworkConfig(42)
+		},
+		func(t *testing.T) {
+			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState(ctx))
+			assert.Len(t, networkConfig.AllowedPeers(ctx), 0)
+		},
+	}, {
+		"invalid-config-signature",
+		func() *protectorpb.NetworkConfig {
+			networkConfig := protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP)
+			networkConfig.Sign(ctx, test.GeneratePrivateKey(t))
+			return networkConfig
+		},
+		func(t *testing.T) {
+			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState(ctx))
+			assert.Len(t, networkConfig.AllowedPeers(ctx), 0)
+		},
+	}, {
+		"valid-config",
+		func() *protectorpb.NetworkConfig {
+			networkConfig := protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED)
+			networkConfig.Participants[host.ID().Pretty()] = &protectorpb.PeerAddrs{
+				Addresses: []string{test.GeneratePeerMultiaddr(t, host.ID()).String()},
+			}
+			networkConfig.Sign(ctx, testNetwork.CoordinatorKey())
+
+			return networkConfig
+		},
+		func(t *testing.T) {
+			assert.Equal(t, protectorpb.NetworkState_PROTECTED, networkConfig.NetworkState(ctx))
+			assert.Len(t, networkConfig.AllowedPeers(ctx), 1)
+			assert.True(t, networkConfig.IsAllowed(ctx, host.ID()))
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			stream, err := testNetwork.CoordinatorHost().NewStream(
+				ctx,
+				host.ID(),
+				bootstrap.PrivateCoordinatedProtocolID,
+			)
+			require.NoError(t, err, "NewStream()")
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(tt.receivedConfig())
+			require.NoError(t, err, "enc.Encode()")
+
+			test.WaitUntilStreamClosed(t, stream)
+
+			tt.validateConfig(t)
+		})
+	}
 }

@@ -216,16 +216,6 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 	}
 }
 
-func TestCoordinator_Handle_Proposal(t *testing.T) {
-	// If addr in peerstore but not in request -> ok
-	// If addr not in peerstore but in request -> ok if addr maps to peerID
-	// Missing addr in both -> reject
-	// Invalid peer_id -> reject
-	// Already proposal -> no-op
-	// Valid proposal -> store
-	// TODO
-}
-
 func TestCoordinator_AddNode(t *testing.T) {
 	peer1 := test.GeneratePeerID(t)
 	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
@@ -337,12 +327,4 @@ func TestCoordinator_AddNode(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestCoordinator_Accept(t *testing.T) {
-	// If no proposal in proposal store, reject
-	// If missing peer addrs, reject
-	// If node already added, should remove the proposal and do nothing
-	// If new node, notify partners (and remove proposal)
-	// TODO
 }

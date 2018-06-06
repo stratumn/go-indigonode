@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	grpc "github.com/stratumn/alice/grpc/bootstrap"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -156,7 +157,28 @@ func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
-func (h *CoordinatedHandler) AddNode(context.Context, peer.ID, []byte) error {
+func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, info []byte) error {
+	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
+	defer event.Done()
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProtocolID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(&grpc.NodeIdentity{
+		PeerId:        []byte(peerID),
+		IdentityProof: info,
+	})
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
 	return nil
 }
 

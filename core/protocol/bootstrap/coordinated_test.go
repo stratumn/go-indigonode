@@ -266,3 +266,37 @@ func TestCoordinated_Handle(t *testing.T) {
 		})
 	}
 }
+
+func TestCoordinated_AddNode(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	coordinatorHandler, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	networkConfig := newNetworkConfig(t)
+	_, connect := testNetwork.PrepareCoordinatedNode(
+		testNetwork.CoordinatorID(),
+		networkConfig,
+	)
+
+	handler, err := connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	randomPeer := test.GeneratePeerID(t)
+
+	err = handler.AddNode(ctx, randomPeer, []byte("trust me, he's b4tm4n"))
+	require.NoError(t, err, "handler.AddNode()")
+
+	// We shouldn't allow the node until the coordinator validates it.
+	assert.False(t, networkConfig.IsAllowed(ctx, randomPeer))
+
+	err = coordinatorHandler.Accept(ctx, randomPeer)
+	require.NoError(t, err, "coordinatorHandler.Accept()")
+
+	assert.True(t, networkConfig.IsAllowed(ctx, randomPeer))
+}

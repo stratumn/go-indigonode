@@ -26,9 +26,11 @@ import (
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -119,7 +121,7 @@ func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 
 // AddNode adds the node to the network configuration
 // and notifies network participants.
-func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, info []byte) error {
+func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
 	event := log.EventBegin(ctx, "Coordinator.AddNode", peerID)
 	defer event.Done()
 
@@ -127,10 +129,16 @@ func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, info [
 		return nil
 	}
 
-	pi := h.host.Peerstore().PeerInfo(peerID)
+	pstore := h.host.Peerstore()
+	pi := pstore.PeerInfo(peerID)
 	if len(pi.Addrs) == 0 {
-		event.SetError(ErrUnknownNode)
-		return ErrUnknownNode
+		if addr == nil {
+			event.SetError(ErrUnknownNode)
+			return ErrUnknownNode
+		}
+
+		pstore.AddAddr(peerID, addr, peerstore.PermanentAddrTTL)
+		pi = pstore.PeerInfo(peerID)
 	}
 
 	err := h.networkConfig.AddPeer(ctx, peerID, pi.Addrs)

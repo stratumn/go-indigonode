@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //go:generate mockgen -package mocks -destination mocks/mockhost.go gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host Host
+//go:generate mockgen -package mocks -destination mocks/mockpeerstore.go gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore Peerstore
 //go:generate mockgen -package mocks -destination mocks/mockstream.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Stream
 
 package test

@@ -21,7 +21,9 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
@@ -40,10 +42,18 @@ func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack,
 
 	peerID, err := peer.IDFromBytes(req.PeerId)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, protectorpb.ErrInvalidPeerID
 	}
 
-	err = s.GetProtocolHandler().AddNode(ctx, peerID, req.IdentityProof)
+	var peerAddr multiaddr.Multiaddr
+	if len(req.PeerAddr) != 0 {
+		peerAddr, err = multiaddr.NewMultiaddrBytes(req.PeerAddr)
+		if err != nil {
+			return nil, protectorpb.ErrInvalidPeerAddr
+		}
+	}
+
+	err = s.GetProtocolHandler().AddNode(ctx, peerID, peerAddr, req.IdentityProof)
 	if err != nil {
 		return nil, err
 	}

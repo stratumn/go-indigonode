@@ -24,6 +24,7 @@ import (
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,22 +64,53 @@ func TestGRPCServer_AddNode(t *testing.T) {
 	})
 
 	t.Run("private-network", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
+		t.Run("invalid-peer-id", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-		handler := mockbootstrap.NewMockHandler(ctrl)
-		s := testPrivateNetworkServer(handler)
+			handler := mockbootstrap.NewMockHandler(ctrl)
+			s := testPrivateNetworkServer(handler)
 
-		peerID := test.GeneratePeerID(t)
-		nodeID := &pb.NodeIdentity{
-			PeerId:        []byte(peerID),
-			IdentityProof: []byte("I'm the batman"),
-		}
+			nodeID := &pb.NodeIdentity{PeerId: []byte("b4tm4n")}
+			_, err := s.AddNode(ctx, nodeID)
+			require.EqualError(t, err, protectorpb.ErrInvalidPeerID.Error())
+		})
 
-		handler.EXPECT().AddNode(gomock.Any(), peerID, nodeID.IdentityProof).Times(1)
+		t.Run("invalid-peer-addr", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-		_, err := s.AddNode(ctx, nodeID)
-		require.NoError(t, err)
+			handler := mockbootstrap.NewMockHandler(ctrl)
+			s := testPrivateNetworkServer(handler)
+
+			nodeID := &pb.NodeIdentity{
+				PeerId:   []byte(test.GeneratePeerID(t)),
+				PeerAddr: []byte("not/a/multiaddr"),
+			}
+			_, err := s.AddNode(ctx, nodeID)
+			require.EqualError(t, err, protectorpb.ErrInvalidPeerAddr.Error())
+		})
+
+		t.Run("valid-request", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			handler := mockbootstrap.NewMockHandler(ctrl)
+			s := testPrivateNetworkServer(handler)
+
+			peerID := test.GeneratePeerID(t)
+			peerAddr := test.GeneratePeerMultiaddr(t, peerID)
+			nodeID := &pb.NodeIdentity{
+				PeerId:        []byte(peerID),
+				PeerAddr:      peerAddr.Bytes(),
+				IdentityProof: []byte("I'm the batman"),
+			}
+
+			handler.EXPECT().AddNode(gomock.Any(), peerID, peerAddr, nodeID.IdentityProof).Times(1)
+
+			_, err := s.AddNode(ctx, nodeID)
+			require.NoError(t, err)
+		})
 	})
 }
 

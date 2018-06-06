@@ -6,6 +6,7 @@ package mockbootstrap
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	reflect "reflect"
 )
@@ -46,15 +47,15 @@ func (_mr *MockHandlerMockRecorder) Accept(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // AddNode mocks base method
-func (_m *MockHandler) AddNode(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 []byte) error {
-	ret := _m.ctrl.Call(_m, "AddNode", _param0, _param1, _param2)
+func (_m *MockHandler) AddNode(_param0 context.Context, _param1 go_libp2p_peer.ID, _param2 go_multiaddr.Multiaddr, _param3 []byte) error {
+	ret := _m.ctrl.Call(_m, "AddNode", _param0, _param1, _param2, _param3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddNode indicates an expected call of AddNode
-func (_mr *MockHandlerMockRecorder) AddNode(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddNode", reflect.TypeOf((*MockHandler)(nil).AddNode), arg0, arg1, arg2)
+func (_mr *MockHandlerMockRecorder) AddNode(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCallWithMethodType(_mr.mock, "AddNode", reflect.TypeOf((*MockHandler)(nil).AddNode), arg0, arg1, arg2, arg3)
 }
 
 // Close mocks base method

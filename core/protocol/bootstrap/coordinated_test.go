@@ -17,7 +17,9 @@ package bootstrap_test
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
@@ -27,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 func newNetworkConfig(t *testing.T) protector.NetworkConfig {
@@ -36,6 +39,17 @@ func newNetworkConfig(t *testing.T) protector.NetworkConfig {
 	)
 	require.NoError(t, err, "protector.NewInMemoryConfig()")
 	return config
+}
+
+func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
+	test.WaitUntil(t, 100*time.Millisecond, 20*time.Millisecond,
+		func() error {
+			if !networkConfig.IsAllowed(context.Background(), peerID) {
+				return errors.New("peer not allowed")
+			}
+
+			return nil
+		}, "peer not allowed in time")
 }
 
 func TestCoordinated_Handshake(t *testing.T) {
@@ -278,7 +292,7 @@ func TestCoordinated_AddNode(t *testing.T) {
 	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
 
 	networkConfig := newNetworkConfig(t)
-	_, connect := testNetwork.PrepareCoordinatedNode(
+	host, connect := testNetwork.PrepareCoordinatedNode(
 		testNetwork.CoordinatorID(),
 		networkConfig,
 	)
@@ -287,17 +301,15 @@ func TestCoordinated_AddNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, handler)
 
-	randomPeer := test.GeneratePeerID(t)
-	randomPeerAddr := test.GeneratePeerMultiaddr(t, randomPeer)
-
-	err = handler.AddNode(ctx, randomPeer, randomPeerAddr, []byte("trust me, he's b4tm4n"))
+	err = handler.AddNode(ctx, host.ID(), host.Addrs()[0], []byte("trust me, I'm b4tm4n"))
 	require.NoError(t, err, "handler.AddNode()")
 
 	// We shouldn't allow the node until the coordinator validates it.
-	assert.False(t, networkConfig.IsAllowed(ctx, randomPeer))
+	assert.False(t, networkConfig.IsAllowed(ctx, host.ID()))
 
-	err = coordinatorHandler.Accept(ctx, randomPeer)
+	// TODO: switch to Accept() once implemented
+	err = coordinatorHandler.AddNode(ctx, host.ID(), nil, []byte("trusted"))
 	require.NoError(t, err, "coordinatorHandler.Accept()")
 
-	assert.True(t, networkConfig.IsAllowed(ctx, randomPeer))
+	waitUntilAllowed(t, host.ID(), networkConfig)
 }

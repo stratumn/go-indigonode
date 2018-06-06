@@ -25,6 +25,7 @@ import (
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
@@ -58,6 +59,8 @@ func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfi
 		if n.coordinator != nil {
 			err := h.Connect(n.ctx, n.coordinator.Peerstore().PeerInfo(n.CoordinatorID()))
 			require.NoError(n.t, err, "h.Connect()")
+
+			n.coordinator.Peerstore().AddAddrs(h.ID(), h.Addrs(), peerstore.PermanentAddrTTL)
 		}
 
 		n.coordinated = append(n.coordinated, h)
@@ -84,7 +87,13 @@ func (n *TestNetwork) AddCoordinatedNode(coordinatorID peer.ID, networkConfig pr
 // AddCoordinatorNode adds a coordinator node to the network.
 func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) (bootstrap.Handler, error) {
 	n.coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
-	return bootstrap.NewCoordinatorHandler(n.coordinator, networkConfig)
+	return bootstrap.NewCoordinatorHandler(
+		n.coordinator,
+		protector.WrapWithSignature(
+			networkConfig,
+			n.coordinator.Peerstore().PrivKey(n.coordinator.ID()),
+		),
+	)
 }
 
 // CoordinatorHost returns the underlying host of the coordinator.

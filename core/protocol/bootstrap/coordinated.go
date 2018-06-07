@@ -126,7 +126,7 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
-// Handle handles an incoming stream.
+// Handle receives updates to the network configuration.
 func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "Coordinated.Handle", stream.Conn().RemotePeer())

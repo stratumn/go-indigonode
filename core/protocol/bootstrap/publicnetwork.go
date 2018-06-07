@@ -17,6 +17,7 @@ package bootstrap
 import (
 	"context"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
@@ -26,7 +27,7 @@ type PublicNetworkHandler struct{}
 
 // AddNode can't be used in a public network.
 // You can directly connect to any node freely.
-func (h *PublicNetworkHandler) AddNode(context.Context, peer.ID, []byte) error {
+func (h *PublicNetworkHandler) AddNode(context.Context, peer.ID, multiaddr.Multiaddr, []byte) error {
 	return ErrInvalidOperation
 }
 

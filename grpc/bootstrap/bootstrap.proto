@@ -40,7 +40,10 @@ message NodeIdentity {
         (stratumn.alice.grpc.ext.field_required) = true,
         (stratumn.alice.grpc.ext.field_base58) = true
     ];
-    bytes identity_proof = 2 [
+    bytes peer_addr = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Peer Address"
+    ];
+    bytes identity_proof = 3 [
         (stratumn.alice.grpc.ext.field_desc) = "KYC data (TBD)"
     ];
 }

@@ -19,11 +19,13 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	grpc "github.com/stratumn/alice/grpc/bootstrap"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -124,15 +126,65 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
-// Handle handles an incoming stream.
+// Handle receives updates to the network configuration.
 func (h *CoordinatedHandler) Handle(stream inet.Stream) {
 	ctx := context.Background()
-	defer log.EventBegin(ctx, "Coordinated.Handle").Done()
+	event := log.EventBegin(ctx, "Coordinated.Handle", stream.Conn().RemotePeer())
+	defer func() {
+		if err := stream.Close(); err != nil {
+			event.Append(logging.Metadata{"close-err": err.Error()})
+		}
+
+		event.Done()
+	}()
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var networkConfig protectorpb.NetworkConfig
+	if err := dec.Decode(&networkConfig); err != nil {
+		event.SetError(errors.WithStack(err))
+		return
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		event.SetError(protectorpb.ErrInvalidSignature)
+		return
+	}
+
+	err := h.networkConfig.Reset(ctx, &networkConfig)
+	if err != nil {
+		event.SetError(err)
+	}
 }
 
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
-func (h *CoordinatedHandler) AddNode(context.Context, peer.ID, []byte) error {
+func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
+	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
+	defer event.Done()
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProtocolID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	req := &grpc.NodeIdentity{
+		PeerId:        []byte(peerID),
+		IdentityProof: info,
+	}
+	if addr != nil {
+		req.PeerAddr = addr.Bytes()
+	}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(req)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
 	return nil
 }
 

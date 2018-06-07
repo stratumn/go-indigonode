@@ -30,9 +30,12 @@ import (
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	"gx/ipfs/QmVxf27kucSvCLiCq6dAXjDU2WG3xZN9ae7Ny6osroP28u/yamux"
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
 func TestCoordinator_Close(t *testing.T) {
@@ -208,6 +211,119 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				tt.validate(t, &response, coordinator, sender)
+			}
+		})
+	}
+}
+
+func TestCoordinator_AddNode(t *testing.T) {
+	peer1 := test.GeneratePeerID(t)
+	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
+	peer2 := test.GeneratePeerID(t)
+
+	testCases := []struct {
+		name                   string
+		addNodeID              peer.ID
+		addNodeAddr            multiaddr.Multiaddr
+		configureHost          func(*gomock.Controller, *mocks.MockHost)
+		configureNetworkConfig func(*mocks.MockNetworkConfig)
+		err                    error
+	}{{
+		"node-addr-missing",
+		peer1,
+		nil,
+		func(_ *gomock.Controller, host *mocks.MockHost) {
+			// If the peer store doesn't have an address for the node,
+			// and it wasn't provided we reject the request.
+			peerStore := peerstore.NewPeerstore()
+			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+		},
+		func(networkConfig *mocks.MockNetworkConfig) {
+			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+		},
+		bootstrap.ErrUnknownNode,
+	}, {
+		"node-already-white-listed",
+		peer1,
+		nil,
+		func(*gomock.Controller, *mocks.MockHost) {
+			// If the node is already white-listed we shouldn't notify
+			// participants, so we shouldn't use the host.
+		},
+		func(networkConfig *mocks.MockNetworkConfig) {
+			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(true)
+		},
+		nil,
+	}, {
+		"new-node-added-from-peerstore",
+		peer1,
+		nil,
+		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+			peerStore := peerstore.NewPeerstore()
+			peerStore.AddAddrs(peer1, peer1Addrs, peerstore.PermanentAddrTTL)
+			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+		},
+		func(networkConfig *mocks.MockNetworkConfig) {
+			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+			networkConfig.EXPECT().AddPeer(gomock.Any(), peer1, peer1Addrs).Times(1)
+			networkConfig.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
+			networkConfig.EXPECT().Copy(gomock.Any()).Times(1)
+		},
+		nil,
+	}, {
+		"new-node-added-from-addr",
+		peer1,
+		peer1Addrs[0],
+		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+			peerStore := peerstore.NewPeerstore()
+			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+		},
+		func(networkConfig *mocks.MockNetworkConfig) {
+			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+			networkConfig.EXPECT().AddPeer(gomock.Any(), peer1, peer1Addrs).Times(1)
+			networkConfig.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
+			networkConfig.EXPECT().Copy(gomock.Any()).Times(1)
+		},
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProtocolID, gomock.Any())
+			tt.configureHost(ctrl, host)
+
+			networkConfig := mocks.NewMockNetworkConfig(ctrl)
+			tt.configureNetworkConfig(networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig)
+			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}

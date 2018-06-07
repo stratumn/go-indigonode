@@ -19,7 +19,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
-	grpc "github.com/stratumn/alice/grpc/bootstrap"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -170,7 +169,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 
 	defer stream.Close()
 
-	req := &grpc.NodeIdentity{
+	req := &pb.NodeIdentity{
 		PeerId:        []byte(peerID),
 		IdentityProof: info,
 	}

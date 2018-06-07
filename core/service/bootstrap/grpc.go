@@ -20,7 +20,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
-	pb "github.com/stratumn/alice/grpc/bootstrap"
+	grpc "github.com/stratumn/alice/grpc/bootstrap"
+	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -34,7 +35,7 @@ type grpcServer struct {
 }
 
 // AddNode proposes adding a node to the network.
-func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack, error) {
+func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*grpc.Ack, error) {
 	networkMode := s.GetNetworkMode()
 	if networkMode == nil || networkMode.ProtectionMode != protector.PrivateWithCoordinatorMode {
 		return nil, ErrNotAllowed
@@ -58,11 +59,11 @@ func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack,
 		return nil, err
 	}
 
-	return &pb.Ack{}, nil
+	return &grpc.Ack{}, nil
 }
 
 // Accept a proposal to add or remove a network node.
-func (s grpcServer) Accept(ctx context.Context, req *pb.PeerID) (*pb.Ack, error) {
+func (s grpcServer) Accept(ctx context.Context, req *pb.PeerID) (*grpc.Ack, error) {
 	networkMode := s.GetNetworkMode()
 	if networkMode == nil || networkMode.ProtectionMode != protector.PrivateWithCoordinatorMode {
 		return nil, ErrNotAllowed
@@ -78,5 +79,5 @@ func (s grpcServer) Accept(ctx context.Context, req *pb.PeerID) (*pb.Ack, error)
 		return nil, err
 	}
 
-	return &pb.Ack{}, nil
+	return &grpc.Ack{}, nil
 }

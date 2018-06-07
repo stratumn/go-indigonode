@@ -1,0 +1,115 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/app/coin/pb/coin.proto";
+
+package stratumn.alice.grpc.coin;
+
+option go_package = "github.com/stratumn/alice/app/coin/grpc;grpc";
+
+// The coin service definition.
+service Coin {
+    // Get an account.
+    rpc GetAccount(AccountReq) returns (stratumn.alice.pb.coin.Account) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Display an account";
+    }
+
+    // Send a coin transaction to the consensus engine.
+    rpc SendTransaction (stratumn.alice.pb.coin.Transaction) returns (TransactionResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Send a transaction";
+        option (stratumn.alice.grpc.ext.method_no_cli) = true;
+    }
+
+    // Get all the past transactions of an account.
+    rpc AccountTransactions (AccountTransactionsReq) returns (stream stratumn.alice.pb.coin.Transaction) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Get the transaction history of an account";
+    }
+
+    // View transaction pool.
+    rpc TransactionPool (TransactionPoolReq) returns (TransactionPoolResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "View transaction pool";
+    }
+
+    // Get blocks from the blockchain.
+    rpc Blockchain (BlockchainReq) returns (BlockchainResp) {
+        option (stratumn.alice.grpc.ext.method_desc) = "Get blockchain blocks";
+    }
+}
+
+// The request to get an account.
+message AccountReq {
+    bytes peer_id = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
+      (stratumn.alice.grpc.ext.field_required) = true,
+      (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+}
+
+// The request to get part of the blockchain.
+message BlockchainReq {
+    uint64 block_number = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Block number to lookup. If ommitted, defaults to the last block."
+    ];
+    bytes header_hash = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Header hash to lookup. If ommitted, defaults to the last block."
+    ];
+    uint32 count = 3 [
+      (stratumn.alice.grpc.ext.field_desc) = "Number of blocks returned. If ommitted, defaults to one."
+    ];
+}
+
+// The response to a request for blockchain blocks.
+message BlockchainResp {
+    repeated stratumn.alice.pb.coin.Block blocks = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Blockchain blocks.",
+        (stratumn.alice.grpc.ext.field_blockchain_blocks) = true
+    ];
+}
+
+// The response to a request to do a coin transaction.
+message TransactionResp {
+    bytes tx_hash = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Hash of the transaction."
+    ];
+}
+
+// The request to get an account transaction history.
+message AccountTransactionsReq {
+    bytes peer_id = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Peer ID of the account",
+      (stratumn.alice.grpc.ext.field_required) = true,
+      (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+}
+
+// The request to view the transaction pool.
+message TransactionPoolReq {
+    uint32 count = 1 [
+      (stratumn.alice.grpc.ext.field_desc) = "Number of transactions returned. If ommitted, defaults to one."
+    ];
+}
+
+// The response to a request to view the transaction pool.
+message TransactionPoolResp {
+    uint64 count = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Number of transactions in the pool."
+    ];
+    repeated stratumn.alice.pb.coin.Transaction txs = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Blockchain transactions.",
+        (stratumn.alice.grpc.ext.field_blockchain_txs) = true
+    ];
+}

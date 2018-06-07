@@ -49,6 +49,7 @@ MOCK_FILES=$(shell find . -name 'mock*.go' | grep -v vendor)
 TEST_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v 'mock' | grep -v 'test')
 # All packages for which we want to get coverage data.
 COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
+SYSTEM_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep 'system')
 # All packages for which we don't want to get coverage data (but still want to build and test).
 NO_COVERAGE_PACKAGES=$(shell $(GO_LIST) ./... | grep -E '(./grpc/|./pb/)')
 COVERAGE_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test')
@@ -73,12 +74,13 @@ ZIP_FILES=$(NIX_ZIP_FILES) $(WIN_ZIP_FILES)
 
 TEST_LIST=$(foreach package, $(TEST_PACKAGES), test_$(package))
 LINT_LIST=$(foreach package, $(LINT_PACKAGES), lint_$(package))
+SYSTEM_LIST=$(foreach package, $(SYSTEM_PACKAGES), system_$(package))
 GITHUB_UPLOAD_LIST=$(foreach file, $(ZIP_FILES), github_upload_$(firstword $(subst ., ,$(file))))
 CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(SYSTEM_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -180,8 +182,10 @@ unit: $(TEST_LIST)
 $(TEST_LIST): test_%:
 	@$(GO_TEST) $*
 
-system:
-	@$(GO_TEST) github.com/$(GITHUB_USER)/$(GITHUB_REPO)/test/system
+system:$(SYSTEM_LIST)
+
+$(SYSTEM_LIST): system_%:
+	@$(GO_TEST) $*
 
 # == coverage =================================================================
 coverage: $(NO_COVERAGE_PACKAGES) $(COVERAGE_FILE)

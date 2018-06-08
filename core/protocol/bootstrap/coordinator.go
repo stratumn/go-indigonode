@@ -85,9 +85,10 @@ func NewCoordinatorHandler(
 	return &handler, nil
 }
 
-// HandleHandshake handles an incoming handshake and responds with the network
-// configuration if handshake succeeds.
-func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+// validateSender rejects unauthorized requests.
+// This should already be done at the connection level by our protector
+// component, but it's always better to have multi-level security.
+func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	networkState := h.networkConfig.NetworkState(ctx)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
@@ -100,17 +101,25 @@ func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.St
 		return protector.ErrConnectionRefused
 	}
 
+	return nil
+}
+
+// HandleHandshake handles an incoming handshake and responds with the network
+// configuration if handshake succeeds.
+func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
+	}
+
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var hello pb.Hello
 	if err := dec.Decode(&hello); err != nil {
-		if err := stream.Reset(); err != nil {
-			event.Append(logging.Metadata{"reset_err": err.Error()})
-		}
-
 		return protector.ErrConnectionRefused
 	}
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
+	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {
@@ -123,7 +132,65 @@ func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.St
 
 // HandlePropose handles an incoming network update proposal.
 func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var nodeID pb.NodeIdentity
+	if err := dec.Decode(&nodeID); err != nil {
+		return protector.ErrConnectionRefused
+	}
+
 	enc := protobuf.Multicodec(nil).Encoder(stream)
+
+	peerID, err := peer.IDFromBytes(nodeID.PeerId)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
+	}
+
+	// Populate address from PeerStore.
+	if len(nodeID.PeerAddr) == 0 {
+		pi := h.host.Peerstore().PeerInfo(peerID)
+		if len(pi.Addrs) > 0 {
+			nodeID.PeerAddr = pi.Addrs[0].Bytes()
+		}
+	}
+
+	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
+		r, err := proposal.NewAddRequest(&nodeID)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+
+		if r.PeerID != stream.Conn().RemotePeer() {
+			return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
+		}
+
+		err = h.proposalStore.Add(ctx, r)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	} else {
+		allowed := h.networkConfig.IsAllowed(ctx, peerID)
+		var req *proposal.Request
+		if allowed {
+			req, err = proposal.NewRemoveRequest(&nodeID)
+		} else {
+			req, err = proposal.NewAddRequest(&nodeID)
+		}
+
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+
+		err = h.proposalStore.Add(ctx, req)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	}
+
 	return enc.Encode(&pb.Ack{})
 }
 

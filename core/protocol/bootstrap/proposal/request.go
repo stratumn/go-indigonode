@@ -78,6 +78,10 @@ func NewAddRequest(nodeID *pb.NodeIdentity) (*Request, error) {
 		return nil, ErrInvalidPeerID
 	}
 
+	if nodeID.PeerAddr == nil {
+		return nil, ErrMissingPeerAddr
+	}
+
 	peerAddr, err := multiaddr.NewMultiaddrBytes(nodeID.PeerAddr)
 	if err != nil {
 		return nil, ErrInvalidPeerAddr

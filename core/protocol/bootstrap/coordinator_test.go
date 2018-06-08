@@ -21,6 +21,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -36,6 +38,7 @@ import (
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func TestCoordinator_Close(t *testing.T) {
@@ -215,6 +218,205 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 				require.NoError(t, err)
 				tt.validate(t, &response, coordinator, sender)
 			}
+		})
+	}
+}
+
+func TestCoordinator_HandlePropose(t *testing.T) {
+	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
+
+	var coordinator ihost.Host
+	var sender ihost.Host
+
+	testCases := []struct {
+		name        string
+		configure   func(protector.NetworkConfig)
+		expectStore func(*testing.T, *mockproposal.MockStore)
+		proposal    func() *pb.NodeIdentity
+		validate    func(*testing.T, *pb.Ack)
+	}{{
+		"during-bootstrap-invalid-peer-id",
+		func(protector.NetworkConfig) {},
+		func(*testing.T, *mockproposal.MockStore) {},
+		func() *pb.NodeIdentity { return &pb.NodeIdentity{PeerId: []byte("b4tm4n")} },
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Equal(t, proposal.ErrInvalidPeerID.Error(), ack.Error)
+		},
+	}, {
+		"during-bootstrap-missing-peer-addr",
+		func(protector.NetworkConfig) {},
+		func(*testing.T, *mockproposal.MockStore) {},
+		func() *pb.NodeIdentity {
+			return &pb.NodeIdentity{
+				PeerId: []byte(peer1),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Equal(t, proposal.ErrMissingPeerAddr.Error(), ack.Error)
+		},
+	}, {
+		"during-bootstrap-node-mismatch",
+		func(protector.NetworkConfig) {},
+		func(*testing.T, *mockproposal.MockStore) {},
+		func() *pb.NodeIdentity {
+			// Peer1 is different from the sender. During bootstrap,
+			// nodes can only add themselves (not another node).
+			return &pb.NodeIdentity{
+				PeerId:   []byte(peer1),
+				PeerAddr: peer1Addr.Bytes(),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Equal(t, proposal.ErrInvalidPeerAddr.Error(), ack.Error)
+		},
+	}, {
+		"during-bootstrap-addr-in-peerstore",
+		func(protector.NetworkConfig) {},
+		func(t *testing.T, store *mockproposal.MockStore) {
+			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+				func(ctx context.Context, r *proposal.Request) {
+					assert.Equal(t, proposal.AddNode, r.Type)
+					assert.Equal(t, sender.ID(), r.PeerID)
+					assert.Equal(t, sender.Addrs()[0], r.PeerAddr)
+				})
+		},
+		func() *pb.NodeIdentity {
+			coordinator.Peerstore().AddAddrs(
+				sender.ID(),
+				sender.Addrs(),
+				peerstore.PermanentAddrTTL,
+			)
+
+			return &pb.NodeIdentity{
+				PeerId: []byte(sender.ID()),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Zero(t, ack.Error)
+		},
+	}, {
+		"during-bootstrap-addr-provided",
+		func(protector.NetworkConfig) {},
+		func(t *testing.T, store *mockproposal.MockStore) {
+			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+				func(ctx context.Context, r *proposal.Request) {
+					assert.Equal(t, proposal.AddNode, r.Type)
+					assert.Equal(t, sender.ID(), r.PeerID)
+					assert.Equal(t, sender.Addrs()[0], r.PeerAddr)
+				})
+		},
+		func() *pb.NodeIdentity {
+			return &pb.NodeIdentity{
+				PeerId:   []byte(sender.ID()),
+				PeerAddr: sender.Addrs()[0].Bytes(),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Zero(t, ack.Error)
+		},
+	}, {
+		"after-bootstrap-add-node",
+		func(networkConfig protector.NetworkConfig) {
+			ctx := context.Background()
+			err := networkConfig.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
+			require.NoError(t, err, "networkConfig.SetNetworkState()")
+
+			err = networkConfig.AddPeer(ctx, sender.ID(), sender.Addrs())
+			require.NoError(t, err, "networkConfig.AddPeer()")
+		},
+		func(t *testing.T, store *mockproposal.MockStore) {
+			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+				func(ctx context.Context, r *proposal.Request) {
+					assert.Equal(t, proposal.AddNode, r.Type)
+					assert.Equal(t, peer1, r.PeerID)
+					assert.Equal(t, peer1Addr, r.PeerAddr)
+				})
+		},
+		func() *pb.NodeIdentity {
+			return &pb.NodeIdentity{
+				PeerId:   []byte(peer1),
+				PeerAddr: peer1Addr.Bytes(),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Zero(t, ack.Error)
+		},
+	}, {
+		"after-bootstrap-remove-node",
+		func(networkConfig protector.NetworkConfig) {
+			ctx := context.Background()
+			err := networkConfig.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
+			require.NoError(t, err, "networkConfig.SetNetworkState()")
+
+			err = networkConfig.AddPeer(ctx, sender.ID(), sender.Addrs())
+			require.NoError(t, err, "networkConfig.AddPeer()")
+
+			err = networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peer1Addr})
+			require.NoError(t, err, "networkConfig.AddPeer()")
+		},
+		func(t *testing.T, store *mockproposal.MockStore) {
+			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+				func(ctx context.Context, r *proposal.Request) {
+					assert.Equal(t, proposal.RemoveNode, r.Type)
+					assert.Equal(t, peer1, r.PeerID)
+				})
+		},
+		func() *pb.NodeIdentity {
+			return &pb.NodeIdentity{
+				PeerId: []byte(peer1),
+			}
+		},
+		func(t *testing.T, ack *pb.Ack) {
+			assert.Zero(t, ack.Error)
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer coordinator.Close()
+
+			sender = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer sender.Close()
+
+			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
+
+			store := mockproposal.NewMockStore(ctrl)
+			tt.expectStore(t, store)
+
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
+			)
+			tt.configure(networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(
+				coordinator,
+				networkConfig,
+				store,
+			)
+			require.NoError(t, err)
+			defer handler.Close(ctx)
+
+			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorProposePID)
+			require.NoError(t, err, "sender.NewStream()")
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(tt.proposal())
+			require.NoError(t, err, "enc.Encode()")
+
+			dec := protobuf.Multicodec(nil).Decoder(stream)
+			var ack pb.Ack
+			err = dec.Decode(&ack)
+			require.NoError(t, err, "dec.Decode()")
+			tt.validate(t, &ack)
 		})
 	}
 }

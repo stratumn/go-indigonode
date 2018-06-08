@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package contacts manages contacts.
-//
-// A contact is simply a name and a peer ID. You can add contacts and
-// find the peer ID of a contact from its name.
-package contacts
+// Package service defines types for the contacts service.
+package service
 
 import (
 	"context"
@@ -25,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/contacts"
+	pb "github.com/stratumn/alice/app/contacts/grpc"
 	"google.golang.org/grpc"
 )
 

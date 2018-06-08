@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.contacts;
+package stratumn.alice.app.contacts.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/contacts;contacts";
+option go_package = "github.com/stratumn/alice/app/contacts/grpc;grpc";
 
 // The contacts service definition.
 service Contacts {

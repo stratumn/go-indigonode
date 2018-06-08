@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -69,7 +70,10 @@ func NewCoordinatedHandler(
 		return nil, err
 	}
 
-	host.SetStreamHandler(PrivateCoordinatedConfigPID, handler.HandleConfigUpdate)
+	host.SetStreamHandler(
+		PrivateCoordinatedConfigPID,
+		streamutil.WithAutoClose(log, "Coordinated.HandleConfigUpdate", handler.HandleConfigUpdate),
+	)
 
 	return &handler, nil
 }
@@ -127,33 +131,18 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 }
 
 // HandleConfigUpdate receives updates to the network configuration.
-func (h *CoordinatedHandler) HandleConfigUpdate(stream inet.Stream) {
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "Coordinated.Handle", stream.Conn().RemotePeer())
-	defer func() {
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"close-err": err.Error()})
-		}
-
-		event.Done()
-	}()
-
+func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var networkConfig protectorpb.NetworkConfig
 	if err := dec.Decode(&networkConfig); err != nil {
-		event.SetError(errors.WithStack(err))
-		return
+		return errors.WithStack(err)
 	}
 
 	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
-		event.SetError(protectorpb.ErrInvalidSignature)
-		return
+		return protectorpb.ErrInvalidSignature
 	}
 
-	err := h.networkConfig.Reset(ctx, &networkConfig)
-	if err != nil {
-		event.SetError(err)
-	}
+	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
 // AddNode sends a proposal to add the node to the coordinator.

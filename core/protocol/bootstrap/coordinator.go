@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -72,70 +73,59 @@ func NewCoordinatorHandler(
 		proposalStore: proposalStore,
 	}
 
-	host.SetStreamHandler(PrivateCoordinatorHandshakePID, handler.HandleHandshake)
-	host.SetStreamHandler(PrivateCoordinatorProposePID, handler.HandlePropose)
+	host.SetStreamHandler(
+		PrivateCoordinatorHandshakePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandleHandshake", handler.HandleHandshake),
+	)
+	host.SetStreamHandler(
+		PrivateCoordinatorProposePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandlePropose", handler.HandlePropose),
+	)
 
 	return &handler, nil
 }
 
 // HandleHandshake handles an incoming handshake and responds with the network
 // configuration if handshake succeeds.
-func (h *CoordinatorHandler) HandleHandshake(stream inet.Stream) {
-	var protocolErr error
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "Coordinator.Handle", logging.Metadata{
-		"remote": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer func() {
-		if protocolErr != nil {
-			event.SetError(protocolErr)
-		}
-
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"close_err": err.Error()})
-		}
-
-		event.Done()
-	}()
-
+func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	networkState := h.networkConfig.NetworkState(ctx)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		protocolErr = protector.ErrConnectionRefused
 		if err := stream.Reset(); err != nil {
 			event.Append(logging.Metadata{"reset_err": err.Error()})
 		}
 
-		return
+		return protector.ErrConnectionRefused
 	}
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var hello pb.Hello
 	if err := dec.Decode(&hello); err != nil {
-		protocolErr = protector.ErrConnectionRefused
 		if err := stream.Reset(); err != nil {
 			event.Append(logging.Metadata{"reset_err": err.Error()})
 		}
 
-		return
+		return protector.ErrConnectionRefused
 	}
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {
-		protocolErr = enc.Encode(&protectorpb.NetworkConfig{})
-		return
+		return enc.Encode(&protectorpb.NetworkConfig{})
 	}
 
 	networkConfig := h.networkConfig.Copy(ctx)
-	protocolErr = enc.Encode(&networkConfig)
+	return enc.Encode(&networkConfig)
 }
 
 // HandlePropose handles an incoming network update proposal.
-func (h *CoordinatorHandler) HandlePropose(stream inet.Stream) {}
+func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	return enc.Encode(&pb.Ack{})
+}
 
 // AddNode adds the node to the network configuration
 // and notifies network participants.

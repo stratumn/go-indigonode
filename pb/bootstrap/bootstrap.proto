@@ -14,9 +14,35 @@
 
 syntax = "proto3";
 
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
 package stratumn.alice.pb.bootstrap;
 
 option go_package = "github.com/stratumn/alice/pb/bootstrap;bootstrap";
 
 // A simple Hello handshake message.
 message Hello {}
+
+// A base58-encoded PeerId.
+message PeerID {
+    bytes peer_id = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+        (stratumn.alice.grpc.ext.field_required) = true,
+        (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+}
+
+// A message containing a proof of a node's identity.
+message NodeIdentity {
+    bytes peer_id = 1 [
+        (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+        (stratumn.alice.grpc.ext.field_required) = true,
+        (stratumn.alice.grpc.ext.field_base58) = true
+    ];
+    bytes peer_addr = 2 [
+        (stratumn.alice.grpc.ext.field_desc) = "Peer Address"
+    ];
+    bytes identity_proof = 3 [
+        (stratumn.alice.grpc.ext.field_desc) = "KYC data (TBD)"
+    ];
+}

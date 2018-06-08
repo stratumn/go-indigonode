@@ -8,8 +8,6 @@
 		github.com/stratumn/alice/grpc/bootstrap/bootstrap.proto
 
 	It has these top-level messages:
-		NodeIdentity
-		PeerID
 		Ack
 */
 package bootstrap
@@ -18,6 +16,7 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import _ "github.com/stratumn/alice/grpc/ext"
+import stratumn_alice_pb_bootstrap "github.com/stratumn/alice/pb/bootstrap"
 
 import context "context"
 import grpc "google.golang.org/grpc"
@@ -35,56 +34,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-// A message containing a proof of a node's identity.
-type NodeIdentity struct {
-	PeerId        []byte `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-	PeerAddr      []byte `protobuf:"bytes,2,opt,name=peer_addr,json=peerAddr,proto3" json:"peer_addr,omitempty"`
-	IdentityProof []byte `protobuf:"bytes,3,opt,name=identity_proof,json=identityProof,proto3" json:"identity_proof,omitempty"`
-}
-
-func (m *NodeIdentity) Reset()                    { *m = NodeIdentity{} }
-func (m *NodeIdentity) String() string            { return proto.CompactTextString(m) }
-func (*NodeIdentity) ProtoMessage()               {}
-func (*NodeIdentity) Descriptor() ([]byte, []int) { return fileDescriptorBootstrap, []int{0} }
-
-func (m *NodeIdentity) GetPeerId() []byte {
-	if m != nil {
-		return m.PeerId
-	}
-	return nil
-}
-
-func (m *NodeIdentity) GetPeerAddr() []byte {
-	if m != nil {
-		return m.PeerAddr
-	}
-	return nil
-}
-
-func (m *NodeIdentity) GetIdentityProof() []byte {
-	if m != nil {
-		return m.IdentityProof
-	}
-	return nil
-}
-
-// A base58-encoded PeerId.
-type PeerID struct {
-	PeerId []byte `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-}
-
-func (m *PeerID) Reset()                    { *m = PeerID{} }
-func (m *PeerID) String() string            { return proto.CompactTextString(m) }
-func (*PeerID) ProtoMessage()               {}
-func (*PeerID) Descriptor() ([]byte, []int) { return fileDescriptorBootstrap, []int{1} }
-
-func (m *PeerID) GetPeerId() []byte {
-	if m != nil {
-		return m.PeerId
-	}
-	return nil
-}
-
 // An empty ack.
 type Ack struct {
 }
@@ -92,11 +41,9 @@ type Ack struct {
 func (m *Ack) Reset()                    { *m = Ack{} }
 func (m *Ack) String() string            { return proto.CompactTextString(m) }
 func (*Ack) ProtoMessage()               {}
-func (*Ack) Descriptor() ([]byte, []int) { return fileDescriptorBootstrap, []int{2} }
+func (*Ack) Descriptor() ([]byte, []int) { return fileDescriptorBootstrap, []int{0} }
 
 func init() {
-	proto.RegisterType((*NodeIdentity)(nil), "stratumn.alice.grpc.bootstrap.NodeIdentity")
-	proto.RegisterType((*PeerID)(nil), "stratumn.alice.grpc.bootstrap.PeerID")
 	proto.RegisterType((*Ack)(nil), "stratumn.alice.grpc.bootstrap.Ack")
 }
 
@@ -112,9 +59,9 @@ const _ = grpc.SupportPackageIsVersion4
 
 type BootstrapClient interface {
 	// Propose adding a node to the network.
-	AddNode(ctx context.Context, in *NodeIdentity, opts ...grpc.CallOption) (*Ack, error)
+	AddNode(ctx context.Context, in *stratumn_alice_pb_bootstrap.NodeIdentity, opts ...grpc.CallOption) (*Ack, error)
 	// Accept a proposal to add or remove a network node.
-	Accept(ctx context.Context, in *PeerID, opts ...grpc.CallOption) (*Ack, error)
+	Accept(ctx context.Context, in *stratumn_alice_pb_bootstrap.PeerID, opts ...grpc.CallOption) (*Ack, error)
 }
 
 type bootstrapClient struct {
@@ -125,7 +72,7 @@ func NewBootstrapClient(cc *grpc.ClientConn) BootstrapClient {
 	return &bootstrapClient{cc}
 }
 
-func (c *bootstrapClient) AddNode(ctx context.Context, in *NodeIdentity, opts ...grpc.CallOption) (*Ack, error) {
+func (c *bootstrapClient) AddNode(ctx context.Context, in *stratumn_alice_pb_bootstrap.NodeIdentity, opts ...grpc.CallOption) (*Ack, error) {
 	out := new(Ack)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.bootstrap.Bootstrap/AddNode", in, out, c.cc, opts...)
 	if err != nil {
@@ -134,7 +81,7 @@ func (c *bootstrapClient) AddNode(ctx context.Context, in *NodeIdentity, opts ..
 	return out, nil
 }
 
-func (c *bootstrapClient) Accept(ctx context.Context, in *PeerID, opts ...grpc.CallOption) (*Ack, error) {
+func (c *bootstrapClient) Accept(ctx context.Context, in *stratumn_alice_pb_bootstrap.PeerID, opts ...grpc.CallOption) (*Ack, error) {
 	out := new(Ack)
 	err := grpc.Invoke(ctx, "/stratumn.alice.grpc.bootstrap.Bootstrap/Accept", in, out, c.cc, opts...)
 	if err != nil {
@@ -147,9 +94,9 @@ func (c *bootstrapClient) Accept(ctx context.Context, in *PeerID, opts ...grpc.C
 
 type BootstrapServer interface {
 	// Propose adding a node to the network.
-	AddNode(context.Context, *NodeIdentity) (*Ack, error)
+	AddNode(context.Context, *stratumn_alice_pb_bootstrap.NodeIdentity) (*Ack, error)
 	// Accept a proposal to add or remove a network node.
-	Accept(context.Context, *PeerID) (*Ack, error)
+	Accept(context.Context, *stratumn_alice_pb_bootstrap.PeerID) (*Ack, error)
 }
 
 func RegisterBootstrapServer(s *grpc.Server, srv BootstrapServer) {
@@ -157,7 +104,7 @@ func RegisterBootstrapServer(s *grpc.Server, srv BootstrapServer) {
 }
 
 func _Bootstrap_AddNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeIdentity)
+	in := new(stratumn_alice_pb_bootstrap.NodeIdentity)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -169,13 +116,13 @@ func _Bootstrap_AddNode_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/stratumn.alice.grpc.bootstrap.Bootstrap/AddNode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BootstrapServer).AddNode(ctx, req.(*NodeIdentity))
+		return srv.(BootstrapServer).AddNode(ctx, req.(*stratumn_alice_pb_bootstrap.NodeIdentity))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Bootstrap_Accept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PeerID)
+	in := new(stratumn_alice_pb_bootstrap.PeerID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -187,7 +134,7 @@ func _Bootstrap_Accept_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: "/stratumn.alice.grpc.bootstrap.Bootstrap/Accept",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BootstrapServer).Accept(ctx, req.(*PeerID))
+		return srv.(BootstrapServer).Accept(ctx, req.(*stratumn_alice_pb_bootstrap.PeerID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -207,66 +154,6 @@ var _Bootstrap_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "github.com/stratumn/alice/grpc/bootstrap/bootstrap.proto",
-}
-
-func (m *NodeIdentity) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *NodeIdentity) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.PeerId) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintBootstrap(dAtA, i, uint64(len(m.PeerId)))
-		i += copy(dAtA[i:], m.PeerId)
-	}
-	if len(m.PeerAddr) > 0 {
-		dAtA[i] = 0x12
-		i++
-		i = encodeVarintBootstrap(dAtA, i, uint64(len(m.PeerAddr)))
-		i += copy(dAtA[i:], m.PeerAddr)
-	}
-	if len(m.IdentityProof) > 0 {
-		dAtA[i] = 0x1a
-		i++
-		i = encodeVarintBootstrap(dAtA, i, uint64(len(m.IdentityProof)))
-		i += copy(dAtA[i:], m.IdentityProof)
-	}
-	return i, nil
-}
-
-func (m *PeerID) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PeerID) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.PeerId) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintBootstrap(dAtA, i, uint64(len(m.PeerId)))
-		i += copy(dAtA[i:], m.PeerId)
-	}
-	return i, nil
 }
 
 func (m *Ack) Marshal() (dAtA []byte, err error) {
@@ -296,34 +183,6 @@ func encodeVarintBootstrap(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func (m *NodeIdentity) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + sovBootstrap(uint64(l))
-	}
-	l = len(m.PeerAddr)
-	if l > 0 {
-		n += 1 + l + sovBootstrap(uint64(l))
-	}
-	l = len(m.IdentityProof)
-	if l > 0 {
-		n += 1 + l + sovBootstrap(uint64(l))
-	}
-	return n
-}
-
-func (m *PeerID) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + sovBootstrap(uint64(l))
-	}
-	return n
-}
-
 func (m *Ack) Size() (n int) {
 	var l int
 	_ = l
@@ -342,230 +201,6 @@ func sovBootstrap(x uint64) (n int) {
 }
 func sozBootstrap(x uint64) (n int) {
 	return sovBootstrap(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (m *NodeIdentity) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowBootstrap
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: NodeIdentity: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: NodeIdentity: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBootstrap
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = append(m.PeerId[:0], dAtA[iNdEx:postIndex]...)
-			if m.PeerId == nil {
-				m.PeerId = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerAddr", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBootstrap
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerAddr = append(m.PeerAddr[:0], dAtA[iNdEx:postIndex]...)
-			if m.PeerAddr == nil {
-				m.PeerAddr = []byte{}
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IdentityProof", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBootstrap
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.IdentityProof = append(m.IdentityProof[:0], dAtA[iNdEx:postIndex]...)
-			if m.IdentityProof == nil {
-				m.IdentityProof = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipBootstrap(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *PeerID) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowBootstrap
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PeerID: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PeerID: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBootstrap
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = append(m.PeerId[:0], dAtA[iNdEx:postIndex]...)
-			if m.PeerId == nil {
-				m.PeerId = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipBootstrap(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthBootstrap
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *Ack) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -727,31 +362,24 @@ func init() {
 }
 
 var fileDescriptorBootstrap = []byte{
-	// 413 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x4f, 0x8a, 0x13, 0x41,
-	0x14, 0xc6, 0xad, 0x19, 0xec, 0x38, 0x45, 0x1c, 0xa4, 0xdc, 0x14, 0x03, 0x36, 0x45, 0xa3, 0x10,
-	0x71, 0xec, 0xc6, 0x11, 0x45, 0x71, 0xd5, 0x6d, 0x6f, 0x1a, 0x41, 0x42, 0x70, 0xa3, 0x9b, 0xa1,
-	0xd2, 0xef, 0x99, 0x69, 0x32, 0xe9, 0x2a, 0xaa, 0x6b, 0xfc, 0xb3, 0x1d, 0x5c, 0x79, 0x02, 0x77,
-	0x42, 0x16, 0xe2, 0x05, 0xb2, 0xea, 0x0b, 0xb8, 0xf4, 0x08, 0x12, 0x2f, 0xe0, 0x11, 0xa4, 0xaa,
-	0x4d, 0x74, 0x65, 0x32, 0x8b, 0x82, 0x57, 0xc5, 0xaf, 0xbe, 0xf7, 0xbd, 0x8f, 0x47, 0x1f, 0x4d,
-	0x2a, 0x7b, 0x72, 0x36, 0x8e, 0x4b, 0x35, 0x4b, 0x1a, 0x6b, 0xa4, 0x3d, 0x9b, 0xd5, 0x89, 0x3c,
-	0xad, 0x4a, 0x4c, 0x26, 0x46, 0x97, 0xc9, 0x58, 0x29, 0xeb, 0xde, 0xf5, 0xdf, 0x2a, 0xd6, 0x46,
-	0x59, 0xc5, 0x6e, 0xac, 0xf0, 0xd8, 0xe3, 0xb1, 0xc3, 0xe3, 0x35, 0x74, 0x70, 0xb8, 0x41, 0x18,
-	0xdf, 0x59, 0x77, 0x3a, 0xb1, 0xe8, 0x0b, 0xa1, 0xfd, 0xe7, 0x0a, 0xb0, 0x00, 0xac, 0x6d, 0x65,
-	0xdf, 0xb3, 0x43, 0xda, 0xd3, 0x88, 0xe6, 0xb8, 0x02, 0x4e, 0x04, 0x19, 0xf4, 0xb3, 0xeb, 0xf3,
-	0x96, 0xf7, 0x86, 0x88, 0x46, 0x14, 0xf9, 0xd7, 0x96, 0x93, 0x5f, 0x2d, 0x27, 0xa3, 0xc0, 0x31,
-	0x05, 0xb0, 0xbb, 0x74, 0xcf, 0xd3, 0x12, 0xc0, 0xf0, 0x1d, 0xcf, 0x5f, 0x9b, 0xb7, 0xbc, 0xef,
-	0xf9, 0x14, 0xc0, 0x60, 0xd3, 0x8c, 0xae, 0x38, 0xc4, 0x5d, 0xd8, 0x63, 0xba, 0x5f, 0xfd, 0x69,
-	0x74, 0xac, 0x8d, 0x52, 0xaf, 0xf9, 0xae, 0xff, 0xc3, 0xe6, 0x2d, 0xdf, 0x7f, 0xf6, 0xf2, 0xa9,
-	0x00, 0x69, 0xa5, 0x18, 0xbc, 0xc8, 0xf2, 0xdb, 0xa3, 0xab, 0x2b, 0x72, 0xe8, 0xc0, 0xe8, 0x21,
-	0x0d, 0x9c, 0x68, 0x91, 0x5f, 0xcc, 0x61, 0x74, 0x99, 0xee, 0xa6, 0xe5, 0xf4, 0xe8, 0xf3, 0x0e,
-	0xdd, 0xcb, 0x56, 0x19, 0xb1, 0x0f, 0x84, 0xf6, 0x52, 0x00, 0x37, 0x38, 0xbb, 0x13, 0xff, 0x37,
-	0xcf, 0xf8, 0xdf, 0x74, 0x0e, 0xa2, 0x0d, 0x70, 0x5a, 0x4e, 0xa3, 0xc1, 0xf9, 0x82, 0xdf, 0x1c,
-	0x1a, 0xa5, 0x55, 0x83, 0x42, 0x02, 0x54, 0xf5, 0x44, 0x48, 0x51, 0x2b, 0x40, 0x61, 0x95, 0xb0,
-	0x27, 0x28, 0x6a, 0xb4, 0x6f, 0x95, 0x99, 0xb2, 0x8f, 0x84, 0x06, 0x69, 0x59, 0xa2, 0xb6, 0xec,
-	0xd6, 0x06, 0xe1, 0x6e, 0xf6, 0xad, 0xfa, 0x3f, 0x38, 0x5f, 0xf0, 0x7b, 0x9d, 0xac, 0x90, 0x42,
-	0x7b, 0x23, 0xf2, 0xd4, 0xf5, 0x96, 0x00, 0x42, 0x19, 0x61, 0x70, 0xa6, 0xde, 0xa0, 0xf3, 0xd4,
-	0xf9, 0xf0, 0xde, 0xb2, 0xfc, 0xdb, 0x32, 0x24, 0xdf, 0x97, 0x21, 0xf9, 0xb1, 0x0c, 0xc9, 0xa7,
-	0x9f, 0xe1, 0xa5, 0x57, 0x47, 0xdb, 0xae, 0xe8, 0x93, 0x75, 0x35, 0x0e, 0xfc, 0x5a, 0xdd, 0xff,
-	0x1d, 0x00, 0x00, 0xff, 0xff, 0x1f, 0xf8, 0xe0, 0xa9, 0xdf, 0x02, 0x00, 0x00,
+	// 296 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0x4f, 0x4b, 0xc3, 0x30,
+	0x18, 0xc6, 0xad, 0xe2, 0xc4, 0x1e, 0x7b, 0x1a, 0x03, 0x4b, 0xa8, 0x1e, 0x14, 0x24, 0xc5, 0x89,
+	0x22, 0x78, 0xea, 0xd8, 0x65, 0x17, 0xd9, 0xd9, 0x5b, 0x9a, 0xbc, 0x74, 0xa5, 0x6b, 0xde, 0x90,
+	0xbd, 0xf3, 0xcf, 0xb5, 0x27, 0x3f, 0x82, 0xe0, 0xe7, 0xd8, 0x77, 0xf0, 0xe8, 0x47, 0x90, 0xfa,
+	0x45, 0x24, 0x2d, 0xdb, 0x40, 0xd8, 0xdc, 0x21, 0xf0, 0x92, 0xfc, 0x78, 0x9e, 0x5f, 0x12, 0xff,
+	0x2e, 0xcb, 0x69, 0x32, 0x4f, 0xb9, 0xc4, 0x32, 0x9e, 0x91, 0x15, 0x34, 0x2f, 0x75, 0x2c, 0xa6,
+	0xb9, 0x84, 0x38, 0xb3, 0x46, 0xc6, 0x29, 0x22, 0xb9, 0x7d, 0xb3, 0x9e, 0xb8, 0xb1, 0x48, 0x18,
+	0x9c, 0x2c, 0x71, 0xde, 0xe0, 0xdc, 0xe1, 0x7c, 0x05, 0xf5, 0x2e, 0xff, 0x09, 0x86, 0x17, 0x72,
+	0xab, 0x0d, 0xeb, 0xdd, 0x6e, 0xa6, 0x4d, 0xba, 0x59, 0x22, 0x3a, 0xf4, 0x0f, 0x12, 0x59, 0xf4,
+	0x3f, 0xf6, 0xfd, 0xe3, 0xc1, 0xf2, 0x28, 0xa8, 0x3c, 0xff, 0x28, 0x51, 0xea, 0x01, 0x15, 0x04,
+	0x17, 0xfc, 0x8f, 0xa6, 0x49, 0xd7, 0x92, 0xdc, 0x21, 0x23, 0x05, 0x9a, 0x72, 0x7a, 0xed, 0x45,
+	0x7c, 0xeb, 0x8d, 0x78, 0x22, 0x8b, 0xe8, 0xbc, 0x5a, 0x74, 0xcf, 0xc6, 0x16, 0x0d, 0xce, 0x80,
+	0x09, 0xa5, 0x72, 0x9d, 0x31, 0xc1, 0x34, 0x2a, 0x60, 0x84, 0x8c, 0x26, 0xc0, 0x34, 0xd0, 0x33,
+	0xda, 0x22, 0x78, 0xf3, 0xfc, 0x4e, 0x22, 0x25, 0x18, 0x0a, 0x4e, 0xb7, 0x3a, 0x8c, 0x01, 0xec,
+	0x68, 0xb8, 0x53, 0xfb, 0x4d, 0xb5, 0xe8, 0x5e, 0xb5, 0xa1, 0x4c, 0x30, 0xd3, 0x68, 0x88, 0xa9,
+	0x6b, 0x16, 0x4a, 0x31, 0xb4, 0xcc, 0x42, 0x89, 0x4f, 0xe0, 0x8c, 0x5a, 0x8b, 0xc6, 0x6c, 0x30,
+	0xfc, 0xac, 0x43, 0xef, 0xab, 0x0e, 0xbd, 0xef, 0x3a, 0xf4, 0xde, 0x7f, 0xc2, 0xbd, 0xc7, 0xfe,
+	0xae, 0xbf, 0x7e, 0xbf, 0x9a, 0xd2, 0x4e, 0xf3, 0xe2, 0xd7, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff,
+	0xc5, 0x7a, 0xb9, 0x1c, 0x32, 0x02, 0x00, 0x00,
 }

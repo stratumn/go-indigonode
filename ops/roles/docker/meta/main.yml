@@ -1,0 +1,4 @@
+---
+dependencies:
+  - { role: pip, become: true }
+  - { role: ansible-role-docker, become: true }

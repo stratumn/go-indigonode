@@ -21,12 +21,13 @@ import (
 
 	clock "github.com/stratumn/alice/app/clock/grpc"
 	"github.com/stratumn/alice/test/session"
+	"github.com/stratumn/alice/test/system"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )
 
 func TestClock(t *testing.T) {
-	Test(t, func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
+	system.Test(t, func(ctx context.Context, set session.TestNodeSet, conns []*grpc.ClientConn) {
 		client := clock.NewClockClient(conns[0])
 
 		for _, node := range set[1:] {

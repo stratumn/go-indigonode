@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -50,14 +51,20 @@ var (
 type CoordinatorHandler struct {
 	host          ihost.Host
 	networkConfig protector.NetworkConfig
+	proposalStore proposal.Store
 }
 
 // NewCoordinatorHandler returns a Handler for a coordinator node.
 func NewCoordinatorHandler(
 	host ihost.Host,
 	networkConfig protector.NetworkConfig,
+	proposalStore proposal.Store,
 ) (Handler, error) {
-	handler := CoordinatorHandler{host: host, networkConfig: networkConfig}
+	handler := CoordinatorHandler{
+		host:          host,
+		networkConfig: networkConfig,
+		proposalStore: proposalStore,
+	}
 
 	host.SetStreamHandler(PrivateCoordinatorProtocolID, handler.Handle)
 

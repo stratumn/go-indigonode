@@ -43,17 +43,19 @@ func TestCoordinator_Close(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProtocolID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
 
-	handler, err := bootstrap.NewCoordinatorHandler(host, nil)
+	handler, err := bootstrap.NewCoordinatorHandler(host, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, handler)
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProtocolID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID).Times(1)
 	handler.Close(context.Background())
 }
 
-func TestCoordinator_Handle_Hello(t *testing.T) {
+func TestCoordinator_HandleHandshake(t *testing.T) {
 	sendHello := func(t *testing.T, stream inet.Stream) {
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		require.NoError(t, enc.Encode(&pb.Hello{}), "enc.Encode()")
@@ -186,11 +188,12 @@ func TestCoordinator_Handle_Hello(t *testing.T) {
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
 				tt.networkConfig(ctx, coordinator, sender),
+				nil,
 			)
 			require.NoError(t, err)
 			defer handler.Close(ctx)
 
-			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorProtocolID)
+			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorHandshakePID)
 			// If the coordinator is expected to reject streams, it can happen either
 			// when initiating the stream (sender.NewStream()) or when writing to it (below).
 			// It depends on the underlying yamux implementation but both are ok for our usecase.
@@ -267,8 +270,8 @@ func TestCoordinator_AddNode(t *testing.T) {
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
 			stream.EXPECT().Close().Times(2)
 
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 		},
 		func(networkConfig *mocks.MockNetworkConfig) {
 			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
@@ -289,8 +292,8 @@ func TestCoordinator_AddNode(t *testing.T) {
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
 			stream.EXPECT().Close().Times(2)
 
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedProtocolID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 		},
 		func(networkConfig *mocks.MockNetworkConfig) {
 			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
@@ -310,13 +313,14 @@ func TestCoordinator_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProtocolID, gomock.Any())
+			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
+			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
 			tt.configureHost(ctrl, host)
 
 			networkConfig := mocks.NewMockNetworkConfig(ctrl)
 			tt.configureNetworkConfig(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig)
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))

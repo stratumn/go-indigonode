@@ -36,9 +36,15 @@ import (
 )
 
 var (
-	// PrivateCoordinatorProtocolID is the protocol for managing a private
-	// network. Only the network coordinator should implement this protocol.
-	PrivateCoordinatorProtocolID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/v1.0.0")
+	// PrivateCoordinatorHandshakePID is the protocol for handling handshake
+	// messages and sending the network participants list.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorHandshakePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/handshake/v1.0.0")
+
+	// PrivateCoordinatorProposePID is the protocol for receiving network update
+	// proposals from peers.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/propose/v1.0.0")
 )
 
 // Errors used by the coordinator.
@@ -66,13 +72,15 @@ func NewCoordinatorHandler(
 		proposalStore: proposalStore,
 	}
 
-	host.SetStreamHandler(PrivateCoordinatorProtocolID, handler.Handle)
+	host.SetStreamHandler(PrivateCoordinatorHandshakePID, handler.HandleHandshake)
+	host.SetStreamHandler(PrivateCoordinatorProposePID, handler.HandlePropose)
 
 	return &handler, nil
 }
 
-// Handle handles an incoming stream.
-func (h *CoordinatorHandler) Handle(stream inet.Stream) {
+// HandleHandshake handles an incoming handshake and responds with the network
+// configuration if handshake succeeds.
+func (h *CoordinatorHandler) HandleHandshake(stream inet.Stream) {
 	var protocolErr error
 	ctx := context.Background()
 	event := log.EventBegin(ctx, "Coordinator.Handle", logging.Metadata{
@@ -125,6 +133,9 @@ func (h *CoordinatorHandler) Handle(stream inet.Stream) {
 	networkConfig := h.networkConfig.Copy(ctx)
 	protocolErr = enc.Encode(&networkConfig)
 }
+
+// HandlePropose handles an incoming network update proposal.
+func (h *CoordinatorHandler) HandlePropose(stream inet.Stream) {}
 
 // AddNode adds the node to the network configuration
 // and notifies network participants.
@@ -186,7 +197,7 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProtocolID)
+			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedConfigPID)
 			if err != nil {
 				eventLock.Lock()
 				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
@@ -225,5 +236,6 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 // Close removes the protocol handlers.
 func (h *CoordinatorHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinator.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatorProtocolID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
 }

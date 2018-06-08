@@ -20,6 +20,7 @@ import (
 
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stretchr/testify/require"
 
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
@@ -93,6 +94,7 @@ func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) 
 			networkConfig,
 			n.coordinator.Peerstore().PrivKey(n.coordinator.ID()),
 		),
+		proposal.NewInMemoryStore(),
 	)
 }
 

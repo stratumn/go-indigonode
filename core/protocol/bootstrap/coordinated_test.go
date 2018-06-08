@@ -266,7 +266,7 @@ func TestCoordinated_Handle(t *testing.T) {
 			stream, err := testNetwork.CoordinatorHost().NewStream(
 				ctx,
 				host.ID(),
-				bootstrap.PrivateCoordinatedProtocolID,
+				bootstrap.PrivateCoordinatedConfigPID,
 			)
 			require.NoError(t, err, "NewStream()")
 

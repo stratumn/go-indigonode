@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package contacts
+package service
 
 import (
 	"context"
 	"sort"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/contacts"
+	pb "github.com/stratumn/alice/app/contacts/grpc"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )

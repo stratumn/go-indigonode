@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package contacts
+package service
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/contacts"
-	mockpb "github.com/stratumn/alice/grpc/contacts/mockcontacts"
+	pb "github.com/stratumn/alice/app/contacts/grpc"
+	mockpb "github.com/stratumn/alice/app/contacts/grpc/mockcontacts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

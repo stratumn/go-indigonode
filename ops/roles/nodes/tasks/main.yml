@@ -1,0 +1,126 @@
+---
+- name: Create Alice root directory
+  become: true
+  file:
+    path: /usr/local/var/alice
+    state: directory
+    group: docker
+    owner: 999
+
+- name: Install docker-py
+  become: true
+  pip:
+    name: docker-py
+    version: "1.10.6"
+
+# TODO: remove this when image is public
+- name: login to docker registry
+  docker_login:
+    username: "{{ docker_login }}"
+    password: "{{ docker_passwd }}"
+    email: "{{ docker_email }}"
+
+- name: init alice config
+  docker_container:
+    name: alice_node_init
+    image: "{{ alice_docker_image }}"
+    state: started
+    command: init
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+
+- name: get alice peer ID
+  docker_container:
+    name: alice_node_cfg
+    image: "{{ alice_docker_image }}"
+    state: started
+    detach: False
+    command:
+      - config
+      - get
+      - swarm.peer_id
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+  register: docker_get_swarm_id
+
+- name: set alice peer ID
+  set_fact:
+    peer_id: "{{ docker_get_swarm_id.ansible_facts.docker_container.Output | replace('\n', '') }}"
+    public_ip: "{{ inventory_hostname }}"
+
+- name: set alice peer IDs
+  set_fact:
+    peer_ids: "{{ groups['ec2hosts'] | map('extract', hostvars, 'peer_id') | list }}"
+    peer_ip: "/ip4/{{ inventory_hostname }}/tcp/8903/ipfs/{{ hostvars[inventory_hostname].peer_id }}"
+
+- debug:
+    var: peer_id
+
+- debug:
+    var: peer_ids
+
+- name: edit alice grpc api adress
+  docker_container:
+    name: alice_node_cfg
+    image: "{{ alice_docker_image }}"
+    state: started
+    command:
+      - config
+      - set
+      - grpcapi.address
+      - /ip4/0.0.0.0/tcp/8904
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+
+- name: edit alice indigo store
+  docker_container:
+    name: alice_node_cfg
+    image: "{{ alice_docker_image }}"
+    state: started
+    command:
+      - config
+      - set
+      - indigo.storage_type
+      - "{{ indigo_storage_type }}"
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+
+- name: edit alice indigo network
+  docker_container:
+    name: alice_node_cfg
+    image: "{{ alice_docker_image }}"
+    state: started
+    command:
+      - config
+      - set
+      - indigo.network_id
+      - "{{ indigo_network_id }}"
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+
+- name: edit alice bootstrap addresses
+  docker_container:
+    name: alice_node_cfg
+    image: "{{ alice_docker_image }}"
+    state: started
+    command:
+      - config
+      - set
+      - bootstrap.addresses
+      - "{{ groups['ec2hosts'] | map('extract', hostvars, 'peer_ip') | list | join(',') }}"
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw
+
+- name: run alice node
+  docker_container:
+    name: alice_node_run
+    image: "{{ alice_docker_image }}"
+    state: started
+    command: up
+    ports:
+    - "8903:8903"
+    - "8904:8904"
+    - "8905:8905"
+    - "8906:8906"
+    volumes:
+    - /usr/local/var/alice:/usr/local/var/alice:rw

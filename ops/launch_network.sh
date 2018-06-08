@@ -1,0 +1,1 @@
+ ansible-playbook main.yml -v -i network.ini --user ubuntu --private-key=/keybase/team/stratumn_eng/alice_test_network/alice-test-key.pem

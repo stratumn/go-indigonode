@@ -15,9 +15,10 @@
 package proposal
 
 import (
-	"errors"
+	"encoding/json"
 	"time"
 
+	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -102,4 +103,63 @@ func NewRemoveRequest(nodeID *pb.NodeIdentity) (*Request, error) {
 		PeerID:  peerID,
 		Expires: time.Now().UTC().Add(DefaultExpiration),
 	}, nil
+}
+
+// MarshalJSON marshalls the request to JSON.
+func (r *Request) MarshalJSON() ([]byte, error) {
+	toSerialize := struct {
+		Type     Type
+		PeerID   []byte
+		PeerAddr []byte
+		Info     []byte
+		Expires  time.Time
+	}{
+		Type:    r.Type,
+		PeerID:  []byte(r.PeerID),
+		Info:    r.Info,
+		Expires: r.Expires,
+	}
+
+	if r.PeerAddr != nil {
+		toSerialize.PeerAddr = r.PeerAddr.Bytes()
+	}
+
+	return json.Marshal(toSerialize)
+}
+
+// UnmarshalJSON unmarshalls the request from JSON.
+func (r *Request) UnmarshalJSON(data []byte) error {
+	deserialized := struct {
+		Type     Type
+		PeerID   []byte
+		PeerAddr []byte
+		Info     []byte
+		Expires  time.Time
+	}{}
+
+	err := json.Unmarshal(data, &deserialized)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	peerID, err := peer.IDFromBytes(deserialized.PeerID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if len(deserialized.PeerAddr) > 0 {
+		peerAddr, err := multiaddr.NewMultiaddrBytes(deserialized.PeerAddr)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		r.PeerAddr = peerAddr
+	}
+
+	r.Type = deserialized.Type
+	r.PeerID = peerID
+	r.Info = deserialized.Info
+	r.Expires = deserialized.Expires
+
+	return nil
 }

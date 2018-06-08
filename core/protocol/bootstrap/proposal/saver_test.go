@@ -20,6 +20,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/test"
@@ -32,6 +33,7 @@ func TestSaver(t *testing.T) {
 
 	dir, _ := ioutil.TempDir("", "alice")
 	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 
 	t.Run("save-on-add", func(t *testing.T) {
 		filePath := path.Join(dir, "save.json")
@@ -95,9 +97,14 @@ func TestSaver(t *testing.T) {
 		s, err := proposal.WrapWithSaver(ctx, proposal.NewInMemoryStore(), filePath)
 		require.NoError(t, err)
 
+		expires := time.Now().UTC().Add(24 * time.Hour)
+
 		err = s.Add(ctx, &proposal.Request{
-			Type:   proposal.RemoveNode,
-			PeerID: peer1,
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
+			Info:     []byte("b4tm4n"),
+			Expires:  expires,
 		})
 		require.NoError(t, err)
 
@@ -108,7 +115,10 @@ func TestSaver(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, r)
 
-		assert.Equal(t, proposal.RemoveNode, r.Type)
+		assert.Equal(t, proposal.AddNode, r.Type)
 		assert.Equal(t, peer1, r.PeerID)
+		assert.Equal(t, peer1Addr, r.PeerAddr)
+		assert.Equal(t, []byte("b4tm4n"), r.Info)
+		assert.Equal(t, expires, r.Expires)
 	})
 }

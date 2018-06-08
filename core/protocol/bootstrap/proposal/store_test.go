@@ -28,12 +28,14 @@ import (
 func TestStore_Add(t *testing.T) {
 	ctx := context.Background()
 	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 
 	t.Run("add-new-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
 		err := s.Add(ctx, &proposal.Request{
-			Type:   proposal.AddNode,
-			PeerID: peer1,
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
 		})
 		assert.NoError(t, err)
 	})
@@ -46,19 +48,30 @@ func TestStore_Add(t *testing.T) {
 		assert.EqualError(t, err, proposal.ErrInvalidPeerID.Error())
 	})
 
-	t.Run("overwrite-old-request", func(t *testing.T) {
+	t.Run("reject-missing-peer-addr", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
-
 		err := s.Add(ctx, &proposal.Request{
 			Type:   proposal.AddNode,
 			PeerID: peer1,
 		})
+		assert.EqualError(t, err, proposal.ErrMissingPeerAddr.Error())
+	})
+
+	t.Run("overwrite-old-request", func(t *testing.T) {
+		s := proposal.NewInMemoryStore()
+
+		err := s.Add(ctx, &proposal.Request{
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
+		})
 		require.NoError(t, err)
 
 		err = s.Add(ctx, &proposal.Request{
-			Type:   proposal.AddNode,
-			PeerID: peer1,
-			Info:   []byte("nananana"),
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
+			Info:     []byte("nananana"),
 		})
 		require.NoError(t, err)
 
@@ -72,6 +85,7 @@ func TestStore_Add(t *testing.T) {
 func TestStore_Remove(t *testing.T) {
 	ctx := context.Background()
 	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 
 	t.Run("no-matching-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
@@ -82,8 +96,9 @@ func TestStore_Remove(t *testing.T) {
 	t.Run("remove-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
 		err := s.Add(ctx, &proposal.Request{
-			Type:   proposal.AddNode,
-			PeerID: peer1,
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
 		})
 		require.NoError(t, err)
 
@@ -99,6 +114,7 @@ func TestStore_Remove(t *testing.T) {
 func TestStore_Get(t *testing.T) {
 	ctx := context.Background()
 	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 
 	t.Run("no-matching-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
@@ -110,8 +126,9 @@ func TestStore_Get(t *testing.T) {
 	t.Run("get-add-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
 		err := s.Add(ctx, &proposal.Request{
-			Type:   proposal.AddNode,
-			PeerID: peer1,
+			Type:     proposal.AddNode,
+			PeerID:   peer1,
+			PeerAddr: peer1Addr,
 		})
 		require.NoError(t, err)
 
@@ -120,6 +137,7 @@ func TestStore_Get(t *testing.T) {
 		require.NotNil(t, r)
 
 		assert.Equal(t, peer1, r.PeerID)
+		assert.Equal(t, peer1Addr, r.PeerAddr)
 		assert.Equal(t, proposal.AddNode, r.Type)
 	})
 

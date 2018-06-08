@@ -45,6 +45,10 @@ func (s *InMemoryStore) Add(ctx context.Context, r *Request) error {
 		return ErrInvalidPeerID
 	}
 
+	if r.Type == AddNode && r.PeerAddr == nil {
+		return ErrMissingPeerAddr
+	}
+
 	s.requestsLock.Lock()
 	defer s.requestsLock.Unlock()
 

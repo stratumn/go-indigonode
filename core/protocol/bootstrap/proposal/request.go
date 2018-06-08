@@ -29,6 +29,7 @@ import (
 var (
 	ErrInvalidPeerID   = errors.New("invalid peer ID")
 	ErrInvalidPeerAddr = errors.New("invalid peer address")
+	ErrMissingPeerAddr = errors.New("missing peer address")
 )
 
 const (

@@ -272,8 +272,9 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 }
 
 // Reject ignores a proposal to add or remove a node.
-func (h *CoordinatorHandler) Reject(context.Context, peer.ID) error {
-	return nil
+func (h *CoordinatorHandler) Reject(ctx context.Context, peerID peer.ID) error {
+	defer log.EventBegin(ctx, "Coordinator.Reject", peerID).Done()
+	return h.proposalStore.Remove(ctx, peerID)
 }
 
 // SendNetworkConfig sends the current network configuration to all

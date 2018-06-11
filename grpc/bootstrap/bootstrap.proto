@@ -32,4 +32,14 @@ service Bootstrap {
   rpc Accept (stratumn.alice.pb.bootstrap.PeerID) returns (stratumn.alice.pb.bootstrap.Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";
   }
+
+  // Reject a proposal to add or remove a network node.
+  rpc Reject (stratumn.alice.pb.bootstrap.PeerID) returns (stratumn.alice.pb.bootstrap.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Reject a proposal to add or remove a network node";
+  }
+
+  // List pending proposals to add or remove a network node.
+  rpc List (stratumn.alice.pb.bootstrap.Filter) returns (stream stratumn.alice.pb.bootstrap.UpdateProposal) {
+    option (stratumn.alice.grpc.ext.method_desc) = "List pending proposals to add or remove a network node";
+  }
 }

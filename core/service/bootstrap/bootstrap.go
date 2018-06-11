@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockprotocol.go github.com/stratumn/alice/core/protocol/bootstrap Handler
-
 // Package bootstrap defines a service that bootstraps a host from a set of
 // well known peers.
 package bootstrap
@@ -28,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/service/swarm"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
 	"github.com/stratumn/alice/release"
@@ -74,6 +72,7 @@ type Service struct {
 	host     Host
 	swarm    *swarm.Swarm
 	protocol protocol.Handler
+	store    proposal.Store
 }
 
 // ID returns the unique identifier of the service.
@@ -222,6 +221,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
+	s.store = store
 	s.protocol = protocolHandler
 
 	ticker := time.NewTicker(s.interval)
@@ -248,6 +248,7 @@ RUN_LOOP:
 
 	s.protocol.Close(protocolCtx)
 	s.protocol = nil
+	s.store = nil
 
 	return errors.WithStack(ctx.Err())
 }
@@ -356,6 +357,9 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 		},
 		GetProtocolHandler: func() protocol.Handler {
 			return s.protocol
+		},
+		GetProposalStore: func() proposal.Store {
+			return s.store
 		},
 	})
 }

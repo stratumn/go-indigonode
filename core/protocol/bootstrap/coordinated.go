@@ -187,6 +187,12 @@ func (h *CoordinatedHandler) Reject(context.Context, peer.ID) error {
 	return nil
 }
 
+// CompleteBootstrap can't be used by a coordinated node.
+// Only the coordinator can complete the bootstrap phase.
+func (h *CoordinatedHandler) CompleteBootstrap(context.Context) error {
+	return ErrInvalidOperation
+}
+
 // Close removes the protocol handlers.
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")

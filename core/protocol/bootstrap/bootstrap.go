@@ -53,6 +53,9 @@ type Handler interface {
 	// by its PeerID).
 	Reject(context.Context, peer.ID) error
 
+	// CompleteBootstrap completes the network bootstrapping phase.
+	CompleteBootstrap(context.Context) error
+
 	// Close closes all resources used by the protocol handler.
 	Close(context.Context)
 }

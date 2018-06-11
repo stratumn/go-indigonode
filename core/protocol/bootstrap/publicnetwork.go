@@ -43,5 +43,11 @@ func (h *PublicNetworkHandler) Reject(context.Context, peer.ID) error {
 	return ErrInvalidOperation
 }
 
+// CompleteBootstrap can't be used in a public network.
+// There is no bootstrapping phase in such networks.
+func (h *PublicNetworkHandler) CompleteBootstrap(context.Context) error {
+	return ErrInvalidOperation
+}
+
 // Close doesn't do anything.
 func (h *PublicNetworkHandler) Close(context.Context) {}

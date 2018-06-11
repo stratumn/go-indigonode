@@ -277,6 +277,12 @@ func (h *CoordinatorHandler) Reject(ctx context.Context, peerID peer.ID) error {
 	return h.proposalStore.Remove(ctx, peerID)
 }
 
+// CompleteBootstrap completes the bootstrap phase and notifies
+// white-listed network participants.
+func (h *CoordinatorHandler) CompleteBootstrap(context.Context) error {
+	return nil
+}
+
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {

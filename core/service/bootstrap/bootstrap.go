@@ -47,12 +47,6 @@ const (
 )
 
 var (
-	// ErrNotHost is returned when the connected service is not a host.
-	ErrNotHost = errors.New("connected service is not a host")
-
-	// ErrNotSwarm is returned when the connected service is not a swarm.
-	ErrNotSwarm = errors.New("connected service is not a swarm")
-
 	// ErrNotEnoughPeers is returned when not enough peers are connected.
 	ErrNotEnoughPeers = errors.New("number of connected peers is under configuration threshold")
 
@@ -209,12 +203,17 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	protocolCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	store, err := s.config.NewStore(protocolCtx)
+	if err != nil {
+		return err
+	}
+
 	protocolHandler, err := protocol.New(
 		protocolCtx,
 		s.host,
 		s.swarm.NetworkMode,
 		s.swarm.NetworkConfig,
-		nil,
+		store,
 	)
 	if err != nil {
 		return err

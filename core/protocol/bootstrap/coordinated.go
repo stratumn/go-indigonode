@@ -115,11 +115,10 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 		return protector.ErrConnectionRefused
 	}
 
-	// The network is still bootstrapping and we're not
-	// whitelisted yet, so we do nothing.
+	// The network is still bootstrapping and we're not whitelisted yet.
 	if len(networkConfig.Participants) == 0 {
 		event.Append(logging.Metadata{"participants_count": 0})
-		return nil
+		return h.AddNode(ctx, h.host.ID(), h.host.Addrs()[0], nil)
 	}
 
 	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {

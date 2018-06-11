@@ -24,16 +24,12 @@ option go_package = "github.com/stratumn/alice/grpc/bootstrap;bootstrap";
 // The bootstrap service definition.
 service Bootstrap {
   // Propose adding a node to the network.
-  rpc AddNode (stratumn.alice.pb.bootstrap.NodeIdentity) returns (Ack) {
+  rpc AddNode (stratumn.alice.pb.bootstrap.NodeIdentity) returns (stratumn.alice.pb.bootstrap.Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Propose adding a node to the network";
   }
 
   // Accept a proposal to add or remove a network node.
-  rpc Accept (stratumn.alice.pb.bootstrap.PeerID) returns (Ack) {
+  rpc Accept (stratumn.alice.pb.bootstrap.PeerID) returns (stratumn.alice.pb.bootstrap.Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";
   }
-}
-
-// An empty ack.
-message Ack {
 }

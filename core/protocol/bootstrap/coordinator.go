@@ -21,6 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
@@ -35,9 +37,15 @@ import (
 )
 
 var (
-	// PrivateCoordinatorProtocolID is the protocol for managing a private
-	// network. Only the network coordinator should implement this protocol.
-	PrivateCoordinatorProtocolID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/v1.0.0")
+	// PrivateCoordinatorHandshakePID is the protocol for handling handshake
+	// messages and sending the network participants list.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorHandshakePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/handshake/v1.0.0")
+
+	// PrivateCoordinatorProposePID is the protocol for receiving network update
+	// proposals from peers.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/propose/v1.0.0")
 )
 
 // Errors used by the coordinator.
@@ -50,73 +58,140 @@ var (
 type CoordinatorHandler struct {
 	host          ihost.Host
 	networkConfig protector.NetworkConfig
+	proposalStore proposal.Store
 }
 
 // NewCoordinatorHandler returns a Handler for a coordinator node.
 func NewCoordinatorHandler(
 	host ihost.Host,
 	networkConfig protector.NetworkConfig,
+	proposalStore proposal.Store,
 ) (Handler, error) {
-	handler := CoordinatorHandler{host: host, networkConfig: networkConfig}
+	handler := CoordinatorHandler{
+		host:          host,
+		networkConfig: networkConfig,
+		proposalStore: proposalStore,
+	}
 
-	host.SetStreamHandler(PrivateCoordinatorProtocolID, handler.Handle)
+	host.SetStreamHandler(
+		PrivateCoordinatorHandshakePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandleHandshake", handler.HandleHandshake),
+	)
+	host.SetStreamHandler(
+		PrivateCoordinatorProposePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandlePropose", handler.HandlePropose),
+	)
 
 	return &handler, nil
 }
 
-// Handle handles an incoming stream.
-func (h *CoordinatorHandler) Handle(stream inet.Stream) {
-	var protocolErr error
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "Coordinator.Handle", logging.Metadata{
-		"remote": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer func() {
-		if protocolErr != nil {
-			event.SetError(protocolErr)
-		}
-
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"close_err": err.Error()})
-		}
-
-		event.Done()
-	}()
-
+// validateSender rejects unauthorized requests.
+// This should already be done at the connection level by our protector
+// component, but it's always better to have multi-level security.
+func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	networkState := h.networkConfig.NetworkState(ctx)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		protocolErr = protector.ErrConnectionRefused
 		if err := stream.Reset(); err != nil {
 			event.Append(logging.Metadata{"reset_err": err.Error()})
 		}
 
-		return
+		return protector.ErrConnectionRefused
+	}
+
+	return nil
+}
+
+// HandleHandshake handles an incoming handshake and responds with the network
+// configuration if handshake succeeds.
+func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
 	}
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var hello pb.Hello
 	if err := dec.Decode(&hello); err != nil {
-		protocolErr = protector.ErrConnectionRefused
-		if err := stream.Reset(); err != nil {
-			event.Append(logging.Metadata{"reset_err": err.Error()})
-		}
+		return protector.ErrConnectionRefused
+	}
 
-		return
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
+
+	// We should not reveal network participants to unwanted peers.
+	if !allowed {
+		return enc.Encode(&protectorpb.NetworkConfig{})
+	}
+
+	networkConfig := h.networkConfig.Copy(ctx)
+	return enc.Encode(&networkConfig)
+}
+
+// HandlePropose handles an incoming network update proposal.
+func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var nodeID pb.NodeIdentity
+	if err := dec.Decode(&nodeID); err != nil {
+		return protector.ErrConnectionRefused
 	}
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
 
-	// We should not reveal network participants to unwanted peers.
-	if !allowed {
-		protocolErr = enc.Encode(&protectorpb.NetworkConfig{})
-		return
+	peerID, err := peer.IDFromBytes(nodeID.PeerId)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
 	}
 
-	networkConfig := h.networkConfig.Copy(ctx)
-	protocolErr = enc.Encode(&networkConfig)
+	// Populate address from PeerStore.
+	if len(nodeID.PeerAddr) == 0 {
+		pi := h.host.Peerstore().PeerInfo(peerID)
+		if len(pi.Addrs) > 0 {
+			nodeID.PeerAddr = pi.Addrs[0].Bytes()
+		}
+	}
+
+	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
+		r, err := proposal.NewAddRequest(&nodeID)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+
+		if r.PeerID != stream.Conn().RemotePeer() {
+			return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
+		}
+
+		err = h.proposalStore.Add(ctx, r)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	} else {
+		allowed := h.networkConfig.IsAllowed(ctx, peerID)
+		var req *proposal.Request
+		if allowed {
+			req, err = proposal.NewRemoveRequest(&nodeID)
+		} else {
+			req, err = proposal.NewAddRequest(&nodeID)
+		}
+
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+
+		err = h.proposalStore.Add(ctx, req)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	}
+
+	return enc.Encode(&pb.Ack{})
 }
 
 // AddNode adds the node to the network configuration
@@ -158,6 +233,41 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 	event := log.EventBegin(ctx, "Coordinator.Accept", peerID)
 	defer event.Done()
 
+	r, err := h.proposalStore.Get(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r == nil {
+		event.SetError(proposal.ErrMissingRequest)
+		return proposal.ErrMissingRequest
+	}
+
+	err = h.proposalStore.Remove(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r.PeerAddr == nil {
+		event.SetError(proposal.ErrMissingPeerAddr)
+		return proposal.ErrMissingPeerAddr
+	}
+
+	if h.networkConfig.IsAllowed(ctx, peerID) {
+		// Nothing to do, peer was already added.
+		return nil
+	}
+
+	err = h.networkConfig.AddPeer(ctx, peerID, []multiaddr.Multiaddr{r.PeerAddr})
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	h.SendNetworkConfig(ctx)
+
 	return nil
 }
 
@@ -174,12 +284,16 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 	wg := &sync.WaitGroup{}
 
 	for _, peerID := range allowedPeers {
+		if peerID == h.host.ID() {
+			continue
+		}
+
 		wg.Add(1)
 
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProtocolID)
+			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedConfigPID)
 			if err != nil {
 				eventLock.Lock()
 				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
@@ -218,5 +332,6 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 // Close removes the protocol handlers.
 func (h *CoordinatorHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinator.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatorProtocolID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
 }

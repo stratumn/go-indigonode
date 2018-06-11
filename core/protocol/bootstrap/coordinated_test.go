@@ -266,7 +266,7 @@ func TestCoordinated_Handle(t *testing.T) {
 			stream, err := testNetwork.CoordinatorHost().NewStream(
 				ctx,
 				host.ID(),
-				bootstrap.PrivateCoordinatedProtocolID,
+				bootstrap.PrivateCoordinatedConfigPID,
 			)
 			require.NoError(t, err, "NewStream()")
 
@@ -307,8 +307,7 @@ func TestCoordinated_AddNode(t *testing.T) {
 	// We shouldn't allow the node until the coordinator validates it.
 	assert.False(t, networkConfig.IsAllowed(ctx, host.ID()))
 
-	// TODO: switch to Accept() once implemented
-	err = coordinatorHandler.AddNode(ctx, host.ID(), nil, []byte("trusted"))
+	err = coordinatorHandler.Accept(ctx, host.ID())
 	require.NoError(t, err, "coordinatorHandler.Accept()")
 
 	waitUntilAllowed(t, host.ID(), networkConfig)

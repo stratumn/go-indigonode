@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -60,6 +61,7 @@ func New(
 	host ihost.Host,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
+	store proposal.Store,
 ) (Handler, error) {
 	if networkMode == nil {
 		return &PublicNetworkHandler{}, nil
@@ -70,7 +72,7 @@ func New(
 		return &PublicNetworkHandler{}, nil
 	case protector.PrivateWithCoordinatorMode:
 		if networkMode.IsCoordinator {
-			return NewCoordinatorHandler(host, networkConfig)
+			return NewCoordinatorHandler(host, networkConfig, store)
 		}
 
 		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig)

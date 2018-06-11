@@ -23,6 +23,11 @@ option go_package = "github.com/stratumn/alice/pb/bootstrap;bootstrap";
 // A simple Hello handshake message.
 message Hello {}
 
+// A message ack.
+message Ack {
+    string error = 1;
+}
+
 // A base58-encoded PeerId.
 message PeerID {
     bytes peer_id = 1 [

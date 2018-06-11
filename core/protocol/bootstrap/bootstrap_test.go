@@ -79,7 +79,7 @@ func TestBootstrapNew(t *testing.T) {
 			host.EXPECT().Peerstore().AnyTimes().Return(peerstore.NewPeerstore())
 			host.EXPECT().Connect(gomock.Any(), gomock.Any()).AnyTimes().Return(protector.ErrConnectionRefused)
 
-			h, err := bootstrap.New(ctx, host, tt.networkMode, nil)
+			h, err := bootstrap.New(ctx, host, tt.networkMode, nil, nil)
 
 			if tt.expectedErr == nil {
 				require.NoError(t, err)

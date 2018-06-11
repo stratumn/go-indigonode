@@ -209,7 +209,13 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	protocolCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	protocolHandler, err := protocol.New(protocolCtx, s.host, s.swarm.NetworkMode, s.swarm.NetworkConfig)
+	protocolHandler, err := protocol.New(
+		protocolCtx,
+		s.host,
+		s.swarm.NetworkMode,
+		s.swarm.NetworkConfig,
+		nil,
+	)
 	if err != nil {
 		return err
 	}

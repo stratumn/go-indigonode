@@ -46,10 +46,10 @@ func testPublicNetworkServer() *grpcServer {
 	}
 }
 
-func testPrivateNetworkServer(handler protocol.Handler, store proposal.Store) *grpcServer {
+func testPrivateNetworkServer(mode *protector.NetworkMode, handler protocol.Handler, store proposal.Store) *grpcServer {
 	return &grpcServer{
 		GetNetworkMode: func() *protector.NetworkMode {
-			return protector.NewCoordinatorNetworkMode()
+			return mode
 		},
 		GetProtocolHandler: func() protocol.Handler {
 			return handler
@@ -77,7 +77,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			handler := mockbootstrap.NewMockHandler(ctrl)
-			s := testPrivateNetworkServer(handler, nil)
+			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			nodeID := &pb.NodeIdentity{PeerId: []byte("b4tm4n")}
 			_, err := s.AddNode(ctx, nodeID)
@@ -89,7 +89,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			handler := mockbootstrap.NewMockHandler(ctrl)
-			s := testPrivateNetworkServer(handler, nil)
+			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			nodeID := &pb.NodeIdentity{
 				PeerId:   []byte(test.GeneratePeerID(t)),
@@ -104,7 +104,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			handler := mockbootstrap.NewMockHandler(ctrl)
-			s := testPrivateNetworkServer(handler, nil)
+			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			peerID := test.GeneratePeerID(t)
 			peerAddr := test.GeneratePeerMultiaddr(t, peerID)
@@ -138,7 +138,7 @@ func TestGRPCServer_Accept(t *testing.T) {
 		defer ctrl.Finish()
 
 		handler := mockbootstrap.NewMockHandler(ctrl)
-		s := testPrivateNetworkServer(handler, nil)
+		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 		peerID := test.GeneratePeerID(t)
 		message := &pb.PeerID{PeerId: []byte(peerID)}
@@ -166,7 +166,7 @@ func TestGRPCServer_Reject(t *testing.T) {
 		defer ctrl.Finish()
 
 		handler := mockbootstrap.NewMockHandler(ctrl)
-		s := testPrivateNetworkServer(handler, nil)
+		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 		peerID := test.GeneratePeerID(t)
 		message := &pb.PeerID{PeerId: []byte(peerID)}
@@ -194,7 +194,7 @@ func TestGRPCServer_List(t *testing.T) {
 		defer ctrl.Finish()
 
 		store := mockproposal.NewMockStore(ctrl)
-		s := testPrivateNetworkServer(nil, store)
+		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), nil, store)
 
 		addReq := &proposal.Request{
 			Type:     proposal.AddNode,
@@ -231,6 +231,44 @@ func TestGRPCServer_List(t *testing.T) {
 		})
 
 		err := s.List(nil, mockServer)
+		require.NoError(t, err)
+	})
+}
+
+func TestGRPCServer_Complete(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	t.Run("public-network", func(t *testing.T) {
+		s := testPublicNetworkServer()
+
+		_, err := s.Complete(ctx, nil)
+		assert.EqualError(t, err, ErrNotAllowed.Error())
+	})
+
+	t.Run("private-network-coordinated", func(t *testing.T) {
+		coordinatorID := test.GeneratePeerID(t)
+		coordinatorAddr := test.GeneratePeerMultiaddr(t, coordinatorID)
+		mode, _ := protector.NewCoordinatedNetworkMode(
+			coordinatorID.Pretty(),
+			[]string{coordinatorAddr.String()},
+		)
+		s := testPrivateNetworkServer(mode, nil, nil)
+
+		_, err := s.Complete(ctx, nil)
+		assert.EqualError(t, err, ErrNotAllowed.Error())
+	})
+
+	t.Run("private-network-coordinator", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		handler := mockbootstrap.NewMockHandler(ctrl)
+		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
+
+		handler.EXPECT().CompleteBootstrap(gomock.Any()).Times(1)
+
+		_, err := s.Complete(ctx, nil)
 		require.NoError(t, err)
 	})
 }

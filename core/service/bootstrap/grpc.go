@@ -144,3 +144,20 @@ func (s grpcServer) List(req *pb.Filter, ss grpc.Bootstrap_ListServer) error {
 
 	return nil
 }
+
+// Complete the network bootstrap phase.
+func (s grpcServer) Complete(ctx context.Context, req *pb.CompleteReq) (*pb.Ack, error) {
+	networkMode := s.GetNetworkMode()
+	if networkMode == nil ||
+		networkMode.ProtectionMode != protector.PrivateWithCoordinatorMode ||
+		!networkMode.IsCoordinator {
+		return nil, ErrNotAllowed
+	}
+
+	err := s.GetProtocolHandler().CompleteBootstrap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Ack{}, nil
+}

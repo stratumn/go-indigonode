@@ -422,6 +422,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 }
 
 func TestCoordinator_AddNode(t *testing.T) {
+	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
 	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
 	peer2 := test.GeneratePeerID(t)
@@ -517,6 +518,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 			host := mocks.NewMockHost(ctrl)
 			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
 			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 			tt.configureHost(ctrl, host)
 
 			networkConfig := mocks.NewMockNetworkConfig(ctrl)
@@ -526,6 +528,105 @@ func TestCoordinator_AddNode(t *testing.T) {
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCoordinator_Accept(t *testing.T) {
+	coordinatorID := test.GeneratePeerID(t)
+	peer1 := test.GeneratePeerID(t)
+	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
+	peer2 := test.GeneratePeerID(t)
+
+	addPeer1 := &proposal.Request{
+		Type:     proposal.AddNode,
+		PeerID:   peer1,
+		PeerAddr: peer1Addr,
+	}
+
+	testCases := []struct {
+		name      string
+		acceptID  peer.ID
+		configure func(*gomock.Controller, *mocks.MockHost, *mocks.MockNetworkConfig, *mockproposal.MockStore)
+		err       error
+	}{{
+		"proposal-missing",
+		peer1,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(nil, nil)
+		},
+		proposal.ErrMissingRequest,
+	}, {
+		"peer-addr-missing",
+		peer1,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			r := &proposal.Request{
+				Type:   proposal.AddNode,
+				PeerID: peer1,
+			}
+			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(r, nil)
+			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
+		},
+		proposal.ErrMissingPeerAddr,
+	}, {
+		"add-already-added",
+		peer1,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(addPeer1, nil)
+			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
+
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(true)
+		},
+		nil,
+	}, {
+		"add-node",
+		peer1,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(addPeer1, nil)
+			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
+
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+			cfg.EXPECT().AddPeer(gomock.Any(), peer1, []multiaddr.Multiaddr{addPeer1.PeerAddr}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
+			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
+
+			networkConfig := mocks.NewMockNetworkConfig(ctrl)
+			store := mockproposal.NewMockStore(ctrl)
+
+			tt.configure(ctrl, host, networkConfig, store)
+
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, store)
+			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+			err = handler.Accept(ctx, tt.acceptID)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

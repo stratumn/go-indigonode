@@ -30,6 +30,7 @@ var (
 	ErrInvalidPeerID   = errors.New("invalid peer ID")
 	ErrInvalidPeerAddr = errors.New("invalid peer address")
 	ErrMissingPeerAddr = errors.New("missing peer address")
+	ErrMissingRequest  = errors.New("no request for the given peer ID")
 )
 
 const (

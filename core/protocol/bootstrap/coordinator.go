@@ -233,6 +233,41 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 	event := log.EventBegin(ctx, "Coordinator.Accept", peerID)
 	defer event.Done()
 
+	r, err := h.proposalStore.Get(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r == nil {
+		event.SetError(proposal.ErrMissingRequest)
+		return proposal.ErrMissingRequest
+	}
+
+	err = h.proposalStore.Remove(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r.PeerAddr == nil {
+		event.SetError(proposal.ErrMissingPeerAddr)
+		return proposal.ErrMissingPeerAddr
+	}
+
+	if h.networkConfig.IsAllowed(ctx, peerID) {
+		// Nothing to do, peer was already added.
+		return nil
+	}
+
+	err = h.networkConfig.AddPeer(ctx, peerID, []multiaddr.Multiaddr{r.PeerAddr})
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	h.SendNetworkConfig(ctx)
+
 	return nil
 }
 
@@ -249,6 +284,10 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 	wg := &sync.WaitGroup{}
 
 	for _, peerID := range allowedPeers {
+		if peerID == h.host.ID() {
+			continue
+		}
+
 		wg.Add(1)
 
 		go func(peerID peer.ID) {

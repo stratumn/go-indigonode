@@ -79,11 +79,11 @@ type Config struct {
 	// Version is the version of the Indigo Store service.
 	Version string `toml:"version" comment:"The version of the indigo service."`
 
-	// NetworkId is the id of your Indigo PoP network.
-	NetworkID string `toml:"network_id" comment:"The id of your Indigo PoP network."`
+	// NetworkID is the ID of your Indigo PoP network.
+	NetworkID string `toml:"network_id" comment:"The ID of your Indigo PoP network."`
 
 	// StoreType is the type of storage used.
-	StorageType string `toml:"storage_type" comment:"The type of storage to us.\n Supported values: in-memory and postgreSQL."`
+	StorageType string `toml:"storage_type" comment:"The type of storage to use.\n Supported values: in-memory and postgreSQL."`
 
 	// PostgresConfig contains configuration for the postgres indigo store.
 	PostgresConfig *PostgresConfig `toml:"postgres" comment:"Configure settings for the Indigo PostgreSQL Store in the following section."`

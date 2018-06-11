@@ -14,6 +14,25 @@
 
 package bootstrap
 
+import (
+	"context"
+
+	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+)
+
+// Configuration errors.
+var (
+	ErrNotHost          = errors.New("connected service is not a host")
+	ErrNotSwarm         = errors.New("connected service is not a swarm")
+	ErrInvalidStoreType = errors.New("invalid store type")
+)
+
+// Default config values.
+const (
+	DefaultStorePath = "data/network/proposals.json"
+)
+
 // Config contains configuration options for the Bootstrap service.
 type Config struct {
 	// Host is the name of the host service.
@@ -39,4 +58,43 @@ type Config struct {
 	// ConnectionTimeout is the connection timeout. It should be less than
 	// the interval.
 	ConnectionTimeout string `toml:"connection_timeout" comment:"The connection timeout. It should be less than the interval."`
+
+	// StoreConfig configures the store used for network update proposals.
+	StoreConfig *StoreConfig `toml:"store_config" comment:"Configure the store used for network update proposals."`
+}
+
+// Types of store supported.
+const (
+	InMemoryStore = "in-memory"
+	FileStore     = "file"
+)
+
+// StoreConfig configures the store used for network update proposals.
+type StoreConfig struct {
+	// Type is the type of store used.
+	Type string `toml:"type" comment:"Type of store to use.\n Supported values: in-memory and file."`
+
+	// Path to the store files (when applicable).
+	Path string `toml:"path" comment:"Path to the store files (when applicable)."`
+}
+
+// NewStore configures a store for network update proposals.
+func (c *Config) NewStore(ctx context.Context) (proposal.Store, error) {
+	if c.StoreConfig == nil {
+		return proposal.NewInMemoryStore(), nil
+	}
+
+	switch c.StoreConfig.Type {
+	case InMemoryStore:
+		return proposal.NewInMemoryStore(), nil
+	case FileStore:
+		path := c.StoreConfig.Path
+		if len(path) == 0 {
+			path = DefaultStorePath
+		}
+
+		return proposal.WrapWithSaver(ctx, proposal.NewInMemoryStore(), path)
+	default:
+		return nil, ErrInvalidStoreType
+	}
 }

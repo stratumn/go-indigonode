@@ -37,5 +37,11 @@ func (h *PublicNetworkHandler) Accept(context.Context, peer.ID) error {
 	return ErrInvalidOperation
 }
 
+// Reject can't be used in a public network.
+// You can directly connect to any node freely.
+func (h *PublicNetworkHandler) Reject(context.Context, peer.ID) error {
+	return ErrInvalidOperation
+}
+
 // Close doesn't do anything.
 func (h *PublicNetworkHandler) Close(context.Context) {}

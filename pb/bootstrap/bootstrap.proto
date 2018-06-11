@@ -28,6 +28,9 @@ message Ack {
     string error = 1;
 }
 
+// A results filter.
+message Filter {}
+
 // A base58-encoded PeerId.
 message PeerID {
     bytes peer_id = 1 [
@@ -50,4 +53,17 @@ message NodeIdentity {
     bytes identity_proof = 3 [
         (stratumn.alice.grpc.ext.field_desc) = "KYC data (TBD)"
     ];
+}
+
+// Type of network updates that can be proposed.
+enum UpdateType {
+    None = 0;
+    AddNode = 1;
+    RemoveNode = 2;
+}
+
+// Proposal to update the network.
+message UpdateProposal {
+    UpdateType update_type = 1;
+    NodeIdentity node_details = 2;
 }

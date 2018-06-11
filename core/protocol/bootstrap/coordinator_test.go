@@ -635,3 +635,23 @@ func TestCoordinator_Accept(t *testing.T) {
 		})
 	}
 }
+
+func TestCoordinator_Reject(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	peerID := test.GeneratePeerID(t)
+
+	host := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+	store := mockproposal.NewMockStore(ctrl)
+	store.EXPECT().Remove(gomock.Any(), peerID).Times(1)
+
+	handler, err := bootstrap.NewCoordinatorHandler(host, nil, store)
+	require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+	err = handler.Reject(ctx, peerID)
+	require.NoError(t, err, "handler.Reject()")
+}

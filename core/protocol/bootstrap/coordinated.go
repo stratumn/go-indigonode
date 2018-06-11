@@ -182,6 +182,11 @@ func (h *CoordinatedHandler) Accept(context.Context, peer.ID) error {
 	return nil
 }
 
+// Reject ignores a proposal to add or remove a node.
+func (h *CoordinatedHandler) Reject(context.Context, peer.ID) error {
+	return nil
+}
+
 // Close removes the protocol handlers.
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")

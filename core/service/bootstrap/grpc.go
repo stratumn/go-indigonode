@@ -137,6 +137,9 @@ func (s grpcServer) List(req *pb.Filter, ss grpc.Bootstrap_ListServer) error {
 		}
 
 		err = ss.Send(prop)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

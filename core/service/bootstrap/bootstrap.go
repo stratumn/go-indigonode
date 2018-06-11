@@ -106,6 +106,9 @@ func (s *Service) Config() interface{} {
 		MinPeerThreshold:  4,
 		Interval:          "30s",
 		ConnectionTimeout: "10s",
+		StoreConfig: &StoreConfig{
+			Type: InMemoryStore,
+		},
 	}
 }
 

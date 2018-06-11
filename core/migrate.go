@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
 )
 
@@ -271,6 +272,9 @@ var migrations = []cfg.MigrateHandler{
 			return err
 		}
 		return tree.Set("storage.db_path", storageDB)
+	},
+	func(tree *cfg.Tree) error {
+		return tree.Set("bootstrap.store_config.type", bootstrap.InMemoryStore)
 	},
 }
 

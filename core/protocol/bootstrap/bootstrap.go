@@ -49,6 +49,10 @@ type Handler interface {
 	// by its PeerID).
 	Accept(context.Context, peer.ID) error
 
+	// Reject rejects a proposal to add or remove a node (identified
+	// by its PeerID).
+	Reject(context.Context, peer.ID) error
+
 	// Close closes all resources used by the protocol handler.
 	Close(context.Context)
 }

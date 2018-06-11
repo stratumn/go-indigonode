@@ -271,6 +271,11 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 	return nil
 }
 
+// Reject ignores a proposal to add or remove a node.
+func (h *CoordinatorHandler) Reject(context.Context, peer.ID) error {
+	return nil
+}
+
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {

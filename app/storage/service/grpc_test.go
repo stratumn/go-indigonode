@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package service
 
 import (
 	"context"
@@ -23,9 +23,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	grpcpb "github.com/stratumn/alice/grpc/storage"
-	"github.com/stratumn/alice/grpc/storage/mockstorage"
-	pb "github.com/stratumn/alice/pb/storage"
+	grpcpb "github.com/stratumn/alice/app/storage/grpc"
+	"github.com/stratumn/alice/app/storage/grpc/mockstorage"
+	"github.com/stratumn/alice/app/storage/pb"
 	"github.com/stretchr/testify/assert"
 )
 

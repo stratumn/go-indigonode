@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package storage is a simple service that allows one peer to share a file to another peer.
-package storage
+// Package service defines types for the storage service.
+package service
 
 import (
 	"context"
@@ -23,10 +23,10 @@ import (
 
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	grpcpb "github.com/stratumn/alice/app/storage/grpc"
+	"github.com/stratumn/alice/app/storage/protocol"
+	"github.com/stratumn/alice/app/storage/protocol/constants"
 	"github.com/stratumn/alice/core/db"
-	"github.com/stratumn/alice/core/protocol/storage"
-	"github.com/stratumn/alice/core/protocol/storage/constants"
-	grpcpb "github.com/stratumn/alice/grpc/storage"
 
 	"google.golang.org/grpc"
 
@@ -53,7 +53,7 @@ type Host = ihost.Host
 type Service struct {
 	config        *Config
 	host          Host
-	storage       *storage.Storage
+	storage       *protocol.Storage
 	uploadTimeout time.Duration
 }
 
@@ -178,7 +178,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}()
 
-	s.storage = storage.NewStorage(s.host, db, s.config.LocalStorage)
+	s.storage = protocol.NewStorage(s.host, db, s.config.LocalStorage)
 
 	// Wrap the stream handler with the context.
 	s.host.SetStreamHandler(constants.ProtocolID, func(stream inet.Stream) {

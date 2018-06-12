@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/core/protocol/storage/p2p Encoder
+//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/app/storage/protocol/p2p Encoder
 
 package p2p
 
@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/storage/constants"
-	"github.com/stratumn/alice/core/protocol/storage/file"
-	pb "github.com/stratumn/alice/pb/storage"
+	"github.com/stratumn/alice/app/storage/pb"
+	"github.com/stratumn/alice/app/storage/protocol/constants"
+	"github.com/stratumn/alice/app/storage/protocol/file"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

@@ -122,38 +122,7 @@ func TestService_Run(t *testing.T) {
 		testservice.TestRun(ctx, t, serv, time.Second)
 	})
 
-	t.Run("private-network-bootstrap", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		net := mockbootstrap.NewMockNetwork(ctrl)
-		net.EXPECT().Peers().Return([]peer.ID{test.GeneratePeerID(t)}).AnyTimes()
-
-		host := mocks.NewMockHost(ctrl)
-		host.EXPECT().Network().Return(net).AnyTimes()
-		host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
-		host.EXPECT().RemoveStreamHandler(gomock.Any()).AnyTimes()
-
-		networkCfg := mocks.NewMockNetworkConfig(ctrl)
-		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_BOOTSTRAP).Times(1)
-		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{
-			test.GeneratePeerID(t),
-			test.GeneratePeerID(t),
-		}).AnyTimes()
-
-		networkMode := &protector.NetworkMode{
-			ProtectionMode: protector.PrivateWithCoordinatorMode,
-			IsCoordinator:  true,
-		}
-
-		serv := testService(ctx, t, host, networkMode, networkCfg)
-		testservice.TestRun(ctx, t, serv, time.Second)
-	})
-
-	t.Run("private-network-protected", func(t *testing.T) {
+	t.Run("private-network", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 

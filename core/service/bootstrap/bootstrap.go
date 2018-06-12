@@ -286,10 +286,6 @@ func (s *Service) privateRound(ctx context.Context) error {
 		"network_state": protectorpb.NetworkState_name[int32(networkState)],
 	})
 
-	if networkState == protectorpb.NetworkState_BOOTSTRAP {
-		return nil
-	}
-
 	peers := s.swarm.NetworkConfig.AllowedPeers(ctx)
 	wg := sync.WaitGroup{}
 	eventLock := sync.Mutex{}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package storage
+package service
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
-	grpcpb "github.com/stratumn/alice/grpc/storage"
-	pb "github.com/stratumn/alice/pb/storage"
+	grpcpb "github.com/stratumn/alice/app/storage/grpc"
+	"github.com/stratumn/alice/app/storage/pb"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

@@ -15,17 +15,17 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/pb/storage/storage.proto";
+import "github.com/stratumn/alice/app/storage/pb/storage.proto";
 
-package stratumn.alice.grpc.storage;
+package stratumn.alice.app.storage.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/storage;storage";
+option go_package = "github.com/stratumn/alice/app/storage/grpc;grpc";
 
 // The storage service definition.
 service Storage {
   
   // Upload a file to the alice node.
-  rpc Upload (stream stratumn.alice.pb.storage.FileChunk) returns (UploadAck) {}
+  rpc Upload (stream stratumn.alice.app.storage.pb.FileChunk) returns (UploadAck) {}
 
   // Sends a request to the server to start a new upload.
   rpc StartUpload(UploadReq) returns (UploadSession) {}
@@ -40,7 +40,7 @@ service Storage {
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
 
   // Download downloads a file from a peer.
-  rpc Download (DownloadRequest) returns (stream stratumn.alice.pb.storage.FileChunk) {}
+  rpc Download (DownloadRequest) returns (stream stratumn.alice.app.storage.pb.FileChunk) {}
 }
 
 message SessionFileChunk {

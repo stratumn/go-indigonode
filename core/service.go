@@ -19,6 +19,7 @@ import (
 	clock "github.com/stratumn/alice/app/clock/service"
 	coin "github.com/stratumn/alice/app/coin/service"
 	contacts "github.com/stratumn/alice/app/contacts/service"
+	storage "github.com/stratumn/alice/app/storage/service"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/connmgr"
@@ -39,7 +40,6 @@ import (
 	"github.com/stratumn/alice/core/service/raft"
 	"github.com/stratumn/alice/core/service/relay"
 	"github.com/stratumn/alice/core/service/signal"
-	"github.com/stratumn/alice/core/service/storage"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/core/service/yamux"
 )

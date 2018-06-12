@@ -28,6 +28,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/service/swarm"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/release"
 
 	"google.golang.org/grpc"
@@ -254,16 +255,86 @@ RUN_LOOP:
 }
 
 // round boostraps connections if needed.
-func (s *Service) round(ctx context.Context) error {
-	event := log.EventBegin(ctx, "round", logging.Metadata{
-		"threshold": s.config.MinPeerThreshold,
-	})
-	defer event.Done()
+func (s *Service) round(ctx context.Context) (err error) {
+	event := log.EventBegin(ctx, "round")
 	defer func() {
+		if err != nil {
+			event.SetError(err)
+		}
+
 		event.Append(logging.Metadata{
 			"connected": len(s.host.Network().Peers()),
 		})
+
+		event.Done()
 	}()
+
+	if s.swarm.NetworkMode == nil || s.swarm.NetworkMode.ProtectionMode == "" {
+		return s.publicRound(ctx)
+	}
+
+	return s.privateRound(ctx)
+}
+
+// privateRound boostraps connections in a private network.
+func (s *Service) privateRound(ctx context.Context) error {
+	event := log.EventBegin(ctx, "private_round")
+	defer event.Done()
+
+	networkState := s.swarm.NetworkConfig.NetworkState(ctx)
+	event.Append(logging.Metadata{
+		"network_state": protectorpb.NetworkState_name[int32(networkState)],
+	})
+
+	if networkState == protectorpb.NetworkState_BOOTSTRAP {
+		return nil
+	}
+
+	peers := s.swarm.NetworkConfig.AllowedPeers(ctx)
+	wg := sync.WaitGroup{}
+	eventLock := sync.Mutex{}
+
+	for _, peerID := range peers {
+		if peerID == s.host.ID() {
+			continue
+		}
+
+		if s.host.Network().Connectedness(peerID) != inet.Connected {
+			wg.Add(1)
+			pi := s.host.Peerstore().PeerInfo(peerID)
+
+			go func(pi pstore.PeerInfo) {
+				defer wg.Done()
+
+				err := s.host.Connect(ctx, pi)
+
+				eventLock.Lock()
+				defer eventLock.Unlock()
+
+				if err != nil {
+					event.Append(logging.Metadata{
+						pi.ID.Pretty(): err.Error(),
+					})
+				} else {
+					event.Append(logging.Metadata{
+						pi.ID.Pretty(): "connected",
+					})
+				}
+			}(pi)
+		}
+	}
+
+	wg.Wait()
+
+	return nil
+}
+
+// publicRound boostraps connections in a public network.
+func (s *Service) publicRound(ctx context.Context) error {
+	event := log.EventBegin(ctx, "public_round", logging.Metadata{
+		"threshold": s.config.MinPeerThreshold,
+	})
+	defer event.Done()
 
 	threshold := s.config.MinPeerThreshold
 	connected := s.host.Network().Peers()

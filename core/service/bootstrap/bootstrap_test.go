@@ -25,6 +25,8 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
+	protectorpb "github.com/stratumn/alice/pb/protector"
+	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,7 +69,7 @@ func testService(
 	return serv
 }
 
-func expectHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwork, host *mocks.MockHost) {
+func expectPublicHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwork, host *mocks.MockHost) {
 	seedID, err := peer.IDB58Decode(testPID)
 	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
@@ -96,7 +98,7 @@ func TestService_Expose(t *testing.T) {
 
 	host := mocks.NewMockHost(ctrl)
 	net := mockbootstrap.NewMockNetwork(ctrl)
-	expectHost(ctx, t, net, host)
+	expectPublicHost(ctx, t, net, host)
 
 	serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
@@ -105,18 +107,91 @@ func TestService_Expose(t *testing.T) {
 }
 
 func TestService_Run(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	t.Run("public-network", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-	host := mocks.NewMockHost(ctrl)
-	net := mockbootstrap.NewMockNetwork(ctrl)
-	expectHost(ctx, t, net, host)
+		host := mocks.NewMockHost(ctrl)
+		net := mockbootstrap.NewMockNetwork(ctrl)
+		expectPublicHost(ctx, t, net, host)
 
-	serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
-	testservice.TestRun(ctx, t, serv, time.Second)
+		serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
+		testservice.TestRun(ctx, t, serv, time.Second)
+	})
+
+	t.Run("private-network-bootstrap", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		net := mockbootstrap.NewMockNetwork(ctrl)
+		net.EXPECT().Peers().Return([]peer.ID{test.GeneratePeerID(t)}).AnyTimes()
+
+		host := mocks.NewMockHost(ctrl)
+		host.EXPECT().Network().Return(net).AnyTimes()
+		host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
+		host.EXPECT().RemoveStreamHandler(gomock.Any()).AnyTimes()
+
+		networkCfg := mocks.NewMockNetworkConfig(ctrl)
+		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_BOOTSTRAP).Times(1)
+		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{
+			test.GeneratePeerID(t),
+			test.GeneratePeerID(t),
+		}).AnyTimes()
+
+		networkMode := &protector.NetworkMode{
+			ProtectionMode: protector.PrivateWithCoordinatorMode,
+			IsCoordinator:  true,
+		}
+
+		serv := testService(ctx, t, host, networkMode, networkCfg)
+		testservice.TestRun(ctx, t, serv, time.Second)
+	})
+
+	t.Run("private-network-protected", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		hostID := test.GeneratePeerID(t)
+		peer1 := test.GeneratePeerID(t)
+		peer2 := test.GeneratePeerID(t)
+
+		net := mockbootstrap.NewMockNetwork(ctrl)
+		net.EXPECT().Peers().Return([]peer.ID{peer1, peer2}).AnyTimes()
+		net.EXPECT().Connectedness(peer1).Return(inet.Connected).AnyTimes()
+		net.EXPECT().Connectedness(peer2).Return(inet.NotConnected).AnyTimes()
+
+		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore.EXPECT().PeerInfo(peer2).Return(pstore.PeerInfo{ID: peer2}).AnyTimes()
+
+		host := mocks.NewMockHost(ctrl)
+		host.EXPECT().ID().Return(hostID).AnyTimes()
+		host.EXPECT().Network().Return(net).AnyTimes()
+		host.EXPECT().Peerstore().Return(peerStore).AnyTimes()
+		host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
+		host.EXPECT().RemoveStreamHandler(gomock.Any()).AnyTimes()
+		host.EXPECT().Connect(gomock.Any(), pstore.PeerInfo{ID: peer2}).Times(1)
+
+		networkCfg := mocks.NewMockNetworkConfig(ctrl)
+		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED).Times(1)
+		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{hostID, peer1, peer2}).AnyTimes()
+
+		networkMode := &protector.NetworkMode{
+			ProtectionMode: protector.PrivateWithCoordinatorMode,
+			IsCoordinator:  true,
+		}
+
+		serv := testService(ctx, t, host, networkMode, networkCfg)
+		testservice.TestRun(ctx, t, serv, time.Second)
+	})
 }
 
 func TestService_SetConfig(t *testing.T) {

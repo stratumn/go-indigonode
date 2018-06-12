@@ -1,6 +1,0 @@
-- src: lexrus.ansible-role-docker
-  name: ansible-role-docker
-
-- src: tersmitten.pip
-  name: pip
-

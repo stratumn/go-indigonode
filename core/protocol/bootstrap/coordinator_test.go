@@ -41,13 +41,17 @@ import (
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
+func expectSetStreamHandler(host *mocks.MockHost) {
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
+}
+
 func TestCoordinator_Close(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
+	expectSetStreamHandler(host)
 
 	handler, err := bootstrap.NewCoordinatorHandler(host, nil, nil)
 	require.NoError(t, err)
@@ -516,8 +520,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
-			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
+			expectSetStreamHandler(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 			tt.configureHost(ctrl, host)
 
@@ -615,8 +618,7 @@ func TestCoordinator_Accept(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
-			host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
+			expectSetStreamHandler(host)
 
 			networkConfig := mocks.NewMockNetworkConfig(ctrl)
 			store := mockproposal.NewMockStore(ctrl)
@@ -654,4 +656,102 @@ func TestCoordinator_Reject(t *testing.T) {
 
 	err = handler.Reject(ctx, peerID)
 	require.NoError(t, err, "handler.Reject()")
+}
+
+func TestCoordinator_CompleteBootstrap(t *testing.T) {
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
+
+	testCases := []struct {
+		name   string
+		expect func(*gomock.Controller, *mocks.MockHost, *mocks.MockNetworkConfig)
+	}{{
+		"already-completed",
+		func(_ *gomock.Controller, _ *mocks.MockHost, cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED).Times(1)
+		},
+	}, {
+		"set-network-state",
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_BOOTSTRAP).Times(1)
+			cfg.EXPECT().SetNetworkState(gomock.Any(), protectorpb.NetworkState_PROTECTED).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+
+			mockNet := mocks.NewMockNetwork(ctrl)
+			mockNet.EXPECT().Conns().Return([]inet.Conn{}).Times(1)
+
+			host.EXPECT().Network().Return(mockNet).Times(1)
+		},
+	}, {
+		"notify-participants",
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_BOOTSTRAP).Times(1)
+			cfg.EXPECT().SetNetworkState(gomock.Any(), protectorpb.NetworkState_PROTECTED).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{peer1, peer2, peer3}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+
+			mockNet := mocks.NewMockNetwork(ctrl)
+			mockNet.EXPECT().Conns().Return([]inet.Conn{}).Times(1)
+
+			host.EXPECT().Network().Return(mockNet).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().ID().Return(peer1).AnyTimes()
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer3, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+	}, {
+		"disconnect-non-authorized-nodes",
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_BOOTSTRAP).Times(1)
+			cfg.EXPECT().SetNetworkState(gomock.Any(), protectorpb.NetworkState_PROTECTED).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{peer1, peer2}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(1)
+
+			host.EXPECT().ID().Return(peer1).AnyTimes()
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+
+			unauthorizedConn := mocks.NewMockConn(ctrl)
+			unauthorizedConn.EXPECT().RemotePeer().Return(peer3).Times(1)
+			unauthorizedConn.EXPECT().Close().Times(1)
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(false).Times(1)
+
+			mockNet := mocks.NewMockNetwork(ctrl)
+			mockNet.EXPECT().Conns().Return([]inet.Conn{unauthorizedConn}).Times(1)
+
+			host.EXPECT().Network().Return(mockNet).Times(1)
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
+
+			networkConfig := mocks.NewMockNetworkConfig(ctrl)
+
+			tt.expect(ctrl, host, networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+			err = handler.CompleteBootstrap(ctx)
+			require.NoError(t, err, "handler.CompleteBootstrap()")
+		})
+	}
 }

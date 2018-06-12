@@ -42,4 +42,9 @@ service Bootstrap {
   rpc List (stratumn.alice.pb.bootstrap.Filter) returns (stream stratumn.alice.pb.bootstrap.UpdateProposal) {
     option (stratumn.alice.grpc.ext.method_desc) = "List pending proposals to add or remove a network node";
   }
+
+  // Complete the network bootstrap phase.
+  rpc Complete (stratumn.alice.pb.bootstrap.CompleteReq) returns (stratumn.alice.pb.bootstrap.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Complete the network bootstrap phase";
+  }
 }

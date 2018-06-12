@@ -277,6 +277,44 @@ func (h *CoordinatorHandler) Reject(ctx context.Context, peerID peer.ID) error {
 	return h.proposalStore.Remove(ctx, peerID)
 }
 
+// CompleteBootstrap completes the bootstrap phase and notifies
+// white-listed network participants.
+func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
+	event := log.EventBegin(ctx, "Coordinator.CompleteBootstrap")
+	defer event.Done()
+
+	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_PROTECTED {
+		return nil
+	}
+
+	err := h.networkConfig.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	h.SendNetworkConfig(ctx)
+
+	// Disconnect from unauthorized nodes.
+	for _, c := range h.host.Network().Conns() {
+		peerID := c.RemotePeer()
+		if !h.networkConfig.IsAllowed(ctx, peerID) {
+			err = c.Close()
+			if err != nil {
+				event.Append(logging.Metadata{
+					peerID.Pretty(): err.Error(),
+				})
+			} else {
+				event.Append(logging.Metadata{
+					peerID.Pretty(): "disconnected",
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {

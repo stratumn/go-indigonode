@@ -28,6 +28,9 @@ message Ack {
     string error = 1;
 }
 
+// A request to complete the bootstrap phase.
+message CompleteReq {}
+
 // A results filter.
 message Filter {}
 

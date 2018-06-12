@@ -69,6 +69,18 @@ func (mr *MockHandlerMockRecorder) Close(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockHandler)(nil).Close), arg0)
 }
 
+// CompleteBootstrap mocks base method
+func (m *MockHandler) CompleteBootstrap(arg0 context.Context) error {
+	ret := m.ctrl.Call(m, "CompleteBootstrap", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CompleteBootstrap indicates an expected call of CompleteBootstrap
+func (mr *MockHandlerMockRecorder) CompleteBootstrap(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteBootstrap", reflect.TypeOf((*MockHandler)(nil).CompleteBootstrap), arg0)
+}
+
 // Reject mocks base method
 func (m *MockHandler) Reject(arg0 context.Context, arg1 go_libp2p_peer.ID) error {
 	ret := m.ctrl.Call(m, "Reject", arg0, arg1)

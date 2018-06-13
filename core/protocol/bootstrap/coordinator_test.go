@@ -540,6 +540,89 @@ func TestCoordinator_AddNode(t *testing.T) {
 	}
 }
 
+func TestCoordinator_RemoveNode(t *testing.T) {
+	coordinatorID := test.GeneratePeerID(t)
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
+
+	testCases := []struct {
+		name                   string
+		removeNodeID           peer.ID
+		configureHost          func(*gomock.Controller, *mocks.MockHost)
+		configureNetworkConfig func(*mocks.MockNetworkConfig)
+		err                    error
+	}{{
+		"peer-not-in-network",
+		peer3,
+		func(*gomock.Controller, *mocks.MockHost) {},
+		func(cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(false).Times(1)
+		},
+		nil,
+	}, {
+		"remove-coordinator",
+		coordinatorID,
+		func(*gomock.Controller, *mocks.MockHost) {},
+		func(*mocks.MockNetworkConfig) {},
+		bootstrap.ErrInvalidOperation,
+	}, {
+		"remove-peer",
+		peer3,
+		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+			conn := mocks.NewMockConn(ctrl)
+			conn.EXPECT().RemotePeer().Return(peer3).Times(1)
+			conn.EXPECT().Close().Times(1)
+
+			network := mocks.NewMockNetwork(ctrl)
+			network.EXPECT().Conns().Return([]inet.Conn{conn}).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().Network().Return(network).Times(1)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+		func(cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(true).Times(1)
+			cfg.EXPECT().RemovePeer(gomock.Any(), peer3).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{peer1, peer2}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+		},
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
+			tt.configureHost(ctrl, host)
+
+			networkConfig := mocks.NewMockNetworkConfig(ctrl)
+			tt.configureNetworkConfig(networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+			err = handler.RemoveNode(ctx, tt.removeNodeID)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestCoordinator_Accept(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
@@ -550,6 +633,11 @@ func TestCoordinator_Accept(t *testing.T) {
 		Type:     proposal.AddNode,
 		PeerID:   peer1,
 		PeerAddr: peer1Addr,
+	}
+
+	removePeer2 := &proposal.Request{
+		Type:   proposal.RemoveNode,
+		PeerID: peer2,
 	}
 
 	testCases := []struct {
@@ -605,6 +693,30 @@ func TestCoordinator_Accept(t *testing.T) {
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+		nil,
+	}, {
+		"remove-node",
+		peer2,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer2).Times(1).Return(removePeer2, nil)
+			store.EXPECT().Remove(gomock.Any(), peer2).Times(1)
+
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer2).Times(1).Return(true)
+			cfg.EXPECT().RemovePeer(gomock.Any(), peer2).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1})
+
+			network := mocks.NewMockNetwork(ctrl)
+			network.EXPECT().Conns().Return(nil).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(1)
+
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
+			host.EXPECT().Network().Return(network).Times(1)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 		},
 		nil,
 	}}

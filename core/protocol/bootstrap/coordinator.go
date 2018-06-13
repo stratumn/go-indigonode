@@ -229,8 +229,36 @@ func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 
 // RemoveNode removes a node from the network configuration
 // and notifies network participants.
-func (h *CoordinatorHandler) RemoveNode(context.Context, peer.ID) error {
-	// TODO
+func (h *CoordinatorHandler) RemoveNode(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinator.RemoveNode", peerID)
+	defer event.Done()
+
+	if peerID == h.host.ID() {
+		event.SetError(ErrInvalidOperation)
+		return ErrInvalidOperation
+	}
+
+	if !h.networkConfig.IsAllowed(ctx, peerID) {
+		return nil
+	}
+
+	err := h.networkConfig.RemovePeer(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	for _, c := range h.host.Network().Conns() {
+		if c.RemotePeer() == peerID {
+			err = c.Close()
+			if err != nil {
+				event.Append(logging.Metadata{"close_err": err.Error()})
+			}
+		}
+	}
+
+	h.SendNetworkConfig(ctx)
+
 	return nil
 }
 
@@ -255,6 +283,10 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 	if err != nil {
 		event.SetError(err)
 		return err
+	}
+
+	if r.Type == proposal.RemoveNode {
+		return h.RemoveNode(ctx, peerID)
 	}
 
 	if r.PeerAddr == nil {

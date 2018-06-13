@@ -80,7 +80,7 @@ var (
 )
 
 func setupEnv(cmd *exec.Cmd) {
-	_, err := os.Open(deploymentKeyPath)
+	_, err := os.Stat(deploymentKeyPath)
 	if err != nil {
 		osExit(1, "the AWS private key is needed to deploy the network")
 	}

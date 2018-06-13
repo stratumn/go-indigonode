@@ -64,6 +64,26 @@ func (s grpcServer) AddNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack,
 	return &pb.Ack{}, nil
 }
 
+// RemoveNode proposes removing a node from the network.
+func (s grpcServer) RemoveNode(ctx context.Context, req *pb.NodeIdentity) (*pb.Ack, error) {
+	networkMode := s.GetNetworkMode()
+	if networkMode == nil || networkMode.ProtectionMode != protector.PrivateWithCoordinatorMode {
+		return nil, ErrNotAllowed
+	}
+
+	peerID, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return nil, protectorpb.ErrInvalidPeerID
+	}
+
+	err = s.GetProtocolHandler().RemoveNode(ctx, peerID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Ack{}, nil
+}
+
 // Accept a proposal to add or remove a network node.
 func (s grpcServer) Accept(ctx context.Context, req *pb.PeerID) (*pb.Ack, error) {
 	networkMode := s.GetNetworkMode()

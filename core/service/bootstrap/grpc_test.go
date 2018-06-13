@@ -122,6 +122,48 @@ func TestGRPCServer_AddNode(t *testing.T) {
 	})
 }
 
+func TestGRPCServer_RemoveNode(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	t.Run("public-network", func(t *testing.T) {
+		s := testPublicNetworkServer()
+
+		_, err := s.RemoveNode(ctx, nil)
+		assert.EqualError(t, err, ErrNotAllowed.Error())
+	})
+
+	t.Run("private-network", func(t *testing.T) {
+		t.Run("invalid-peer-id", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			handler := mockbootstrap.NewMockHandler(ctrl)
+			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
+
+			nodeID := &pb.NodeIdentity{PeerId: []byte("b4tm4n")}
+			_, err := s.RemoveNode(ctx, nodeID)
+			require.EqualError(t, err, protectorpb.ErrInvalidPeerID.Error())
+		})
+
+		t.Run("valid-request", func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			handler := mockbootstrap.NewMockHandler(ctrl)
+			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
+
+			peerID := test.GeneratePeerID(t)
+			nodeID := &pb.NodeIdentity{PeerId: []byte(peerID)}
+
+			handler.EXPECT().RemoveNode(gomock.Any(), peerID).Times(1)
+
+			_, err := s.RemoveNode(ctx, nodeID)
+			require.NoError(t, err)
+		})
+	})
+}
+
 func TestGRPCServer_Accept(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

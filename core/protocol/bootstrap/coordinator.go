@@ -227,6 +227,13 @@ func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	return nil
 }
 
+// RemoveNode removes a node from the network configuration
+// and notifies network participants.
+func (h *CoordinatorHandler) RemoveNode(context.Context, peer.ID) error {
+	// TODO
+	return nil
+}
+
 // Accept accepts a proposal to add or remove a node
 // and notifies network participants.
 func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {

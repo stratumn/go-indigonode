@@ -31,6 +31,12 @@ func (h *PublicNetworkHandler) AddNode(context.Context, peer.ID, multiaddr.Multi
 	return ErrInvalidOperation
 }
 
+// RemoveNode can't be used in a public network.
+// You can directly connect to any node freely.
+func (h *PublicNetworkHandler) RemoveNode(context.Context, peer.ID) error {
+	return ErrInvalidOperation
+}
+
 // Accept can't be used in a public network.
 // You can directly connect to any node freely.
 func (h *PublicNetworkHandler) Accept(context.Context, peer.ID) error {

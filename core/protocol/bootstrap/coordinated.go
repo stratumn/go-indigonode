@@ -176,6 +176,14 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	return nil
 }
 
+// RemoveNode sends a proposal to remove the node to the coordinator.
+// The coordinator will notify each node that needs to sign their agreement.
+// The node will then eventually be removed if enough participants agree.
+func (h *CoordinatedHandler) RemoveNode(context.Context, peer.ID) error {
+	// TODO
+	return nil
+}
+
 // Accept broadcasts a signed message to accept a proposal to add
 // or remove a node.
 func (h *CoordinatedHandler) Accept(context.Context, peer.ID) error {

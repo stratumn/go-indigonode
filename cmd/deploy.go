@@ -18,7 +18,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 
@@ -38,11 +37,11 @@ const (
 	// DefaultPlaybook is the path to the ansible deployment playbook.
 	DefaultPlaybook = "main.yml"
 
-	// AMIUserFlagName is the name of the flag AMI user.
-	AMIUserFlagName = "user"
+	// RemoteUserFlagName is the name of the flag for setting the remote user's name.
+	RemoteUserFlagName = "user"
 
-	// DefaultAMIUser is the name of the user on the remote hosts (depends on the aws AMI in use).
-	DefaultAMIUser = "ubuntu"
+	// DefaultRemoteUser is the name of the user on the remote hosts.
+	DefaultRemoteUser = "ubuntu"
 
 	// DeploymentKeyFlagName is the name of the flag for the deployment key.
 	DeploymentKeyFlagName = "key"
@@ -59,7 +58,7 @@ const (
 	// DefaultPythonRequirements is the path to the python requirements file.
 	DefaultPythonRequirements = "requirements.txt"
 
-	// DefaultAnsibleRequirements is th epath to the ansible requirements file.
+	// DefaultAnsibleRequirements is the path to the ansible requirements file.
 	DefaultAnsibleRequirements = "requirements.yml"
 )
 
@@ -68,7 +67,7 @@ var (
 
 	playbookFile string
 
-	awsAMIUser string
+	remoteUser string
 
 	deploymentKeyPath string
 
@@ -82,7 +81,7 @@ var (
 func setupEnv(cmd *exec.Cmd) {
 	_, err := os.Stat(deploymentKeyPath)
 	if err != nil {
-		osExit(1, "the AWS private key is needed to deploy the network")
+		osExit(1, "a private key is needed to authenticate on the cloud platform")
 	}
 	cmd.Env = append(os.Environ(), fmt.Sprintf("ANSIBLE_CONFIG=%s", ansibleConfig))
 }
@@ -105,7 +104,7 @@ func getDependencies() {
 	if err != nil {
 		osExit(1, fmt.Sprintf("could not install ansible roles: %s", err.Error()))
 	}
-	fmt.Println("Done !")
+	fmt.Println("Done!")
 }
 
 func runDeploy(cmd *exec.Cmd) {
@@ -131,20 +130,20 @@ func runDeploy(cmd *exec.Cmd) {
 	go reader(stdout)
 	go reader(stderr)
 	if err := cmd.Wait(); err != nil {
-		log.Fatal(err)
+		osExit(1, err.Error())
 	}
 }
 
 // deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "A brief description of your command",
+	Short: "Deploys an alice network on the cloud",
 	Run: func(cmd *cobra.Command, args []string) {
 		getDependencies()
 		ansibleCmd := exec.Command(
 			"ansible-playbook",
 			"--inventory", inventoryFile,
-			"--user", awsAMIUser,
+			"--user", remoteUser,
 			"--private-key", deploymentKeyPath,
 			playbookFile)
 		setupEnv(ansibleCmd)
@@ -184,9 +183,9 @@ func init() {
 	)
 
 	deployCmd.Flags().StringVar(
-		&awsAMIUser,
-		AMIUserFlagName,
-		DefaultAMIUser,
+		&remoteUser,
+		RemoteUserFlagName,
+		DefaultRemoteUser,
 		"user name on the remote hosts",
 	)
 }

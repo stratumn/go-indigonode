@@ -16,8 +16,11 @@ package proposal
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -196,4 +199,74 @@ func (s *InMemoryStore) List(ctx context.Context) ([]*Request, error) {
 
 	event.Append(logging.Metadata{"count": len(results)})
 	return results, nil
+}
+
+// MarshalJSON marshals the store's content to JSON.
+func (s *InMemoryStore) MarshalJSON() ([]byte, error) {
+	toSerialize := make(map[string]struct {
+		Request *Request
+		Votes   []*Vote
+	})
+
+	s.requestsLock.RLock()
+	defer s.requestsLock.RUnlock()
+
+	s.votesLock.RLock()
+	defer s.votesLock.RUnlock()
+
+	for peerID, req := range s.requests {
+		values := struct {
+			Request *Request
+			Votes   []*Vote
+		}{}
+
+		values.Request = req
+
+		for _, vote := range s.votes[peerID] {
+			values.Votes = append(values.Votes, vote)
+		}
+
+		toSerialize[peerID.Pretty()] = values
+	}
+
+	return json.Marshal(toSerialize)
+}
+
+// UnmarshalJSON unmarshals JSON content to the store.
+func (s *InMemoryStore) UnmarshalJSON(data []byte) error {
+	ctx := context.Background()
+
+	deserialized := map[string]struct {
+		Request *Request
+		Votes   []*Vote
+	}{}
+
+	err := json.Unmarshal(data, &deserialized)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if s.requests == nil {
+		s.requests = make(map[peer.ID]*Request)
+	}
+
+	if s.votes == nil {
+		s.votes = make(map[peer.ID]map[peer.ID]*Vote)
+	}
+
+	for _, values := range deserialized {
+		err = s.AddRequest(ctx, values.Request)
+		if err != nil {
+			return err
+		}
+
+		for _, vote := range values.Votes {
+			err = s.AddVote(ctx, vote)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

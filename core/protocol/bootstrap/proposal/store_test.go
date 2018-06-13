@@ -16,6 +16,7 @@ package proposal_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -413,4 +414,53 @@ func TestStore_List(t *testing.T) {
 		require.Len(t, rr, 1)
 		assert.Equal(t, requests[2], rr[0])
 	})
+}
+
+func TestStore_MarshalJSON(t *testing.T) {
+	ctx := context.Background()
+
+	r1 := &proposal.Request{
+		Type:      proposal.AddNode,
+		PeerID:    test.GeneratePeerID(t),
+		PeerAddr:  test.GenerateMultiaddr(t),
+		Info:      []byte("inf0"),
+		Challenge: []byte("ch4ll3ng3"),
+		Expires:   time.Now().UTC().Add(10 * time.Minute),
+	}
+
+	r2 := &proposal.Request{
+		Type:      proposal.RemoveNode,
+		PeerID:    test.GeneratePeerID(t),
+		Challenge: []byte("such challenge"),
+		Expires:   time.Now().UTC().Add(15 * time.Minute),
+	}
+
+	v1, _ := proposal.NewVote(test.GeneratePrivateKey(t), r2)
+	v2, _ := proposal.NewVote(test.GeneratePrivateKey(t), r2)
+
+	s := proposal.NewInMemoryStore()
+
+	require.NoError(t, s.AddRequest(ctx, r1))
+	require.NoError(t, s.AddRequest(ctx, r2))
+	require.NoError(t, s.AddVote(ctx, v1))
+	require.NoError(t, s.AddVote(ctx, v2))
+
+	b, err := json.Marshal(s)
+	require.NoError(t, err)
+
+	var deserialized proposal.InMemoryStore
+	err = json.Unmarshal(b, &deserialized)
+	require.NoError(t, err)
+
+	rr1, err := deserialized.Get(ctx, r1.PeerID)
+	require.NoError(t, err)
+	assert.Equal(t, r1, rr1)
+
+	rr2, err := deserialized.Get(ctx, r2.PeerID)
+	require.NoError(t, err)
+	assert.Equal(t, r2, rr2)
+
+	votes, err := deserialized.GetVotes(ctx, r2.PeerID)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []*proposal.Vote{v1, v2}, votes)
 }

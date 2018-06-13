@@ -15,6 +15,7 @@
 package proposal_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
@@ -234,4 +235,27 @@ func TestVote_Verify(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVote_MarshalJSON(t *testing.T) {
+	req := &proposal.Request{
+		Type:      proposal.RemoveNode,
+		PeerID:    test.GeneratePeerID(t),
+		Challenge: []byte("much ch4ll3ng3"),
+	}
+
+	vote, err := proposal.NewVote(test.GeneratePrivateKey(t), req)
+	require.NoError(t, err)
+
+	b, err := json.Marshal(vote)
+	require.NoError(t, err)
+
+	var deserialized proposal.Vote
+	err = json.Unmarshal(b, &deserialized)
+	require.NoError(t, err)
+
+	assert.Equal(t, vote.Type, deserialized.Type)
+	assert.Equal(t, vote.PeerID, deserialized.PeerID)
+	assert.Equal(t, vote.Challenge, deserialized.Challenge)
+	assert.NoError(t, deserialized.Verify(req))
 }

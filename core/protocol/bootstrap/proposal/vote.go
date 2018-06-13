@@ -106,3 +106,47 @@ func (v *Vote) Verify(r *Request) error {
 
 	return nil
 }
+
+// MarshalJSON marshals the vote to JSON.
+func (v *Vote) MarshalJSON() ([]byte, error) {
+	toSerialize := struct {
+		Type      Type
+		PeerID    []byte
+		Challenge []byte
+		Signature *crypto.Signature
+	}{
+		Type:      v.Type,
+		PeerID:    []byte(v.PeerID),
+		Challenge: v.Challenge,
+		Signature: v.Signature,
+	}
+
+	return json.Marshal(toSerialize)
+}
+
+// UnmarshalJSON unmarshals the vote from JSON.
+func (v *Vote) UnmarshalJSON(data []byte) error {
+	deserialized := struct {
+		Type      Type
+		PeerID    []byte
+		Challenge []byte
+		Signature *crypto.Signature
+	}{}
+
+	err := json.Unmarshal(data, &deserialized)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	peerID, err := peer.IDFromBytes(deserialized.PeerID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	v.Type = deserialized.Type
+	v.PeerID = peerID
+	v.Challenge = deserialized.Challenge
+	v.Signature = deserialized.Signature
+
+	return nil
+}

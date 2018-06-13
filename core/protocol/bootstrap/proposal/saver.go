@@ -72,18 +72,38 @@ func (s *FileSaver) Load(ctx context.Context) error {
 		return err
 	}
 
-	var requests []*Request
-	err = json.Unmarshal(b, &requests)
+	var store InMemoryStore
+	err = json.Unmarshal(b, &store)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
 	}
 
-	for _, r := range requests {
-		err = s.Store.AddRequest(ctx, r)
+	reqs, err := store.List(ctx)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	for _, req := range reqs {
+		err = s.Store.AddRequest(ctx, req)
 		if err != nil {
 			event.SetError(err)
 			return err
+		}
+
+		votes, err := store.GetVotes(ctx, req.PeerID)
+		if err != nil {
+			event.SetError(err)
+			return err
+		}
+
+		for _, vote := range votes {
+			err = s.Store.AddVote(ctx, vote)
+			if err != nil {
+				event.SetError(err)
+				return err
+			}
 		}
 	}
 
@@ -95,13 +115,7 @@ func (s *FileSaver) Save(ctx context.Context) error {
 	event := log.EventBegin(ctx, "FileSaver.Save")
 	defer event.Done()
 
-	rr, err := s.Store.List(ctx)
-	if err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	b, err := json.Marshal(rr)
+	b, err := json.Marshal(s.Store)
 	if err != nil {
 		event.SetError(err)
 		return err

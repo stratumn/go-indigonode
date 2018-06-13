@@ -15,7 +15,9 @@
 package proposal_test
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	pb "github.com/stratumn/alice/pb/bootstrap"
@@ -83,4 +85,29 @@ func TestRequest_New(t *testing.T) {
 		assert.Equal(t, peerID, req.PeerID)
 		assert.NotNil(t, req.Challenge)
 	})
+}
+
+func TestRequest_MarshalJSON(t *testing.T) {
+	req := &proposal.Request{
+		Type:      proposal.AddNode,
+		PeerID:    test.GeneratePeerID(t),
+		PeerAddr:  test.GenerateMultiaddr(t),
+		Challenge: []byte("such challenge"),
+		Info:      []byte("very info"),
+		Expires:   time.Now().UTC().Add(10 * time.Minute),
+	}
+
+	b, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	var deserialized proposal.Request
+	err = json.Unmarshal(b, &deserialized)
+	require.NoError(t, err)
+
+	assert.Equal(t, req.Type, deserialized.Type)
+	assert.Equal(t, req.PeerID, deserialized.PeerID)
+	assert.Equal(t, req.PeerAddr, deserialized.PeerAddr)
+	assert.Equal(t, req.Info, deserialized.Info)
+	assert.Equal(t, req.Challenge, deserialized.Challenge)
+	assert.Equal(t, req.Expires, deserialized.Expires)
 }

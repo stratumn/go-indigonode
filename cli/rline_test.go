@@ -37,6 +37,8 @@ func TestRline(t *testing.T) {
 	p := cli.NewRline(c)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	runCh := make(chan struct{})
 	go func() {
 		p.Run(ctx, ioutil.NopCloser(buf))
@@ -48,8 +50,6 @@ func TestRline(t *testing.T) {
 	}})
 	c.EXPECT().Run(ctx, "help")
 	buf.WriteString("he\t\n")
-
-	cancel()
 
 	select {
 	case <-runCh:

@@ -123,10 +123,9 @@ protobuf: protodeps $(GRPC_GO) $(PROTOS_GO)
 protodeps:
 	go get -u github.com/gogo/protobuf/protoc-gen-gofast
 
-vendor/%.pb.go:
-
 %.pb.go: %.proto
-	@if [[ $@ = *grpc* ]]; then \
+	@if [[ $@ = *vendor* ]]; then : ; \
+	elif [[ $@ = *grpc* ]]; then \
 		protoc \
 			-I vendor/github.com/gogo/protobuf/protobuf \
 			-I vendor \

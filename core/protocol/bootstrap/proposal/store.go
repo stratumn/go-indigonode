@@ -29,10 +29,8 @@ import (
 
 // InMemoryStore stores the requests in memory only.
 type InMemoryStore struct {
-	requestsLock sync.RWMutex
-	requests     map[peer.ID]*Request
-
-	votesLock sync.RWMutex
+	storeLock sync.RWMutex
+	requests  map[peer.ID]*Request
 	votes     map[peer.ID]map[peer.ID]*Vote
 }
 
@@ -57,8 +55,8 @@ func (s *InMemoryStore) AddRequest(ctx context.Context, r *Request) error {
 		return ErrMissingPeerAddr
 	}
 
-	s.requestsLock.Lock()
-	defer s.requestsLock.Unlock()
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
 
 	s.requests[r.PeerID] = r
 
@@ -88,8 +86,8 @@ func (s *InMemoryStore) AddVote(ctx context.Context, v *Vote) error {
 	pk, _ := crypto.UnmarshalPublicKey(v.Signature.PublicKey)
 	votingPeer, _ := peer.IDFromPublicKey(pk)
 
-	s.votesLock.Lock()
-	defer s.votesLock.Unlock()
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
 
 	votes, ok := s.votes[v.PeerID]
 	if !ok {
@@ -106,13 +104,11 @@ func (s *InMemoryStore) AddVote(ctx context.Context, v *Vote) error {
 func (s *InMemoryStore) Remove(ctx context.Context, peerID peer.ID) error {
 	defer log.EventBegin(ctx, "Remove", peerID).Done()
 
-	s.requestsLock.Lock()
-	delete(s.requests, peerID)
-	s.requestsLock.Unlock()
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
 
-	s.votesLock.Lock()
+	delete(s.requests, peerID)
 	delete(s.votes, peerID)
-	s.votesLock.Unlock()
 
 	return nil
 }
@@ -124,10 +120,10 @@ func (s *InMemoryStore) Get(ctx context.Context, peerID peer.ID) (*Request, erro
 
 	now := time.Now().UTC()
 
-	s.requestsLock.RLock()
+	s.storeLock.RLock()
 	r, ok := s.requests[peerID]
 	event.Append(logging.Metadata{"found": ok})
-	s.requestsLock.RUnlock()
+	s.storeLock.RUnlock()
 
 	if !ok {
 		return nil, nil
@@ -136,13 +132,10 @@ func (s *InMemoryStore) Get(ctx context.Context, peerID peer.ID) (*Request, erro
 	if !r.Expires.IsZero() && r.Expires.Before(now) {
 		event.Append(logging.Metadata{"expired": true})
 
-		s.requestsLock.Lock()
+		s.storeLock.Lock()
 		delete(s.requests, peerID)
-		s.requestsLock.Unlock()
-
-		s.votesLock.Lock()
 		delete(s.votes, peerID)
-		s.votesLock.Unlock()
+		s.storeLock.Unlock()
 
 		r = nil
 	}
@@ -160,8 +153,8 @@ func (s *InMemoryStore) GetVotes(ctx context.Context, peerID peer.ID) ([]*Vote, 
 		return nil, err
 	}
 
-	s.votesLock.RLock()
-	defer s.votesLock.RUnlock()
+	s.storeLock.RLock()
+	defer s.storeLock.RUnlock()
 
 	votes, ok := s.votes[peerID]
 	event.Append(logging.Metadata{"found": ok})
@@ -182,16 +175,13 @@ func (s *InMemoryStore) List(ctx context.Context) ([]*Request, error) {
 	now := time.Now().UTC()
 	var results []*Request
 
-	s.requestsLock.Lock()
-	defer s.requestsLock.Unlock()
+	s.storeLock.Lock()
+	defer s.storeLock.Unlock()
 
 	for peerID, peerRequest := range s.requests {
 		if !peerRequest.Expires.IsZero() && peerRequest.Expires.Before(now) {
 			delete(s.requests, peerID)
-
-			s.votesLock.Lock()
 			delete(s.votes, peerID)
-			s.votesLock.Unlock()
 		} else {
 			results = append(results, peerRequest)
 		}
@@ -208,11 +198,8 @@ func (s *InMemoryStore) MarshalJSON() ([]byte, error) {
 		Votes   []*Vote
 	})
 
-	s.requestsLock.RLock()
-	defer s.requestsLock.RUnlock()
-
-	s.votesLock.RLock()
-	defer s.votesLock.RUnlock()
+	s.storeLock.RLock()
+	defer s.storeLock.RUnlock()
 
 	for peerID, req := range s.requests {
 		values := struct {

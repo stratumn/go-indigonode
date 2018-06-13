@@ -80,7 +80,7 @@ func (s *FileSaver) Load(ctx context.Context) error {
 	}
 
 	for _, r := range requests {
-		err = s.Store.Add(ctx, r)
+		err = s.Store.AddRequest(ctx, r)
 		if err != nil {
 			event.SetError(err)
 			return err
@@ -116,9 +116,9 @@ func (s *FileSaver) Save(ctx context.Context) error {
 	return nil
 }
 
-// Add a new request and save to disk.
-func (s *FileSaver) Add(ctx context.Context, r *Request) error {
-	err := s.Store.Add(ctx, r)
+// AddRequest adds a new request and saves to disk.
+func (s *FileSaver) AddRequest(ctx context.Context, r *Request) error {
+	err := s.Store.AddRequest(ctx, r)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,17 @@ func (s *FileSaver) Add(ctx context.Context, r *Request) error {
 	return s.Save(ctx)
 }
 
-// Remove a request and save to disk.
+// AddVote adds a new vote and saves to disk.
+func (s *FileSaver) AddVote(ctx context.Context, v *Vote) error {
+	err := s.Store.AddVote(ctx, v)
+	if err != nil {
+		return err
+	}
+
+	return s.Save(ctx)
+}
+
+// Remove a request and saves to disk.
 func (s *FileSaver) Remove(ctx context.Context, peerID peer.ID) error {
 	err := s.Store.Remove(ctx, peerID)
 	if err != nil {
@@ -136,7 +146,7 @@ func (s *FileSaver) Remove(ctx context.Context, peerID peer.ID) error {
 	return s.Save(ctx)
 }
 
-// List all the pending requests and save to disk (because expired requests
+// List all the pending requests and saves to disk (because expired requests
 // need to be removed).
 func (s *FileSaver) List(ctx context.Context) ([]*Request, error) {
 	results, err := s.Store.List(ctx)

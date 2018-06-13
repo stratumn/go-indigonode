@@ -29,15 +29,21 @@ var log = logging.Logger("bootstrap.proposal")
 // Store is used to store pending network updates
 // until they have been approved.
 type Store interface {
-	// Add adds a pending request.
+	// AddRequest adds a pending request.
 	// If overwrites a previous request for that PeerID if there is one.
-	Add(context.Context, *Request) error
+	AddRequest(context.Context, *Request) error
 
-	// Remove removes a proposal.
+	// AddVote adds a vote to a request.
+	AddVote(context.Context, *Vote) error
+
+	// Remove removes a request (and partial votes).
 	Remove(context.Context, peer.ID) error
 
 	// Get a request for a given PeerID.
 	Get(context.Context, peer.ID) (*Request, error)
+
+	// GetVotes gets the votes for a given PeerID.
+	GetVotes(context.Context, peer.ID) ([]*Vote, error)
 
 	// List all the pending requests.
 	List(context.Context) ([]*Request, error)

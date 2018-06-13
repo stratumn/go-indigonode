@@ -15,6 +15,7 @@
 package proposal
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"time"
 
@@ -69,7 +70,8 @@ type Request struct {
 	PeerAddr multiaddr.Multiaddr
 	Info     []byte
 
-	Expires time.Time
+	Challenge []byte
+	Expires   time.Time
 }
 
 // NewAddRequest creates a request to add a node to the network.
@@ -104,26 +106,35 @@ func NewRemoveRequest(nodeID *pb.NodeIdentity) (*Request, error) {
 		return nil, ErrInvalidPeerID
 	}
 
+	challenge := make([]byte, 32)
+	_, err = rand.Read(challenge)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	return &Request{
-		Type:    RemoveNode,
-		PeerID:  peerID,
-		Expires: time.Now().UTC().Add(DefaultExpiration),
+		Type:      RemoveNode,
+		PeerID:    peerID,
+		Challenge: challenge,
+		Expires:   time.Now().UTC().Add(DefaultExpiration),
 	}, nil
 }
 
-// MarshalJSON marshalls the request to JSON.
+// MarshalJSON marshals the request to JSON.
 func (r *Request) MarshalJSON() ([]byte, error) {
 	toSerialize := struct {
-		Type     Type
-		PeerID   []byte
-		PeerAddr []byte
-		Info     []byte
-		Expires  time.Time
+		Type      Type
+		PeerID    []byte
+		PeerAddr  []byte
+		Info      []byte
+		Challenge []byte
+		Expires   time.Time
 	}{
-		Type:    r.Type,
-		PeerID:  []byte(r.PeerID),
-		Info:    r.Info,
-		Expires: r.Expires,
+		Type:      r.Type,
+		PeerID:    []byte(r.PeerID),
+		Info:      r.Info,
+		Challenge: r.Challenge,
+		Expires:   r.Expires,
 	}
 
 	if r.PeerAddr != nil {
@@ -133,14 +144,15 @@ func (r *Request) MarshalJSON() ([]byte, error) {
 	return json.Marshal(toSerialize)
 }
 
-// UnmarshalJSON unmarshalls the request from JSON.
+// UnmarshalJSON unmarshals the request from JSON.
 func (r *Request) UnmarshalJSON(data []byte) error {
 	deserialized := struct {
-		Type     Type
-		PeerID   []byte
-		PeerAddr []byte
-		Info     []byte
-		Expires  time.Time
+		Type      Type
+		PeerID    []byte
+		PeerAddr  []byte
+		Info      []byte
+		Challenge []byte
+		Expires   time.Time
 	}{}
 
 	err := json.Unmarshal(data, &deserialized)
@@ -165,6 +177,7 @@ func (r *Request) UnmarshalJSON(data []byte) error {
 	r.Type = deserialized.Type
 	r.PeerID = peerID
 	r.Info = deserialized.Info
+	r.Challenge = deserialized.Challenge
 	r.Expires = deserialized.Expires
 
 	return nil

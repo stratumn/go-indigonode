@@ -278,7 +278,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		"during-bootstrap-addr-in-peerstore",
 		func(protector.NetworkConfig) {},
 		func(t *testing.T, store *mockproposal.MockStore) {
-			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+			store.EXPECT().AddRequest(gomock.Any(), gomock.Any()).Times(1).Do(
 				func(ctx context.Context, r *proposal.Request) {
 					assert.Equal(t, proposal.AddNode, r.Type)
 					assert.Equal(t, sender.ID(), r.PeerID)
@@ -303,7 +303,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		"during-bootstrap-addr-provided",
 		func(protector.NetworkConfig) {},
 		func(t *testing.T, store *mockproposal.MockStore) {
-			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+			store.EXPECT().AddRequest(gomock.Any(), gomock.Any()).Times(1).Do(
 				func(ctx context.Context, r *proposal.Request) {
 					assert.Equal(t, proposal.AddNode, r.Type)
 					assert.Equal(t, sender.ID(), r.PeerID)
@@ -330,7 +330,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 			require.NoError(t, err, "networkConfig.AddPeer()")
 		},
 		func(t *testing.T, store *mockproposal.MockStore) {
-			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+			store.EXPECT().AddRequest(gomock.Any(), gomock.Any()).Times(1).Do(
 				func(ctx context.Context, r *proposal.Request) {
 					assert.Equal(t, proposal.AddNode, r.Type)
 					assert.Equal(t, peer1, r.PeerID)
@@ -360,7 +360,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 			require.NoError(t, err, "networkConfig.AddPeer()")
 		},
 		func(t *testing.T, store *mockproposal.MockStore) {
-			store.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1).Do(
+			store.EXPECT().AddRequest(gomock.Any(), gomock.Any()).Times(1).Do(
 				func(ctx context.Context, r *proposal.Request) {
 					assert.Equal(t, proposal.RemoveNode, r.Type)
 					assert.Equal(t, peer1, r.PeerID)

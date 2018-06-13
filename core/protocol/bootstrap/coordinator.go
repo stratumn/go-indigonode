@@ -168,7 +168,7 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 			return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
 		}
 
-		err = h.proposalStore.Add(ctx, r)
+		err = h.proposalStore.AddRequest(ctx, r)
 		if err != nil {
 			return enc.Encode(&pb.Ack{Error: err.Error()})
 		}
@@ -185,7 +185,7 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 			return enc.Encode(&pb.Ack{Error: err.Error()})
 		}
 
-		err = h.proposalStore.Add(ctx, req)
+		err = h.proposalStore.AddRequest(ctx, req)
 		if err != nil {
 			return enc.Encode(&pb.Ack{Error: err.Error()})
 		}

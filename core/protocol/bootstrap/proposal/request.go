@@ -15,6 +15,7 @@
 package proposal
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"time"
 
@@ -69,7 +70,8 @@ type Request struct {
 	PeerAddr multiaddr.Multiaddr
 	Info     []byte
 
-	Expires time.Time
+	Challenge []byte
+	Expires   time.Time
 }
 
 // NewAddRequest creates a request to add a node to the network.
@@ -104,10 +106,17 @@ func NewRemoveRequest(nodeID *pb.NodeIdentity) (*Request, error) {
 		return nil, ErrInvalidPeerID
 	}
 
+	challenge := make([]byte, 32)
+	_, err = rand.Read(challenge)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	return &Request{
-		Type:    RemoveNode,
-		PeerID:  peerID,
-		Expires: time.Now().UTC().Add(DefaultExpiration),
+		Type:      RemoveNode,
+		PeerID:    peerID,
+		Challenge: challenge,
+		Expires:   time.Now().UTC().Add(DefaultExpiration),
 	}, nil
 }
 

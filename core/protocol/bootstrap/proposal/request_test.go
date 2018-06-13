@@ -81,5 +81,6 @@ func TestRequest_New(t *testing.T) {
 
 		assert.Equal(t, proposal.RemoveNode, req.Type)
 		assert.Equal(t, peerID, req.PeerID)
+		assert.NotNil(t, req.Challenge)
 	})
 }

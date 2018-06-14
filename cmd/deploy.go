@@ -72,10 +72,6 @@ var (
 	deploymentKeyPath string
 
 	ansibleConfig string
-
-	pythonDeps string
-
-	ansibleDeps string
 )
 
 func setupEnv(cmd *exec.Cmd) {

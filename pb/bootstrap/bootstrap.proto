@@ -69,4 +69,5 @@ enum UpdateType {
 message UpdateProposal {
     UpdateType update_type = 1;
     NodeIdentity node_details = 2;
+    bytes challenge = 3;
 }

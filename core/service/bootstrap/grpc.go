@@ -138,24 +138,8 @@ func (s grpcServer) List(req *pb.Filter, ss grpc.Bootstrap_ListServer) error {
 		return err
 	}
 
-	typeMap := map[proposal.Type]pb.UpdateType{
-		proposal.AddNode:    pb.UpdateType_AddNode,
-		proposal.RemoveNode: pb.UpdateType_RemoveNode,
-	}
-
 	for _, r := range pending {
-		prop := &pb.UpdateProposal{
-			UpdateType: typeMap[r.Type],
-			NodeDetails: &pb.NodeIdentity{
-				PeerId:        []byte(r.PeerID),
-				IdentityProof: r.Info,
-			},
-		}
-
-		if r.Type == proposal.AddNode {
-			prop.NodeDetails.PeerAddr = r.PeerAddr.Bytes()
-		}
-
+		prop := r.ToUpdateProposal()
 		err = ss.Send(prop)
 		if err != nil {
 			return err

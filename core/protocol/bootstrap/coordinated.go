@@ -37,6 +37,11 @@ var (
 	// configuration updates in a private network.
 	// Network participants should implement this protocol.
 	PrivateCoordinatedConfigPID = protocol.ID("/alice/indigo/bootstrap/private/coordinated/config/v1.0.0")
+
+	// PrivateCoordinatedProposePID is the protocol for receiving network update
+	// proposals from peers.
+	// Network participants should implement this protocol.
+	PrivateCoordinatedProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinated/propose/v1.0.0")
 )
 
 // CoordinatedHandler is the handler for a non-coordinator node
@@ -141,7 +146,23 @@ func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet
 		return protectorpb.ErrInvalidSignature
 	}
 
-	return h.networkConfig.Reset(ctx, &networkConfig)
+	err := h.networkConfig.Reset(ctx, &networkConfig)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for _, c := range h.host.Network().Conns() {
+			if !h.networkConfig.IsAllowed(ctx, c.RemotePeer()) {
+				err = c.Close()
+				if err != nil {
+					log.Event(ctx, "CloseErr", c.RemotePeer(), logging.Metadata{"err": err.Error()})
+				}
+			}
+		}
+	}()
+
+	return nil
 }
 
 // AddNode sends a proposal to add the node to the coordinator.
@@ -179,8 +200,27 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 // RemoveNode sends a proposal to remove the node to the coordinator.
 // The coordinator will notify each node that needs to sign their agreement.
 // The node will then eventually be removed if enough participants agree.
-func (h *CoordinatedHandler) RemoveNode(context.Context, peer.ID) error {
-	// TODO
+func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
+	defer event.Done()
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProposePID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(req)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
 	return nil
 }
 

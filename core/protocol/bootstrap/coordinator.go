@@ -189,6 +189,10 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 		if err != nil {
 			return enc.Encode(&pb.Ack{Error: err.Error()})
 		}
+
+		if req.Type == proposal.RemoveNode {
+			go h.SendProposal(ctx, req)
+		}
 	}
 
 	return enc.Encode(&pb.Ack{})
@@ -352,6 +356,64 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// SendProposal sends a network update proposal to all participants.
+// The proposal contains a random challenge and needs to be signed by
+// participants to confirm their agreement.
+func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Request) {
+	eventLock := &sync.Mutex{}
+	event := log.EventBegin(ctx, "Coordinator.SendProposal")
+	defer event.Done()
+
+	updateReq := req.ToUpdateProposal()
+	allowedPeers := h.networkConfig.AllowedPeers(ctx)
+	wg := &sync.WaitGroup{}
+
+	for _, peerID := range allowedPeers {
+		if peerID == h.host.ID() {
+			continue
+		}
+
+		wg.Add(1)
+
+		go func(peerID peer.ID) {
+			defer wg.Done()
+
+			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProposePID)
+			if err != nil {
+				eventLock.Lock()
+				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
+				return
+			}
+
+			defer func() {
+				if err = stream.Close(); err != nil {
+					eventLock.Lock()
+					event.Append(logging.Metadata{
+						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
+					})
+					eventLock.Unlock()
+				}
+			}()
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(updateReq)
+			if err != nil {
+				eventLock.Lock()
+				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
+				return
+			}
+
+			eventLock.Lock()
+			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
+			eventLock.Unlock()
+		}(peerID)
+	}
+
+	wg.Wait()
 }
 
 // SendNetworkConfig sends the current network configuration to all

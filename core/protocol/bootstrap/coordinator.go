@@ -46,6 +46,11 @@ var (
 	// proposals from peers.
 	// Only the network coordinator should implement this protocol.
 	PrivateCoordinatorProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/propose/v1.0.0")
+
+	// PrivateCoordinatorVotePID is the protocol for receiving votes
+	// from network participants.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorVotePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/vote/v1.0.0")
 )
 
 // Errors used by the coordinator.

@@ -252,8 +252,48 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 
 // Accept broadcasts a signed message to accept a proposal to add
 // or remove a node.
-func (h *CoordinatedHandler) Accept(context.Context, peer.ID) error {
-	return nil
+func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinated.Accept", peerID)
+	defer event.Done()
+
+	r, err := h.proposalStore.Get(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r == nil {
+		event.SetError(proposal.ErrMissingRequest)
+		return proposal.ErrMissingRequest
+	}
+
+	if r.Type != proposal.RemoveNode {
+		event.SetError(ErrInvalidOperation)
+		return ErrInvalidOperation
+	}
+
+	v, err := proposal.NewVote(h.host.Peerstore().PrivKey(h.host.ID()), r)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorVotePID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(v.ToProtoVote())
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	return h.proposalStore.Remove(ctx, peerID)
 }
 
 // Reject ignores a proposal to add or remove a node.

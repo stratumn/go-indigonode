@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	pb "github.com/stratumn/alice/pb/bootstrap"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -235,6 +236,37 @@ func TestVote_Verify(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVote_ToProtoVote(t *testing.T) {
+	sk := test.GeneratePrivateKey(t)
+
+	req := &proposal.Request{
+		Type:      proposal.RemoveNode,
+		PeerID:    test.GeneratePeerID(t),
+		Challenge: []byte("such challenge"),
+	}
+
+	vote, err := proposal.NewVote(sk, req)
+	require.NoError(t, err)
+
+	proto := vote.ToProtoVote()
+	require.NotNil(t, proto)
+
+	assert.Equal(t, pb.UpdateType_RemoveNode, proto.UpdateType)
+	assert.Equal(t, req.Challenge, proto.Challenge)
+	assert.Equal(t, []byte(req.PeerID), proto.PeerId)
+	require.NotNil(t, proto.Signature)
+	assert.Equal(t, vote.Signature.Signature, proto.Signature.Signature)
+
+	vote2 := &proposal.Vote{}
+	err = vote2.FromProtoVote(proto)
+	require.NoError(t, err)
+
+	assert.Equal(t, vote.Type, vote2.Type)
+	assert.Equal(t, vote.PeerID, vote2.PeerID)
+	assert.Equal(t, vote.Challenge, vote2.Challenge)
+	assert.NoError(t, vote2.Verify(req))
 }
 
 func TestVote_MarshalJSON(t *testing.T) {

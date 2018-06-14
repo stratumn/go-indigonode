@@ -402,3 +402,65 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 	waitUntilNotAllowed(t, h2.ID(), coordinatedConfig)
 	waitUntilDisconnected(t, h1, h2.ID())
 }
+
+func TestCoordinated_Accept(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	networkConfig := newNetworkConfig(t)
+	host, connect := testNetwork.PrepareCoordinatedNode(
+		testNetwork.CoordinatorID(),
+		networkConfig,
+	)
+
+	handler, err := connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	propStore := testNetwork.CoordinatedStore(host.ID())
+
+	t.Run("missing-request", func(t *testing.T) {
+		err = handler.Accept(ctx, test.GeneratePeerID(t))
+		assert.EqualError(t, err, proposal.ErrMissingRequest.Error())
+	})
+
+	t.Run("add-request", func(t *testing.T) {
+		peerID := test.GeneratePeerID(t)
+		err = propStore.AddRequest(ctx, &proposal.Request{
+			Type:     proposal.AddNode,
+			PeerID:   peerID,
+			PeerAddr: test.GeneratePeerMultiaddr(t, peerID),
+		})
+		require.NoError(t, err)
+
+		err = handler.Accept(ctx, peerID)
+		assert.EqualError(t, err, bootstrap.ErrInvalidOperation.Error())
+	})
+
+	t.Run("remove-request-vote", func(t *testing.T) {
+		peerID := test.GeneratePeerID(t)
+		err = propStore.AddRequest(ctx, &proposal.Request{
+			Type:      proposal.RemoveNode,
+			PeerID:    peerID,
+			Challenge: []byte("such challenge"),
+		})
+		require.NoError(t, err)
+
+		err = handler.Accept(ctx, peerID)
+		require.NoError(t, err)
+
+		// Should have been removed from the store once accepted.
+		r, _ := propStore.Get(ctx, peerID)
+		require.Nil(t, r)
+
+		votes, err := testNetwork.CoordinatorStore().GetVotes(ctx, peerID)
+		require.NoError(t, err)
+		assert.Len(t, votes, 1)
+	})
+}

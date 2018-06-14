@@ -1,0 +1,92 @@
+// Copyright © 2017 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
+package stratumn.alice.app.raft.grpc;
+
+option go_package = "github.com/stratumn/alice/app/raft/grpc;grpc";
+
+// The clock service definition.
+service Raft {
+  rpc Start (Empty) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Start single node raft server";
+  }
+  rpc Stop (Empty) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Stop the server and remove the data";
+  }
+  rpc Status (Empty) returns (StatusInfo) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Get server status";
+  }
+  rpc Peers (Empty) returns (stream Peer) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Get cluster peers";
+  }
+  rpc Discover (PeerID) returns (stream Peer) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Discover Raft cluster";
+  }
+  rpc Invite (PeerID) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Add a node to the cluster";
+  }
+  rpc Join (PeerID) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Join exisiting cluster";
+  }
+  rpc Expel (PeerID) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Remove peer from the cluster";
+  }
+  rpc Propose (Proposal) returns (Empty) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Put data";
+  }
+  rpc Log (Empty) returns (stream Entry) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Get log of entries";
+  }
+
+}
+
+message Empty {
+}
+
+message Peer {
+  uint64 id = 1 [(stratumn.alice.grpc.ext.field_desc) = "Raft ID"];
+  bytes address = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+}
+
+message PeerID {
+  bytes address = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.grpc.ext.field_required) = true,
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+}
+
+message StatusInfo {
+  bool running = 1 [(stratumn.alice.grpc.ext.field_desc) = "Running"];
+  uint64 id = 2 [(stratumn.alice.grpc.ext.field_desc) = "Raft ID"];
+}
+
+message Proposal {
+  bytes data = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Data",
+    (stratumn.alice.grpc.ext.field_required) = true
+  ];
+}
+
+message Entry {
+  uint64 index = 1 [(stratumn.alice.grpc.ext.field_desc) = "Index"];
+  bytes data = 2 [(stratumn.alice.grpc.ext.field_desc) = "Data"];
+}

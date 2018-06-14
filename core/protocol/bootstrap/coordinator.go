@@ -33,6 +33,7 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -211,7 +212,90 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 
 // HandleVote handles an incoming vote.
 func (h *CoordinatorHandler) HandleVote(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
-	return nil
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
+	}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
+		return enc.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var msg pb.Vote
+	if err := dec.Decode(&msg); err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	vote := &proposal.Vote{}
+	err = vote.FromProtoVote(&msg)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	err = h.proposalStore.AddVote(ctx, vote)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	thresholdReached, err := h.voteThresholdReached(ctx, vote.PeerID)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	if thresholdReached {
+		err = h.Accept(ctx, vote.PeerID)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	}
+
+	return enc.Encode(&pb.Ack{})
+}
+
+func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID peer.ID) (bool, error) {
+	votes, err := h.proposalStore.GetVotes(ctx, peerID)
+	if err != nil {
+		return false, err
+	}
+
+	allowed := h.networkConfig.AllowedPeers(ctx)
+
+	// Since all participants except the coordinator and the node that will be removed
+	// need to agree, if we're missing more than 2 votes it's impossible that the
+	// threshold was reached.
+	if len(votes) < len(allowed)-2 {
+		return false, nil
+	}
+
+	votesMap := make(map[peer.ID]struct{})
+	for _, v := range votes {
+		pk, err := crypto.UnmarshalPublicKey(v.Signature.PublicKey)
+		if err != nil {
+			return false, err
+		}
+
+		voterID, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return false, err
+		}
+
+		votesMap[voterID] = struct{}{}
+	}
+
+	for _, p := range allowed {
+		if p == peerID || p == h.host.ID() {
+			continue
+		}
+
+		_, ok := votesMap[p]
+		if !ok {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // AddNode adds the node to the network configuration

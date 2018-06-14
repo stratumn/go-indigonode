@@ -427,6 +427,181 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 	}
 }
 
+func TestCoordinator_HandleVote(t *testing.T) {
+	peer1 := test.GeneratePeerID(t)
+	removePeer1Req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
+	require.NoError(t, err)
+
+	var coordinator ihost.Host
+	var sender ihost.Host
+
+	senderVote := func(t *testing.T) *pb.Vote {
+		senderKey := sender.Peerstore().PrivKey(sender.ID())
+		v, err := proposal.NewVote(senderKey, removePeer1Req)
+		require.NoError(t, err)
+
+		return v.ToProtoVote()
+	}
+
+	testCases := []struct {
+		name        string
+		configure   func(*testing.T, protector.NetworkConfig)
+		expectStore func(*testing.T, proposal.Store)
+		vote        func(*testing.T) *pb.Vote
+		validate    func(*testing.T, *pb.Ack, proposal.Store, protector.NetworkConfig)
+	}{{
+		"during-bootstrap-reject",
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			err := cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_BOOTSTRAP)
+			require.NoError(t, err)
+		},
+		func(*testing.T, proposal.Store) {},
+		func(t *testing.T) *pb.Vote {
+			v, err := proposal.NewVote(test.GeneratePrivateKey(t), removePeer1Req)
+			require.NoError(t, err)
+
+			return v.ToProtoVote()
+		},
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, bootstrap.ErrInvalidOperation.Error(), ack.Error)
+		},
+	}, {
+		"invalid-vote",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		func(t *testing.T) *pb.Vote {
+			senderKey := sender.Peerstore().PrivKey(sender.ID())
+			v, err := proposal.NewVote(senderKey, removePeer1Req)
+			require.NoError(t, err)
+
+			v.Signature.Signature = v.Signature.Signature[:10]
+
+			return v.ToProtoVote()
+		},
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, proposal.ErrInvalidSignature.Error(), ack.Error)
+
+			r, err := s.Get(context.Background(), peer1)
+			assert.NoError(t, err)
+			assert.NotNil(t, r)
+
+			votes, _ := s.GetVotes(context.Background(), peer1)
+			assert.Len(t, votes, 0)
+
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"missing-request",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(*testing.T, proposal.Store) {},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, proposal.ErrMissingRequest.Error(), ack.Error)
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"vote-threshold-not-reached",
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			err := cfg.AddPeer(context.Background(), test.GeneratePeerID(t), test.GenerateMultiaddrs(t))
+			require.NoError(t, err)
+		},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Zero(t, ack.Error)
+
+			votes, err := s.GetVotes(context.Background(), peer1)
+			require.NoError(t, err)
+			assert.Len(t, votes, 1)
+
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"vote-threshold-reached",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Zero(t, ack.Error)
+
+			r, _ := s.Get(context.Background(), peer1)
+			assert.Nil(t, r)
+
+			votes, _ := s.GetVotes(context.Background(), peer1)
+			assert.Len(t, votes, 0)
+
+			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer coordinator.Close()
+
+			sender = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer sender.Close()
+
+			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
+
+			store := proposal.NewInMemoryStore()
+			tt.expectStore(t, store)
+
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
+			)
+
+			err = networkConfig.AddPeer(ctx, coordinator.ID(), coordinator.Addrs())
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, sender.ID(), sender.Addrs())
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+			require.NoError(t, err)
+
+			tt.configure(t, networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(
+				coordinator,
+				networkConfig,
+				store,
+			)
+			require.NoError(t, err)
+			defer handler.Close(ctx)
+
+			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorVotePID)
+			require.NoError(t, err, "sender.NewStream()")
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(tt.vote(t))
+			require.NoError(t, err, "enc.Encode()")
+
+			dec := protobuf.Multicodec(nil).Decoder(stream)
+			var ack pb.Ack
+			err = dec.Decode(&ack)
+			require.NoError(t, err, "dec.Decode()")
+			tt.validate(t, &ack, store, networkConfig)
+		})
+	}
+}
+
 func TestCoordinator_AddNode(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)

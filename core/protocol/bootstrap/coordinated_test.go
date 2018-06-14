@@ -445,11 +445,13 @@ func TestCoordinated_Accept(t *testing.T) {
 
 	t.Run("remove-request-vote", func(t *testing.T) {
 		peerID := test.GeneratePeerID(t)
-		err = propStore.AddRequest(ctx, &proposal.Request{
+		req := &proposal.Request{
 			Type:      proposal.RemoveNode,
 			PeerID:    peerID,
 			Challenge: []byte("such challenge"),
-		})
+		}
+
+		err = propStore.AddRequest(ctx, req)
 		require.NoError(t, err)
 
 		err = handler.Accept(ctx, peerID)
@@ -458,9 +460,5 @@ func TestCoordinated_Accept(t *testing.T) {
 		// Should have been removed from the store once accepted.
 		r, _ := propStore.Get(ctx, peerID)
 		require.Nil(t, r)
-
-		votes, err := testNetwork.CoordinatorStore().GetVotes(ctx, peerID)
-		require.NoError(t, err)
-		assert.Len(t, votes, 1)
 	})
 }

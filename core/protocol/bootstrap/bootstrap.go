@@ -87,7 +87,7 @@ func New(
 			return NewCoordinatorHandler(host, networkConfig, store)
 		}
 
-		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig)
+		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig, store)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

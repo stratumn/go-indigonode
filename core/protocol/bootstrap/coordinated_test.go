@@ -23,6 +23,7 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,7 @@ import (
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func newNetworkConfig(t *testing.T) protector.NetworkConfig {
@@ -62,6 +64,29 @@ func waitUntilNotAllowed(t *testing.T, peerID peer.ID, networkConfig protector.N
 
 			return nil
 		}, "peer not removed in time")
+}
+
+func waitUntilProposed(t *testing.T, s proposal.Store, peerID peer.ID) {
+	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
+		func() error {
+			r, _ := s.Get(context.Background(), peerID)
+			if r == nil {
+				return errors.New("proposal not received yet")
+			}
+
+			return nil
+		}, "proposal not received in time")
+}
+
+func waitUntilDisconnected(t *testing.T, host ihost.Host, peerID peer.ID) {
+	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
+		func() error {
+			if host.Network().Connectedness(peerID) == inet.Connected {
+				return errors.New("peers still connected")
+			}
+
+			return nil
+		}, "peers not disconnected in time")
 }
 
 func TestCoordinated_Handshake(t *testing.T) {
@@ -365,31 +390,15 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 	err = handler1.RemoveNode(ctx, h2.ID())
 	require.NoError(t, err, "handler.RemoveNode()")
 
-	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
-		func() error {
-			r, _ := testNetwork.CoordinatorStore().Get(ctx, h2.ID())
-			if r == nil {
-				return errors.New("proposal not stored yet")
-			}
-
-			return nil
-		}, "proposal not received in time")
+	waitUntilProposed(t, testNetwork.CoordinatorStore(), h2.ID())
+	waitUntilProposed(t, testNetwork.CoordinatedStore(h1.ID()), h2.ID())
 
 	// We shouldn't remove the node until enough votes are in.
 	assert.True(t, coordinatedConfig.IsAllowed(ctx, h2.ID()))
 
-	// TODO: replace that by accepting on h1 instead.
-	err = coordinatorHandler.Accept(ctx, h2.ID())
-	require.NoError(t, err, "coordinatorHandler.Accept()")
+	err = handler1.Accept(ctx, h2.ID())
+	require.NoError(t, err, "handler1.Accept()")
 
 	waitUntilNotAllowed(t, h2.ID(), coordinatedConfig)
-
-	test.WaitUntil(t, 200*time.Millisecond, 20*time.Millisecond,
-		func() error {
-			if h1.Network().Connectedness(h2.ID()) == inet.Connected {
-				return errors.New("peers still connected")
-			}
-
-			return nil
-		}, "peers not disconnected in time")
+	waitUntilDisconnected(t, h1, h2.ID())
 }

@@ -36,18 +36,22 @@ type ConnectAction func() (bootstrap.Handler, error)
 
 // TestNetwork lets you configure a test network.
 type TestNetwork struct {
-	ctx              context.Context
-	t                *testing.T
+	ctx context.Context
+	t   *testing.T
+
 	coordinator      *bhost.BlankHost
 	coordinatorStore proposal.Store
-	coordinated      []*bhost.BlankHost
+
+	coordinated       []*bhost.BlankHost
+	coordinatedStores map[peer.ID]proposal.Store
 }
 
 // NewTestNetwork returns an empty TestNetwork.
 func NewTestNetwork(ctx context.Context, t *testing.T) *TestNetwork {
 	return &TestNetwork{
-		ctx: ctx,
-		t:   t,
+		ctx:               ctx,
+		t:                 t,
+		coordinatedStores: make(map[peer.ID]proposal.Store),
 	}
 }
 
@@ -56,6 +60,7 @@ func NewTestNetwork(ctx context.Context, t *testing.T) *TestNetwork {
 // Use the returned ConnectAction to actually add the node to the network.
 func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfig protector.NetworkConfig) (ihost.Host, ConnectAction) {
 	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+	n.coordinatedStores[h.ID()] = proposal.NewInMemoryStore()
 
 	connect := func() (bootstrap.Handler, error) {
 		if n.coordinator != nil {
@@ -74,6 +79,7 @@ func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfi
 				ProtectionMode: protector.PrivateWithCoordinatorMode,
 			},
 			networkConfig,
+			n.coordinatedStores[h.ID()],
 		)
 	}
 
@@ -127,6 +133,11 @@ func (n *TestNetwork) CoordinatorKey() crypto.PrivKey {
 // CoordinatorStore returns the proposal store of the coordinator.
 func (n *TestNetwork) CoordinatorStore() proposal.Store {
 	return n.coordinatorStore
+}
+
+// CoordinatedStore returns the proposal store of a given coordinated node.
+func (n *TestNetwork) CoordinatedStore(peerID peer.ID) proposal.Store {
+	return n.coordinatedStores[peerID]
 }
 
 // Close tears down the network components.

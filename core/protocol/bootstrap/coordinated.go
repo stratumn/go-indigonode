@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
@@ -50,6 +51,7 @@ type CoordinatedHandler struct {
 	coordinatorID peer.ID
 	host          ihost.Host
 	networkConfig protector.NetworkConfig
+	proposalStore proposal.Store
 }
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
@@ -58,6 +60,7 @@ func NewCoordinatedHandler(
 	host ihost.Host,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
+	proposalStore proposal.Store,
 ) (Handler, error) {
 	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
 		"coordinatorID": networkMode.CoordinatorID.Pretty(),
@@ -68,6 +71,7 @@ func NewCoordinatedHandler(
 		coordinatorID: networkMode.CoordinatorID,
 		host:          host,
 		networkConfig: networkConfig,
+		proposalStore: proposalStore,
 	}
 
 	err := handler.handshake(ctx)
@@ -78,6 +82,11 @@ func NewCoordinatedHandler(
 	host.SetStreamHandler(
 		PrivateCoordinatedConfigPID,
 		streamutil.WithAutoClose(log, "Coordinated.HandleConfigUpdate", handler.HandleConfigUpdate),
+	)
+
+	host.SetStreamHandler(
+		PrivateCoordinatedProposePID,
+		streamutil.WithAutoClose(log, "Coordinated.HandlePropose", handler.HandlePropose),
 	)
 
 	return &handler, nil
@@ -165,6 +174,23 @@ func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet
 	return nil
 }
 
+// HandlePropose handles an incoming network update proposal.
+func (h *CoordinatedHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var updateReq pb.UpdateProposal
+	if err := dec.Decode(&updateReq); err != nil {
+		return errors.WithStack(err)
+	}
+
+	req := &proposal.Request{}
+	err := req.FromUpdateProposal(&updateReq)
+	if err != nil {
+		return err
+	}
+
+	return h.proposalStore.AddRequest(ctx, req)
+}
+
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
 func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
@@ -245,4 +271,5 @@ func (h *CoordinatedHandler) CompleteBootstrap(context.Context) error {
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")
 	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
+	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
 }

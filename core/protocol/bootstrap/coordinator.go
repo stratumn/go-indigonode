@@ -82,9 +82,15 @@ func NewCoordinatorHandler(
 		PrivateCoordinatorHandshakePID,
 		streamutil.WithAutoClose(log, "Coordinator.HandleHandshake", handler.HandleHandshake),
 	)
+
 	host.SetStreamHandler(
 		PrivateCoordinatorProposePID,
 		streamutil.WithAutoClose(log, "Coordinator.HandlePropose", handler.HandlePropose),
+	)
+
+	host.SetStreamHandler(
+		PrivateCoordinatorVotePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandleVote", handler.HandleVote),
 	)
 
 	return &handler, nil
@@ -201,6 +207,11 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 	}
 
 	return enc.Encode(&pb.Ack{})
+}
+
+// HandleVote handles an incoming vote.
+func (h *CoordinatorHandler) HandleVote(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	return nil
 }
 
 // AddNode adds the node to the network configuration
@@ -484,4 +495,5 @@ func (h *CoordinatorHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinator.Close")
 	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
 	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }

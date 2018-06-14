@@ -44,6 +44,7 @@ import (
 func expectSetStreamHandler(host *mocks.MockHost) {
 	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
 	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorVotePID, gomock.Any()).Times(1)
 }
 
 func TestCoordinator_Close(t *testing.T) {
@@ -59,6 +60,7 @@ func TestCoordinator_Close(t *testing.T) {
 
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID).Times(1)
 	handler.Close(context.Background())
 }
 

@@ -28,6 +28,11 @@ service Bootstrap {
     option (stratumn.alice.grpc.ext.method_desc) = "Propose adding a node to the network";
   }
 
+  // Propose removing a node from the network.
+  rpc RemoveNode (stratumn.alice.pb.bootstrap.NodeIdentity) returns (stratumn.alice.pb.bootstrap.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Propose removing a node from the network";
+  }
+
   // Accept a proposal to add or remove a network node.
   rpc Accept (stratumn.alice.pb.bootstrap.PeerID) returns (stratumn.alice.pb.bootstrap.Ack) {
     option (stratumn.alice.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";

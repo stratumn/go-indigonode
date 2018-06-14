@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/pb/bootstrap"
 	"github.com/stratumn/alice/pb/crypto"
 
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -103,6 +104,41 @@ func (v *Vote) Verify(r *Request) error {
 	if !valid {
 		return ErrInvalidSignature
 	}
+
+	return nil
+}
+
+// ToProtoVote converts to a protobuf message.
+func (v *Vote) ToProtoVote() *pb.Vote {
+	typeMap := map[Type]pb.UpdateType{
+		AddNode:    pb.UpdateType_AddNode,
+		RemoveNode: pb.UpdateType_RemoveNode,
+	}
+
+	return &pb.Vote{
+		UpdateType: typeMap[v.Type],
+		PeerId:     []byte(v.PeerID),
+		Challenge:  v.Challenge,
+		Signature:  v.Signature,
+	}
+}
+
+// FromProtoVote converts from a protobuf message.
+func (v *Vote) FromProtoVote(proto *pb.Vote) error {
+	typeMap := map[pb.UpdateType]Type{
+		pb.UpdateType_AddNode:    AddNode,
+		pb.UpdateType_RemoveNode: RemoveNode,
+	}
+
+	peerID, err := peer.IDFromBytes(proto.PeerId)
+	if err != nil {
+		return ErrInvalidPeerID
+	}
+
+	v.Type = typeMap[proto.UpdateType]
+	v.PeerID = peerID
+	v.Challenge = proto.Challenge
+	v.Signature = proto.Signature
 
 	return nil
 }

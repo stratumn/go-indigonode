@@ -120,6 +120,63 @@ func NewRemoveRequest(nodeID *pb.NodeIdentity) (*Request, error) {
 	}, nil
 }
 
+// ToUpdateProposal converts to a protobuf format.
+func (r *Request) ToUpdateProposal() *pb.UpdateProposal {
+	typeMap := map[Type]pb.UpdateType{
+		AddNode:    pb.UpdateType_AddNode,
+		RemoveNode: pb.UpdateType_RemoveNode,
+	}
+
+	prop := pb.UpdateProposal{
+		UpdateType: typeMap[r.Type],
+		Challenge:  r.Challenge,
+		NodeDetails: &pb.NodeIdentity{
+			PeerId:        []byte(r.PeerID),
+			IdentityProof: r.Info,
+		},
+	}
+
+	if r.PeerAddr != nil {
+		prop.NodeDetails.PeerAddr = r.PeerAddr.Bytes()
+	}
+
+	return &prop
+}
+
+// FromUpdateProposal converts from a protobuf format.
+func (r *Request) FromUpdateProposal(p *pb.UpdateProposal) error {
+	typeMap := map[pb.UpdateType]Type{
+		pb.UpdateType_AddNode:    AddNode,
+		pb.UpdateType_RemoveNode: RemoveNode,
+	}
+
+	if p.NodeDetails == nil {
+		return ErrInvalidPeerID
+	}
+
+	peerID, err := peer.IDFromBytes(p.NodeDetails.PeerId)
+	if err != nil {
+		return ErrInvalidPeerID
+	}
+
+	var peerAddr multiaddr.Multiaddr
+	if len(p.NodeDetails.PeerAddr) > 0 {
+		peerAddr, err = multiaddr.NewMultiaddrBytes(p.NodeDetails.PeerAddr)
+		if err != nil {
+			return ErrInvalidPeerAddr
+		}
+	}
+
+	r.Type = typeMap[p.UpdateType]
+	r.PeerID = peerID
+	r.PeerAddr = peerAddr
+	r.Info = p.NodeDetails.IdentityProof
+	r.Challenge = p.Challenge
+	r.Expires = time.Now().UTC().Add(DefaultExpiration)
+
+	return nil
+}
+
 // MarshalJSON marshals the request to JSON.
 func (r *Request) MarshalJSON() ([]byte, error) {
 	toSerialize := struct {

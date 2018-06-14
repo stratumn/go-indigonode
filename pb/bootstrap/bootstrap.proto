@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/pb/crypto/crypto.proto";
 
 package stratumn.alice.pb.bootstrap;
 
@@ -69,4 +70,12 @@ enum UpdateType {
 message UpdateProposal {
     UpdateType update_type = 1;
     NodeIdentity node_details = 2;
+    bytes challenge = 3;
+}
+
+message Vote {
+    UpdateType update_type = 1;
+    bytes peer_id = 2;
+    bytes challenge = 3;
+    stratumn.alice.pb.crypto.Signature signature = 4;
 }

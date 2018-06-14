@@ -92,3 +92,15 @@ func (m *MockHandler) Reject(arg0 context.Context, arg1 go_libp2p_peer.ID) error
 func (mr *MockHandlerMockRecorder) Reject(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reject", reflect.TypeOf((*MockHandler)(nil).Reject), arg0, arg1)
 }
+
+// RemoveNode mocks base method
+func (m *MockHandler) RemoveNode(arg0 context.Context, arg1 go_libp2p_peer.ID) error {
+	ret := m.ctrl.Call(m, "RemoveNode", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveNode indicates an expected call of RemoveNode
+func (mr *MockHandlerMockRecorder) RemoveNode(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNode", reflect.TypeOf((*MockHandler)(nil).RemoveNode), arg0, arg1)
+}

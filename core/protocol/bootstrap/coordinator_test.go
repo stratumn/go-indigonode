@@ -44,6 +44,7 @@ import (
 func expectSetStreamHandler(host *mocks.MockHost) {
 	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
 	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorVotePID, gomock.Any()).Times(1)
 }
 
 func TestCoordinator_Close(t *testing.T) {
@@ -59,6 +60,7 @@ func TestCoordinator_Close(t *testing.T) {
 
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID).Times(1)
 	handler.Close(context.Background())
 }
 
@@ -425,6 +427,181 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 	}
 }
 
+func TestCoordinator_HandleVote(t *testing.T) {
+	peer1 := test.GeneratePeerID(t)
+	removePeer1Req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
+	require.NoError(t, err)
+
+	var coordinator ihost.Host
+	var sender ihost.Host
+
+	senderVote := func(t *testing.T) *pb.Vote {
+		senderKey := sender.Peerstore().PrivKey(sender.ID())
+		v, err := proposal.NewVote(senderKey, removePeer1Req)
+		require.NoError(t, err)
+
+		return v.ToProtoVote()
+	}
+
+	testCases := []struct {
+		name        string
+		configure   func(*testing.T, protector.NetworkConfig)
+		expectStore func(*testing.T, proposal.Store)
+		vote        func(*testing.T) *pb.Vote
+		validate    func(*testing.T, *pb.Ack, proposal.Store, protector.NetworkConfig)
+	}{{
+		"during-bootstrap-reject",
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			err := cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_BOOTSTRAP)
+			require.NoError(t, err)
+		},
+		func(*testing.T, proposal.Store) {},
+		func(t *testing.T) *pb.Vote {
+			v, err := proposal.NewVote(test.GeneratePrivateKey(t), removePeer1Req)
+			require.NoError(t, err)
+
+			return v.ToProtoVote()
+		},
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, bootstrap.ErrInvalidOperation.Error(), ack.Error)
+		},
+	}, {
+		"invalid-vote",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		func(t *testing.T) *pb.Vote {
+			senderKey := sender.Peerstore().PrivKey(sender.ID())
+			v, err := proposal.NewVote(senderKey, removePeer1Req)
+			require.NoError(t, err)
+
+			v.Signature.Signature = v.Signature.Signature[:10]
+
+			return v.ToProtoVote()
+		},
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, proposal.ErrInvalidSignature.Error(), ack.Error)
+
+			r, err := s.Get(context.Background(), peer1)
+			assert.NoError(t, err)
+			assert.NotNil(t, r)
+
+			votes, _ := s.GetVotes(context.Background(), peer1)
+			assert.Len(t, votes, 0)
+
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"missing-request",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(*testing.T, proposal.Store) {},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Equal(t, proposal.ErrMissingRequest.Error(), ack.Error)
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"vote-threshold-not-reached",
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			err := cfg.AddPeer(context.Background(), test.GeneratePeerID(t), test.GenerateMultiaddrs(t))
+			require.NoError(t, err)
+		},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Zero(t, ack.Error)
+
+			votes, err := s.GetVotes(context.Background(), peer1)
+			require.NoError(t, err)
+			assert.Len(t, votes, 1)
+
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}, {
+		"vote-threshold-reached",
+		func(t *testing.T, cfg protector.NetworkConfig) {},
+		func(t *testing.T, store proposal.Store) {
+			err := store.AddRequest(context.Background(), removePeer1Req)
+			require.NoError(t, err)
+		},
+		senderVote,
+		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
+			assert.Zero(t, ack.Error)
+
+			r, _ := s.Get(context.Background(), peer1)
+			assert.Nil(t, r)
+
+			votes, _ := s.GetVotes(context.Background(), peer1)
+			assert.Len(t, votes, 0)
+
+			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer coordinator.Close()
+
+			sender = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+			defer sender.Close()
+
+			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
+
+			store := proposal.NewInMemoryStore()
+			tt.expectStore(t, store)
+
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
+			)
+
+			err = networkConfig.AddPeer(ctx, coordinator.ID(), coordinator.Addrs())
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, sender.ID(), sender.Addrs())
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+			require.NoError(t, err)
+
+			tt.configure(t, networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(
+				coordinator,
+				networkConfig,
+				store,
+			)
+			require.NoError(t, err)
+			defer handler.Close(ctx)
+
+			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorVotePID)
+			require.NoError(t, err, "sender.NewStream()")
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(tt.vote(t))
+			require.NoError(t, err, "enc.Encode()")
+
+			dec := protobuf.Multicodec(nil).Decoder(stream)
+			var ack pb.Ack
+			err = dec.Decode(&ack)
+			require.NoError(t, err, "dec.Decode()")
+			tt.validate(t, &ack, store, networkConfig)
+		})
+	}
+}
+
 func TestCoordinator_AddNode(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
@@ -540,6 +717,89 @@ func TestCoordinator_AddNode(t *testing.T) {
 	}
 }
 
+func TestCoordinator_RemoveNode(t *testing.T) {
+	coordinatorID := test.GeneratePeerID(t)
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+	peer3 := test.GeneratePeerID(t)
+
+	testCases := []struct {
+		name                   string
+		removeNodeID           peer.ID
+		configureHost          func(*gomock.Controller, *mocks.MockHost)
+		configureNetworkConfig func(*mocks.MockNetworkConfig)
+		err                    error
+	}{{
+		"peer-not-in-network",
+		peer3,
+		func(*gomock.Controller, *mocks.MockHost) {},
+		func(cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(false).Times(1)
+		},
+		nil,
+	}, {
+		"remove-coordinator",
+		coordinatorID,
+		func(*gomock.Controller, *mocks.MockHost) {},
+		func(*mocks.MockNetworkConfig) {},
+		bootstrap.ErrInvalidOperation,
+	}, {
+		"remove-peer",
+		peer3,
+		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+			conn := mocks.NewMockConn(ctrl)
+			conn.EXPECT().RemotePeer().Return(peer3).Times(1)
+			conn.EXPECT().Close().Times(1)
+
+			network := mocks.NewMockNetwork(ctrl)
+			network.EXPECT().Conns().Return([]inet.Conn{conn}).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(2)
+
+			host.EXPECT().Network().Return(network).Times(1)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+		func(cfg *mocks.MockNetworkConfig) {
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(true).Times(1)
+			cfg.EXPECT().RemovePeer(gomock.Any(), peer3).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{peer1, peer2}).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+		},
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
+			tt.configureHost(ctrl, host)
+
+			networkConfig := mocks.NewMockNetworkConfig(ctrl)
+			tt.configureNetworkConfig(networkConfig)
+
+			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
+
+			err = handler.RemoveNode(ctx, tt.removeNodeID)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestCoordinator_Accept(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
@@ -550,6 +810,11 @@ func TestCoordinator_Accept(t *testing.T) {
 		Type:     proposal.AddNode,
 		PeerID:   peer1,
 		PeerAddr: peer1Addr,
+	}
+
+	removePeer2 := &proposal.Request{
+		Type:   proposal.RemoveNode,
+		PeerID: peer2,
 	}
 
 	testCases := []struct {
@@ -605,6 +870,30 @@ func TestCoordinator_Accept(t *testing.T) {
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+		},
+		nil,
+	}, {
+		"remove-node",
+		peer2,
+		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mocks.MockNetworkConfig, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer2).Times(1).Return(removePeer2, nil)
+			store.EXPECT().Remove(gomock.Any(), peer2).Times(1)
+
+			cfg.EXPECT().IsAllowed(gomock.Any(), peer2).Times(1).Return(true)
+			cfg.EXPECT().RemovePeer(gomock.Any(), peer2).Times(1)
+			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+			cfg.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1})
+
+			network := mocks.NewMockNetwork(ctrl)
+			network.EXPECT().Conns().Return(nil).Times(1)
+
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Close().Times(1)
+
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
+			host.EXPECT().Network().Return(network).Times(1)
+			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
 		},
 		nil,
 	}}

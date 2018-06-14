@@ -33,6 +33,7 @@ import (
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -46,6 +47,11 @@ var (
 	// proposals from peers.
 	// Only the network coordinator should implement this protocol.
 	PrivateCoordinatorProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/propose/v1.0.0")
+
+	// PrivateCoordinatorVotePID is the protocol for receiving votes
+	// from network participants.
+	// Only the network coordinator should implement this protocol.
+	PrivateCoordinatorVotePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/vote/v1.0.0")
 )
 
 // Errors used by the coordinator.
@@ -77,9 +83,15 @@ func NewCoordinatorHandler(
 		PrivateCoordinatorHandshakePID,
 		streamutil.WithAutoClose(log, "Coordinator.HandleHandshake", handler.HandleHandshake),
 	)
+
 	host.SetStreamHandler(
 		PrivateCoordinatorProposePID,
 		streamutil.WithAutoClose(log, "Coordinator.HandlePropose", handler.HandlePropose),
+	)
+
+	host.SetStreamHandler(
+		PrivateCoordinatorVotePID,
+		streamutil.WithAutoClose(log, "Coordinator.HandleVote", handler.HandleVote),
 	)
 
 	return &handler, nil
@@ -189,9 +201,101 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 		if err != nil {
 			return enc.Encode(&pb.Ack{Error: err.Error()})
 		}
+
+		if req.Type == proposal.RemoveNode {
+			go h.SendProposal(ctx, req)
+		}
 	}
 
 	return enc.Encode(&pb.Ack{})
+}
+
+// HandleVote handles an incoming vote.
+func (h *CoordinatorHandler) HandleVote(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	err := h.validateSender(ctx, stream, event)
+	if err != nil {
+		return err
+	}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
+		return enc.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
+	}
+
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var msg pb.Vote
+	if err := dec.Decode(&msg); err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	vote := &proposal.Vote{}
+	err = vote.FromProtoVote(&msg)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	err = h.proposalStore.AddVote(ctx, vote)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	thresholdReached, err := h.voteThresholdReached(ctx, vote.PeerID)
+	if err != nil {
+		return enc.Encode(&pb.Ack{Error: err.Error()})
+	}
+
+	if thresholdReached {
+		err = h.Accept(ctx, vote.PeerID)
+		if err != nil {
+			return enc.Encode(&pb.Ack{Error: err.Error()})
+		}
+	}
+
+	return enc.Encode(&pb.Ack{})
+}
+
+func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID peer.ID) (bool, error) {
+	votes, err := h.proposalStore.GetVotes(ctx, peerID)
+	if err != nil {
+		return false, err
+	}
+
+	allowed := h.networkConfig.AllowedPeers(ctx)
+
+	// Since all participants except the coordinator and the node that will be removed
+	// need to agree, if we're missing more than 2 votes it's impossible that the
+	// threshold was reached.
+	if len(votes) < len(allowed)-2 {
+		return false, nil
+	}
+
+	votesMap := make(map[peer.ID]struct{})
+	for _, v := range votes {
+		pk, err := crypto.UnmarshalPublicKey(v.Signature.PublicKey)
+		if err != nil {
+			return false, err
+		}
+
+		voterID, err := peer.IDFromPublicKey(pk)
+		if err != nil {
+			return false, err
+		}
+
+		votesMap[voterID] = struct{}{}
+	}
+
+	for _, p := range allowed {
+		if p == peerID || p == h.host.ID() {
+			continue
+		}
+
+		_, ok := votesMap[p]
+		if !ok {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }
 
 // AddNode adds the node to the network configuration
@@ -227,6 +331,41 @@ func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	return nil
 }
 
+// RemoveNode removes a node from the network configuration
+// and notifies network participants.
+func (h *CoordinatorHandler) RemoveNode(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinator.RemoveNode", peerID)
+	defer event.Done()
+
+	if peerID == h.host.ID() {
+		event.SetError(ErrInvalidOperation)
+		return ErrInvalidOperation
+	}
+
+	if !h.networkConfig.IsAllowed(ctx, peerID) {
+		return nil
+	}
+
+	err := h.networkConfig.RemovePeer(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	for _, c := range h.host.Network().Conns() {
+		if c.RemotePeer() == peerID {
+			err = c.Close()
+			if err != nil {
+				event.Append(logging.Metadata{"close_err": err.Error()})
+			}
+		}
+	}
+
+	h.SendNetworkConfig(ctx)
+
+	return nil
+}
+
 // Accept accepts a proposal to add or remove a node
 // and notifies network participants.
 func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
@@ -248,6 +387,10 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 	if err != nil {
 		event.SetError(err)
 		return err
+	}
+
+	if r.Type == proposal.RemoveNode {
+		return h.RemoveNode(ctx, peerID)
 	}
 
 	if r.PeerAddr == nil {
@@ -315,6 +458,64 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 	return nil
 }
 
+// SendProposal sends a network update proposal to all participants.
+// The proposal contains a random challenge and needs to be signed by
+// participants to confirm their agreement.
+func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Request) {
+	eventLock := &sync.Mutex{}
+	event := log.EventBegin(ctx, "Coordinator.SendProposal")
+	defer event.Done()
+
+	updateReq := req.ToUpdateProposal()
+	allowedPeers := h.networkConfig.AllowedPeers(ctx)
+	wg := &sync.WaitGroup{}
+
+	for _, peerID := range allowedPeers {
+		if peerID == h.host.ID() {
+			continue
+		}
+
+		wg.Add(1)
+
+		go func(peerID peer.ID) {
+			defer wg.Done()
+
+			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProposePID)
+			if err != nil {
+				eventLock.Lock()
+				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
+				return
+			}
+
+			defer func() {
+				if err = stream.Close(); err != nil {
+					eventLock.Lock()
+					event.Append(logging.Metadata{
+						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
+					})
+					eventLock.Unlock()
+				}
+			}()
+
+			enc := protobuf.Multicodec(nil).Encoder(stream)
+			err = enc.Encode(updateReq)
+			if err != nil {
+				eventLock.Lock()
+				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
+				eventLock.Unlock()
+				return
+			}
+
+			eventLock.Lock()
+			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
+			eventLock.Unlock()
+		}(peerID)
+	}
+
+	wg.Wait()
+}
+
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
@@ -378,4 +579,5 @@ func (h *CoordinatorHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinator.Close")
 	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
 	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }

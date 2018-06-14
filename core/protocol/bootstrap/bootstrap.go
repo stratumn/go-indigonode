@@ -45,6 +45,11 @@ type Handler interface {
 	// or even be rejected.
 	AddNode(context.Context, peer.ID, multiaddr.Multiaddr, []byte) error
 
+	// RemoveNode removes a node from the network.
+	// Depending on the underlying protocol, removing the node might require
+	// other node's approval or even be rejected.
+	RemoveNode(context.Context, peer.ID) error
+
 	// Accept accepts a proposal to add or remove a node (identified
 	// by its PeerID).
 	Accept(context.Context, peer.ID) error
@@ -82,7 +87,7 @@ func New(
 			return NewCoordinatorHandler(host, networkConfig, store)
 		}
 
-		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig)
+		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig, store)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

@@ -87,6 +87,64 @@ func TestRequest_New(t *testing.T) {
 	})
 }
 
+func TestRequest_UpdateProposal(t *testing.T) {
+	t.Run("add-node", func(t *testing.T) {
+		req := &proposal.Request{
+			Type:      proposal.AddNode,
+			PeerID:    test.GeneratePeerID(t),
+			PeerAddr:  test.GenerateMultiaddr(t),
+			Challenge: []byte("such challenge"),
+			Info:      []byte("very info"),
+			Expires:   time.Now().UTC().Add(10 * time.Minute),
+		}
+
+		prop := req.ToUpdateProposal()
+		require.NotNil(t, prop)
+		require.NotNil(t, prop.NodeDetails)
+
+		assert.Equal(t, pb.UpdateType_AddNode, prop.UpdateType)
+		assert.Equal(t, req.Challenge, prop.Challenge)
+		assert.Equal(t, []byte(req.PeerID), prop.NodeDetails.PeerId)
+		assert.Equal(t, req.PeerAddr.Bytes(), prop.NodeDetails.PeerAddr)
+		assert.Equal(t, req.Info, prop.NodeDetails.IdentityProof)
+
+		req2 := &proposal.Request{}
+		err := req2.FromUpdateProposal(prop)
+		require.NoError(t, err)
+
+		assert.Equal(t, req.Type, req2.Type)
+		assert.Equal(t, req.PeerID, req2.PeerID)
+		assert.Equal(t, req.PeerAddr, req2.PeerAddr)
+		assert.Equal(t, req.Info, req2.Info)
+		assert.Equal(t, req.Challenge, req2.Challenge)
+	})
+
+	t.Run("remove-node", func(t *testing.T) {
+		req := &proposal.Request{
+			Type:      proposal.RemoveNode,
+			PeerID:    test.GeneratePeerID(t),
+			Challenge: []byte("such challenge"),
+			Expires:   time.Now().UTC().Add(10 * time.Minute),
+		}
+
+		prop := req.ToUpdateProposal()
+		require.NotNil(t, prop)
+		require.NotNil(t, prop.NodeDetails)
+
+		assert.Equal(t, pb.UpdateType_RemoveNode, prop.UpdateType)
+		assert.Equal(t, req.Challenge, prop.Challenge)
+		assert.Equal(t, []byte(req.PeerID), prop.NodeDetails.PeerId)
+
+		req2 := &proposal.Request{}
+		err := req2.FromUpdateProposal(prop)
+		require.NoError(t, err)
+
+		assert.Equal(t, req.Type, req2.Type)
+		assert.Equal(t, req.PeerID, req2.PeerID)
+		assert.Equal(t, req.Challenge, req2.Challenge)
+	})
+}
+
 func TestRequest_MarshalJSON(t *testing.T) {
 	req := &proposal.Request{
 		Type:      proposal.AddNode,

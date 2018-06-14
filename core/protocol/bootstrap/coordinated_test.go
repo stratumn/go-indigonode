@@ -23,13 +23,16 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
+	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func newNetworkConfig(t *testing.T) protector.NetworkConfig {
@@ -50,6 +53,40 @@ func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.Netw
 
 			return nil
 		}, "peer not allowed in time")
+}
+
+func waitUntilNotAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
+	test.WaitUntil(t, 100*time.Millisecond, 20*time.Millisecond,
+		func() error {
+			if networkConfig.IsAllowed(context.Background(), peerID) {
+				return errors.New("still allowed")
+			}
+
+			return nil
+		}, "peer not removed in time")
+}
+
+func waitUntilProposed(t *testing.T, s proposal.Store, peerID peer.ID) {
+	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
+		func() error {
+			r, _ := s.Get(context.Background(), peerID)
+			if r == nil {
+				return errors.New("proposal not received yet")
+			}
+
+			return nil
+		}, "proposal not received in time")
+}
+
+func waitUntilDisconnected(t *testing.T, host ihost.Host, peerID peer.ID) {
+	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
+		func() error {
+			if host.Network().Connectedness(peerID) == inet.Connected {
+				return errors.New("peers still connected")
+			}
+
+			return nil
+		}, "peers not disconnected in time")
 }
 
 func TestCoordinated_Handshake(t *testing.T) {
@@ -199,7 +236,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 	})
 }
 
-func TestCoordinated_Handle(t *testing.T) {
+func TestCoordinated_HandleConfigUpdate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -311,4 +348,117 @@ func TestCoordinated_AddNode(t *testing.T) {
 	require.NoError(t, err, "coordinatorHandler.Accept()")
 
 	waitUntilAllowed(t, host.ID(), networkConfig)
+}
+
+func TestCoordinated_RemoveNode(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	coordinatorConfig := newNetworkConfig(t)
+	coordinatorHandler, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	coordinatedConfig := newNetworkConfig(t)
+
+	h1, connect1 := testNetwork.PrepareCoordinatedNode(testNetwork.CoordinatorID(), coordinatedConfig)
+	handler1, err := connect1()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler1)
+
+	h2, connect2 := testNetwork.PrepareCoordinatedNode(testNetwork.CoordinatorID(), coordinatedConfig)
+	handler2, err := connect2()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler2)
+
+	err = coordinatorHandler.Accept(ctx, h1.ID())
+	require.NoError(t, err, "coordinatorHandler.Accept()")
+
+	err = coordinatorHandler.Accept(ctx, h2.ID())
+	require.NoError(t, err, "coordinatorHandler.Accept()")
+
+	err = coordinatorHandler.CompleteBootstrap(ctx)
+	require.NoError(t, err, "coordinatorHandler.CompleteBootstrap()")
+
+	err = h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID()))
+	require.NoError(t, err, "h1.Connect(h2)")
+
+	assert.Equal(t, inet.Connected, h1.Network().Connectedness(h2.ID()))
+
+	err = handler1.RemoveNode(ctx, h2.ID())
+	require.NoError(t, err, "handler.RemoveNode()")
+
+	waitUntilProposed(t, testNetwork.CoordinatorStore(), h2.ID())
+	waitUntilProposed(t, testNetwork.CoordinatedStore(h1.ID()), h2.ID())
+
+	// We shouldn't remove the node until enough votes are in.
+	assert.True(t, coordinatedConfig.IsAllowed(ctx, h2.ID()))
+
+	err = handler1.Accept(ctx, h2.ID())
+	require.NoError(t, err, "handler1.Accept()")
+
+	waitUntilNotAllowed(t, h2.ID(), coordinatedConfig)
+	waitUntilDisconnected(t, h1, h2.ID())
+}
+
+func TestCoordinated_Accept(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	networkConfig := newNetworkConfig(t)
+	host, connect := testNetwork.PrepareCoordinatedNode(
+		testNetwork.CoordinatorID(),
+		networkConfig,
+	)
+
+	handler, err := connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	propStore := testNetwork.CoordinatedStore(host.ID())
+
+	t.Run("missing-request", func(t *testing.T) {
+		err = handler.Accept(ctx, test.GeneratePeerID(t))
+		assert.EqualError(t, err, proposal.ErrMissingRequest.Error())
+	})
+
+	t.Run("add-request", func(t *testing.T) {
+		peerID := test.GeneratePeerID(t)
+		err = propStore.AddRequest(ctx, &proposal.Request{
+			Type:     proposal.AddNode,
+			PeerID:   peerID,
+			PeerAddr: test.GeneratePeerMultiaddr(t, peerID),
+		})
+		require.NoError(t, err)
+
+		err = handler.Accept(ctx, peerID)
+		assert.EqualError(t, err, bootstrap.ErrInvalidOperation.Error())
+	})
+
+	t.Run("remove-request-vote", func(t *testing.T) {
+		peerID := test.GeneratePeerID(t)
+		req := &proposal.Request{
+			Type:      proposal.RemoveNode,
+			PeerID:    peerID,
+			Challenge: []byte("such challenge"),
+		}
+
+		err = propStore.AddRequest(ctx, req)
+		require.NoError(t, err)
+
+		err = handler.Accept(ctx, peerID)
+		require.NoError(t, err)
+
+		// Should have been removed from the store once accepted.
+		r, _ := propStore.Get(ctx, peerID)
+		require.Nil(t, r)
+	})
 }

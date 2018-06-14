@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
@@ -37,6 +38,11 @@ var (
 	// configuration updates in a private network.
 	// Network participants should implement this protocol.
 	PrivateCoordinatedConfigPID = protocol.ID("/alice/indigo/bootstrap/private/coordinated/config/v1.0.0")
+
+	// PrivateCoordinatedProposePID is the protocol for receiving network update
+	// proposals from peers.
+	// Network participants should implement this protocol.
+	PrivateCoordinatedProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinated/propose/v1.0.0")
 )
 
 // CoordinatedHandler is the handler for a non-coordinator node
@@ -45,6 +51,7 @@ type CoordinatedHandler struct {
 	coordinatorID peer.ID
 	host          ihost.Host
 	networkConfig protector.NetworkConfig
+	proposalStore proposal.Store
 }
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
@@ -53,6 +60,7 @@ func NewCoordinatedHandler(
 	host ihost.Host,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
+	proposalStore proposal.Store,
 ) (Handler, error) {
 	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
 		"coordinatorID": networkMode.CoordinatorID.Pretty(),
@@ -63,6 +71,7 @@ func NewCoordinatedHandler(
 		coordinatorID: networkMode.CoordinatorID,
 		host:          host,
 		networkConfig: networkConfig,
+		proposalStore: proposalStore,
 	}
 
 	err := handler.handshake(ctx)
@@ -73,6 +82,11 @@ func NewCoordinatedHandler(
 	host.SetStreamHandler(
 		PrivateCoordinatedConfigPID,
 		streamutil.WithAutoClose(log, "Coordinated.HandleConfigUpdate", handler.HandleConfigUpdate),
+	)
+
+	host.SetStreamHandler(
+		PrivateCoordinatedProposePID,
+		streamutil.WithAutoClose(log, "Coordinated.HandlePropose", handler.HandlePropose),
 	)
 
 	return &handler, nil
@@ -141,7 +155,40 @@ func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet
 		return protectorpb.ErrInvalidSignature
 	}
 
-	return h.networkConfig.Reset(ctx, &networkConfig)
+	err := h.networkConfig.Reset(ctx, &networkConfig)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for _, c := range h.host.Network().Conns() {
+			if !h.networkConfig.IsAllowed(ctx, c.RemotePeer()) {
+				err = c.Close()
+				if err != nil {
+					log.Event(ctx, "CloseErr", c.RemotePeer(), logging.Metadata{"err": err.Error()})
+				}
+			}
+		}
+	}()
+
+	return nil
+}
+
+// HandlePropose handles an incoming network update proposal.
+func (h *CoordinatedHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+	dec := protobuf.Multicodec(nil).Decoder(stream)
+	var updateReq pb.UpdateProposal
+	if err := dec.Decode(&updateReq); err != nil {
+		return errors.WithStack(err)
+	}
+
+	req := &proposal.Request{}
+	err := req.FromUpdateProposal(&updateReq)
+	if err != nil {
+		return err
+	}
+
+	return h.proposalStore.AddRequest(ctx, req)
 }
 
 // AddNode sends a proposal to add the node to the coordinator.
@@ -176,10 +223,77 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	return nil
 }
 
+// RemoveNode sends a proposal to remove the node to the coordinator.
+// The coordinator will notify each node that needs to sign their agreement.
+// The node will then eventually be removed if enough participants agree.
+func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
+	defer event.Done()
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProposePID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(req)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	return nil
+}
+
 // Accept broadcasts a signed message to accept a proposal to add
 // or remove a node.
-func (h *CoordinatedHandler) Accept(context.Context, peer.ID) error {
-	return nil
+func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinated.Accept", peerID)
+	defer event.Done()
+
+	r, err := h.proposalStore.Get(ctx, peerID)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if r == nil {
+		event.SetError(proposal.ErrMissingRequest)
+		return proposal.ErrMissingRequest
+	}
+
+	if r.Type != proposal.RemoveNode {
+		event.SetError(ErrInvalidOperation)
+		return ErrInvalidOperation
+	}
+
+	v, err := proposal.NewVote(h.host.Peerstore().PrivKey(h.host.ID()), r)
+	if err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorVotePID)
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	defer stream.Close()
+
+	enc := protobuf.Multicodec(nil).Encoder(stream)
+	err = enc.Encode(v.ToProtoVote())
+	if err != nil {
+		event.SetError(errors.WithStack(err))
+		return err
+	}
+
+	return h.proposalStore.Remove(ctx, peerID)
 }
 
 // Reject ignores a proposal to add or remove a node.
@@ -197,4 +311,5 @@ func (h *CoordinatedHandler) CompleteBootstrap(context.Context) error {
 func (h *CoordinatedHandler) Close(ctx context.Context) {
 	log.Event(ctx, "Coordinated.Close")
 	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
+	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
 }

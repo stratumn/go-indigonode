@@ -22,6 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
+	mockprotocol "github.com/stratumn/alice/core/protocol/bootstrap/mockbootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
 	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
@@ -76,7 +77,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := mockbootstrap.NewMockHandler(ctrl)
+			handler := mockprotocol.NewMockHandler(ctrl)
 			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			nodeID := &pb.NodeIdentity{PeerId: []byte("b4tm4n")}
@@ -88,7 +89,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := mockbootstrap.NewMockHandler(ctrl)
+			handler := mockprotocol.NewMockHandler(ctrl)
 			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			nodeID := &pb.NodeIdentity{
@@ -103,7 +104,7 @@ func TestGRPCServer_AddNode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := mockbootstrap.NewMockHandler(ctrl)
+			handler := mockprotocol.NewMockHandler(ctrl)
 			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			peerID := test.GeneratePeerID(t)
@@ -138,7 +139,7 @@ func TestGRPCServer_RemoveNode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := mockbootstrap.NewMockHandler(ctrl)
+			handler := mockprotocol.NewMockHandler(ctrl)
 			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			nodeID := &pb.NodeIdentity{PeerId: []byte("b4tm4n")}
@@ -150,7 +151,7 @@ func TestGRPCServer_RemoveNode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := mockbootstrap.NewMockHandler(ctrl)
+			handler := mockprotocol.NewMockHandler(ctrl)
 			s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 			peerID := test.GeneratePeerID(t)
@@ -179,7 +180,7 @@ func TestGRPCServer_Accept(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		handler := mockbootstrap.NewMockHandler(ctrl)
+		handler := mockprotocol.NewMockHandler(ctrl)
 		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 		peerID := test.GeneratePeerID(t)
@@ -207,7 +208,7 @@ func TestGRPCServer_Reject(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		handler := mockbootstrap.NewMockHandler(ctrl)
+		handler := mockprotocol.NewMockHandler(ctrl)
 		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 		peerID := test.GeneratePeerID(t)
@@ -305,7 +306,7 @@ func TestGRPCServer_Complete(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		handler := mockbootstrap.NewMockHandler(ctrl)
+		handler := mockprotocol.NewMockHandler(ctrl)
 		s := testPrivateNetworkServer(protector.NewCoordinatorNetworkMode(), handler, nil)
 
 		handler.EXPECT().CompleteBootstrap(gomock.Any()).Times(1)

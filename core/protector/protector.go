@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocks -destination mocks/mockpeerstore.go gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore Peerstore
-//go:generate mockgen -package mocks -destination mocks/mocktransport.go gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport Conn
-//go:generate mockgen -package mocks -destination mocks/mockprotector.go github.com/stratumn/alice/core/protector Protector,StateAwareProtector
-
 // Package protector contains implementations of the
 // github.com/libp2p/go-libp2p-interface-pnet/ipnet.Protector interface.
 //

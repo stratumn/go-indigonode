@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mocknet.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockprotocol.go github.com/stratumn/alice/core/protocol/bootstrap Handler
 //go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockserver.go github.com/stratumn/alice/grpc/bootstrap Bootstrap_ListServer
 
 package bootstrap

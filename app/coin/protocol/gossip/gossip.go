@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockgossip -destination mockgossip/mockgossip.go github.com/stratumn/alice/app/coin/protocol/gossip Gossip
-
 package gossip
 
 import (

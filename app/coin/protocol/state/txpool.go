@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockstate -destination mockstate/mocktxpool.go github.com/stratumn/alice/app/coin/protocol/state txpool
-
 package state
 
 import (

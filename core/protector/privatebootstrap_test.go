@@ -20,9 +20,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protector/mocks"
 	pb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
+	libp2pmocks "github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -71,7 +71,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	waitUntilAllowed(t, p, peer2, 2)
 
 	// All connections are accepted during bootstrap.
-	bootstrapConn := mocks.NewMockConn(ctrl)
+	bootstrapConn := libp2pmocks.NewMockTransportConn(ctrl)
 	wrappedConn, err := p.Protect(bootstrapConn)
 	assert.Equal(t, bootstrapConn, wrappedConn)
 
@@ -80,7 +80,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	require.True(t, ok, "p.(networkStateWriter)")
 	networkStateWriter.SetNetworkState(ctx, pb.NetworkState_PROTECTED)
 
-	invalidConn := mocks.NewMockConn(ctrl)
+	invalidConn := libp2pmocks.NewMockTransportConn(ctrl)
 	invalidConn.EXPECT().LocalMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)
 	invalidConn.EXPECT().RemoteMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)
 	invalidConn.EXPECT().Close().Times(1)
@@ -88,7 +88,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	_, err = p.Protect(invalidConn)
 	assert.EqualError(t, err, protector.ErrConnectionRefused.Error())
 
-	validConn := mocks.NewMockConn(ctrl)
+	validConn := libp2pmocks.NewMockTransportConn(ctrl)
 	validConn.EXPECT().LocalMultiaddr().Return(testData.Peers[peer1][0]).Times(1)
 	validConn.EXPECT().RemoteMultiaddr().Return(testData.Peers[peer2][0]).Times(1)
 

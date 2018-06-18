@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocknetworkmanager -destination mocknetwork/mocknetwork.go github.com/stratumn/alice/app/indigo/protocol/store NetworkManager
-
 package store
 
 import (

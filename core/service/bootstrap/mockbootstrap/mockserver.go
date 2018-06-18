@@ -6,11 +6,10 @@ package mockbootstrap
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	bootstrap "github.com/stratumn/alice/pb/bootstrap"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockBootstrap_ListServer is a mock of Bootstrap_ListServer interface

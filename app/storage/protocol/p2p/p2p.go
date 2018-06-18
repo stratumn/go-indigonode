@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/app/storage/protocol/p2p Encoder
-
 package p2p
 
 import (

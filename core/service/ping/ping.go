@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockping -destination mockping/mockping.go github.com/stratumn/alice/core/service/ping Host
-
 // Package ping defines a service that handles ping requests and responses.
 package ping
 

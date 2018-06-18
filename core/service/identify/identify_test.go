@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/identify/mockidentify"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,7 +46,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(net *mockidentify.MockNetwork, host *mockidentify.MockHost) {
+func expectHost(net *mocks.MockNetwork, host *mockidentify.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(identify.ID), gomock.Any())
@@ -65,7 +66,7 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	net := mockidentify.NewMockNetwork(ctrl)
+	net := mocks.NewMockNetwork(ctrl)
 	host := mockidentify.NewMockHost(ctrl)
 	expectHost(net, host)
 
@@ -82,7 +83,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	net := mockidentify.NewMockNetwork(ctrl)
+	net := mocks.NewMockNetwork(ctrl)
 	host := mockidentify.NewMockHost(ctrl)
 	expectHost(net, host)
 

@@ -81,7 +81,6 @@ type Service struct {
 type Swarm struct {
 	NetworkConfig protector.NetworkConfig
 	NetworkMode   *protector.NetworkMode
-	PrivKey       crypto.PrivKey
 	Swarm         *swarm.Swarm
 }
 
@@ -220,7 +219,6 @@ func (s *Service) Expose() interface{} {
 	return &Swarm{
 		NetworkConfig: s.networkConfig,
 		NetworkMode:   s.networkMode,
-		PrivKey:       s.privKey,
 		Swarm:         s.swarm,
 	}
 }

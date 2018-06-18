@@ -74,7 +74,6 @@ func TestService_Expose(t *testing.T) {
 		"public-network",
 		nil,
 		func(t *testing.T, swm *Swarm) {
-			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
 			assert.Nil(t, swm.NetworkConfig, "NetworkConfig")
 		},
@@ -92,7 +91,6 @@ func TestService_Expose(t *testing.T) {
 			},
 		},
 		func(t *testing.T, swm *Swarm) {
-			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
 
 			require.NotNil(t, swm.NetworkMode, "NetworkMode")
@@ -117,7 +115,6 @@ func TestService_Expose(t *testing.T) {
 			},
 		},
 		func(t *testing.T, swm *Swarm) {
-			assert.NotNil(t, swm.PrivKey, "PrivKey")
 			assert.NotNil(t, swm.Swarm, "Swarm")
 
 			require.NotNil(t, swm.NetworkMode, "NetworkMode")
@@ -125,8 +122,6 @@ func TestService_Expose(t *testing.T) {
 			assert.True(t, swm.NetworkMode.IsCoordinator)
 
 			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
-			peerID, _ := peer.IDFromPrivateKey(swm.PrivKey)
-			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
 		},
 	}}
 

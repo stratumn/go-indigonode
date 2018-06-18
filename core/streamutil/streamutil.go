@@ -26,7 +26,7 @@ import (
 // AutoCloseHandler is a specialized stream handler that closes the stream
 // when exiting.
 // It automatically logs the handler error.
-type AutoCloseHandler func(context.Context, inet.Stream, *logging.EventInProgress) error
+type AutoCloseHandler func(context.Context, *logging.EventInProgress, inet.Stream, Codec) error
 
 // WithAutoClose transforms an AutoCloseHandler to a StreamHandler.
 func WithAutoClose(log logging.EventLogger, name string, h AutoCloseHandler) inet.StreamHandler {
@@ -51,6 +51,7 @@ func WithAutoClose(log logging.EventLogger, name string, h AutoCloseHandler) ine
 			event.Done()
 		}()
 
-		err = h(ctx, stream, event)
+		codec := NewProtobufCodec(stream)
+		err = h(ctx, event, stream, codec)
 	}
 }

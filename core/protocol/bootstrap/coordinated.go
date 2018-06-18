@@ -144,7 +144,12 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 }
 
 // HandleConfigUpdate receives updates to the network configuration.
-func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatedHandler) HandleConfigUpdate(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var networkConfig protectorpb.NetworkConfig
 	if err := dec.Decode(&networkConfig); err != nil {
@@ -175,7 +180,12 @@ func (h *CoordinatedHandler) HandleConfigUpdate(ctx context.Context, stream inet
 }
 
 // HandlePropose handles an incoming network update proposal.
-func (h *CoordinatedHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatedHandler) HandlePropose(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var updateReq pb.UpdateProposal
 	if err := dec.Decode(&updateReq); err != nil {

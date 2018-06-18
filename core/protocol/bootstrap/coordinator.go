@@ -118,7 +118,12 @@ func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Str
 
 // HandleHandshake handles an incoming handshake and responds with the network
 // configuration if handshake succeeds.
-func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) HandleHandshake(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
 	err := h.validateSender(ctx, stream, event)
 	if err != nil {
 		return err
@@ -143,7 +148,12 @@ func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.St
 }
 
 // HandlePropose handles an incoming network update proposal.
-func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) HandlePropose(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
 	err := h.validateSender(ctx, stream, event)
 	if err != nil {
 		return err
@@ -211,7 +221,12 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 }
 
 // HandleVote handles an incoming vote.
-func (h *CoordinatorHandler) HandleVote(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) HandleVote(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
 	err := h.validateSender(ctx, stream, event)
 	if err != nil {
 		return err

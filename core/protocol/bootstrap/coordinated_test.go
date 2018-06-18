@@ -462,3 +462,43 @@ func TestCoordinated_Accept(t *testing.T) {
 		require.Nil(t, r)
 	})
 }
+
+func TestCoordinated_Reject(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	defer testNetwork.Close()
+
+	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
+	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+
+	networkConfig := newNetworkConfig(t)
+	host, connect := testNetwork.PrepareCoordinatedNode(
+		testNetwork.CoordinatorID(),
+		networkConfig,
+	)
+
+	handler, err := connect()
+	assert.NoError(t, err)
+	assert.NotNil(t, handler)
+
+	propStore := testNetwork.CoordinatedStore(host.ID())
+
+	peerID := test.GeneratePeerID(t)
+	err = handler.Reject(ctx, peerID)
+	require.NoError(t, err)
+
+	err = propStore.AddRequest(ctx, &proposal.Request{
+		Type:      proposal.RemoveNode,
+		PeerID:    peerID,
+		Challenge: []byte("much chall3ng3"),
+	})
+	require.NoError(t, err)
+
+	err = handler.Reject(ctx, peerID)
+	require.NoError(t, err)
+
+	r, _ := propStore.Get(ctx, peerID)
+	assert.Nil(t, r)
+}

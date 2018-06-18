@@ -297,8 +297,9 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 }
 
 // Reject ignores a proposal to add or remove a node.
-func (h *CoordinatedHandler) Reject(context.Context, peer.ID) error {
-	return nil
+func (h *CoordinatedHandler) Reject(ctx context.Context, peerID peer.ID) error {
+	defer log.EventBegin(ctx, "Coordinated.Reject", peerID).Done()
+	return h.proposalStore.Remove(ctx, peerID)
 }
 
 // CompleteBootstrap can't be used by a coordinated node.

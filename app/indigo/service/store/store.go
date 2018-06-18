@@ -30,7 +30,6 @@ import (
 
 	"google.golang.org/grpc"
 
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -51,10 +50,9 @@ type Host = ihost.Host
 
 // Service is the Indigo Store service.
 type Service struct {
-	config  *Config
-	host    Host
-	store   *protocol.Store
-	privKey crypto.PrivKey
+	config *Config
+	host   Host
+	store  *protocol.Store
 }
 
 // ID returns the unique identifier of the service.
@@ -116,12 +114,14 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrNotHost, s.config.Host)
 	}
 
-	pluggedSwarm, ok := exposed[s.config.Swarm].(*swarmSvc.Swarm)
-	if !ok || pluggedSwarm.PrivKey == nil {
-		return errors.Wrap(ErrNotSwarm, s.config.Swarm)
+	if s.host.Peerstore().PrivKey(s.host.ID()) == nil {
+		return errors.Wrap(ErrMissingPrivateKey, s.config.Host)
 	}
 
-	s.privKey = pluggedSwarm.PrivKey
+	_, ok = exposed[s.config.Swarm].(*swarmSvc.Swarm)
+	if !ok {
+		return errors.Wrap(ErrNotSwarm, s.config.Swarm)
+	}
 
 	return nil
 }
@@ -154,7 +154,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	networkCtx, cancelNetwork := context.WithCancel(context.Background())
 	defer cancelNetwork()
 
-	networkMgr := protocol.NewNetworkManager(s.privKey)
+	privKey := s.host.Peerstore().PrivKey(s.host.ID())
+	networkMgr := protocol.NewNetworkManager(privKey)
 	if err := networkMgr.Join(networkCtx, s.config.NetworkID, s.host); err != nil {
 		return err
 	}

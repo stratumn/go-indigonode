@@ -16,7 +16,6 @@ package store_test
 
 import (
 	"context"
-	"crypto/rand"
 	"testing"
 	"time"
 
@@ -27,19 +26,14 @@ import (
 	"github.com/stratumn/alice/app/indigo/service/store"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/service/swarm"
+	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
-
-func validSwarm() *swarm.Swarm {
-	sk, _, _ := crypto.GenerateEd25519Key(rand.Reader)
-	return &swarm.Swarm{PrivKey: sk}
-}
 
 func testService(ctx context.Context, t *testing.T, host *mocks.MockHost) *store.Service {
 	serv := &store.Service{}
@@ -51,7 +45,7 @@ func testService(ctx context.Context, t *testing.T, host *mocks.MockHost) *store
 
 	deps := map[string]interface{}{
 		"host":  host,
-		"swarm": validSwarm(),
+		"swarm": &swarm.Swarm{},
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -64,11 +58,19 @@ func TestService_Strings(t *testing.T) {
 }
 
 // expectHostNetwork verifies that the service joins a PoP network via floodsub.
-func expectHostNetwork(ctrl *gomock.Controller, host *mocks.MockHost) {
-	net := mocks.NewMockNetwork(ctrl)
+func expectHostNetwork(t *testing.T, ctrl *gomock.Controller, host *mocks.MockHost) {
+	privKey := test.GeneratePrivateKey(t)
+	peerID := test.GetPeerIDFromKey(t, privKey)
 
-	host.EXPECT().Network().Return(net)
+	net := mocks.NewMockNetwork(ctrl)
 	net.EXPECT().Notify(gomock.Any())
+
+	peerStore := mocks.NewMockPeerstore(ctrl)
+	peerStore.EXPECT().PrivKey(peerID).Return(privKey).AnyTimes()
+
+	host.EXPECT().ID().Return(peerID).AnyTimes()
+	host.EXPECT().Network().Return(net)
+	host.EXPECT().Peerstore().Return(peerStore).AnyTimes()
 	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(sync.SingleNodeProtocolID), gomock.Any())
 	host.EXPECT().RemoveStreamHandler(protocol.ID(floodsub.FloodSubID))
@@ -83,7 +85,7 @@ func TestService_Run(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	expectHostNetwork(ctrl, host)
+	expectHostNetwork(t, ctrl, host)
 
 	serv := testService(ctx, t, host)
 	testservice.TestRun(ctx, t, serv, time.Second)
@@ -93,13 +95,16 @@ func TestService_Run_Error(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	sk := test.GeneratePrivateKey(t)
+	peerID := test.GetPeerIDFromKey(t, sk)
+
 	tests := []struct {
 		name   string
-		err    string
+		err    error
 		config store.Config
 	}{{
 		"missing-network-id",
-		storeprotocol.ErrInvalidNetworkID.Error(),
+		storeprotocol.ErrInvalidNetworkID,
 		store.Config{
 			Version:          "1.0.0",
 			StorageType:      "in-memory",
@@ -107,7 +112,7 @@ func TestService_Run_Error(t *testing.T) {
 		},
 	}, {
 		"invalid-storage-type",
-		store.ErrStorageNotSupported.Error(),
+		store.ErrStorageNotSupported,
 		store.Config{
 			Version:          "1.0.0",
 			StorageType:      "on-the-moon",
@@ -118,51 +123,80 @@ func TestService_Run_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			serv := &store.Service{}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			peerStore := mocks.NewMockPeerstore(ctrl)
+			peerStore.EXPECT().PrivKey(peerID).Return(sk).AnyTimes()
+
+			host := mocks.NewMockHost(ctrl)
+			host.EXPECT().ID().Return(peerID).AnyTimes()
+			host.EXPECT().Peerstore().Return(peerStore).AnyTimes()
+
+			serv := testService(ctx, t, host)
 			require.NoError(t, serv.SetConfig(tt.config), "serv.SetConfig(config)")
-			assert.EqualError(t, serv.Run(ctx, func() {}, func() {}), tt.err)
+			assert.EqualError(t, serv.Run(ctx, func() {}, func() {}), tt.err.Error())
 		})
 	}
 }
 
 func TestService_Plug(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	host := mocks.NewMockHost(ctrl)
+	sk := test.GeneratePrivateKey(t)
+	peerID := test.GetPeerIDFromKey(t, sk)
 
 	tests := []struct {
 		name string
 		set  func(*store.Config)
-		deps map[string]interface{}
+		deps func(*mocks.MockHost, *mocks.MockPeerstore) map[string]interface{}
 		err  error
 	}{{
 		"valid-private-key",
 		func(c *store.Config) { c.Swarm = "myswarm" },
-		map[string]interface{}{
-			"host":    host,
-			"myswarm": validSwarm(),
+		func(host *mocks.MockHost, peerStore *mocks.MockPeerstore) map[string]interface{} {
+			peerStore.EXPECT().PrivKey(peerID).Return(sk)
+
+			return map[string]interface{}{
+				"host":    host,
+				"myswarm": &swarm.Swarm{},
+			}
 		},
 		nil,
 	}, {
 		"missing-private-key",
 		func(c *store.Config) { c.Swarm = "myswarm" },
-		map[string]interface{}{
-			"host":    host,
-			"myswarm": &swarm.Swarm{},
+		func(host *mocks.MockHost, peerStore *mocks.MockPeerstore) map[string]interface{} {
+			peerStore.EXPECT().PrivKey(peerID).Return(nil)
+
+			return map[string]interface{}{
+				"host":    host,
+				"myswarm": &swarm.Swarm{},
+			}
 		},
-		store.ErrNotSwarm,
+		store.ErrMissingPrivateKey,
 	}, {
 		"missing-swarm",
 		func(c *store.Config) { c.Swarm = "myswarm" },
-		map[string]interface{}{
-			"host": host,
+		func(host *mocks.MockHost, peerStore *mocks.MockPeerstore) map[string]interface{} {
+			peerStore.EXPECT().PrivKey(peerID).Return(sk)
+
+			return map[string]interface{}{
+				"host": host,
+			}
 		},
 		store.ErrNotSwarm,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			peerStore := mocks.NewMockPeerstore(ctrl)
+
+			host := mocks.NewMockHost(ctrl)
+			host.EXPECT().ID().Return(peerID)
+			host.EXPECT().Peerstore().Return(peerStore)
+
 			serv := store.Service{}
 			config := serv.Config().(store.Config)
 			config.Host = "host"
@@ -170,7 +204,7 @@ func TestService_Plug(t *testing.T) {
 
 			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
-			err := errors.Cause(serv.Plug(tt.deps))
+			err := errors.Cause(serv.Plug(tt.deps(host, peerStore)))
 			switch {
 			case err != tt.err:
 				assert.Equal(t, tt.err, err)

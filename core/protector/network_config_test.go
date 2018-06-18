@@ -27,6 +27,7 @@ import (
 	"github.com/stratumn/alice/core/protector/mocks"
 	pb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
+	libp2pmocks "github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -430,7 +431,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore := libp2pmocks.NewMockPeerstore(ctrl)
 		peerStore.EXPECT().AddAddrs(peer1, peer1Addrs, gomock.Any()).Times(1)
 		p := protector.NewPrivateNetwork(peerStore)
 
@@ -445,7 +446,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore := libp2pmocks.NewMockPeerstore(ctrl)
 		peerStore.EXPECT().AddAddrs(peer1, peer1Addrs, gomock.Any()).Times(1)
 		peerStore.EXPECT().AddAddrs(peer2, peer2Addrs, gomock.Any()).Times(1)
 
@@ -509,7 +510,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 
 		assert.ElementsMatch(t, []peer.ID{peer1, peer3}, p.AllowedPeers(ctx))
 
-		rejectedConn := mocks.NewMockConn(ctrl)
+		rejectedConn := libp2pmocks.NewMockTransportConn(ctrl)
 		rejectedConn.EXPECT().LocalMultiaddr().Times(1).Return(peer1Addrs[0])
 		rejectedConn.EXPECT().RemoteMultiaddr().Times(1).Return(peer2Addrs[0])
 		rejectedConn.EXPECT().Close().AnyTimes()
@@ -534,7 +535,7 @@ func TestLoadOrInitNetworkConfig(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore := libp2pmocks.NewMockPeerstore(ctrl)
 		p := protector.NewPrivateNetwork(peerStore)
 
 		networkConfig, err := protector.LoadOrInitNetworkConfig(ctx, configPath, signerKey, p, peerStore)
@@ -558,7 +559,7 @@ func TestLoadOrInitNetworkConfig(t *testing.T) {
 		_, err := os.Stat(configPath)
 		require.NoError(t, err, "os.Stat(configPath)")
 
-		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore := libp2pmocks.NewMockPeerstore(ctrl)
 		p := protector.NewPrivateNetwork(peerStore)
 
 		peerStore.EXPECT().AddAddrs(peer1, peer1Addrs, gomock.Any()).Times(1)

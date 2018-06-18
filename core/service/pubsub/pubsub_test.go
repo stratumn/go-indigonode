@@ -22,7 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -45,7 +45,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(net *mockpubsub.MockNetwork, host *mockpubsub.MockHost) {
+func expectHost(net *mocks.MockNetwork, host *mocks.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
@@ -63,8 +63,8 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	net := mockpubsub.NewMockNetwork(ctrl)
-	host := mockpubsub.NewMockHost(ctrl)
+	net := mocks.NewMockNetwork(ctrl)
+	host := mocks.NewMockHost(ctrl)
 	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
@@ -80,8 +80,8 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	net := mockpubsub.NewMockNetwork(ctrl)
-	host := mockpubsub.NewMockHost(ctrl)
+	net := mocks.NewMockNetwork(ctrl)
+	host := mocks.NewMockHost(ctrl)
 	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
@@ -126,7 +126,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockpubsub.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 
 	tests := []struct {
 		name string

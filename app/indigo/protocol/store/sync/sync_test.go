@@ -22,7 +22,7 @@ import (
 	pb "github.com/stratumn/alice/app/indigo/pb/store"
 	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
 	"github.com/stratumn/alice/app/indigo/protocol/store/sync"
-	"github.com/stratumn/alice/app/indigo/service/store/mockstore"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
@@ -280,7 +280,7 @@ func TestSyncEngine_New(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			h := mockstore.NewMockHost(ctrl)
+			h := mocks.NewMockHost(ctrl)
 			h.EXPECT().SetStreamHandler(testCase.protocol, gomock.Any()).Times(1)
 			h.EXPECT().RemoveStreamHandler(testCase.protocol).Times(1)
 

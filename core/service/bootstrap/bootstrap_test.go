@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
+	mockprotector "github.com/stratumn/alice/core/protector/mocks"
 	"github.com/stratumn/alice/core/service/swarm"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -69,7 +69,7 @@ func testService(
 	return serv
 }
 
-func expectPublicHost(ctx context.Context, t *testing.T, net *mockbootstrap.MockNetwork, host *mocks.MockHost) {
+func expectPublicHost(ctx context.Context, t *testing.T, net *mocks.MockNetwork, host *mocks.MockHost) {
 	seedID, err := peer.IDB58Decode(testPID)
 	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
@@ -97,7 +97,7 @@ func TestService_Expose(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	net := mockbootstrap.NewMockNetwork(ctrl)
+	net := mocks.NewMockNetwork(ctrl)
 	expectPublicHost(ctx, t, net, host)
 
 	serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
@@ -115,7 +115,7 @@ func TestService_Run(t *testing.T) {
 		defer ctrl.Finish()
 
 		host := mocks.NewMockHost(ctrl)
-		net := mockbootstrap.NewMockNetwork(ctrl)
+		net := mocks.NewMockNetwork(ctrl)
 		expectPublicHost(ctx, t, net, host)
 
 		serv := testService(ctx, t, host, &protector.NetworkMode{}, nil)
@@ -133,7 +133,7 @@ func TestService_Run(t *testing.T) {
 		peer1 := test.GeneratePeerID(t)
 		peer2 := test.GeneratePeerID(t)
 
-		net := mockbootstrap.NewMockNetwork(ctrl)
+		net := mocks.NewMockNetwork(ctrl)
 		net.EXPECT().Peers().Return([]peer.ID{peer1, peer2}).AnyTimes()
 		net.EXPECT().Connectedness(peer1).Return(inet.Connected).AnyTimes()
 		net.EXPECT().Connectedness(peer2).Return(inet.NotConnected).AnyTimes()
@@ -149,7 +149,7 @@ func TestService_Run(t *testing.T) {
 		host.EXPECT().RemoveStreamHandler(gomock.Any()).AnyTimes()
 		host.EXPECT().Connect(gomock.Any(), pstore.PeerInfo{ID: peer2}).Times(1)
 
-		networkCfg := mocks.NewMockNetworkConfig(ctrl)
+		networkCfg := mockprotector.NewMockNetworkConfig(ctrl)
 		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED).Times(1)
 		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{hostID, peer1, peer2}).AnyTimes()
 

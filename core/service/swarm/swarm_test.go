@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/metrics"
-	"github.com/stratumn/alice/core/service/swarm/mockswarm"
 	"github.com/stratumn/alice/test"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -141,7 +141,7 @@ func TestService_Expose(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			smuxer := mockswarm.NewMockTransport(ctrl)
+			smuxer := mocks.NewMockTransport(ctrl)
 			serv := testService(ctx, t, smuxer, tt.cfgOpts...)
 			exposed := testservice.Expose(ctx, t, serv, time.Second)
 
@@ -159,7 +159,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	smuxer := mockswarm.NewMockTransport(ctrl)
+	smuxer := mocks.NewMockTransport(ctrl)
 	serv := testService(ctx, t, smuxer)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
@@ -304,7 +304,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	smuxer := mockswarm.NewMockTransport(ctrl)
+	smuxer := mocks.NewMockTransport(ctrl)
 
 	tests := []struct {
 		name string

@@ -25,10 +25,9 @@ import (
 	storeprotocol "github.com/stratumn/alice/app/indigo/protocol/store"
 	"github.com/stratumn/alice/app/indigo/protocol/store/sync"
 	"github.com/stratumn/alice/app/indigo/service/store"
-	"github.com/stratumn/alice/app/indigo/service/store/mockstore"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/pubsub/mockpubsub"
 	"github.com/stratumn/alice/core/service/swarm"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -42,7 +41,7 @@ func validSwarm() *swarm.Swarm {
 	return &swarm.Swarm{PrivKey: sk}
 }
 
-func testService(ctx context.Context, t *testing.T, host *mockstore.MockHost) *store.Service {
+func testService(ctx context.Context, t *testing.T, host *mocks.MockHost) *store.Service {
 	serv := &store.Service{}
 	config := serv.Config().(store.Config)
 	config.Version = "1.0.0"
@@ -65,8 +64,8 @@ func TestService_Strings(t *testing.T) {
 }
 
 // expectHostNetwork verifies that the service joins a PoP network via floodsub.
-func expectHostNetwork(ctrl *gomock.Controller, host *mockstore.MockHost) {
-	net := mockpubsub.NewMockNetwork(ctrl)
+func expectHostNetwork(ctrl *gomock.Controller, host *mocks.MockHost) {
+	net := mocks.NewMockNetwork(ctrl)
 
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
@@ -83,7 +82,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockstore.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 	expectHostNetwork(ctrl, host)
 
 	serv := testService(ctx, t, host)
@@ -130,7 +129,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockstore.NewMockHost(ctrl)
+	host := mocks.NewMockHost(ctrl)
 
 	tests := []struct {
 		name string

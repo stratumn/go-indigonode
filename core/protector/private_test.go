@@ -22,8 +22,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protector/mocks"
 	"github.com/stratumn/alice/test"
+	libp2pmocks "github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -60,8 +60,8 @@ type PeerStoreData struct {
 	Peers map[peer.ID][]multiaddr.Multiaddr
 }
 
-func (p *PeerStoreData) PeerStore(ctrl *gomock.Controller) *mocks.MockPeerstore {
-	peerStore := mocks.NewMockPeerstore(ctrl)
+func (p *PeerStoreData) PeerStore(ctrl *gomock.Controller) *libp2pmocks.MockPeerstore {
+	peerStore := libp2pmocks.NewMockPeerstore(ctrl)
 
 	for peerID, addrs := range p.Peers {
 		peerStore.EXPECT().Addrs(peerID).Return(addrs).AnyTimes()
@@ -258,7 +258,7 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 
 			tt.networkUpdates(p, updateChan)
 
-			conn := mocks.NewMockConn(ctrl)
+			conn := libp2pmocks.NewMockTransportConn(ctrl)
 			conn.EXPECT().LocalMultiaddr().Return(tt.local).Times(1)
 			conn.EXPECT().RemoteMultiaddr().Return(tt.remote).Times(1)
 			if tt.reject {

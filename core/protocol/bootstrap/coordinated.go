@@ -150,9 +150,8 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var networkConfig protectorpb.NetworkConfig
-	if err := dec.Decode(&networkConfig); err != nil {
+	if err := codec.Decode(&networkConfig); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -186,9 +185,8 @@ func (h *CoordinatedHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var updateReq pb.UpdateProposal
-	if err := dec.Decode(&updateReq); err != nil {
+	if err := codec.Decode(&updateReq); err != nil {
 		return errors.WithStack(err)
 	}
 

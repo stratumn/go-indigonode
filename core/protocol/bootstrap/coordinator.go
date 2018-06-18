@@ -129,22 +129,20 @@ func (h *CoordinatorHandler) HandleHandshake(
 		return err
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var hello pb.Hello
-	if err := dec.Decode(&hello); err != nil {
+	if err := codec.Decode(&hello); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {
-		return enc.Encode(&protectorpb.NetworkConfig{})
+		return codec.Encode(&protectorpb.NetworkConfig{})
 	}
 
 	networkConfig := h.networkConfig.Copy(ctx)
-	return enc.Encode(&networkConfig)
+	return codec.Encode(&networkConfig)
 }
 
 // HandlePropose handles an incoming network update proposal.
@@ -159,17 +157,14 @@ func (h *CoordinatorHandler) HandlePropose(
 		return err
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var nodeID pb.NodeIdentity
-	if err := dec.Decode(&nodeID); err != nil {
+	if err := codec.Decode(&nodeID); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-
 	peerID, err := peer.IDFromBytes(nodeID.PeerId)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
+		return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
 	}
 
 	// Populate address from PeerStore.
@@ -183,16 +178,16 @@ func (h *CoordinatorHandler) HandlePropose(
 	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
 		r, err := proposal.NewAddRequest(&nodeID)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		if r.PeerID != stream.Conn().RemotePeer() {
-			return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
+			return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
 		}
 
 		err = h.proposalStore.AddRequest(ctx, r)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 	} else {
 		allowed := h.networkConfig.IsAllowed(ctx, peerID)
@@ -204,12 +199,12 @@ func (h *CoordinatorHandler) HandlePropose(
 		}
 
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		err = h.proposalStore.AddRequest(ctx, req)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		if req.Type == proposal.RemoveNode {
@@ -217,7 +212,7 @@ func (h *CoordinatorHandler) HandlePropose(
 		}
 	}
 
-	return enc.Encode(&pb.Ack{})
+	return codec.Encode(&pb.Ack{})
 }
 
 // HandleVote handles an incoming vote.
@@ -232,41 +227,39 @@ func (h *CoordinatorHandler) HandleVote(
 		return err
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
 	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
-		return enc.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
+		return codec.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var msg pb.Vote
-	if err := dec.Decode(&msg); err != nil {
+	if err := codec.Decode(&msg); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
 	vote := &proposal.Vote{}
 	err = vote.FromProtoVote(&msg)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	err = h.proposalStore.AddVote(ctx, vote)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	thresholdReached, err := h.voteThresholdReached(ctx, vote.PeerID)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	if thresholdReached {
 		err = h.Accept(ctx, vote.PeerID)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 	}
 
-	return enc.Encode(&pb.Ack{})
+	return codec.Encode(&pb.Ack{})
 }
 
 func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID peer.ID) (bool, error) {

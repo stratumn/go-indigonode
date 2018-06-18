@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockidentify -destination mockidentify/mockidentify.go github.com/stratumn/alice/core/service/identify Host
-//go:generate mockgen -package mockidentify -destination mockidentify/mocknet.go gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net Network
-
 // Package identify defines a service that identifies peers on the network.
 package identify
 

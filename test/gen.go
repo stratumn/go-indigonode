@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Mocks for libp2p components:
 //go:generate mockgen -package mocks -destination mocks/mockconn.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Conn
 //go:generate mockgen -package mocks -destination mocks/mockhost.go gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host Host
 //go:generate mockgen -package mocks -destination mocks/mocknetwork.go gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net Network

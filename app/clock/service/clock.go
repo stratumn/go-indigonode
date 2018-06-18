@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockclock -destination mockclock/mockclock.go github.com/stratumn/alice/core/service/clock Host
-
 // Package service defines types for the clock service.
 package service
 

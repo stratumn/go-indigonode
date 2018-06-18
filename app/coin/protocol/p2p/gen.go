@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockserver.go github.com/stratumn/alice/grpc/bootstrap Bootstrap_ListServer
+//go:generate mockgen -package mockp2p -destination mockp2p/mockp2p.go github.com/stratumn/alice/app/coin/protocol/p2p P2P
+//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/alice/app/coin/protocol/p2p Encoder
 
-package bootstrap
+package p2p

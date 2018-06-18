@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockserver.go github.com/stratumn/alice/grpc/bootstrap Bootstrap_ListServer
+//go:generate mockgen -package mocksignal -destination mocksignal/mocksignal.go github.com/stratumn/alice/core/service/signal Manager
 
-package bootstrap
+package signal

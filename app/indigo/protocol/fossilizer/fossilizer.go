@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockfossilizer -destination mockfossilizer/mockfossilizer.go github.com/stratumn/go-indigocore/fossilizer Adapter
-//go:generate mockgen -package mockbatchfossilizer -destination mockbatchfossilizer/mockbatchfossilizer.go github.com/stratumn/go-indigocore/batchfossilizer Adapter
-
 package fossilizer
 
 import (

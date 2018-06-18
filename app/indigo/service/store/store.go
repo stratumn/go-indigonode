@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/app/indigo/service/store Host
-
 // Package store contains the Indigo Store service.
 package store
 

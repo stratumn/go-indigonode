@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockpubsub -destination mockpubsub/mockpubsub.go github.com/stratumn/alice/core/service/pubsub Host
-//go:generate mockgen -package mockpubsub -destination mockpubsub/mocknet.go gx/ipfs/QmQm7WmgYCa4RSz76tKEYpRjApjnRw8ZTUVQC15b8JM4a2/go-libp2p-net Network
-
 package pubsub
 
 import (

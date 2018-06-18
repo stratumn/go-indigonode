@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocksignal -destination mocksignal/mocksignal.go github.com/stratumn/alice/core/service/signal Manager
-
 // Package signal defines a service that deals with exit signals.
 package signal
 

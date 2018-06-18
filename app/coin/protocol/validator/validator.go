@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/alice/app/coin/protocol/validator Validator
-
 package validator
 
 import (

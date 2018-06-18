@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockbootstrap -destination mockbootstrap/mockserver.go github.com/stratumn/alice/grpc/bootstrap Bootstrap_ListServer
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mocksynchronizer.go github.com/stratumn/alice/app/coin/protocol/synchronizer Synchronizer
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mockcontentproviderfinder.go github.com/stratumn/alice/app/coin/protocol/synchronizer ContentProviderFinder
 
-package bootstrap
+package synchronizer

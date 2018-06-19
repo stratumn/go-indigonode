@@ -16,7 +16,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -26,7 +25,6 @@ import (
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
@@ -97,19 +95,16 @@ func NewCoordinatorHandler(
 	return &handler, nil
 }
 
-// validateSender rejects unauthorized requests.
+// ValidateSender rejects unauthorized requests.
 // This should already be done at the connection level by our protector
 // component, but it's always better to have multi-level security.
-func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) ValidateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	networkState := h.networkConfig.NetworkState(ctx)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		if err := stream.Reset(); err != nil {
-			event.Append(logging.Metadata{"reset_err": err.Error()})
-		}
-
+		event.Append(logging.Metadata{"unauthorized": true})
 		return protector.ErrConnectionRefused
 	}
 
@@ -118,48 +113,53 @@ func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Str
 
 // HandleHandshake handles an incoming handshake and responds with the network
 // configuration if handshake succeeds.
-func (h *CoordinatorHandler) HandleHandshake(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
-	err := h.validateSender(ctx, stream, event)
+func (h *CoordinatorHandler) HandleHandshake(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var hello pb.Hello
-	if err := dec.Decode(&hello); err != nil {
+	if err := codec.Decode(&hello); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {
-		return enc.Encode(&protectorpb.NetworkConfig{})
+		return codec.Encode(&protectorpb.NetworkConfig{})
 	}
 
 	networkConfig := h.networkConfig.Copy(ctx)
-	return enc.Encode(&networkConfig)
+	return codec.Encode(&networkConfig)
 }
 
 // HandlePropose handles an incoming network update proposal.
-func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
-	err := h.validateSender(ctx, stream, event)
+func (h *CoordinatorHandler) HandlePropose(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var nodeID pb.NodeIdentity
-	if err := dec.Decode(&nodeID); err != nil {
+	if err := codec.Decode(&nodeID); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-
 	peerID, err := peer.IDFromBytes(nodeID.PeerId)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
+		return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerID.Error()})
 	}
 
 	// Populate address from PeerStore.
@@ -173,16 +173,16 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
 		r, err := proposal.NewAddRequest(&nodeID)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		if r.PeerID != stream.Conn().RemotePeer() {
-			return enc.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
+			return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
 		}
 
 		err = h.proposalStore.AddRequest(ctx, r)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 	} else {
 		allowed := h.networkConfig.IsAllowed(ctx, peerID)
@@ -194,12 +194,12 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 		}
 
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		err = h.proposalStore.AddRequest(ctx, req)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
 		if req.Type == proposal.RemoveNode {
@@ -207,51 +207,54 @@ func (h *CoordinatorHandler) HandlePropose(ctx context.Context, stream inet.Stre
 		}
 	}
 
-	return enc.Encode(&pb.Ack{})
+	return codec.Encode(&pb.Ack{})
 }
 
 // HandleVote handles an incoming vote.
-func (h *CoordinatorHandler) HandleVote(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
-	err := h.validateSender(ctx, stream, event)
+func (h *CoordinatorHandler) HandleVote(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
 	if h.networkConfig.NetworkState(ctx) == protectorpb.NetworkState_BOOTSTRAP {
-		return enc.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
+		return codec.Encode(&pb.Ack{Error: ErrInvalidOperation.Error()})
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var msg pb.Vote
-	if err := dec.Decode(&msg); err != nil {
+	if err := codec.Decode(&msg); err != nil {
 		return protector.ErrConnectionRefused
 	}
 
 	vote := &proposal.Vote{}
 	err = vote.FromProtoVote(&msg)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	err = h.proposalStore.AddVote(ctx, vote)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	thresholdReached, err := h.voteThresholdReached(ctx, vote.PeerID)
 	if err != nil {
-		return enc.Encode(&pb.Ack{Error: err.Error()})
+		return codec.Encode(&pb.Ack{Error: err.Error()})
 	}
 
 	if thresholdReached {
 		err = h.Accept(ctx, vote.PeerID)
 		if err != nil {
-			return enc.Encode(&pb.Ack{Error: err.Error()})
+			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 	}
 
-	return enc.Encode(&pb.Ack{})
+	return codec.Encode(&pb.Ack{})
 }
 
 func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID peer.ID) (bool, error) {
@@ -462,7 +465,6 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 // The proposal contains a random challenge and needs to be signed by
 // participants to confirm their agreement.
 func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Request) {
-	eventLock := &sync.Mutex{}
 	event := log.EventBegin(ctx, "Coordinator.SendProposal")
 	defer event.Done()
 
@@ -480,36 +482,27 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProposePID)
+			event := log.EventBegin(ctx, "Coordinator.SendProposal.Stream", peerID)
+			defer event.Done()
+
+			stream, err := (&streamutil.StreamProvider{}).NewStream(
+				ctx,
+				h.host,
+				streamutil.OptPeerID(peerID),
+				streamutil.OptProtocolIDs(PrivateCoordinatedProposePID),
+				streamutil.OptLog(event),
+			)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
 				return
 			}
 
-			defer func() {
-				if err = stream.Close(); err != nil {
-					eventLock.Lock()
-					event.Append(logging.Metadata{
-						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
-					})
-					eventLock.Unlock()
-				}
-			}()
+			defer stream.Close()
 
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(updateReq)
+			err = stream.Codec.Encode(updateReq)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
+				event.SetError(err)
 				return
 			}
-
-			eventLock.Lock()
-			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
-			eventLock.Unlock()
 		}(peerID)
 	}
 
@@ -519,7 +512,6 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
-	eventLock := &sync.Mutex{}
 	event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig")
 	defer event.Done()
 
@@ -538,36 +530,27 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedConfigPID)
+			event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig.Stream", peerID)
+			defer event.Done()
+
+			stream, err := (&streamutil.StreamProvider{}).NewStream(
+				ctx,
+				h.host,
+				streamutil.OptPeerID(peerID),
+				streamutil.OptProtocolIDs(PrivateCoordinatedConfigPID),
+				streamutil.OptLog(event),
+			)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
 				return
 			}
 
-			defer func() {
-				if err = stream.Close(); err != nil {
-					eventLock.Lock()
-					event.Append(logging.Metadata{
-						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
-					})
-					eventLock.Unlock()
-				}
-			}()
+			defer stream.Close()
 
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(&networkConfig)
+			err = stream.Codec.Encode(&networkConfig)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
+				event.SetError(err)
 				return
 			}
-
-			eventLock.Lock()
-			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
-			eventLock.Unlock()
 		}(peerID)
 	}
 

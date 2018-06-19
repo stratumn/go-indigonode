@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package streamutil provides utility functions
-// to make handling streams easier.
+//go:generate mockgen -package mockstream -destination mockstream/mockcodec.go github.com/stratumn/alice/core/streamutil Codec
+
 package streamutil

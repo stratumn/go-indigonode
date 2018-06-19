@@ -107,22 +107,19 @@ func (h *CoordinatorHandler) Close(ctx context.Context) {
 	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }
 
-// Handshake sends the current network configuration to all participants.
-func (h *CoordinatorHandler) Handshake(ctx context.Context) error {
-	// TODO
-	return nil
-}
-
 // ValidateSender rejects unauthorized requests.
 // This should already be done at the connection level by our protector
 // component, but it's always better to have multi-level security.
-func (h *CoordinatorHandler) ValidateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) ValidateSender(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinator.ValidateSender", peerID)
+	defer event.Done()
+
 	networkState := h.networkConfig.NetworkState(ctx)
-	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
+	allowed := h.networkConfig.IsAllowed(ctx, peerID)
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		event.Append(logging.Metadata{"unauthorized": true})
+		event.SetError(protector.ErrConnectionRefused)
 		return protector.ErrConnectionRefused
 	}
 
@@ -137,7 +134,7 @@ func (h *CoordinatorHandler) HandleHandshake(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
 	if err != nil {
 		return err
 	}
@@ -165,7 +162,7 @@ func (h *CoordinatorHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
 	if err != nil {
 		return err
 	}
@@ -235,7 +232,7 @@ func (h *CoordinatorHandler) HandleVote(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
 	if err != nil {
 		return err
 	}
@@ -317,6 +314,14 @@ func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID pe
 	}
 
 	return true, nil
+}
+
+// Handshake sends the current network configuration to all participants.
+func (h *CoordinatorHandler) Handshake(ctx context.Context) error {
+	defer log.EventBegin(ctx, "Coordinator.Handshake").Done()
+
+	h.SendNetworkConfig(ctx)
+	return nil
 }
 
 // AddNode adds the node to the network configuration

@@ -22,6 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	mockprotector "github.com/stratumn/alice/core/protector/mocks"
+	"github.com/stratumn/alice/core/protector/protectortest"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
@@ -64,6 +65,31 @@ func TestCoordinator_Close(t *testing.T) {
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID).Times(1)
 
 	handler.Close(context.Background())
+}
+
+func TestCoordinator_ValidateSender(t *testing.T) {
+	ctx := context.Background()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	host := mocks.NewMockHost(ctrl)
+	expectSetStreamHandler(host)
+
+	networkCfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
+	handler := bootstrap.NewCoordinatorHandler(host, nil, networkCfg, nil).(*bootstrap.CoordinatorHandler)
+
+	peerID := test.GeneratePeerID(t)
+	err := handler.ValidateSender(ctx, peerID)
+	require.NoError(t, err)
+
+	networkCfg.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
+	err = handler.ValidateSender(ctx, peerID)
+	require.EqualError(t, err, protector.ErrConnectionRefused.Error())
+
+	networkCfg.AddPeer(ctx, peerID, test.GeneratePeerMultiaddrs(t, peerID))
+	err = handler.ValidateSender(ctx, peerID)
+	require.NoError(t, err)
 }
 
 func TestCoordinator_HandleHandshake(t *testing.T) {

@@ -12,7 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockstream -destination mockstream/mockcodec.go github.com/stratumn/alice/core/streamutil Codec
-//go:generate mockgen -package mockstream -destination mockstream/mockprovider.go github.com/stratumn/alice/core/streamutil Provider
+package bootstraptest
 
-package streamutil
+import (
+	"context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+)
+
+// TestLogger can be used in tests to generate events.
+var TestLogger = logging.Logger("test")
+
+// NewEvent creates a new empty event.
+func NewEvent() *logging.EventInProgress {
+	return TestLogger.EventBegin(context.Background(), "test")
+}

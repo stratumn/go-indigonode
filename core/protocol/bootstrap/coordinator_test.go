@@ -16,17 +16,19 @@ package bootstrap_test
 
 import (
 	"context"
-	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	mockprotector "github.com/stratumn/alice/core/protector/mocks"
 	"github.com/stratumn/alice/core/protector/protectortest"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
+	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
 	"github.com/stratumn/alice/core/streamutil"
+	"github.com/stratumn/alice/core/streamutil/mockstream"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -93,164 +95,107 @@ func TestCoordinator_ValidateSender(t *testing.T) {
 }
 
 func TestCoordinator_HandleHandshake(t *testing.T) {
-	sendHello := func(t *testing.T, stream inet.Stream) {
-		enc := protobuf.Multicodec(nil).Encoder(stream)
-		require.NoError(t, enc.Encode(&pb.Hello{}), "enc.Encode()")
-	}
+	peer1 := test.GeneratePeerID(t)
+	peer1Addrs := test.GeneratePeerMultiaddrs(t, peer1)
 
 	testCases := []struct {
-		name          string
-		networkConfig func(context.Context, *bhost.BlankHost, *bhost.BlankHost) protector.NetworkConfig
-		send          func(*testing.T, inet.Stream)
-		validate      func(*testing.T, *protectorpb.NetworkConfig, *bhost.BlankHost, *bhost.BlankHost)
-		receiveErr    error
+		name       string
+		remotePeer peer.ID
+		configure  func(*testing.T, protector.NetworkConfig, *mockstream.MockCodec)
+		err        error
 	}{{
-		"during-bootstrap-send-participants-to-white-listed-peer",
-		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
-			networkConfig, _ := protector.NewInMemoryConfig(
-				ctx,
-				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
-			)
-
-			networkConfig.AddPeer(
-				ctx,
-				coordinator.ID(),
-				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
-			)
-			networkConfig.AddPeer(
-				ctx,
-				sender.ID(),
-				test.GeneratePeerMultiaddrs(t, sender.ID()),
-			)
-
-			return networkConfig
+		"reject-stream-error",
+		peer1,
+		func(_ *testing.T, _ protector.NetworkConfig, codec *mockstream.MockCodec) {
+			codec.EXPECT().Decode(gomock.Any()).Return(errors.New("critical system failure"))
 		},
-		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
-			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState)
-			assert.Len(t, networkConfig.Participants, 2)
-			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
-			assert.Contains(t, networkConfig.Participants, coordinator.ID().Pretty())
+		protector.ErrConnectionRefused,
+	}, {
+		"during-bootstrap-send-participants-to-white-listed-peer",
+		peer1,
+		func(t *testing.T, cfg protector.NetworkConfig, codec *mockstream.MockCodec) {
+			cfg.AddPeer(context.Background(), peer1, peer1Addrs)
+
+			codec.EXPECT().Decode(gomock.Any())
+			codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+				sentCfg, ok := n.(*protectorpb.NetworkConfig)
+				require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
+
+				_, ok = sentCfg.Participants[peer1.Pretty()]
+				require.True(t, ok, "sentCfg.Participants[peer1.Pretty()]")
+
+				return nil
+			})
 		},
 		nil,
 	}, {
 		"during-bootstrap-do-not-send-participants-to-non-white-listed-peer",
-		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
-			networkConfig, _ := protector.NewInMemoryConfig(
-				ctx,
-				protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
-			)
+		peer1,
+		func(t *testing.T, _ protector.NetworkConfig, codec *mockstream.MockCodec) {
+			codec.EXPECT().Decode(gomock.Any())
+			codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+				sentCfg, ok := n.(*protectorpb.NetworkConfig)
+				require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
+				require.Len(t, sentCfg.Participants, 0)
 
-			networkConfig.AddPeer(
-				ctx,
-				coordinator.ID(),
-				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
-			)
-
-			return networkConfig
-		},
-		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
-			assert.Nil(t, networkConfig.Signature, "networkConfig.Signature")
-			assert.Zero(t, networkConfig.NetworkState, "networkConfig.NetworkState")
-			assert.Nil(t, networkConfig.Participants, "networkConfig.Participants")
+				return nil
+			})
 		},
 		nil,
 	}, {
 		"after-bootstrap-send-participants-to-white-listed-peer",
-		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
-			networkConfig, _ := protector.NewInMemoryConfig(
-				ctx,
-				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
-			)
+		peer1,
+		func(t *testing.T, cfg protector.NetworkConfig, codec *mockstream.MockCodec) {
+			cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+			cfg.AddPeer(context.Background(), peer1, peer1Addrs)
 
-			networkConfig.AddPeer(
-				ctx,
-				sender.ID(),
-				test.GeneratePeerMultiaddrs(t, sender.ID()),
-			)
+			codec.EXPECT().Decode(gomock.Any())
+			codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+				sentCfg, ok := n.(*protectorpb.NetworkConfig)
+				require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
 
-			return networkConfig
-		},
-		sendHello,
-		func(t *testing.T, networkConfig *protectorpb.NetworkConfig, coordinator, sender *bhost.BlankHost) {
-			assert.Equal(t, protectorpb.NetworkState_PROTECTED, networkConfig.NetworkState)
-			assert.Len(t, networkConfig.Participants, 1)
-			assert.Contains(t, networkConfig.Participants, sender.ID().Pretty())
+				_, ok = sentCfg.Participants[peer1.Pretty()]
+				require.True(t, ok, "sentCfg.Participants[peer1.Pretty()]")
+
+				return nil
+			})
 		},
 		nil,
 	}, {
 		"after-bootstrap-reject-non-white-listed-peer",
-		func(ctx context.Context, coordinator, sender *bhost.BlankHost) protector.NetworkConfig {
-			networkConfig, _ := protector.NewInMemoryConfig(
-				ctx,
-				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
-			)
-
-			networkConfig.AddPeer(
-				ctx,
-				coordinator.ID(),
-				test.GeneratePeerMultiaddrs(t, coordinator.ID()),
-			)
-
-			return networkConfig
+		peer1,
+		func(_ *testing.T, cfg protector.NetworkConfig, _ *mockstream.MockCodec) {
+			cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 		},
-		func(t *testing.T, stream inet.Stream) {
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err := enc.Encode(&pb.Hello{})
-			if err != nil {
-				assert.EqualError(t, err, io.EOF.Error())
-			}
-		},
-		nil,
-		io.EOF,
+		protector.ErrConnectionRefused,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			coordinator := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-			defer coordinator.Close()
-
-			sender := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-			defer sender.Close()
-
-			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
+			ctx := context.Background()
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler := bootstrap.NewCoordinatorHandler(
-				coordinator,
-				streamutil.NewStreamProvider(),
-				tt.networkConfig(ctx, coordinator, sender),
-				nil,
-			)
-			defer handler.Close(ctx)
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
 
-			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorHandshakePID)
-			// If the coordinator is expected to reject streams, it can happen either
-			// when initiating the stream (sender.NewStream()) or when writing to it (below).
-			// It depends on the underlying yamux implementation but both are ok for our usecase.
-			if err != nil {
-				require.Error(t, tt.receiveErr)
-				require.EqualError(t, err, tt.receiveErr.Error())
-				return
-			}
+			conn := mocks.NewMockConn(ctrl)
+			conn.EXPECT().RemotePeer().Return(tt.remotePeer)
 
-			tt.send(t, stream)
+			stream := mocks.NewMockStream(ctrl)
+			stream.EXPECT().Conn().Return(conn)
 
-			dec := protobuf.Multicodec(nil).Decoder(stream)
-			var response protectorpb.NetworkConfig
-			err = dec.Decode(&response)
+			networkCfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
+			codec := mockstream.NewMockCodec(ctrl)
+			tt.configure(t, networkCfg, codec)
 
-			if tt.receiveErr != nil {
-				assert.EqualError(t, err, tt.receiveErr.Error())
+			handler := bootstrap.NewCoordinatorHandler(host, nil, networkCfg, nil).(*bootstrap.CoordinatorHandler)
+			err := handler.HandleHandshake(ctx, bootstraptest.NewEvent(), stream, codec)
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				require.NoError(t, err)
-				tt.validate(t, &response, coordinator, sender)
 			}
 		})
 	}

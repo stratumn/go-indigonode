@@ -134,7 +134,8 @@ func (h *CoordinatorHandler) HandleHandshake(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
+	remoteID := stream.Conn().RemotePeer()
+	err := h.ValidateSender(ctx, remoteID)
 	if err != nil {
 		return err
 	}
@@ -144,7 +145,7 @@ func (h *CoordinatorHandler) HandleHandshake(
 		return protector.ErrConnectionRefused
 	}
 
-	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
+	allowed := h.networkConfig.IsAllowed(ctx, remoteID)
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {

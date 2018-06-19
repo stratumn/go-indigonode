@@ -60,21 +60,24 @@ var (
 // CoordinatorHandler is the handler for the coordinator
 // of a private network.
 type CoordinatorHandler struct {
-	host          ihost.Host
-	networkConfig protector.NetworkConfig
-	proposalStore proposal.Store
+	host           ihost.Host
+	streamProvider streamutil.Provider
+	networkConfig  protector.NetworkConfig
+	proposalStore  proposal.Store
 }
 
 // NewCoordinatorHandler returns a Handler for a coordinator node.
 func NewCoordinatorHandler(
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
 ) (Handler, error) {
 	handler := CoordinatorHandler{
-		host:          host,
-		networkConfig: networkConfig,
-		proposalStore: proposalStore,
+		host:           host,
+		streamProvider: streamProvider,
+		networkConfig:  networkConfig,
+		proposalStore:  proposalStore,
 	}
 
 	host.SetStreamHandler(
@@ -485,7 +488,7 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 			event := log.EventBegin(ctx, "Coordinator.SendProposal.Stream", peerID)
 			defer event.Done()
 
-			stream, err := (&streamutil.StreamProvider{}).NewStream(
+			stream, err := h.streamProvider.NewStream(
 				ctx,
 				h.host,
 				streamutil.OptPeerID(peerID),
@@ -533,7 +536,7 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 			event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig.Stream", peerID)
 			defer event.Done()
 
-			stream, err := (&streamutil.StreamProvider{}).NewStream(
+			stream, err := h.streamProvider.NewStream(
 				ctx,
 				h.host,
 				streamutil.OptPeerID(peerID),

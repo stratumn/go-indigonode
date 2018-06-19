@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstraptesting
+package bootstraptest
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stretchr/testify/require"
 
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
@@ -74,6 +75,7 @@ func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfi
 		return bootstrap.NewCoordinatedHandler(
 			n.ctx,
 			h,
+			streamutil.NewStreamProvider(),
 			&protector.NetworkMode{
 				CoordinatorID:  coordinatorID,
 				ProtectionMode: protector.PrivateWithCoordinatorMode,
@@ -99,6 +101,7 @@ func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) 
 
 	return bootstrap.NewCoordinatorHandler(
 		n.coordinator,
+		streamutil.NewStreamProvider(),
 		protector.WrapWithSignature(
 			networkConfig,
 			n.coordinator.Peerstore().PrivKey(n.coordinator.ID()),

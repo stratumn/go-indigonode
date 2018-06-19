@@ -27,6 +27,7 @@ import (
 	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/service/swarm"
+	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/grpc/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/release"
@@ -214,6 +215,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	protocolHandler, err := protocol.New(
 		protocolCtx,
 		s.host,
+		streamutil.NewStreamProvider(),
 		s.swarm.NetworkMode,
 		s.swarm.NetworkConfig,
 		store,

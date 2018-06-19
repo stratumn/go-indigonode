@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -71,6 +72,7 @@ type Handler interface {
 func New(
 	ctx context.Context,
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 	store proposal.Store,
@@ -84,10 +86,10 @@ func New(
 		return &PublicNetworkHandler{}, nil
 	case protector.PrivateWithCoordinatorMode:
 		if networkMode.IsCoordinator {
-			return NewCoordinatorHandler(host, networkConfig, store)
+			return NewCoordinatorHandler(host, streamProvider, networkConfig, store)
 		}
 
-		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig, store)
+		return NewCoordinatedHandler(ctx, host, streamProvider, networkMode, networkConfig, store)
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

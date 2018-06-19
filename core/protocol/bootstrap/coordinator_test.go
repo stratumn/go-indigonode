@@ -25,6 +25,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
+	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -55,7 +56,7 @@ func TestCoordinator_Close(t *testing.T) {
 	host := mocks.NewMockHost(ctrl)
 	expectSetStreamHandler(host)
 
-	handler, err := bootstrap.NewCoordinatorHandler(host, nil, nil)
+	handler, err := bootstrap.NewCoordinatorHandler(host, nil, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, handler)
 
@@ -197,6 +198,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
+				streamutil.NewStreamProvider(),
 				tt.networkConfig(ctx, coordinator, sender),
 				nil,
 			)
@@ -406,6 +408,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
+				streamutil.NewStreamProvider(),
 				networkConfig,
 				store,
 			)
@@ -581,6 +584,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 
 			handler, err := bootstrap.NewCoordinatorHandler(
 				coordinator,
+				streamutil.NewStreamProvider(),
 				networkConfig,
 				store,
 			)
@@ -707,7 +711,12 @@ func TestCoordinator_AddNode(t *testing.T) {
 			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
 			tt.configureNetworkConfig(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			handler, err := bootstrap.NewCoordinatorHandler(
+				host,
+				streamutil.NewStreamProvider(),
+				networkConfig,
+				nil,
+			)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
@@ -791,7 +800,12 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
 			tt.configureNetworkConfig(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			handler, err := bootstrap.NewCoordinatorHandler(
+				host,
+				streamutil.NewStreamProvider(),
+				networkConfig,
+				nil,
+			)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.RemoveNode(ctx, tt.removeNodeID)
@@ -920,7 +934,12 @@ func TestCoordinator_Accept(t *testing.T) {
 
 			tt.configure(ctrl, host, networkConfig, store)
 
-			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, store)
+			handler, err := bootstrap.NewCoordinatorHandler(
+				host,
+				streamutil.NewStreamProvider(),
+				networkConfig,
+				store,
+			)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.Accept(ctx, tt.acceptID)
@@ -946,7 +965,12 @@ func TestCoordinator_Reject(t *testing.T) {
 	store := mockproposal.NewMockStore(ctrl)
 	store.EXPECT().Remove(gomock.Any(), peerID).Times(1)
 
-	handler, err := bootstrap.NewCoordinatorHandler(host, nil, store)
+	handler, err := bootstrap.NewCoordinatorHandler(
+		host,
+		streamutil.NewStreamProvider(),
+		nil,
+		store,
+	)
 	require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 	err = handler.Reject(ctx, peerID)
@@ -1044,7 +1068,12 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 
 			tt.expect(ctrl, host, networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(host, networkConfig, nil)
+			handler, err := bootstrap.NewCoordinatorHandler(
+				host,
+				streamutil.NewStreamProvider(),
+				networkConfig,
+				nil,
+			)
 			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
 			err = handler.CompleteBootstrap(ctx)

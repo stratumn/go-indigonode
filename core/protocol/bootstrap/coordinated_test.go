@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptesting"
+	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -94,7 +94,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 		defer testNetwork.Close()
 
 		unavailableCoordinatorID := test.GeneratePeerID(t)
@@ -113,7 +113,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 		defer testNetwork.Close()
 
 		coordinatorConfig := newNetworkConfig(t)
@@ -137,7 +137,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 		defer testNetwork.Close()
 
 		coordinatorConfig := newNetworkConfig(t)
@@ -167,7 +167,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 		defer testNetwork.Close()
 
 		coordinatorConfig := newNetworkConfig(t)
@@ -196,7 +196,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+		testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 		defer testNetwork.Close()
 
 		coordinatorConfig := newNetworkConfig(t)
@@ -240,7 +240,7 @@ func TestCoordinated_HandleConfigUpdate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 	defer testNetwork.Close()
 
 	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
@@ -322,7 +322,7 @@ func TestCoordinated_AddNode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 	defer testNetwork.Close()
 
 	coordinatorHandler, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
@@ -354,7 +354,7 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 	defer testNetwork.Close()
 
 	coordinatorConfig := newNetworkConfig(t)
@@ -407,7 +407,7 @@ func TestCoordinated_Accept(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 	defer testNetwork.Close()
 
 	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
@@ -467,7 +467,7 @@ func TestCoordinated_Reject(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	testNetwork := bootstraptesting.NewTestNetwork(ctx, t)
+	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
 	defer testNetwork.Close()
 
 	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))

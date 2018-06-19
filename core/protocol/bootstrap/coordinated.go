@@ -47,16 +47,18 @@ var (
 // CoordinatedHandler is the handler for a non-coordinator node
 // in a private network that has a coordinator.
 type CoordinatedHandler struct {
-	coordinatorID peer.ID
-	host          ihost.Host
-	networkConfig protector.NetworkConfig
-	proposalStore proposal.Store
+	coordinatorID  peer.ID
+	host           ihost.Host
+	streamProvider streamutil.Provider
+	networkConfig  protector.NetworkConfig
+	proposalStore  proposal.Store
 }
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
 func NewCoordinatedHandler(
 	ctx context.Context,
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
@@ -67,10 +69,11 @@ func NewCoordinatedHandler(
 	defer event.Done()
 
 	handler := CoordinatedHandler{
-		coordinatorID: networkMode.CoordinatorID,
-		host:          host,
-		networkConfig: networkConfig,
-		proposalStore: proposalStore,
+		coordinatorID:  networkMode.CoordinatorID,
+		host:           host,
+		streamProvider: streamProvider,
+		networkConfig:  networkConfig,
+		proposalStore:  proposalStore,
 	}
 
 	err := handler.handshake(ctx)
@@ -104,7 +107,7 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 		return protector.ErrConnectionRefused
 	}
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -204,7 +207,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
 	defer event.Done()
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -241,7 +244,7 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
 	defer event.Done()
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -292,7 +295,7 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return err
 	}
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),

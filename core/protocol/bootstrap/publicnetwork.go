@@ -25,6 +25,12 @@ import (
 // Public networks are completely open, so this handler doesn't do anything.
 type PublicNetworkHandler struct{}
 
+// Handshake can't be used in a public network.
+// You can directly connect to any node freely.
+func (h *PublicNetworkHandler) Handshake(context.Context) error {
+	return nil
+}
+
 // AddNode can't be used in a public network.
 // You can directly connect to any node freely.
 func (h *PublicNetworkHandler) AddNode(context.Context, peer.ID, multiaddr.Multiaddr, []byte) error {

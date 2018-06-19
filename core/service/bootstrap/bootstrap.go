@@ -213,13 +213,17 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	}
 
 	protocolHandler, err := protocol.New(
-		protocolCtx,
 		s.host,
 		streamutil.NewStreamProvider(),
 		s.swarm.NetworkMode,
 		s.swarm.NetworkConfig,
 		store,
 	)
+	if err != nil {
+		return err
+	}
+
+	err = protocolHandler.Handshake(protocolCtx)
 	if err != nil {
 		return err
 	}

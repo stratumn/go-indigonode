@@ -77,12 +77,11 @@ func expectPublicHost(ctx context.Context, t *testing.T, net *mocks.MockNetwork,
 
 	host.EXPECT().Network().Return(net).AnyTimes()
 	host.EXPECT().Peerstore().Return(ps).AnyTimes()
+	host.EXPECT().Connect(gomock.Any(), gomock.Any()).Return(nil)
 
 	net.EXPECT().Peers().Return(ps.Peers())
 	net.EXPECT().Connectedness(seedID).Return(inet.NotConnected)
-	host.EXPECT().Connect(gomock.Any(), gomock.Any()).Return(nil)
-	net.EXPECT().Peers().Return([]peer.ID{seedID})
-	net.EXPECT().Peers().Return([]peer.ID{seedID})
+	net.EXPECT().Peers().Return([]peer.ID{seedID}).Times(2)
 }
 
 func TestService_strings(t *testing.T) {

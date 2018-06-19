@@ -72,7 +72,7 @@ func NewCoordinatorHandler(
 	streamProvider streamutil.Provider,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
-) (Handler, error) {
+) Handler {
 	handler := CoordinatorHandler{
 		host:           host,
 		streamProvider: streamProvider,
@@ -95,7 +95,13 @@ func NewCoordinatorHandler(
 		streamutil.WithAutoClose(log, "Coordinator.HandleVote", handler.HandleVote),
 	)
 
-	return &handler, nil
+	return &handler
+}
+
+// Handshake sends the current network configuration to all participants.
+func (h *CoordinatorHandler) Handshake(ctx context.Context) error {
+	// TODO
+	return nil
 }
 
 // ValidateSender rejects unauthorized requests.

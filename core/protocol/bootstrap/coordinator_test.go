@@ -56,8 +56,7 @@ func TestCoordinator_Close(t *testing.T) {
 	host := mocks.NewMockHost(ctrl)
 	expectSetStreamHandler(host)
 
-	handler, err := bootstrap.NewCoordinatorHandler(host, nil, nil, nil)
-	require.NoError(t, err)
+	handler := bootstrap.NewCoordinatorHandler(host, nil, nil, nil)
 	require.NotNil(t, handler)
 
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
@@ -196,13 +195,12 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				coordinator,
 				streamutil.NewStreamProvider(),
 				tt.networkConfig(ctx, coordinator, sender),
 				nil,
 			)
-			require.NoError(t, err)
 			defer handler.Close(ctx)
 
 			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorHandshakePID)
@@ -406,13 +404,12 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 			)
 			tt.configure(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				coordinator,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				store,
 			)
-			require.NoError(t, err)
 			defer handler.Close(ctx)
 
 			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorProposePID)
@@ -582,13 +579,12 @@ func TestCoordinator_HandleVote(t *testing.T) {
 
 			tt.configure(t, networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				coordinator,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				store,
 			)
-			require.NoError(t, err)
 			defer handler.Close(ctx)
 
 			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorVotePID)
@@ -711,15 +707,14 @@ func TestCoordinator_AddNode(t *testing.T) {
 			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
 			tt.configureNetworkConfig(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				host,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				nil,
 			)
-			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-			err = handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
+			err := handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -800,15 +795,14 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
 			tt.configureNetworkConfig(networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				host,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				nil,
 			)
-			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-			err = handler.RemoveNode(ctx, tt.removeNodeID)
+			err := handler.RemoveNode(ctx, tt.removeNodeID)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -934,15 +928,14 @@ func TestCoordinator_Accept(t *testing.T) {
 
 			tt.configure(ctrl, host, networkConfig, store)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				host,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				store,
 			)
-			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-			err = handler.Accept(ctx, tt.acceptID)
+			err := handler.Accept(ctx, tt.acceptID)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -965,15 +958,14 @@ func TestCoordinator_Reject(t *testing.T) {
 	store := mockproposal.NewMockStore(ctrl)
 	store.EXPECT().Remove(gomock.Any(), peerID).Times(1)
 
-	handler, err := bootstrap.NewCoordinatorHandler(
+	handler := bootstrap.NewCoordinatorHandler(
 		host,
 		streamutil.NewStreamProvider(),
 		nil,
 		store,
 	)
-	require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-	err = handler.Reject(ctx, peerID)
+	err := handler.Reject(ctx, peerID)
 	require.NoError(t, err, "handler.Reject()")
 }
 
@@ -1068,15 +1060,14 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 
 			tt.expect(ctrl, host, networkConfig)
 
-			handler, err := bootstrap.NewCoordinatorHandler(
+			handler := bootstrap.NewCoordinatorHandler(
 				host,
 				streamutil.NewStreamProvider(),
 				networkConfig,
 				nil,
 			)
-			require.NoError(t, err, "bootstrap.NewCoordinatorHandler()")
 
-			err = handler.CompleteBootstrap(ctx)
+			err := handler.CompleteBootstrap(ctx)
 			require.NoError(t, err, "handler.CompleteBootstrap()")
 		})
 	}

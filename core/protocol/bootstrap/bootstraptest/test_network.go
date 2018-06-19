@@ -73,7 +73,6 @@ func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfi
 
 		n.coordinated = append(n.coordinated, h)
 		return bootstrap.NewCoordinatedHandler(
-			n.ctx,
 			h,
 			streamutil.NewStreamProvider(),
 			&protector.NetworkMode{
@@ -82,7 +81,7 @@ func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfi
 			},
 			networkConfig,
 			n.coordinatedStores[h.ID()],
-		)
+		), nil
 	}
 
 	return h, connect
@@ -107,7 +106,7 @@ func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) 
 			n.coordinator.Peerstore().PrivKey(n.coordinator.ID()),
 		),
 		n.coordinatorStore,
-	)
+	), nil
 }
 
 // CoordinatorHost returns the underlying host of the coordinator.

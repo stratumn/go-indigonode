@@ -56,29 +56,18 @@ type CoordinatedHandler struct {
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
 func NewCoordinatedHandler(
-	ctx context.Context,
 	host ihost.Host,
 	streamProvider streamutil.Provider,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
-) (Handler, error) {
-	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
-		"coordinatorID": networkMode.CoordinatorID.Pretty(),
-	})
-	defer event.Done()
-
+) Handler {
 	handler := CoordinatedHandler{
 		coordinatorID:  networkMode.CoordinatorID,
 		host:           host,
 		streamProvider: streamProvider,
 		networkConfig:  networkConfig,
 		proposalStore:  proposalStore,
-	}
-
-	err := handler.handshake(ctx)
-	if err != nil {
-		return nil, err
 	}
 
 	host.SetStreamHandler(
@@ -91,13 +80,13 @@ func NewCoordinatedHandler(
 		streamutil.WithAutoClose(log, "Coordinated.HandlePropose", handler.HandlePropose),
 	)
 
-	return &handler, nil
+	return &handler
 }
 
-// handshake connects to the coordinator for the initial handshake.
+// Handshake connects to the coordinator for the initial handshake.
 // The node is expected to receive the network configuration during
 // that handshake.
-func (h *CoordinatedHandler) handshake(ctx context.Context) error {
+func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 	event := log.EventBegin(ctx, "Coordinated.handshake")
 	defer event.Done()
 

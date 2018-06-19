@@ -62,6 +62,7 @@ func TestCoordinator_Close(t *testing.T) {
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID).Times(1)
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID).Times(1)
+
 	handler.Close(context.Background())
 }
 

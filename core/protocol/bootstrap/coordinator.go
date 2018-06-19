@@ -98,6 +98,15 @@ func NewCoordinatorHandler(
 	return &handler
 }
 
+// Close removes the protocol handlers.
+func (h *CoordinatorHandler) Close(ctx context.Context) {
+	log.Event(ctx, "Coordinator.Close")
+
+	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
+}
+
 // Handshake sends the current network configuration to all participants.
 func (h *CoordinatorHandler) Handshake(ctx context.Context) error {
 	// TODO
@@ -564,12 +573,4 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 	}
 
 	wg.Wait()
-}
-
-// Close removes the protocol handlers.
-func (h *CoordinatorHandler) Close(ctx context.Context) {
-	log.Event(ctx, "Coordinator.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
-	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
-	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }

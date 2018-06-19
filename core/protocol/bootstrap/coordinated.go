@@ -24,7 +24,6 @@ import (
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
@@ -101,30 +100,30 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 
 	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
 	if err != nil {
+		event.SetError(err)
 		return protector.ErrConnectionRefused
 	}
 
-	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorHandshakePID)
+	stream, err := (&streamutil.StreamProvider{}).NewStream(
+		ctx,
+		h.host,
+		streamutil.OptPeerID(h.coordinatorID),
+		streamutil.OptProtocolIDs(PrivateCoordinatorHandshakePID),
+		streamutil.OptLog(event),
+	)
 	if err != nil {
 		return protector.ErrConnectionRefused
 	}
 
-	defer func() {
-		err := stream.Close()
-		if err != nil {
-			event.Append(logging.Metadata{"close_err": err.Error()})
-		}
-	}()
+	defer stream.Close()
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	if err := enc.Encode(&pb.Hello{}); err != nil {
+	if err := stream.Codec.Encode(&pb.Hello{}); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var networkConfig protectorpb.NetworkConfig
-	if err := dec.Decode(&networkConfig); err != nil {
+	if err := stream.Codec.Decode(&networkConfig); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
@@ -205,9 +204,14 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
 	defer event.Done()
 
-	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProposePID)
+	stream, err := (&streamutil.StreamProvider{}).NewStream(
+		ctx,
+		h.host,
+		streamutil.OptPeerID(h.coordinatorID),
+		streamutil.OptProtocolIDs(PrivateCoordinatorProposePID),
+		streamutil.OptLog(event),
+	)
 	if err != nil {
-		event.SetError(errors.WithStack(err))
 		return err
 	}
 
@@ -221,8 +225,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 		req.PeerAddr = addr.Bytes()
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(req)
+	err = stream.Codec.Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -238,18 +241,21 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
 	defer event.Done()
 
-	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorProposePID)
+	stream, err := (&streamutil.StreamProvider{}).NewStream(
+		ctx,
+		h.host,
+		streamutil.OptPeerID(h.coordinatorID),
+		streamutil.OptProtocolIDs(PrivateCoordinatorProposePID),
+		streamutil.OptLog(event),
+	)
 	if err != nil {
-		event.SetError(errors.WithStack(err))
 		return err
 	}
 
 	defer stream.Close()
 
 	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
-
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(req)
+	err = stream.Codec.Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -286,16 +292,20 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return err
 	}
 
-	stream, err := h.host.NewStream(ctx, h.coordinatorID, PrivateCoordinatorVotePID)
+	stream, err := (&streamutil.StreamProvider{}).NewStream(
+		ctx,
+		h.host,
+		streamutil.OptPeerID(h.coordinatorID),
+		streamutil.OptProtocolIDs(PrivateCoordinatorVotePID),
+		streamutil.OptLog(event),
+	)
 	if err != nil {
-		event.SetError(errors.WithStack(err))
 		return err
 	}
 
 	defer stream.Close()
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(v.ToProtoVote())
+	err = stream.Codec.Encode(v.ToProtoVote())
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err

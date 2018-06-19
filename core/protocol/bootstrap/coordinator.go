@@ -16,7 +16,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -26,7 +25,6 @@ import (
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
@@ -97,19 +95,16 @@ func NewCoordinatorHandler(
 	return &handler, nil
 }
 
-// validateSender rejects unauthorized requests.
+// ValidateSender rejects unauthorized requests.
 // This should already be done at the connection level by our protector
 // component, but it's always better to have multi-level security.
-func (h *CoordinatorHandler) validateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) ValidateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
 	networkState := h.networkConfig.NetworkState(ctx)
 	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		if err := stream.Reset(); err != nil {
-			event.Append(logging.Metadata{"reset_err": err.Error()})
-		}
-
+		event.Append(logging.Metadata{"unauthorized": true})
 		return protector.ErrConnectionRefused
 	}
 
@@ -124,7 +119,7 @@ func (h *CoordinatorHandler) HandleHandshake(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.validateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
@@ -152,7 +147,7 @@ func (h *CoordinatorHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.validateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
@@ -222,7 +217,7 @@ func (h *CoordinatorHandler) HandleVote(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.validateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream, event)
 	if err != nil {
 		return err
 	}
@@ -470,7 +465,6 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 // The proposal contains a random challenge and needs to be signed by
 // participants to confirm their agreement.
 func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Request) {
-	eventLock := &sync.Mutex{}
 	event := log.EventBegin(ctx, "Coordinator.SendProposal")
 	defer event.Done()
 
@@ -488,36 +482,27 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedProposePID)
+			event := log.EventBegin(ctx, "Coordinator.SendProposal.Stream", peerID)
+			defer event.Done()
+
+			stream, err := (&streamutil.StreamProvider{}).NewStream(
+				ctx,
+				h.host,
+				streamutil.OptPeerID(peerID),
+				streamutil.OptProtocolIDs(PrivateCoordinatedProposePID),
+				streamutil.OptLog(event),
+			)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
 				return
 			}
 
-			defer func() {
-				if err = stream.Close(); err != nil {
-					eventLock.Lock()
-					event.Append(logging.Metadata{
-						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
-					})
-					eventLock.Unlock()
-				}
-			}()
+			defer stream.Close()
 
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(updateReq)
+			err = stream.Codec.Encode(updateReq)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
+				event.SetError(err)
 				return
 			}
-
-			eventLock.Lock()
-			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
-			eventLock.Unlock()
 		}(peerID)
 	}
 
@@ -527,7 +512,6 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 // SendNetworkConfig sends the current network configuration to all
 // white-listed participants. It logs errors but swallows them.
 func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
-	eventLock := &sync.Mutex{}
 	event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig")
 	defer event.Done()
 
@@ -546,36 +530,27 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 		go func(peerID peer.ID) {
 			defer wg.Done()
 
-			stream, err := h.host.NewStream(ctx, peerID, PrivateCoordinatedConfigPID)
+			event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig.Stream", peerID)
+			defer event.Done()
+
+			stream, err := (&streamutil.StreamProvider{}).NewStream(
+				ctx,
+				h.host,
+				streamutil.OptPeerID(peerID),
+				streamutil.OptProtocolIDs(PrivateCoordinatedConfigPID),
+				streamutil.OptLog(event),
+			)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
 				return
 			}
 
-			defer func() {
-				if err = stream.Close(); err != nil {
-					eventLock.Lock()
-					event.Append(logging.Metadata{
-						fmt.Sprintf("%s-close-err", peerID.Pretty()): err.Error(),
-					})
-					eventLock.Unlock()
-				}
-			}()
+			defer stream.Close()
 
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(&networkConfig)
+			err = stream.Codec.Encode(&networkConfig)
 			if err != nil {
-				eventLock.Lock()
-				event.Append(logging.Metadata{peerID.Pretty(): err.Error()})
-				eventLock.Unlock()
+				event.SetError(err)
 				return
 			}
-
-			eventLock.Lock()
-			event.Append(logging.Metadata{peerID.Pretty(): "ok"})
-			eventLock.Unlock()
 		}(peerID)
 	}
 

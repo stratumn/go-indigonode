@@ -16,6 +16,7 @@ package bootstrap_test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -32,7 +33,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
-	"gx/ipfs/QmVxf27kucSvCLiCq6dAXjDU2WG3xZN9ae7Ny6osroP28u/yamux"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
@@ -172,11 +172,11 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 			enc := protobuf.Multicodec(nil).Encoder(stream)
 			err := enc.Encode(&pb.Hello{})
 			if err != nil {
-				assert.EqualError(t, err, yamux.ErrConnectionReset.Error())
+				assert.EqualError(t, err, io.EOF.Error())
 			}
 		},
 		nil,
-		yamux.ErrConnectionReset,
+		io.EOF,
 	}}
 
 	for _, tt := range testCases {
@@ -653,6 +653,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(2)
 			stream.EXPECT().Close().Times(2)
 
 			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
@@ -675,6 +676,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(2)
 			stream.EXPECT().Close().Times(2)
 
 			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
@@ -757,6 +759,7 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(2)
 			stream.EXPECT().Close().Times(2)
 
 			host.EXPECT().Network().Return(network).Times(1)
@@ -866,6 +869,7 @@ func TestCoordinator_Accept(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(2)
 			stream.EXPECT().Close().Times(2)
 
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
@@ -890,6 +894,7 @@ func TestCoordinator_Accept(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(1)
 			stream.EXPECT().Close().Times(1)
 
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
@@ -989,6 +994,7 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(2)
 			stream.EXPECT().Close().Times(2)
 
 			host.EXPECT().ID().Return(peer1).AnyTimes()
@@ -1005,6 +1011,7 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 
 			stream := mocks.NewMockStream(ctrl)
 			stream.EXPECT().Write(gomock.Any()).AnyTimes()
+			stream.EXPECT().Conn().Times(1)
 			stream.EXPECT().Close().Times(1)
 
 			host.EXPECT().ID().Return(peer1).AnyTimes()

@@ -558,35 +558,37 @@ func TestCoordinated_Handshake(t *testing.T) {
 }
 
 func TestCoordinated_AddNode(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coordinatorID := test.GeneratePeerID(t)
 
-	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
-	defer testNetwork.Close()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	coordinatorHandler, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
-	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+	host := mocks.NewMockHost(ctrl)
+	expectCoordinatedHost(host)
 
-	networkConfig := newNetworkConfig(t)
-	host, connect := testNetwork.PrepareCoordinatedNode(
-		testNetwork.CoordinatorID(),
-		networkConfig,
-	)
+	p := mockstream.NewMockProvider(ctrl)
 
-	handler, err := connect()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler)
+	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
+	handler := bootstrap.NewCoordinatedHandler(host, p, mode, nil, nil)
 
-	err = handler.AddNode(ctx, host.ID(), host.Addrs()[0], []byte("trust me, I'm b4tm4n"))
-	require.NoError(t, err, "handler.AddNode()")
+	peerID := test.GeneratePeerID(t)
+	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
 
-	// We shouldn't allow the node until the coordinator validates it.
-	assert.False(t, networkConfig.IsAllowed(ctx, host.ID()))
+	codec := mockstream.NewMockCodec(ctrl)
+	codec.EXPECT().Encode(&bootstrappb.NodeIdentity{
+		PeerId:        []byte(peerID),
+		PeerAddr:      peerAddr.Bytes(),
+		IdentityProof: []byte("b4tm4n"),
+	})
 
-	err = coordinatorHandler.Accept(ctx, host.ID())
-	require.NoError(t, err, "coordinatorHandler.Accept()")
+	stream := mockstream.NewMockStream(ctrl)
+	stream.EXPECT().Codec().Return(codec)
+	stream.EXPECT().Close()
 
-	waitUntilAllowed(t, host.ID(), networkConfig)
+	p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil)
+
+	err := handler.AddNode(context.Background(), peerID, peerAddr, []byte("b4tm4n"))
+	require.NoError(t, err)
 }
 
 func TestCoordinated_RemoveNode(t *testing.T) {

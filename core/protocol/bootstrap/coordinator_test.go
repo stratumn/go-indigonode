@@ -802,9 +802,6 @@ func TestCoordinator_AddNode(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -812,13 +809,15 @@ func TestCoordinator_AddNode(t *testing.T) {
 			expectSetStreamHandler(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 
-			prov := mockstream.NewMockProvider(ctrl)
 			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
+			cfg.AddPeer(context.Background(), coordinatorID, test.GeneratePeerMultiaddrs(t, coordinatorID))
+
+			prov := mockstream.NewMockProvider(ctrl)
 
 			tt.configure(t, ctrl, host, cfg, prov)
 
 			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
-			err := handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
+			err := handler.AddNode(context.Background(), tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
 
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
@@ -837,82 +836,92 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 	peer3 := test.GeneratePeerID(t)
 
 	testCases := []struct {
-		name                   string
-		removeNodeID           peer.ID
-		configureHost          func(*gomock.Controller, *mocks.MockHost)
-		configureNetworkConfig func(*mockprotector.MockNetworkConfig)
-		err                    error
+		name         string
+		removeNodeID peer.ID
+		configure    func(*testing.T, *gomock.Controller, *mocks.MockHost, protector.NetworkConfig, *mockstream.MockProvider)
+		validate     func(*testing.T, protector.NetworkConfig)
+		err          error
 	}{{
 		"peer-not-in-network",
 		peer3,
-		func(*gomock.Controller, *mocks.MockHost) {},
-		func(cfg *mockprotector.MockNetworkConfig) {
-			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(false).Times(1)
+		func(*testing.T, *gomock.Controller, *mocks.MockHost, protector.NetworkConfig, *mockstream.MockProvider) {
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.False(t, cfg.IsAllowed(context.Background(), peer3))
 		},
 		nil,
 	}, {
 		"remove-coordinator",
 		coordinatorID,
-		func(*gomock.Controller, *mocks.MockHost) {},
-		func(*mockprotector.MockNetworkConfig) {},
+		func(*testing.T, *gomock.Controller, *mocks.MockHost, protector.NetworkConfig, *mockstream.MockProvider) {
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), coordinatorID))
+		},
 		bootstrap.ErrInvalidOperation,
 	}, {
 		"remove-peer",
 		peer3,
-		func(ctrl *gomock.Controller, host *mocks.MockHost) {
-			conn := mocks.NewMockConn(ctrl)
-			conn.EXPECT().RemotePeer().Return(peer3).Times(1)
-			conn.EXPECT().Close().Times(1)
+		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+			cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
+			cfg.AddPeer(context.Background(), peer3, test.GeneratePeerMultiaddrs(t, peer3))
+
+			codec := mockstream.NewMockCodec(ctrl)
+			streamtest.ExpectEncodeAllowed(t, codec, peer1)
+			streamtest.ExpectEncodeAllowed(t, codec, peer2)
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close().Times(2)
+			stream.EXPECT().Codec().Return(codec).Times(2)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil).Times(2)
+
+			// After removing the peer, we should disconnect from it.
+			conn1 := mocks.NewMockConn(ctrl)
+			conn1.EXPECT().RemotePeer().Return(peer1).Times(1)
+
+			conn3 := mocks.NewMockConn(ctrl)
+			conn3.EXPECT().RemotePeer().Return(peer3).Times(1)
+			conn3.EXPECT().Close().Times(1)
 
 			network := mocks.NewMockNetwork(ctrl)
-			network.EXPECT().Conns().Return([]inet.Conn{conn}).Times(1)
+			network.EXPECT().Conns().Return([]inet.Conn{conn1, conn3}).Times(1)
 
-			stream := mocks.NewMockStream(ctrl)
-			stream.EXPECT().Write(gomock.Any()).AnyTimes()
-			stream.EXPECT().Conn().Times(2)
-			stream.EXPECT().Close().Times(2)
-
-			host.EXPECT().Network().Return(network).Times(1)
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			h.EXPECT().Network().Return(network).Times(1)
 		},
-		func(cfg *mockprotector.MockNetworkConfig) {
-			cfg.EXPECT().IsAllowed(gomock.Any(), peer3).Return(true).Times(1)
-			cfg.EXPECT().RemovePeer(gomock.Any(), peer3).Times(1)
-			cfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{peer1, peer2}).Times(1)
-			cfg.EXPECT().Copy(gomock.Any()).Times(1)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+			assert.True(t, cfg.IsAllowed(context.Background(), peer2))
+			assert.False(t, cfg.IsAllowed(context.Background(), peer3))
 		},
 		nil,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
 			expectSetStreamHandler(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
-			tt.configureHost(ctrl, host)
 
-			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
-			tt.configureNetworkConfig(networkConfig)
+			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
+			cfg.AddPeer(context.Background(), coordinatorID, test.GeneratePeerMultiaddrs(t, coordinatorID))
 
-			handler := bootstrap.NewCoordinatorHandler(
-				host,
-				streamutil.NewStreamProvider(),
-				networkConfig,
-				nil,
-			)
+			prov := mockstream.NewMockProvider(ctrl)
 
-			err := handler.RemoveNode(ctx, tt.removeNodeID)
+			tt.configure(t, ctrl, host, cfg, prov)
+
+			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
+			err := handler.RemoveNode(context.Background(), tt.removeNodeID)
+
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
+				tt.validate(t, cfg)
 			}
 		})
 	}

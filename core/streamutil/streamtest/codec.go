@@ -1,0 +1,48 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package streamtest
+
+import (
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/streamutil/mockstream"
+	pb "github.com/stratumn/alice/pb/bootstrap"
+	"github.com/stretchr/testify/require"
+)
+
+// ExpectCodecDecodeNodeID configures a mock codec to decode the given nodeID.
+func ExpectCodecDecodeNodeID(t *testing.T, codec *mockstream.MockCodec, nodeID *pb.NodeIdentity) {
+	codec.EXPECT().Decode(gomock.Any()).Do(func(n interface{}) error {
+		nid, ok := n.(*pb.NodeIdentity)
+		require.True(t, ok, "n.(*pb.NodeIdentity)")
+
+		nid.PeerId = nodeID.PeerId
+		nid.PeerAddr = nodeID.PeerAddr
+		nid.IdentityProof = nodeID.IdentityProof
+
+		return nil
+	})
+}
+
+// ExpectCodecEncodeAck configures a mock codec to encode an Ack
+// with the given error.
+func ExpectCodecEncodeAck(t *testing.T, codec *mockstream.MockCodec, err error) {
+	if err != nil {
+		codec.EXPECT().Encode(&pb.Ack{Error: err.Error()})
+	} else {
+		codec.EXPECT().Encode(&pb.Ack{})
+	}
+}

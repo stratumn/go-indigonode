@@ -163,7 +163,8 @@ func (h *CoordinatorHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
+	remotePeer := stream.Conn().RemotePeer()
+	err := h.ValidateSender(ctx, remotePeer)
 	if err != nil {
 		return err
 	}
@@ -192,7 +193,7 @@ func (h *CoordinatorHandler) HandlePropose(
 			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
-		if r.PeerID != stream.Conn().RemotePeer() {
+		if r.PeerID != remotePeer {
 			return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
 		}
 
@@ -219,7 +220,7 @@ func (h *CoordinatorHandler) HandlePropose(
 		}
 
 		if req.Type == proposal.RemoveNode {
-			go h.SendProposal(ctx, req)
+			h.SendProposal(ctx, req)
 		}
 	}
 

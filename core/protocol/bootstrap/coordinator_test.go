@@ -37,14 +37,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func expectSetStreamHandler(host *mocks.MockHost) {
@@ -98,7 +96,7 @@ func TestCoordinator_ValidateSender(t *testing.T) {
 type HandleTestCase struct {
 	name       string
 	remotePeer peer.ID
-	configure  func(*testing.T, *mocks.MockHost, *mockstream.MockCodec, protector.NetworkConfig, proposal.Store)
+	configure  func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockCodec, protector.NetworkConfig, proposal.Store)
 	validate   func(*testing.T, protector.NetworkConfig, proposal.Store)
 	err        error
 }
@@ -123,7 +121,7 @@ func (ht *HandleTestCase) Run(t *testing.T, h func(*bootstrap.CoordinatorHandler
 		propStore := proposal.NewInMemoryStore()
 
 		codec := mockstream.NewMockCodec(ctrl)
-		ht.configure(t, host, codec, networkCfg, propStore)
+		ht.configure(t, ctrl, host, codec, networkCfg, propStore)
 
 		handler := bootstrap.NewCoordinatorHandler(
 			host,
@@ -150,7 +148,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		{
 			"reject-stream-error",
 			peer1,
-			func(_ *testing.T, _ *mocks.MockHost, codec *mockstream.MockCodec, _ protector.NetworkConfig, _ proposal.Store) {
+			func(_ *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec, _ protector.NetworkConfig, _ proposal.Store) {
 				codec.EXPECT().Decode(gomock.Any()).Return(errors.New("critical system failure"))
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
@@ -158,7 +156,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		}, {
 			"during-bootstrap-send-participants-to-white-listed-peer",
 			peer1,
-			func(t *testing.T, _ *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
 				cfg.AddPeer(context.Background(), peer1, peer1Addrs)
 
 				codec.EXPECT().Decode(gomock.Any())
@@ -177,7 +175,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		}, {
 			"during-bootstrap-do-not-send-participants-to-non-white-listed-peer",
 			peer1,
-			func(t *testing.T, _ *mocks.MockHost, codec *mockstream.MockCodec, _ protector.NetworkConfig, _ proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec, _ protector.NetworkConfig, _ proposal.Store) {
 				codec.EXPECT().Decode(gomock.Any())
 				codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
 					sentCfg, ok := n.(*protectorpb.NetworkConfig)
@@ -192,7 +190,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		}, {
 			"after-bootstrap-send-participants-to-white-listed-peer",
 			peer1,
-			func(t *testing.T, _ *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
 				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 				cfg.AddPeer(context.Background(), peer1, peer1Addrs)
 
@@ -212,7 +210,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		}, {
 			"after-bootstrap-reject-non-white-listed-peer",
 			peer1,
-			func(_ *testing.T, _ *mocks.MockHost, _ *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
+			func(_ *testing.T, _ *gomock.Controller, _ *mocks.MockHost, _ *mockstream.MockCodec, cfg protector.NetworkConfig, _ proposal.Store) {
 				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
@@ -235,7 +233,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"decode-error",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				codec.EXPECT().Decode(gomock.Any()).Return(errors.New("heap corruption"))
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
@@ -244,7 +242,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"unauthorized",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
@@ -253,9 +251,9 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"during-bootstrap-invalid-peer-id",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				streamtest.ExpectCodecDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte("b4tm4n")})
-				streamtest.ExpectCodecEncodeAck(t, codec, proposal.ErrInvalidPeerID)
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				streamtest.ExpectDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte("b4tm4n")})
+				streamtest.ExpectEncodeAck(t, codec, proposal.ErrInvalidPeerID)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
 			nil,
@@ -263,11 +261,11 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"during-bootstrap-missing-peer-addr",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				h.EXPECT().Peerstore().Return(peerstore.NewPeerstore())
 
-				streamtest.ExpectCodecDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte(peer1)})
-				streamtest.ExpectCodecEncodeAck(t, codec, proposal.ErrMissingPeerAddr)
+				streamtest.ExpectDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte(peer1)})
+				streamtest.ExpectEncodeAck(t, codec, proposal.ErrMissingPeerAddr)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
 			nil,
@@ -275,13 +273,13 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"during-bootstrap-node-mismatch",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				nodeID := &pb.NodeIdentity{
 					PeerId:   []byte(peer2),
 					PeerAddr: test.GeneratePeerMultiaddr(t, peer2).Bytes(),
 				}
-				streamtest.ExpectCodecDecodeNodeID(t, codec, nodeID)
-				streamtest.ExpectCodecEncodeAck(t, codec, proposal.ErrInvalidPeerAddr)
+				streamtest.ExpectDecodeNodeID(t, codec, nodeID)
+				streamtest.ExpectEncodeAck(t, codec, proposal.ErrInvalidPeerAddr)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
 			nil,
@@ -289,13 +287,13 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"during-bootstrap-addr-in-peerstore",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				pstore := peerstore.NewPeerstore()
 				pstore.AddAddr(peer1, test.GeneratePeerMultiaddr(t, peer1), peerstore.PermanentAddrTTL)
 				h.EXPECT().Peerstore().Return(pstore)
 
-				streamtest.ExpectCodecDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte(peer1)})
-				streamtest.ExpectCodecEncodeAck(t, codec, nil)
+				streamtest.ExpectDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte(peer1)})
+				streamtest.ExpectEncodeAck(t, codec, nil)
 			},
 			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
 				r, err := s.Get(context.Background(), peer1)
@@ -308,13 +306,13 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"during-bootstrap-addr-provided",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				nodeID := &pb.NodeIdentity{
 					PeerId:   []byte(peer1),
 					PeerAddr: test.GeneratePeerMultiaddr(t, peer1).Bytes(),
 				}
-				streamtest.ExpectCodecDecodeNodeID(t, codec, nodeID)
-				streamtest.ExpectCodecEncodeAck(t, codec, nil)
+				streamtest.ExpectDecodeNodeID(t, codec, nodeID)
+				streamtest.ExpectEncodeAck(t, codec, nil)
 			},
 			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
 				r, err := s.Get(context.Background(), peer1)
@@ -327,7 +325,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"after-bootstrap-add-node",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
 				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 
@@ -336,8 +334,8 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 					PeerAddr: test.GeneratePeerMultiaddr(t, peer2).Bytes(),
 				}
 
-				streamtest.ExpectCodecDecodeNodeID(t, codec, nodeID)
-				streamtest.ExpectCodecEncodeAck(t, codec, nil)
+				streamtest.ExpectDecodeNodeID(t, codec, nodeID)
+				streamtest.ExpectEncodeAck(t, codec, nil)
 			},
 			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
 				allowed := cfg.IsAllowed(context.Background(), peer2)
@@ -353,7 +351,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 		{
 			"after-bootstrap-remove-node",
 			peer1,
-			func(t *testing.T, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
 				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
 				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 
@@ -362,11 +360,11 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 					PeerAddr: test.GeneratePeerMultiaddr(t, peer1).Bytes(),
 				}
 
-				streamtest.ExpectCodecDecodeNodeID(t, codec, nodeID)
-				streamtest.ExpectCodecEncodeAck(t, codec, nil)
+				streamtest.ExpectDecodeNodeID(t, codec, nodeID)
+				streamtest.ExpectEncodeAck(t, codec, nil)
 
 				h.EXPECT().ID().Return(hostID)
-				h.EXPECT().NewStream(gomock.Any(), peer1, gomock.Any()).Return(nil, errors.New("no stream"))
+				h.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProposePID).Return(nil, errors.New("no stream"))
 			},
 			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
 				allowed := cfg.IsAllowed(context.Background(), peer1)
@@ -389,176 +387,147 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 }
 
 func TestCoordinator_HandleVote(t *testing.T) {
-	peer1 := test.GeneratePeerID(t)
+	peer1Key := test.GeneratePrivateKey(t)
+	peer1 := test.GetPeerIDFromKey(t, peer1Key)
+	peer2Key := test.GeneratePrivateKey(t)
+	peer2 := test.GetPeerIDFromKey(t, peer2Key)
+	hostID := test.GeneratePeerID(t)
+
 	removePeer1Req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
 	require.NoError(t, err)
 
-	var coordinator ihost.Host
-	var sender ihost.Host
+	testCases := []HandleTestCase{
+		{
+			"unauthorized",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			protector.ErrConnectionRefused,
+		},
+		{
+			"decode-error",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 
-	senderVote := func(t *testing.T) *pb.Vote {
-		senderKey := sender.Peerstore().PrivKey(sender.ID())
-		v, err := proposal.NewVote(senderKey, removePeer1Req)
-		require.NoError(t, err)
+				codec.EXPECT().Decode(gomock.Any()).Return(errors.New("fatal system failure"))
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			protector.ErrConnectionRefused,
+		},
+		{
+			"during-bootstrap-reject",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				streamtest.ExpectEncodeAck(t, codec, bootstrap.ErrInvalidOperation)
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			nil,
+		},
+		{
+			"invalid-vote",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
 
-		return v.ToProtoVote()
+				ps.AddRequest(context.Background(), removePeer1Req)
+
+				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+				v.Signature.Signature = v.Signature.Signature[:10]
+
+				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
+				streamtest.ExpectEncodeAck(t, codec, proposal.ErrInvalidSignature)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, ps proposal.Store) {
+				v, _ := ps.GetVotes(context.Background(), peer1)
+				assert.Len(t, v, 0)
+			},
+			nil,
+		},
+		{
+			"missing-request",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+
+				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+
+				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
+				streamtest.ExpectEncodeAck(t, codec, proposal.ErrMissingRequest)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, ps proposal.Store) {
+				v, _ := ps.GetVotes(context.Background(), peer1)
+				assert.Len(t, v, 0)
+			},
+			nil,
+		},
+		{
+			"vote-threshold-not-reached",
+			peer1,
+			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+
+				ps.AddRequest(context.Background(), removePeer1Req)
+
+				h.EXPECT().ID().Return(hostID).AnyTimes()
+
+				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
+				streamtest.ExpectEncodeAck(t, codec, nil)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, ps proposal.Store) {
+				assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+
+				v, err := ps.GetVotes(context.Background(), peer1)
+				require.NoError(t, err)
+				assert.Len(t, v, 1)
+			},
+			nil,
+		},
+		{
+			"vote-threshold-reached",
+			peer1,
+			func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
+				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
+				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+
+				ps.AddRequest(context.Background(), removePeer1Req)
+
+				network := mocks.NewMockNetwork(ctrl)
+				network.EXPECT().Conns().Return(nil)
+
+				h.EXPECT().ID().Return(hostID).AnyTimes()
+				h.EXPECT().Network().Return(network)
+				h.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
+
+				v, _ := proposal.NewVote(peer2Key, removePeer1Req)
+				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
+				streamtest.ExpectEncodeAck(t, codec, nil)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, ps proposal.Store) {
+				assert.False(t, cfg.IsAllowed(context.Background(), peer1))
+
+				v, _ := ps.GetVotes(context.Background(), peer1)
+				assert.Len(t, v, 0)
+
+				r, _ := ps.Get(context.Background(), peer1)
+				assert.Nil(t, r)
+			},
+			nil,
+		},
 	}
 
-	testCases := []struct {
-		name        string
-		configure   func(*testing.T, protector.NetworkConfig)
-		expectStore func(*testing.T, proposal.Store)
-		vote        func(*testing.T) *pb.Vote
-		validate    func(*testing.T, *pb.Ack, proposal.Store, protector.NetworkConfig)
-	}{{
-		"during-bootstrap-reject",
-		func(t *testing.T, cfg protector.NetworkConfig) {
-			err := cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_BOOTSTRAP)
-			require.NoError(t, err)
-		},
-		func(*testing.T, proposal.Store) {},
-		func(t *testing.T) *pb.Vote {
-			v, err := proposal.NewVote(test.GeneratePrivateKey(t), removePeer1Req)
-			require.NoError(t, err)
-
-			return v.ToProtoVote()
-		},
-		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
-			assert.Equal(t, bootstrap.ErrInvalidOperation.Error(), ack.Error)
-		},
-	}, {
-		"invalid-vote",
-		func(t *testing.T, cfg protector.NetworkConfig) {},
-		func(t *testing.T, store proposal.Store) {
-			err := store.AddRequest(context.Background(), removePeer1Req)
-			require.NoError(t, err)
-		},
-		func(t *testing.T) *pb.Vote {
-			senderKey := sender.Peerstore().PrivKey(sender.ID())
-			v, err := proposal.NewVote(senderKey, removePeer1Req)
-			require.NoError(t, err)
-
-			v.Signature.Signature = v.Signature.Signature[:10]
-
-			return v.ToProtoVote()
-		},
-		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
-			assert.Equal(t, proposal.ErrInvalidSignature.Error(), ack.Error)
-
-			r, err := s.Get(context.Background(), peer1)
-			assert.NoError(t, err)
-			assert.NotNil(t, r)
-
-			votes, _ := s.GetVotes(context.Background(), peer1)
-			assert.Len(t, votes, 0)
-
-			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
-		},
-	}, {
-		"missing-request",
-		func(t *testing.T, cfg protector.NetworkConfig) {},
-		func(*testing.T, proposal.Store) {},
-		senderVote,
-		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
-			assert.Equal(t, proposal.ErrMissingRequest.Error(), ack.Error)
-			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
-		},
-	}, {
-		"vote-threshold-not-reached",
-		func(t *testing.T, cfg protector.NetworkConfig) {
-			err := cfg.AddPeer(context.Background(), test.GeneratePeerID(t), test.GenerateMultiaddrs(t))
-			require.NoError(t, err)
-		},
-		func(t *testing.T, store proposal.Store) {
-			err := store.AddRequest(context.Background(), removePeer1Req)
-			require.NoError(t, err)
-		},
-		senderVote,
-		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
-			assert.Zero(t, ack.Error)
-
-			votes, err := s.GetVotes(context.Background(), peer1)
-			require.NoError(t, err)
-			assert.Len(t, votes, 1)
-
-			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
-		},
-	}, {
-		"vote-threshold-reached",
-		func(t *testing.T, cfg protector.NetworkConfig) {},
-		func(t *testing.T, store proposal.Store) {
-			err := store.AddRequest(context.Background(), removePeer1Req)
-			require.NoError(t, err)
-		},
-		senderVote,
-		func(t *testing.T, ack *pb.Ack, s proposal.Store, cfg protector.NetworkConfig) {
-			assert.Zero(t, ack.Error)
-
-			r, _ := s.Get(context.Background(), peer1)
-			assert.Nil(t, r)
-
-			votes, _ := s.GetVotes(context.Background(), peer1)
-			assert.Len(t, votes, 0)
-
-			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
-		},
-	}}
-
 	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-			defer coordinator.Close()
-
-			sender = bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-			defer sender.Close()
-
-			require.NoError(t, sender.Connect(ctx, coordinator.Peerstore().PeerInfo(coordinator.ID())))
-
-			store := proposal.NewInMemoryStore()
-			tt.expectStore(t, store)
-
-			networkConfig, _ := protector.NewInMemoryConfig(
-				ctx,
-				protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED),
-			)
-
-			err = networkConfig.AddPeer(ctx, coordinator.ID(), coordinator.Addrs())
-			require.NoError(t, err)
-
-			err = networkConfig.AddPeer(ctx, sender.ID(), sender.Addrs())
-			require.NoError(t, err)
-
-			err = networkConfig.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
-			require.NoError(t, err)
-
-			tt.configure(t, networkConfig)
-
-			handler := bootstrap.NewCoordinatorHandler(
-				coordinator,
-				streamutil.NewStreamProvider(),
-				networkConfig,
-				store,
-			)
-			defer handler.Close(ctx)
-
-			stream, err := sender.NewStream(ctx, coordinator.ID(), bootstrap.PrivateCoordinatorVotePID)
-			require.NoError(t, err, "sender.NewStream()")
-
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(tt.vote(t))
-			require.NoError(t, err, "enc.Encode()")
-
-			dec := protobuf.Multicodec(nil).Decoder(stream)
-			var ack pb.Ack
-			err = dec.Decode(&ack)
-			require.NoError(t, err, "dec.Decode()")
-			tt.validate(t, &ack, store, networkConfig)
+		tt.Run(t, func(handler *bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler {
+			return handler.HandleVote
 		})
 	}
 }

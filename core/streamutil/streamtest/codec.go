@@ -66,6 +66,17 @@ func ExpectDecodeConfig(t *testing.T, codec *mockstream.MockCodec, cfg *protecto
 	})
 }
 
+// ExpectDecodeUpdateProp configures a mock codec to decode the given network proposal.
+func ExpectDecodeUpdateProp(t *testing.T, codec *mockstream.MockCodec, prop *pb.UpdateProposal) {
+	codec.EXPECT().Decode(gomock.Any()).Do(func(n interface{}) error {
+		p, ok := n.(*pb.UpdateProposal)
+		require.True(t, ok, "n.(*pb.UpdateProposal)")
+
+		*p = *prop
+		return nil
+	})
+}
+
 // ExpectEncodeAck configures a mock codec to encode an Ack
 // with the given error.
 func ExpectEncodeAck(t *testing.T, codec *mockstream.MockCodec, err error) {

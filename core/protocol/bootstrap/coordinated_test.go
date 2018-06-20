@@ -26,9 +26,11 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposaltest"
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	"github.com/stratumn/alice/core/streamutil/streamtest"
+	bootstrappb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
@@ -273,6 +275,61 @@ func TestCoordinated_HandleConfigUpdate(t *testing.T) {
 	for _, tt := range testCases {
 		tt.Run(t, func(handler *bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler {
 			return handler.HandleConfigUpdate
+		})
+	}
+}
+
+func TestCoordinated_HandlePropose(t *testing.T) {
+	coordinatorKey := test.GeneratePrivateKey(t)
+	coordinatorID := test.GetPeerIDFromKey(t, coordinatorKey)
+	peer1 := test.GeneratePeerID(t)
+
+	testCases := []CoordinatedHandleTestCase{
+		{
+			"reject-not-coordinator",
+			coordinatorID,
+			peer1,
+			func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockCodec) {
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			protector.ErrConnectionRefused,
+		},
+		{
+			"invalid-request",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec) {
+				prop := &bootstrappb.UpdateProposal{
+					UpdateType: bootstrappb.UpdateType_AddNode,
+					NodeDetails: &bootstrappb.NodeIdentity{
+						PeerId: []byte("b4tm4n"),
+					},
+				}
+				streamtest.ExpectDecodeUpdateProp(t, codec, prop)
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			proposal.ErrInvalidPeerID,
+		},
+		{
+			"valid-request",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec) {
+				prop := proposaltest.NewAddRequest(t, peer1)
+				streamtest.ExpectDecodeUpdateProp(t, codec, prop.ToUpdateProposal())
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
+				r, err := s.Get(context.Background(), peer1)
+				assert.NoError(t, err)
+				assert.NotNil(t, r)
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt.Run(t, func(handler *bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler {
+			return handler.HandlePropose
 		})
 	}
 }

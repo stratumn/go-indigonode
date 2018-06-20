@@ -40,8 +40,6 @@ import (
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
-	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
@@ -1028,24 +1026,19 @@ func TestCoordinator_Accept(t *testing.T) {
 }
 
 func TestCoordinator_Reject(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+	ctx := context.Background()
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	peerID := test.GeneratePeerID(t)
 
-	host := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-	store := mockproposal.NewMockStore(ctrl)
-	store.EXPECT().Remove(gomock.Any(), peerID).Times(1)
+	host := mocks.NewMockHost(ctrl)
+	expectSetStreamHandler(host)
 
-	handler := bootstrap.NewCoordinatorHandler(
-		host,
-		streamutil.NewStreamProvider(),
-		nil,
-		store,
-	)
+	store := mockproposal.NewMockStore(ctrl)
+	store.EXPECT().Remove(gomock.Any(), peerID)
+
+	handler := bootstrap.NewCoordinatorHandler(host, nil, nil, store)
 
 	err := handler.Reject(ctx, peerID)
 	require.NoError(t, err, "handler.Reject()")

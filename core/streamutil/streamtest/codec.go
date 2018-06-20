@@ -20,7 +20,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	pb "github.com/stratumn/alice/pb/bootstrap"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stretchr/testify/require"
+
+	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 // ExpectDecodeNodeID configures a mock codec to decode the given nodeID.
@@ -60,4 +63,19 @@ func ExpectEncodeAck(t *testing.T, codec *mockstream.MockCodec, err error) {
 	} else {
 		codec.EXPECT().Encode(&pb.Ack{})
 	}
+}
+
+// ExpectEncodeAllowed configures a mock codec to verify that
+// the encoded network configuration contains a specific peer.
+func ExpectEncodeAllowed(t *testing.T, codec *mockstream.MockCodec, peerID peer.ID) {
+	codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+		cfg, ok := n.(*protectorpb.NetworkConfig)
+		require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
+
+		p, ok := cfg.Participants[peerID.Pretty()]
+		require.True(t, ok)
+		require.True(t, len(p.Addresses) > 0)
+
+		return nil
+	})
 }

@@ -721,86 +721,81 @@ func TestCoordinator_AddNode(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
 	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
-	peer2 := test.GeneratePeerID(t)
 
 	testCases := []struct {
-		name                   string
-		addNodeID              peer.ID
-		addNodeAddr            multiaddr.Multiaddr
-		configureHost          func(*gomock.Controller, *mocks.MockHost)
-		configureNetworkConfig func(*mockprotector.MockNetworkConfig)
-		err                    error
+		name        string
+		addNodeID   peer.ID
+		addNodeAddr multiaddr.Multiaddr
+		configure   func(*testing.T, *gomock.Controller, *mocks.MockHost, protector.NetworkConfig, *mockstream.MockProvider)
+		validate    func(*testing.T, protector.NetworkConfig)
+		err         error
 	}{{
 		"node-addr-missing",
 		peer1,
 		nil,
-		func(_ *gomock.Controller, host *mocks.MockHost) {
+		func(_ *testing.T, _ *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, _ *mockstream.MockProvider) {
 			// If the peer store doesn't have an address for the node,
 			// and it wasn't provided we reject the request.
 			peerStore := peerstore.NewPeerstore()
-			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Times(1).Return(peerStore)
 		},
-		func(networkConfig *mockprotector.MockNetworkConfig) {
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
 		},
 		bootstrap.ErrUnknownNode,
 	}, {
 		"node-already-white-listed",
 		peer1,
 		nil,
-		func(*gomock.Controller, *mocks.MockHost) {
-			// If the node is already white-listed we shouldn't notify
-			// participants, so we shouldn't use the host.
+		func(_ *testing.T, _ *gomock.Controller, _ *mocks.MockHost, cfg protector.NetworkConfig, _ *mockstream.MockProvider) {
+			// If the node is already white-listed we shouldn't notify participants.
+			cfg.AddPeer(context.Background(), peer1, peer1Addrs)
 		},
-		func(networkConfig *mockprotector.MockNetworkConfig) {
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(true)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
 		},
 		nil,
 	}, {
 		"new-node-added-from-peerstore",
 		peer1,
 		nil,
-		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
 			peerStore := peerstore.NewPeerstore()
 			peerStore.AddAddrs(peer1, peer1Addrs, peerstore.PermanentAddrTTL)
-			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Times(1).Return(peerStore)
 
-			stream := mocks.NewMockStream(ctrl)
-			stream.EXPECT().Write(gomock.Any()).AnyTimes()
-			stream.EXPECT().Conn().Times(2)
-			stream.EXPECT().Close().Times(2)
+			codec := mockstream.NewMockCodec(ctrl)
+			streamtest.ExpectEncodeAllowed(t, codec, peer1)
 
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close()
+			stream.EXPECT().Codec().Return(codec)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil)
 		},
-		func(networkConfig *mockprotector.MockNetworkConfig) {
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
-			networkConfig.EXPECT().AddPeer(gomock.Any(), peer1, peer1Addrs).Times(1)
-			networkConfig.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
-			networkConfig.EXPECT().Copy(gomock.Any()).Times(1)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
 		},
 		nil,
 	}, {
 		"new-node-added-from-addr",
 		peer1,
 		peer1Addrs[0],
-		func(ctrl *gomock.Controller, host *mocks.MockHost) {
+		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
 			peerStore := peerstore.NewPeerstore()
-			host.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Times(1).Return(peerStore)
 
-			stream := mocks.NewMockStream(ctrl)
-			stream.EXPECT().Write(gomock.Any()).AnyTimes()
-			stream.EXPECT().Conn().Times(2)
-			stream.EXPECT().Close().Times(2)
+			codec := mockstream.NewMockCodec(ctrl)
+			streamtest.ExpectEncodeAllowed(t, codec, peer1)
 
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close()
+			stream.EXPECT().Codec().Return(codec)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil)
 		},
-		func(networkConfig *mockprotector.MockNetworkConfig) {
-			networkConfig.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
-			networkConfig.EXPECT().AddPeer(gomock.Any(), peer1, peer1Addrs).Times(1)
-			networkConfig.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
-			networkConfig.EXPECT().Copy(gomock.Any()).Times(1)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
 		},
 		nil,
 	}}
@@ -816,23 +811,20 @@ func TestCoordinator_AddNode(t *testing.T) {
 			host := mocks.NewMockHost(ctrl)
 			expectSetStreamHandler(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
-			tt.configureHost(ctrl, host)
 
-			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
-			tt.configureNetworkConfig(networkConfig)
+			prov := mockstream.NewMockProvider(ctrl)
+			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
 
-			handler := bootstrap.NewCoordinatorHandler(
-				host,
-				streamutil.NewStreamProvider(),
-				networkConfig,
-				nil,
-			)
+			tt.configure(t, ctrl, host, cfg, prov)
 
+			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
 			err := handler.AddNode(ctx, tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
+
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
+				tt.validate(t, cfg)
 			}
 		})
 	}

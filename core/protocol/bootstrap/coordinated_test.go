@@ -622,63 +622,108 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 }
 
 func TestCoordinated_Accept(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	hostKey := test.GeneratePrivateKey(t)
+	hostID := test.GetPeerIDFromKey(t, hostKey)
 
-	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
-	defer testNetwork.Close()
+	coordinatorID := test.GeneratePeerID(t)
+	mode := &protector.NetworkMode{
+		CoordinatorID: coordinatorID,
+	}
 
-	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
-	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+	peer1 := test.GeneratePeerID(t)
 
-	networkConfig := newNetworkConfig(t)
-	host, connect := testNetwork.PrepareCoordinatedNode(
-		testNetwork.CoordinatorID(),
-		networkConfig,
-	)
+	testCases := []struct {
+		name      string
+		acceptID  peer.ID
+		configure func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockProvider, proposal.Store)
+		validate  func(*testing.T, proposal.Store)
+		err       error
+	}{{
+		"missing-request",
+		peer1,
+		func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, _ *mockstream.MockProvider, _ proposal.Store) {
+		},
+		func(t *testing.T, _ proposal.Store) {},
+		proposal.ErrMissingRequest,
+	}, {
+		"add-node-request",
+		peer1,
+		func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, _ *mockstream.MockProvider, propStore proposal.Store) {
+			r := proposaltest.NewAddRequest(t, peer1)
+			err := propStore.AddRequest(context.Background(), r)
+			require.NoError(t, err)
+		},
+		func(t *testing.T, _ proposal.Store) {},
+		bootstrap.ErrInvalidOperation,
+	}, {
+		"vote-remove-node",
+		peer1,
+		func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, p *mockstream.MockProvider, propStore proposal.Store) {
+			r := proposaltest.NewRemoveRequest(t, peer1)
+			err := propStore.AddRequest(context.Background(), r)
+			require.NoError(t, err)
 
-	handler, err := connect()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler)
+			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorVotePID, nil, errors.New("no stream"))
+		},
+		func(t *testing.T, propStore proposal.Store) {
+			r, err := propStore.Get(context.Background(), peer1)
+			require.NoError(t, err)
+			assert.NotNil(t, r)
+		},
+		errors.New("no stream"),
+	}, {
+		"remove-request-from-store",
+		peer1,
+		func(t *testing.T, ctrl *gomock.Controller, _ *mocks.MockHost, p *mockstream.MockProvider, propStore proposal.Store) {
+			r := proposaltest.NewRemoveRequest(t, peer1)
+			err := propStore.AddRequest(context.Background(), r)
+			require.NoError(t, err)
 
-	propStore := testNetwork.CoordinatedStore(host.ID())
+			codec := mockstream.NewMockCodec(ctrl)
+			streamtest.ExpectEncodeVote(t, codec, r)
 
-	t.Run("missing-request", func(t *testing.T) {
-		err = handler.Accept(ctx, test.GeneratePeerID(t))
-		assert.EqualError(t, err, proposal.ErrMissingRequest.Error())
-	})
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Codec().Return(codec)
+			stream.EXPECT().Close()
 
-	t.Run("add-request", func(t *testing.T) {
-		peerID := test.GeneratePeerID(t)
-		err = propStore.AddRequest(ctx, &proposal.Request{
-			Type:     proposal.AddNode,
-			PeerID:   peerID,
-			PeerAddr: test.GeneratePeerMultiaddr(t, peerID),
+			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorVotePID, stream, nil)
+		},
+		func(t *testing.T, propStore proposal.Store) {
+			r, _ := propStore.Get(context.Background(), peer1)
+			assert.Nil(t, r)
+		},
+		nil,
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			pstore := peerstore.NewPeerstore()
+			require.NoError(t, pstore.AddPrivKey(hostID, hostKey))
+
+			host := mocks.NewMockHost(ctrl)
+			expectCoordinatedHost(host)
+			host.EXPECT().Peerstore().Return(pstore).AnyTimes()
+			host.EXPECT().ID().Return(hostID).AnyTimes()
+
+			prov := mockstream.NewMockProvider(ctrl)
+			propStore := proposal.NewInMemoryStore()
+
+			tt.configure(t, ctrl, host, prov, propStore)
+
+			handler := bootstrap.NewCoordinatedHandler(host, prov, mode, nil, propStore)
+			err := handler.Accept(context.Background(), tt.acceptID)
+
+			if tt.err != nil {
+				assert.EqualError(t, err, tt.err.Error())
+			} else {
+				require.NoError(t, err)
+				tt.validate(t, propStore)
+			}
 		})
-		require.NoError(t, err)
-
-		err = handler.Accept(ctx, peerID)
-		assert.EqualError(t, err, bootstrap.ErrInvalidOperation.Error())
-	})
-
-	t.Run("remove-request-vote", func(t *testing.T) {
-		peerID := test.GeneratePeerID(t)
-		req := &proposal.Request{
-			Type:      proposal.RemoveNode,
-			PeerID:    peerID,
-			Challenge: []byte("such challenge"),
-		}
-
-		err = propStore.AddRequest(ctx, req)
-		require.NoError(t, err)
-
-		err = handler.Accept(ctx, peerID)
-		require.NoError(t, err)
-
-		// Should have been removed from the store once accepted.
-		r, _ := propStore.Get(ctx, peerID)
-		require.Nil(t, r)
-	})
+	}
 }
 
 func TestCoordinated_Reject(t *testing.T) {

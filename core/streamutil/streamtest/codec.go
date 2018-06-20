@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
@@ -109,6 +110,22 @@ func ExpectEncodeNetworkState(t *testing.T, codec *mockstream.MockCodec, state p
 		cfg, ok := n.(*protectorpb.NetworkConfig)
 		require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
 		require.Equal(t, state, cfg.NetworkState)
+
+		return nil
+	})
+}
+
+// ExpectEncodeVote configures a mock codec to verify that
+// the encoded vote is a valid vote for the given request.
+func ExpectEncodeVote(t *testing.T, codec *mockstream.MockCodec, r *proposal.Request) {
+	codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+		vote, ok := n.(*pb.Vote)
+		require.True(t, ok, "n.(*pb.Vote)")
+
+		v := &proposal.Vote{}
+		err := v.FromProtoVote(vote)
+		require.NoError(t, err)
+		require.NoError(t, v.Verify(r))
 
 		return nil
 	})

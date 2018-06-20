@@ -41,7 +41,6 @@ import (
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func expectCoordinatorHost(host *mocks.MockHost) {
@@ -578,20 +577,13 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 			stream.EXPECT().Close()
 			stream.EXPECT().Codec().Return(codec)
 
-			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-				func(_ context.Context, _ ihost.Host, opts ...streamutil.StreamOption) (streamutil.Stream, error) {
-					streamOpts := &streamutil.StreamOptions{}
-					for _, opt := range opts {
-						opt(streamOpts)
-					}
-
-					assert.Equal(t, peer1, streamOpts.PeerID)
-					assert.Len(t, streamOpts.PIDs, 1)
-					assert.Equal(t, bootstrap.PrivateCoordinatedConfigPID, streamOpts.PIDs[0])
-					assert.NotNil(t, streamOpts.Event)
-
-					return stream, nil
-				},
+			streamtest.ExpectStreamPeerAndProtocol(
+				t,
+				p,
+				peer1,
+				bootstrap.PrivateCoordinatedConfigPID,
+				stream,
+				nil,
 			)
 		},
 	}}
@@ -670,20 +662,13 @@ func TestCoordinator_SendProposal(t *testing.T) {
 			stream.EXPECT().Close()
 			stream.EXPECT().Codec().Return(codec)
 
-			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-				func(_ context.Context, _ ihost.Host, opts ...streamutil.StreamOption) (streamutil.Stream, error) {
-					streamOpts := &streamutil.StreamOptions{}
-					for _, opt := range opts {
-						opt(streamOpts)
-					}
-
-					assert.Equal(t, peer1, streamOpts.PeerID)
-					assert.Len(t, streamOpts.PIDs, 1)
-					assert.Equal(t, bootstrap.PrivateCoordinatedProposePID, streamOpts.PIDs[0])
-					assert.NotNil(t, streamOpts.Event)
-
-					return stream, nil
-				},
+			streamtest.ExpectStreamPeerAndProtocol(
+				t,
+				p,
+				peer1,
+				bootstrap.PrivateCoordinatedProposePID,
+				stream,
+				nil,
 			)
 		},
 	}}

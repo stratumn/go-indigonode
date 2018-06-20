@@ -7,7 +7,7 @@
 * [Services](services.md)
 * [FAQ](faq.md)
 
-## Developpers
+## Developers
 
 * [Contributing](contribute.md)
 * [Conventions](conventions.md)

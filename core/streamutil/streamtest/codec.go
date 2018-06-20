@@ -79,3 +79,15 @@ func ExpectEncodeAllowed(t *testing.T, codec *mockstream.MockCodec, peerID peer.
 		return nil
 	})
 }
+
+// ExpectEncodeNetworkState configures a mock codec to verify that
+// the encoded network configuration has the given network state.
+func ExpectEncodeNetworkState(t *testing.T, codec *mockstream.MockCodec, state protectorpb.NetworkState) {
+	codec.EXPECT().Encode(gomock.Any()).Do(func(n interface{}) error {
+		cfg, ok := n.(*protectorpb.NetworkConfig)
+		require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
+		require.Equal(t, state, cfg.NetworkState)
+
+		return nil
+	})
+}

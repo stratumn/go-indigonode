@@ -380,14 +380,7 @@ func (h *CoordinatorHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 		return err
 	}
 
-	for _, c := range h.host.Network().Conns() {
-		if c.RemotePeer() == peerID {
-			err = c.Close()
-			if err != nil {
-				event.Append(logging.Metadata{"close_err": err.Error()})
-			}
-		}
-	}
+	Disconnect(h.host, peerID, event)
 
 	h.SendNetworkConfig(ctx)
 
@@ -449,24 +442,9 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 		return err
 	}
 
-	h.SendNetworkConfig(ctx)
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
 
-	// Disconnect from unauthorized nodes.
-	for _, c := range h.host.Network().Conns() {
-		peerID := c.RemotePeer()
-		if !h.networkConfig.IsAllowed(ctx, peerID) {
-			err = c.Close()
-			if err != nil {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): err.Error(),
-				})
-			} else {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): "disconnected",
-				})
-			}
-		}
-	}
+	h.SendNetworkConfig(ctx)
 
 	return nil
 }

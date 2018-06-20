@@ -98,6 +98,10 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
+	if stream.Conn().RemotePeer() != h.coordinatorID {
+		return protector.ErrConnectionRefused
+	}
+
 	var networkConfig protectorpb.NetworkConfig
 	if err := codec.Decode(&networkConfig); err != nil {
 		return errors.WithStack(err)
@@ -112,16 +116,7 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 		return err
 	}
 
-	go func() {
-		for _, c := range h.host.Network().Conns() {
-			if !h.networkConfig.IsAllowed(ctx, c.RemotePeer()) {
-				err = c.Close()
-				if err != nil {
-					log.Event(ctx, "CloseErr", c.RemotePeer(), logging.Metadata{"err": err.Error()})
-				}
-			}
-		}
-	}()
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
 
 	return nil
 }
@@ -133,6 +128,10 @@ func (h *CoordinatedHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
+	if stream.Conn().RemotePeer() != h.coordinatorID {
+		return protector.ErrConnectionRefused
+	}
+
 	var updateReq pb.UpdateProposal
 	if err := codec.Decode(&updateReq); err != nil {
 		return errors.WithStack(err)

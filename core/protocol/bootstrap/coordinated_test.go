@@ -22,16 +22,19 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/alice/core/protector/protectortest"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
+	"github.com/stratumn/alice/core/streamutil/mockstream"
+	"github.com/stratumn/alice/core/streamutil/streamtest"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
@@ -117,6 +120,161 @@ func TestCoordinated_Close(t *testing.T) {
 	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedProposePID)
 
 	handler.Close(context.Background())
+}
+
+type CoordinatedHandleTestCase struct {
+	name          string
+	coordinatorID peer.ID
+	remotePeer    peer.ID
+	configure     func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockCodec)
+	validate      func(*testing.T, protector.NetworkConfig, proposal.Store)
+	err           error
+}
+
+func (ht *CoordinatedHandleTestCase) Run(
+	t *testing.T,
+	h func(*bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler,
+) {
+	t.Run(ht.name, func(t *testing.T) {
+		ctx := context.Background()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		host := mocks.NewMockHost(ctrl)
+		expectCoordinatedHost(host)
+
+		conn := mocks.NewMockConn(ctrl)
+		conn.EXPECT().RemotePeer().Return(ht.remotePeer)
+
+		stream := mocks.NewMockStream(ctrl)
+		stream.EXPECT().Conn().Return(conn)
+
+		codec := mockstream.NewMockCodec(ctrl)
+
+		cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
+		s := proposal.NewInMemoryStore()
+
+		ht.configure(t, ctrl, host, codec)
+
+		mode := &protector.NetworkMode{CoordinatorID: ht.coordinatorID}
+		handler := bootstrap.NewCoordinatedHandler(host, nil, mode, cfg, s).(*bootstrap.CoordinatedHandler)
+		err := h(handler)(ctx, bootstraptest.NewEvent(), stream, codec)
+
+		if ht.err != nil {
+			assert.EqualError(t, err, ht.err.Error())
+		} else {
+			require.NoError(t, err)
+			ht.validate(t, cfg, s)
+		}
+	})
+}
+
+func TestCoordinated_HandleConfigUpdate(t *testing.T) {
+	coordinatorKey := test.GeneratePrivateKey(t)
+	coordinatorID := test.GetPeerIDFromKey(t, coordinatorKey)
+	peer1Key := test.GeneratePrivateKey(t)
+	peer1 := test.GetPeerIDFromKey(t, peer1Key)
+
+	testCases := []CoordinatedHandleTestCase{
+		{
+			"reject-not-coordinator",
+			coordinatorID,
+			peer1,
+			func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockCodec) {
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			protector.ErrConnectionRefused,
+		},
+		{
+			"invalid-config-content",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec) {
+				codec.EXPECT().Decode(gomock.Any()).Return(errors.New("BSOD"))
+			},
+			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
+			errors.Cause(errors.New("BSOD")),
+		},
+		{
+			"invalid-config-signature",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec) {
+				cfg := &protectorpb.NetworkConfig{
+					NetworkState: 42,
+				}
+				err := cfg.Sign(context.Background(), coordinatorKey)
+				require.NoError(t, err, "cfg.Sign()")
+
+				streamtest.ExpectDecodeConfig(t, codec, cfg)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, _ proposal.Store) {
+				assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, cfg.NetworkState(context.Background()))
+			},
+			protectorpb.ErrInvalidNetworkState,
+		},
+		{
+			"invalid-config-signer",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, _ *gomock.Controller, _ *mocks.MockHost, codec *mockstream.MockCodec) {
+				cfg := protectortest.NewTestNetworkConfig(
+					t,
+					protectorpb.NetworkState_PROTECTED,
+					peer1,
+				).Copy(context.Background())
+
+				err := cfg.Sign(context.Background(), peer1Key)
+				require.NoError(t, err, "cfg.Sign()")
+
+				streamtest.ExpectDecodeConfig(t, codec, &cfg)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, _ proposal.Store) {
+				assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, cfg.NetworkState(context.Background()))
+				assert.False(t, cfg.IsAllowed(context.Background(), peer1))
+			},
+			protectorpb.ErrInvalidSignature,
+		},
+		{
+			"valid-config",
+			coordinatorID,
+			coordinatorID,
+			func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec) {
+				cfg := protectortest.NewTestNetworkConfig(
+					t,
+					protectorpb.NetworkState_PROTECTED,
+					peer1,
+				).Copy(context.Background())
+
+				err := cfg.Sign(context.Background(), coordinatorKey)
+				require.NoError(t, err, "cfg.Sign()")
+
+				streamtest.ExpectDecodeConfig(t, codec, &cfg)
+
+				// Disconnect from unauthorized peers
+				peer2 := test.GeneratePeerID(t)
+				unauthorizedConn := mocks.NewMockConn(ctrl)
+				unauthorizedConn.EXPECT().RemotePeer().Return(peer2)
+				unauthorizedConn.EXPECT().Close()
+
+				network := mocks.NewMockNetwork(ctrl)
+				network.EXPECT().Conns().Return([]inet.Conn{unauthorizedConn})
+
+				h.EXPECT().Network().Return(network)
+			},
+			func(t *testing.T, cfg protector.NetworkConfig, _ proposal.Store) {
+				assert.Equal(t, protectorpb.NetworkState_PROTECTED, cfg.NetworkState(context.Background()))
+				assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range testCases {
+		tt.Run(t, func(handler *bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler {
+			return handler.HandleConfigUpdate
+		})
+	}
 }
 
 func TestCoordinated_Handshake(t *testing.T) {
@@ -264,88 +422,6 @@ func TestCoordinated_Handshake(t *testing.T) {
 		assert.True(t, coordinatedConfig.IsAllowed(ctx, testNetwork.CoordinatorID()))
 		assert.True(t, coordinatedConfig.IsAllowed(ctx, coordinatedNode.ID()))
 	})
-}
-
-func TestCoordinated_HandleConfigUpdate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
-	defer testNetwork.Close()
-
-	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
-	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
-
-	networkConfig := newNetworkConfig(t)
-	host, connect := testNetwork.PrepareCoordinatedNode(
-		testNetwork.CoordinatorID(),
-		networkConfig,
-	)
-
-	handler, err := connect()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler)
-
-	testCases := []struct {
-		name           string
-		receivedConfig func() *protectorpb.NetworkConfig
-		validateConfig func(*testing.T)
-	}{{
-		"invalid-config-content",
-		func() *protectorpb.NetworkConfig {
-			return protectorpb.NewNetworkConfig(42)
-		},
-		func(t *testing.T) {
-			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState(ctx))
-			assert.Len(t, networkConfig.AllowedPeers(ctx), 0)
-		},
-	}, {
-		"invalid-config-signature",
-		func() *protectorpb.NetworkConfig {
-			networkConfig := protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP)
-			networkConfig.Sign(ctx, test.GeneratePrivateKey(t))
-			return networkConfig
-		},
-		func(t *testing.T) {
-			assert.Equal(t, protectorpb.NetworkState_BOOTSTRAP, networkConfig.NetworkState(ctx))
-			assert.Len(t, networkConfig.AllowedPeers(ctx), 0)
-		},
-	}, {
-		"valid-config",
-		func() *protectorpb.NetworkConfig {
-			networkConfig := protectorpb.NewNetworkConfig(protectorpb.NetworkState_PROTECTED)
-			networkConfig.Participants[host.ID().Pretty()] = &protectorpb.PeerAddrs{
-				Addresses: []string{test.GeneratePeerMultiaddr(t, host.ID()).String()},
-			}
-			networkConfig.Sign(ctx, testNetwork.CoordinatorKey())
-
-			return networkConfig
-		},
-		func(t *testing.T) {
-			assert.Equal(t, protectorpb.NetworkState_PROTECTED, networkConfig.NetworkState(ctx))
-			assert.Len(t, networkConfig.AllowedPeers(ctx), 1)
-			assert.True(t, networkConfig.IsAllowed(ctx, host.ID()))
-		},
-	}}
-
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			stream, err := testNetwork.CoordinatorHost().NewStream(
-				ctx,
-				host.ID(),
-				bootstrap.PrivateCoordinatedConfigPID,
-			)
-			require.NoError(t, err, "NewStream()")
-
-			enc := protobuf.Multicodec(nil).Encoder(stream)
-			err = enc.Encode(tt.receivedConfig())
-			require.NoError(t, err, "enc.Encode()")
-
-			test.WaitUntilStreamClosed(t, stream)
-
-			tt.validateConfig(t)
-		})
-	}
 }
 
 func TestCoordinated_AddNode(t *testing.T) {

@@ -55,6 +55,17 @@ func ExpectDecodeVote(t *testing.T, codec *mockstream.MockCodec, vote *pb.Vote) 
 	})
 }
 
+// ExpectDecodeConfig configures a mock codec to decode the given network config.
+func ExpectDecodeConfig(t *testing.T, codec *mockstream.MockCodec, cfg *protectorpb.NetworkConfig) {
+	codec.EXPECT().Decode(gomock.Any()).Do(func(n interface{}) error {
+		c, ok := n.(*protectorpb.NetworkConfig)
+		require.True(t, ok, "n.(*protectorpb.NetworkConfig)")
+
+		*c = *cfg
+		return nil
+	})
+}
+
 // ExpectEncodeAck configures a mock codec to encode an Ack
 // with the given error.
 func ExpectEncodeAck(t *testing.T, codec *mockstream.MockCodec, err error) {

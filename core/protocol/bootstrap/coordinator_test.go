@@ -92,7 +92,7 @@ func TestCoordinator_ValidateSender(t *testing.T) {
 	require.NoError(t, err)
 }
 
-type HandleTestCase struct {
+type CoordinatorHandleTestCase struct {
 	name       string
 	remotePeer peer.ID
 	configure  func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockCodec, protector.NetworkConfig, proposal.Store)
@@ -100,10 +100,12 @@ type HandleTestCase struct {
 	err        error
 }
 
-func (ht *HandleTestCase) Run(t *testing.T, h func(*bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler) {
+func (ht *CoordinatorHandleTestCase) Run(
+	t *testing.T,
+	h func(*bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler,
+) {
 	t.Run(ht.name, func(t *testing.T) {
 		ctx := context.Background()
-
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -143,7 +145,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 	peer1 := test.GeneratePeerID(t)
 	peer1Addrs := test.GeneratePeerMultiaddrs(t, peer1)
 
-	testCases := []HandleTestCase{
+	testCases := []CoordinatorHandleTestCase{
 		{
 			"reject-stream-error",
 			peer1,
@@ -228,7 +230,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 	peer1 := test.GeneratePeerID(t)
 	peer2 := test.GeneratePeerID(t)
 
-	testCases := []HandleTestCase{
+	testCases := []CoordinatorHandleTestCase{
 		{
 			"decode-error",
 			peer1,
@@ -394,7 +396,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 
 	removePeer1Req := proposaltest.NewRemoveRequest(t, peer1)
 
-	testCases := []HandleTestCase{
+	testCases := []CoordinatorHandleTestCase{
 		{
 			"unauthorized",
 			peer1,

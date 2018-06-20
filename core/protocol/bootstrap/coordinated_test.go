@@ -585,63 +585,39 @@ func TestCoordinated_AddNode(t *testing.T) {
 	stream.EXPECT().Codec().Return(codec)
 	stream.EXPECT().Close()
 
-	p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil)
+	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorProposePID, stream, nil)
 
 	err := handler.AddNode(context.Background(), peerID, peerAddr, []byte("b4tm4n"))
 	require.NoError(t, err)
 }
 
 func TestCoordinated_RemoveNode(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coordinatorID := test.GeneratePeerID(t)
 
-	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
-	defer testNetwork.Close()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	coordinatorConfig := newNetworkConfig(t)
-	coordinatorHandler, err := testNetwork.AddCoordinatorNode(coordinatorConfig)
-	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+	host := mocks.NewMockHost(ctrl)
+	expectCoordinatedHost(host)
 
-	coordinatedConfig := newNetworkConfig(t)
+	p := mockstream.NewMockProvider(ctrl)
 
-	h1, connect1 := testNetwork.PrepareCoordinatedNode(testNetwork.CoordinatorID(), coordinatedConfig)
-	handler1, err := connect1()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler1)
+	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
+	handler := bootstrap.NewCoordinatedHandler(host, p, mode, nil, nil)
 
-	h2, connect2 := testNetwork.PrepareCoordinatedNode(testNetwork.CoordinatorID(), coordinatedConfig)
-	handler2, err := connect2()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler2)
+	peerID := test.GeneratePeerID(t)
 
-	err = coordinatorHandler.Accept(ctx, h1.ID())
-	require.NoError(t, err, "coordinatorHandler.Accept()")
+	codec := mockstream.NewMockCodec(ctrl)
+	codec.EXPECT().Encode(&bootstrappb.NodeIdentity{PeerId: []byte(peerID)})
 
-	err = coordinatorHandler.Accept(ctx, h2.ID())
-	require.NoError(t, err, "coordinatorHandler.Accept()")
+	stream := mockstream.NewMockStream(ctrl)
+	stream.EXPECT().Codec().Return(codec)
+	stream.EXPECT().Close()
 
-	err = coordinatorHandler.CompleteBootstrap(ctx)
-	require.NoError(t, err, "coordinatorHandler.CompleteBootstrap()")
+	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorProposePID, stream, nil)
 
-	err = h1.Connect(ctx, h2.Peerstore().PeerInfo(h2.ID()))
-	require.NoError(t, err, "h1.Connect(h2)")
-
-	assert.Equal(t, inet.Connected, h1.Network().Connectedness(h2.ID()))
-
-	err = handler1.RemoveNode(ctx, h2.ID())
-	require.NoError(t, err, "handler.RemoveNode()")
-
-	waitUntilProposed(t, testNetwork.CoordinatorStore(), h2.ID())
-	waitUntilProposed(t, testNetwork.CoordinatedStore(h1.ID()), h2.ID())
-
-	// We shouldn't remove the node until enough votes are in.
-	assert.True(t, coordinatedConfig.IsAllowed(ctx, h2.ID()))
-
-	err = handler1.Accept(ctx, h2.ID())
-	require.NoError(t, err, "handler1.Accept()")
-
-	waitUntilNotAllowed(t, h2.ID(), coordinatedConfig)
-	waitUntilDisconnected(t, h1, h2.ID())
+	err := handler.RemoveNode(context.Background(), peerID)
+	require.NoError(t, err)
 }
 
 func TestCoordinated_Accept(t *testing.T) {

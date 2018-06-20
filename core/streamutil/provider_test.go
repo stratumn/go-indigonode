@@ -94,8 +94,8 @@ func TestNewStream(t *testing.T) {
 			streamutil.OptProtocolIDs(protocolID),
 		)
 		require.NoError(t, err)
-		require.NotNil(t, s.Codec)
-		require.Equal(t, conn, s.Conn)
+		require.NotNil(t, s.Codec())
+		require.Equal(t, conn, s.Conn())
 
 		stream.EXPECT().Close().Times(1)
 		s.Close()

@@ -523,7 +523,7 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 
 			defer stream.Close()
 
-			err = stream.Codec.Encode(updateReq)
+			err = stream.Codec().Encode(updateReq)
 			if err != nil {
 				event.SetError(err)
 				return
@@ -571,10 +571,9 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 
 			defer stream.Close()
 
-			err = stream.Codec.Encode(&networkConfig)
+			err = stream.Codec().Encode(&networkConfig)
 			if err != nil {
 				event.SetError(err)
-				return
 			}
 		}(peerID)
 	}

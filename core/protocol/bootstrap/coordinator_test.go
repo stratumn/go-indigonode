@@ -532,6 +532,69 @@ func TestCoordinator_HandleVote(t *testing.T) {
 	}
 }
 
+func TestCoordinator_SendNetworkConfig(t *testing.T) {
+	hostID := test.GeneratePeerID(t)
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+
+	testCases := []struct {
+		name      string
+		configure func(*testing.T, *gomock.Controller, protector.NetworkConfig, *mockstream.MockProvider)
+	}{{
+		"no-participants",
+		func(*testing.T, *gomock.Controller, protector.NetworkConfig, *mockstream.MockProvider) {},
+	}, {
+		"stream-error",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("no stream"))
+		},
+	}, {
+		"send-config",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+			cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
+
+			cfgPb := cfg.Copy(context.Background())
+			codec := mockstream.NewMockCodec(ctrl)
+			codec.EXPECT().Encode(&cfgPb).Times(2)
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close().Times(2)
+			stream.EXPECT().Codec().Return(codec).Times(2)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil).Times(2)
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
+			host.EXPECT().ID().Return(hostID).AnyTimes()
+
+			networkConfig := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
+			networkConfig.AddPeer(context.Background(), hostID, test.GeneratePeerMultiaddrs(t, hostID))
+
+			streamProvider := mockstream.NewMockProvider(ctrl)
+			tt.configure(t, ctrl, networkConfig, streamProvider)
+
+			handler := bootstrap.NewCoordinatorHandler(
+				host,
+				streamProvider,
+				networkConfig,
+				nil,
+			).(*bootstrap.CoordinatorHandler)
+
+			handler.SendNetworkConfig(context.Background())
+		})
+	}
+}
+
 func TestCoordinator_AddNode(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)

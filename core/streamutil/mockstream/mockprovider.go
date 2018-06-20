@@ -36,13 +36,13 @@ func (m *MockProvider) EXPECT() *MockProviderMockRecorder {
 }
 
 // NewStream mocks base method
-func (m *MockProvider) NewStream(arg0 context.Context, arg1 go_libp2p_host.Host, arg2 ...streamutil.StreamOption) (*streamutil.WrappedStream, error) {
+func (m *MockProvider) NewStream(arg0 context.Context, arg1 go_libp2p_host.Host, arg2 ...streamutil.StreamOption) (streamutil.Stream, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "NewStream", varargs...)
-	ret0, _ := ret[0].(*streamutil.WrappedStream)
+	ret0, _ := ret[0].(streamutil.Stream)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -109,13 +109,13 @@ func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 
 	defer stream.Close()
 
-	if err := stream.Codec.Encode(&pb.Hello{}); err != nil {
+	if err := stream.Codec().Encode(&pb.Hello{}); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
 
 	var networkConfig protectorpb.NetworkConfig
-	if err := stream.Codec.Decode(&networkConfig); err != nil {
+	if err := stream.Codec().Decode(&networkConfig); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
@@ -217,7 +217,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 		req.PeerAddr = addr.Bytes()
 	}
 
-	err = stream.Codec.Encode(req)
+	err = stream.Codec().Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -247,7 +247,7 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	defer stream.Close()
 
 	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
-	err = stream.Codec.Encode(req)
+	err = stream.Codec().Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -297,7 +297,7 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 
 	defer stream.Close()
 
-	err = stream.Codec.Encode(v.ToProtoVote())
+	err = stream.Codec().Encode(v.ToProtoVote())
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err

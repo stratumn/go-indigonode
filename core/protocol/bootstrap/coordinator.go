@@ -417,29 +417,14 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return err
 	}
 
-	if r.Type == proposal.RemoveNode {
+	switch r.Type {
+	case proposal.AddNode:
+		return h.AddNode(ctx, peerID, r.PeerAddr, r.Info)
+	case proposal.RemoveNode:
 		return h.RemoveNode(ctx, peerID)
+	default:
+		return proposal.ErrInvalidRequestType
 	}
-
-	if r.PeerAddr == nil {
-		event.SetError(proposal.ErrMissingPeerAddr)
-		return proposal.ErrMissingPeerAddr
-	}
-
-	if h.networkConfig.IsAllowed(ctx, peerID) {
-		// Nothing to do, peer was already added.
-		return nil
-	}
-
-	err = h.networkConfig.AddPeer(ctx, peerID, []multiaddr.Multiaddr{r.PeerAddr})
-	if err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	h.SendNetworkConfig(ctx)
-
-	return nil
 }
 
 // Reject ignores a proposal to add or remove a node.

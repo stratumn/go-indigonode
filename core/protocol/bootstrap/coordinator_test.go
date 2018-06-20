@@ -27,6 +27,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposaltest"
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	"github.com/stratumn/alice/core/streamutil/streamtest"
@@ -394,8 +395,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 	peer2 := test.GetPeerIDFromKey(t, peer2Key)
 	hostID := test.GeneratePeerID(t)
 
-	removePeer1Req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
-	require.NoError(t, err)
+	removePeer1Req := proposaltest.NewRemoveRequest(t, peer1)
 
 	testCases := []HandleTestCase{
 		{
@@ -629,8 +629,7 @@ func TestCoordinator_SendProposal(t *testing.T) {
 	peer1 := test.GeneratePeerID(t)
 	peer2 := test.GeneratePeerID(t)
 
-	req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
-	require.NoError(t, err)
+	req := proposaltest.NewRemoveRequest(t, peer1)
 
 	testCases := []struct {
 		name      string
@@ -930,131 +929,99 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 func TestCoordinator_Accept(t *testing.T) {
 	coordinatorID := test.GeneratePeerID(t)
 	peer1 := test.GeneratePeerID(t)
-	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
+	peer1Addrs := test.GeneratePeerMultiaddrs(t, peer1)
 	peer2 := test.GeneratePeerID(t)
-
-	addPeer1 := &proposal.Request{
-		Type:     proposal.AddNode,
-		PeerID:   peer1,
-		PeerAddr: peer1Addr,
-	}
-
-	removePeer2 := &proposal.Request{
-		Type:   proposal.RemoveNode,
-		PeerID: peer2,
-	}
 
 	testCases := []struct {
 		name      string
 		acceptID  peer.ID
-		configure func(*gomock.Controller, *mocks.MockHost, *mockprotector.MockNetworkConfig, *mockproposal.MockStore)
+		configure func(*testing.T, *gomock.Controller, *mocks.MockHost, *mockstream.MockProvider, *mockproposal.MockStore)
+		validate  func(*testing.T, protector.NetworkConfig)
 		err       error
 	}{{
 		"proposal-missing",
-		peer1,
-		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mockprotector.MockNetworkConfig, store *mockproposal.MockStore) {
-			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(nil, nil)
+		peer2,
+		func(_ *testing.T, _ *gomock.Controller, _ *mocks.MockHost, _ *mockstream.MockProvider, store *mockproposal.MockStore) {
+			store.EXPECT().Get(gomock.Any(), peer2).Return(nil, nil)
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.False(t, cfg.IsAllowed(context.Background(), peer2))
 		},
 		proposal.ErrMissingRequest,
 	}, {
-		"peer-addr-missing",
-		peer1,
-		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mockprotector.MockNetworkConfig, store *mockproposal.MockStore) {
-			r := &proposal.Request{
-				Type:   proposal.AddNode,
-				PeerID: peer1,
-			}
-			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(r, nil)
-			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
+		"proposal-store-err",
+		peer2,
+		func(_ *testing.T, _ *gomock.Controller, _ *mocks.MockHost, _ *mockstream.MockProvider, store *mockproposal.MockStore) {
+			r := proposaltest.NewAddRequest(t, peer2)
+			store.EXPECT().Get(gomock.Any(), peer2).Return(r, nil)
+			store.EXPECT().Remove(gomock.Any(), peer2).Return(errors.New("fatal error"))
 		},
-		proposal.ErrMissingPeerAddr,
-	}, {
-		"add-already-added",
-		peer1,
-		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mockprotector.MockNetworkConfig, store *mockproposal.MockStore) {
-			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(addPeer1, nil)
-			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
-
-			cfg.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(true)
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.False(t, cfg.IsAllowed(context.Background(), peer2))
 		},
-		nil,
+		errors.New("fatal error"),
 	}, {
 		"add-node",
-		peer1,
-		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mockprotector.MockNetworkConfig, store *mockproposal.MockStore) {
-			store.EXPECT().Get(gomock.Any(), peer1).Times(1).Return(addPeer1, nil)
-			store.EXPECT().Remove(gomock.Any(), peer1).Times(1)
+		peer2,
+		func(_ *testing.T, _ *gomock.Controller, h *mocks.MockHost, prov *mockstream.MockProvider, store *mockproposal.MockStore) {
+			r := proposaltest.NewAddRequest(t, peer2)
+			store.EXPECT().Get(gomock.Any(), peer2).Return(r, nil)
+			store.EXPECT().Remove(gomock.Any(), peer2)
 
-			cfg.EXPECT().IsAllowed(gomock.Any(), peer1).Times(1).Return(false)
-			cfg.EXPECT().AddPeer(gomock.Any(), peer1, []multiaddr.Multiaddr{addPeer1.PeerAddr}).Times(1)
-			cfg.EXPECT().Copy(gomock.Any()).Times(1)
-			cfg.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1, peer2})
+			pstore := peerstore.NewPeerstore()
+			h.EXPECT().Peerstore().Return(pstore)
 
-			stream := mocks.NewMockStream(ctrl)
-			stream.EXPECT().Write(gomock.Any()).AnyTimes()
-			stream.EXPECT().Conn().Times(2)
-			stream.EXPECT().Close().Times(2)
-
-			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
-			host.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			prov.EXPECT().NewStream(gomock.Any(), h, gomock.Any()).Return(nil, errors.New("no stream")).Times(2)
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer2))
 		},
 		nil,
 	}, {
 		"remove-node",
-		peer2,
-		func(ctrl *gomock.Controller, host *mocks.MockHost, cfg *mockprotector.MockNetworkConfig, store *mockproposal.MockStore) {
-			store.EXPECT().Get(gomock.Any(), peer2).Times(1).Return(removePeer2, nil)
-			store.EXPECT().Remove(gomock.Any(), peer2).Times(1)
-
-			cfg.EXPECT().IsAllowed(gomock.Any(), peer2).Times(1).Return(true)
-			cfg.EXPECT().RemovePeer(gomock.Any(), peer2).Times(1)
-			cfg.EXPECT().Copy(gomock.Any()).Times(1)
-			cfg.EXPECT().AllowedPeers(gomock.Any()).Times(1).Return([]peer.ID{peer1})
+		peer1,
+		func(_ *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, prov *mockstream.MockProvider, store *mockproposal.MockStore) {
+			r := proposaltest.NewRemoveRequest(t, peer1)
+			store.EXPECT().Get(gomock.Any(), peer1).Return(r, nil)
+			store.EXPECT().Remove(gomock.Any(), peer1)
 
 			network := mocks.NewMockNetwork(ctrl)
-			network.EXPECT().Conns().Return(nil).Times(1)
+			network.EXPECT().Conns().Return(nil)
 
-			stream := mocks.NewMockStream(ctrl)
-			stream.EXPECT().Write(gomock.Any()).AnyTimes()
-			stream.EXPECT().Conn().Times(1)
-			stream.EXPECT().Close().Times(1)
-
-			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
-			host.EXPECT().Network().Return(network).Times(1)
-			host.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedConfigPID).Times(1).Return(stream, nil)
+			h.EXPECT().Network().Return(network)
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.False(t, cfg.IsAllowed(context.Background(), peer2))
 		},
 		nil,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
 			expectSetStreamHandler(host)
+			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 
-			networkConfig := mockprotector.NewMockNetworkConfig(ctrl)
+			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
+			cfg.AddPeer(context.Background(), coordinatorID, test.GeneratePeerMultiaddrs(t, coordinatorID))
+			cfg.AddPeer(context.Background(), peer1, peer1Addrs)
+
 			store := mockproposal.NewMockStore(ctrl)
+			prov := mockstream.NewMockProvider(ctrl)
 
-			tt.configure(ctrl, host, networkConfig, store)
+			tt.configure(t, ctrl, host, prov, store)
 
-			handler := bootstrap.NewCoordinatorHandler(
-				host,
-				streamutil.NewStreamProvider(),
-				networkConfig,
-				store,
-			)
+			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, store)
+			err := handler.Accept(context.Background(), tt.acceptID)
 
-			err := handler.Accept(ctx, tt.acceptID)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
+				tt.validate(t, cfg)
 			}
 		})
 	}

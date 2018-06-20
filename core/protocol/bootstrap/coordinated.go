@@ -83,55 +83,12 @@ func NewCoordinatedHandler(
 	return &handler
 }
 
-// Handshake connects to the coordinator for the initial handshake.
-// The node is expected to receive the network configuration during
-// that handshake.
-func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
-	event := log.EventBegin(ctx, "Coordinated.handshake")
-	defer event.Done()
+// Close removes the protocol handlers.
+func (h *CoordinatedHandler) Close(ctx context.Context) {
+	log.Event(ctx, "Coordinated.Close")
 
-	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
-	if err != nil {
-		event.SetError(err)
-		return protector.ErrConnectionRefused
-	}
-
-	stream, err := h.streamProvider.NewStream(
-		ctx,
-		h.host,
-		streamutil.OptPeerID(h.coordinatorID),
-		streamutil.OptProtocolIDs(PrivateCoordinatorHandshakePID),
-		streamutil.OptLog(event),
-	)
-	if err != nil {
-		return protector.ErrConnectionRefused
-	}
-
-	defer stream.Close()
-
-	if err := stream.Codec().Encode(&pb.Hello{}); err != nil {
-		event.SetError(errors.WithStack(err))
-		return protector.ErrConnectionRefused
-	}
-
-	var networkConfig protectorpb.NetworkConfig
-	if err := stream.Codec().Decode(&networkConfig); err != nil {
-		event.SetError(errors.WithStack(err))
-		return protector.ErrConnectionRefused
-	}
-
-	// The network is still bootstrapping and we're not whitelisted yet.
-	if len(networkConfig.Participants) == 0 {
-		event.Append(logging.Metadata{"participants_count": 0})
-		return h.AddNode(ctx, h.host.ID(), h.host.Addrs()[0], nil)
-	}
-
-	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
-		event.SetError(protectorpb.ErrInvalidSignature)
-		return protectorpb.ErrInvalidSignature
-	}
-
-	return h.networkConfig.Reset(ctx, &networkConfig)
+	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
+	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
 }
 
 // HandleConfigUpdate receives updates to the network configuration.
@@ -188,6 +145,57 @@ func (h *CoordinatedHandler) HandlePropose(
 	}
 
 	return h.proposalStore.AddRequest(ctx, req)
+}
+
+// Handshake connects to the coordinator for the initial handshake.
+// The node is expected to receive the network configuration during
+// that handshake.
+func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
+	event := log.EventBegin(ctx, "Coordinated.handshake")
+	defer event.Done()
+
+	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
+	if err != nil {
+		event.SetError(err)
+		return protector.ErrConnectionRefused
+	}
+
+	stream, err := h.streamProvider.NewStream(
+		ctx,
+		h.host,
+		streamutil.OptPeerID(h.coordinatorID),
+		streamutil.OptProtocolIDs(PrivateCoordinatorHandshakePID),
+		streamutil.OptLog(event),
+	)
+	if err != nil {
+		return protector.ErrConnectionRefused
+	}
+
+	defer stream.Close()
+
+	if err := stream.Codec().Encode(&pb.Hello{}); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	var networkConfig protectorpb.NetworkConfig
+	if err := stream.Codec().Decode(&networkConfig); err != nil {
+		event.SetError(errors.WithStack(err))
+		return protector.ErrConnectionRefused
+	}
+
+	// The network is still bootstrapping and we're not whitelisted yet.
+	if len(networkConfig.Participants) == 0 {
+		event.Append(logging.Metadata{"participants_count": 0})
+		return h.AddNode(ctx, h.host.ID(), h.host.Addrs()[0], nil)
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		event.SetError(protectorpb.ErrInvalidSignature)
+		return protectorpb.ErrInvalidSignature
+	}
+
+	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
 // AddNode sends a proposal to add the node to the coordinator.
@@ -316,11 +324,4 @@ func (h *CoordinatedHandler) Reject(ctx context.Context, peerID peer.ID) error {
 // Only the coordinator can complete the bootstrap phase.
 func (h *CoordinatedHandler) CompleteBootstrap(context.Context) error {
 	return ErrInvalidOperation
-}
-
-// Close removes the protocol handlers.
-func (h *CoordinatedHandler) Close(ctx context.Context) {
-	log.Event(ctx, "Coordinated.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
-	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
 }

@@ -44,10 +44,10 @@ import (
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
-func expectSetStreamHandler(host *mocks.MockHost) {
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any()).Times(1)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any()).Times(1)
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorVotePID, gomock.Any()).Times(1)
+func expectCoordinatorHost(host *mocks.MockHost) {
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorVotePID, gomock.Any())
 }
 
 func TestCoordinator_Close(t *testing.T) {
@@ -55,14 +55,14 @@ func TestCoordinator_Close(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	expectSetStreamHandler(host)
+	expectCoordinatorHost(host)
 
 	handler := bootstrap.NewCoordinatorHandler(host, nil, nil, nil)
 	require.NotNil(t, handler)
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID).Times(1)
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID).Times(1)
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID).Times(1)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID)
 
 	handler.Close(context.Background())
 }
@@ -74,7 +74,7 @@ func TestCoordinator_ValidateSender(t *testing.T) {
 	defer ctrl.Finish()
 
 	host := mocks.NewMockHost(ctrl)
-	expectSetStreamHandler(host)
+	expectCoordinatorHost(host)
 
 	networkCfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
 	handler := bootstrap.NewCoordinatorHandler(host, nil, networkCfg, nil).(*bootstrap.CoordinatorHandler)
@@ -108,7 +108,7 @@ func (ht *HandleTestCase) Run(t *testing.T, h func(*bootstrap.CoordinatorHandler
 		defer ctrl.Finish()
 
 		host := mocks.NewMockHost(ctrl)
-		expectSetStreamHandler(host)
+		expectCoordinatorHost(host)
 
 		conn := mocks.NewMockConn(ctrl)
 		conn.EXPECT().RemotePeer().Return(ht.remotePeer)
@@ -600,7 +600,7 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 			host.EXPECT().ID().Return(hostID).AnyTimes()
 
 			networkConfig := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
@@ -692,7 +692,7 @@ func TestCoordinator_SendProposal(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 			host.EXPECT().ID().Return(hostID).AnyTimes()
 
 			networkConfig := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
@@ -733,7 +733,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 			// If the peer store doesn't have an address for the node,
 			// and it wasn't provided we reject the request.
 			peerStore := peerstore.NewPeerstore()
-			h.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Return(peerStore)
 		},
 		func(t *testing.T, cfg protector.NetworkConfig) {
 			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
@@ -758,7 +758,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
 			peerStore := peerstore.NewPeerstore()
 			peerStore.AddAddrs(peer1, peer1Addrs, peerstore.PermanentAddrTTL)
-			h.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Return(peerStore)
 
 			codec := mockstream.NewMockCodec(ctrl)
 			streamtest.ExpectEncodeAllowed(t, codec, peer1)
@@ -779,7 +779,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		peer1Addrs[0],
 		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
 			peerStore := peerstore.NewPeerstore()
-			h.EXPECT().Peerstore().Times(1).Return(peerStore)
+			h.EXPECT().Peerstore().Return(peerStore)
 
 			codec := mockstream.NewMockCodec(ctrl)
 			streamtest.ExpectEncodeAllowed(t, codec, peer1)
@@ -802,7 +802,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 
 			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
@@ -875,16 +875,16 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 
 			// After removing the peer, we should disconnect from it.
 			conn1 := mocks.NewMockConn(ctrl)
-			conn1.EXPECT().RemotePeer().Return(peer1).Times(1)
+			conn1.EXPECT().RemotePeer().Return(peer1)
 
 			conn3 := mocks.NewMockConn(ctrl)
-			conn3.EXPECT().RemotePeer().Return(peer3).Times(1)
-			conn3.EXPECT().Close().Times(1)
+			conn3.EXPECT().RemotePeer().Return(peer3)
+			conn3.EXPECT().Close()
 
 			network := mocks.NewMockNetwork(ctrl)
-			network.EXPECT().Conns().Return([]inet.Conn{conn1, conn3}).Times(1)
+			network.EXPECT().Conns().Return([]inet.Conn{conn1, conn3})
 
-			h.EXPECT().Network().Return(network).Times(1)
+			h.EXPECT().Network().Return(network)
 		},
 		func(t *testing.T, cfg protector.NetworkConfig) {
 			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
@@ -900,7 +900,7 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 
 			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
@@ -999,7 +999,7 @@ func TestCoordinator_Accept(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 			host.EXPECT().ID().AnyTimes().Return(coordinatorID)
 
 			cfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
@@ -1032,7 +1032,7 @@ func TestCoordinator_Reject(t *testing.T) {
 	peerID := test.GeneratePeerID(t)
 
 	host := mocks.NewMockHost(ctrl)
-	expectSetStreamHandler(host)
+	expectCoordinatorHost(host)
 
 	store := mockproposal.NewMockStore(ctrl)
 	store.EXPECT().Remove(gomock.Any(), peerID)
@@ -1097,7 +1097,7 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
-			expectSetStreamHandler(host)
+			expectCoordinatorHost(host)
 
 			hostID := test.GeneratePeerID(t)
 			host.EXPECT().ID().Return(hostID).AnyTimes()

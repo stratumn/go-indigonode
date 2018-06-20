@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
@@ -26,6 +27,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
+	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,6 +36,8 @@ import (
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
+
+// TODO: remove/move to helper packages
 
 func newNetworkConfig(t *testing.T) protector.NetworkConfig {
 	config, err := protector.NewInMemoryConfig(
@@ -87,6 +91,32 @@ func waitUntilDisconnected(t *testing.T, host ihost.Host, peerID peer.ID) {
 
 			return nil
 		}, "peers not disconnected in time")
+}
+
+// END TODO
+
+func expectCoordinatedHost(host *mocks.MockHost) {
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedConfigPID, gomock.Any())
+	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedProposePID, gomock.Any())
+}
+
+func TestCoordinated_Close(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	host := mocks.NewMockHost(ctrl)
+	expectCoordinatedHost(host)
+
+	mode := &protector.NetworkMode{
+		CoordinatorID: test.GeneratePeerID(t),
+	}
+	handler := bootstrap.NewCoordinatedHandler(host, nil, mode, nil, nil)
+	require.NotNil(t, handler)
+
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedConfigPID)
+	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedProposePID)
+
+	handler.Close(context.Background())
 }
 
 func TestCoordinated_Handshake(t *testing.T) {

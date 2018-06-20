@@ -26,6 +26,7 @@ import (
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposaltest"
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
@@ -681,41 +682,22 @@ func TestCoordinated_Accept(t *testing.T) {
 }
 
 func TestCoordinated_Reject(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	coordinatorID := test.GeneratePeerID(t)
 
-	testNetwork := bootstraptest.NewTestNetwork(ctx, t)
-	defer testNetwork.Close()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	_, err := testNetwork.AddCoordinatorNode(newNetworkConfig(t))
-	require.NoError(t, err, "testNetwork.AddCoordinatorNode()")
+	host := mocks.NewMockHost(ctrl)
+	expectCoordinatedHost(host)
 
-	networkConfig := newNetworkConfig(t)
-	host, connect := testNetwork.PrepareCoordinatedNode(
-		testNetwork.CoordinatorID(),
-		networkConfig,
-	)
+	propStore := mockproposal.NewMockStore(ctrl)
 
-	handler, err := connect()
-	assert.NoError(t, err)
-	assert.NotNil(t, handler)
-
-	propStore := testNetwork.CoordinatedStore(host.ID())
+	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
+	handler := bootstrap.NewCoordinatedHandler(host, nil, mode, nil, propStore)
 
 	peerID := test.GeneratePeerID(t)
-	err = handler.Reject(ctx, peerID)
-	require.NoError(t, err)
+	propStore.EXPECT().Remove(gomock.Any(), peerID)
 
-	err = propStore.AddRequest(ctx, &proposal.Request{
-		Type:      proposal.RemoveNode,
-		PeerID:    peerID,
-		Challenge: []byte("much chall3ng3"),
-	})
+	err := handler.Reject(context.Background(), peerID)
 	require.NoError(t, err)
-
-	err = handler.Reject(ctx, peerID)
-	require.NoError(t, err)
-
-	r, _ := propStore.Get(ctx, peerID)
-	assert.Nil(t, r)
 }

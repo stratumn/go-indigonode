@@ -526,7 +526,6 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 			err = stream.Codec().Encode(updateReq)
 			if err != nil {
 				event.SetError(err)
-				return
 			}
 		}(peerID)
 	}

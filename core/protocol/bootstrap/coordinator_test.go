@@ -43,6 +43,7 @@ import (
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 func expectSetStreamHandler(host *mocks.MockHost) {
@@ -566,6 +567,34 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 
 			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil).Times(2)
 		},
+	}, {
+		"peer-and-protocol-id",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+
+			codec := mockstream.NewMockCodec(ctrl)
+			codec.EXPECT().Encode(gomock.Any())
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close()
+			stream.EXPECT().Codec().Return(codec)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ ihost.Host, opts ...streamutil.StreamOption) (streamutil.Stream, error) {
+					streamOpts := &streamutil.StreamOptions{}
+					for _, opt := range opts {
+						opt(streamOpts)
+					}
+
+					assert.Equal(t, peer1, streamOpts.PeerID)
+					assert.Len(t, streamOpts.PIDs, 1)
+					assert.Equal(t, bootstrap.PrivateCoordinatedConfigPID, streamOpts.PIDs[0])
+					assert.NotNil(t, streamOpts.Event)
+
+					return stream, nil
+				},
+			)
+		},
 	}}
 
 	for _, tt := range testCases {
@@ -591,6 +620,99 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 			).(*bootstrap.CoordinatorHandler)
 
 			handler.SendNetworkConfig(context.Background())
+		})
+	}
+}
+
+func TestCoordinator_SendProposal(t *testing.T) {
+	hostID := test.GeneratePeerID(t)
+	peer1 := test.GeneratePeerID(t)
+	peer2 := test.GeneratePeerID(t)
+
+	req, err := proposal.NewRemoveRequest(&pb.NodeIdentity{PeerId: []byte(peer1)})
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name      string
+		configure func(*testing.T, *gomock.Controller, protector.NetworkConfig, *mockstream.MockProvider)
+	}{{
+		"no-participants",
+		func(*testing.T, *gomock.Controller, protector.NetworkConfig, *mockstream.MockProvider) {},
+	}, {
+		"stream-error",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("no stream"))
+		},
+	}, {
+		"send-proposal",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+			cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
+
+			codec := mockstream.NewMockCodec(ctrl)
+			codec.EXPECT().Encode(req.ToUpdateProposal()).Times(2)
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close().Times(2)
+			stream.EXPECT().Codec().Return(codec).Times(2)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil).Times(2)
+		},
+	}, {
+		"peer-and-protocol-id",
+		func(t *testing.T, ctrl *gomock.Controller, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
+
+			codec := mockstream.NewMockCodec(ctrl)
+			codec.EXPECT().Encode(gomock.Any())
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close()
+			stream.EXPECT().Codec().Return(codec)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, _ ihost.Host, opts ...streamutil.StreamOption) (streamutil.Stream, error) {
+					streamOpts := &streamutil.StreamOptions{}
+					for _, opt := range opts {
+						opt(streamOpts)
+					}
+
+					assert.Equal(t, peer1, streamOpts.PeerID)
+					assert.Len(t, streamOpts.PIDs, 1)
+					assert.Equal(t, bootstrap.PrivateCoordinatedProposePID, streamOpts.PIDs[0])
+					assert.NotNil(t, streamOpts.Event)
+
+					return stream, nil
+				},
+			)
+		},
+	}}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			host := mocks.NewMockHost(ctrl)
+			expectSetStreamHandler(host)
+			host.EXPECT().ID().Return(hostID).AnyTimes()
+
+			networkConfig := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_PROTECTED)
+			networkConfig.AddPeer(context.Background(), hostID, test.GeneratePeerMultiaddrs(t, hostID))
+
+			streamProvider := mockstream.NewMockProvider(ctrl)
+			tt.configure(t, ctrl, networkConfig, streamProvider)
+
+			handler := bootstrap.NewCoordinatorHandler(
+				host,
+				streamProvider,
+				networkConfig,
+				nil,
+			).(*bootstrap.CoordinatorHandler)
+
+			handler.SendProposal(context.Background(), req)
 		})
 	}
 }

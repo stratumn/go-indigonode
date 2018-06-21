@@ -17,7 +17,6 @@ package bootstrap_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -41,66 +40,7 @@ import (
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
-
-// TODO: remove/move to helper packages
-
-func newNetworkConfig(t *testing.T) protector.NetworkConfig {
-	config, err := protector.NewInMemoryConfig(
-		context.Background(),
-		protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
-	)
-	require.NoError(t, err, "protector.NewInMemoryConfig()")
-	return config
-}
-
-func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
-	test.WaitUntil(t, 100*time.Millisecond, 20*time.Millisecond,
-		func() error {
-			if !networkConfig.IsAllowed(context.Background(), peerID) {
-				return errors.New("peer not allowed")
-			}
-
-			return nil
-		}, "peer not allowed in time")
-}
-
-func waitUntilNotAllowed(t *testing.T, peerID peer.ID, networkConfig protector.NetworkConfig) {
-	test.WaitUntil(t, 100*time.Millisecond, 20*time.Millisecond,
-		func() error {
-			if networkConfig.IsAllowed(context.Background(), peerID) {
-				return errors.New("still allowed")
-			}
-
-			return nil
-		}, "peer not removed in time")
-}
-
-func waitUntilProposed(t *testing.T, s proposal.Store, peerID peer.ID) {
-	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
-		func() error {
-			r, _ := s.Get(context.Background(), peerID)
-			if r == nil {
-				return errors.New("proposal not received yet")
-			}
-
-			return nil
-		}, "proposal not received in time")
-}
-
-func waitUntilDisconnected(t *testing.T, host ihost.Host, peerID peer.ID) {
-	test.WaitUntil(t, 100*time.Millisecond, 10*time.Millisecond,
-		func() error {
-			if host.Network().Connectedness(peerID) == inet.Connected {
-				return errors.New("peers still connected")
-			}
-
-			return nil
-		}, "peers not disconnected in time")
-}
-
-// END TODO
 
 func expectCoordinatedHost(host *mocks.MockHost) {
 	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedConfigPID, gomock.Any())

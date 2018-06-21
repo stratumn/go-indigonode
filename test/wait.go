@@ -50,12 +50,27 @@ func WaitUntil(t *testing.T, duration time.Duration, interval time.Duration, con
 	}
 }
 
+// WaitUntilConnected waits until the given host is connected to the given peer.
+func WaitUntilConnected(t *testing.T, host ihost.Host, peerID peer.ID) {
+	WaitUntil(
+		t,
+		100*time.Millisecond,
+		10*time.Millisecond,
+		func() error {
+			if host.Network().Connectedness(peerID) == inet.Connected {
+				return nil
+			}
+
+			return errors.New("peers still not connected")
+		}, "peers not connected in time")
+}
+
 // WaitUntilDisconnected waits until the given host is disconnected
 // from the given peer.
 func WaitUntilDisconnected(t *testing.T, host ihost.Host, peerID peer.ID) {
 	WaitUntil(
 		t,
-		200*time.Millisecond,
+		100*time.Millisecond,
 		10*time.Millisecond,
 		func() error {
 			if host.Network().Connectedness(peerID) == inet.Connected {

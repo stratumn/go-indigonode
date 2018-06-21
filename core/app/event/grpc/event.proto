@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.event;
+package stratumn.alice.core.app.event.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/event;event";
+option go_package = "github.com/stratumn/alice/core/app/event/grpc;grpc";
 
 // The Emitter service definition.
 // If your service wants to emit events, it should depend on the Emitter

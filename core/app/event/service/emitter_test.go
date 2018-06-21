@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	pb "github.com/stratumn/alice/grpc/event"
+	"github.com/stratumn/alice/core/app/event/grpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,10 +64,10 @@ func TestEmitter(t *testing.T) {
 		l2, err := emitter.AddListener("topic")
 		assert.NoError(err, "emitter.AddListener(topic)")
 
-		e := &pb.Event{Message: "Hey", Level: pb.Level_INFO, Topic: "topic"}
+		e := &grpc.Event{Message: "Hey", Level: grpc.Level_INFO, Topic: "topic"}
 		emitter.Emit(e)
 
-		assertReceived := func(l <-chan *pb.Event) {
+		assertReceived := func(l <-chan *grpc.Event) {
 			select {
 			case ee := <-l:
 				assert.Equal(e, ee, "emitter.Emit()")
@@ -118,10 +118,10 @@ func TestEmitter(t *testing.T) {
 			l, err := emitter.AddListener(t.topic)
 			assert.NoError(err, "emitter.AddListener(%s)", t.topic)
 
-			e := &pb.Event{Message: "Hey", Level: pb.Level_INFO, Topic: "topic.precise"}
+			e := &grpc.Event{Message: "Hey", Level: grpc.Level_INFO, Topic: "topic.precise"}
 			emitter.Emit(e)
 
-			assertReceived := func(l <-chan *pb.Event, expect bool) {
+			assertReceived := func(l <-chan *grpc.Event, expect bool) {
 				select {
 				case ee := <-l:
 					if !expect {
@@ -147,8 +147,8 @@ func TestEmitter(t *testing.T) {
 		l, err := emitter.AddListener("topic")
 		assert.NoError(err, "emitter.AddListener(topic)")
 
-		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO, Topic: "topic"}
-		e2 := &pb.Event{Message: "2", Level: pb.Level_INFO, Topic: "topic"}
+		e1 := &grpc.Event{Message: "1", Level: grpc.Level_INFO, Topic: "topic"}
+		e2 := &grpc.Event{Message: "2", Level: grpc.Level_INFO, Topic: "topic"}
 		emitter.Emit(e1)
 		emitter.Emit(e2)
 
@@ -178,7 +178,7 @@ func TestEmitter(t *testing.T) {
 		l, err := emitter.AddListener("topic")
 		assert.NoError(err, "emitter.AddListener(topic)")
 
-		e1 := &pb.Event{Message: "1", Level: pb.Level_INFO, Topic: "topic"}
+		e1 := &grpc.Event{Message: "1", Level: grpc.Level_INFO, Topic: "topic"}
 		emitter.Emit(e1)
 
 		removeChan := make(chan struct{})

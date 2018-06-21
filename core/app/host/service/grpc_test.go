@@ -22,9 +22,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/host/grpc"
+	mockpb "github.com/stratumn/alice/core/app/host/grpc/mockgrpc"
 	"github.com/stratumn/alice/core/p2p"
-	pb "github.com/stratumn/alice/grpc/host"
-	mockpb "github.com/stratumn/alice/grpc/host/mockhost"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

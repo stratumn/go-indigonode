@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.ping;
+package stratumn.alice.core.app.ping.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/ping;ping";
+option go_package = "github.com/stratumn/alice/core/app/ping/grpc;grpc";
 
 // The ping service definition.
 service Ping {

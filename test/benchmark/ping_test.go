@@ -19,7 +19,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stratumn/alice/grpc/ping"
+	ping "github.com/stratumn/alice/core/app/ping/grpc"
 	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 )

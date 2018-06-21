@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/event"
+	eventgrpc "github.com/stratumn/alice/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 
@@ -106,7 +106,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterEmitterServer(gs, grpcServer{
+	eventgrpc.RegisterEmitterServer(gs, grpcServer{
 		GetEmitter: func() Emitter { return s.emitter },
 	})
 }

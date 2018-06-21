@@ -21,7 +21,7 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/metrics"
+	pb "github.com/stratumn/alice/core/app/metrics/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

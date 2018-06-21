@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.grpcapi;
+package stratumn.alice.core.app.grpcapi.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/grpcapi;grpcapi";
+option go_package = "github.com/stratumn/alice/core/app/grpcapi/grpc;grpc";
 
 // The API service definition.
 service API {

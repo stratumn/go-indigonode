@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/alice/grpc/grpcapi"
+	"github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/release"
 	"github.com/stratumn/alice/test/session"
 	"github.com/stretchr/testify/assert"

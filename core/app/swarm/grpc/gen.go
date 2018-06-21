@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockping -destination mockping/mockping.go github.com/stratumn/alice/grpc/ping Ping_PingServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockswarm.go github.com/stratumn/alice/core/app/swarm/grpc Swarm_PeersServer,Swarm_ConnectionsServer
 
-package ping
+package grpc

@@ -16,7 +16,7 @@ package service
 
 import (
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/event"
+	"github.com/stratumn/alice/core/app/event/grpc"
 )
 
 // grpcServer is a gRPC server for the chat service.
@@ -24,7 +24,7 @@ type grpcServer struct {
 	GetEmitter func() Emitter
 }
 
-func (s grpcServer) Listen(listenReq *pb.ListenReq, ss pb.Emitter_ListenServer) error {
+func (s grpcServer) Listen(listenReq *grpc.ListenReq, ss grpc.Emitter_ListenServer) error {
 	log.Event(ss.Context(), "Listen")
 
 	emitter := s.GetEmitter()

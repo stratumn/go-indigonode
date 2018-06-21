@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.metrics;
+package stratumn.alice.core.app.metrics.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/metrics;metrics";
+option go_package = "github.com/stratumn/alice/core/app/metrics/grpc;grpc";
 
 // The metrics service definition.
 service Metrics {

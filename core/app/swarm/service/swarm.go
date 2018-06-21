@@ -22,8 +22,8 @@ import (
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	metrics "github.com/stratumn/alice/core/app/metrics/service"
+	pb "github.com/stratumn/alice/core/app/swarm/grpc"
 	"github.com/stratumn/alice/core/protector"
-	pb "github.com/stratumn/alice/grpc/swarm"
 	"google.golang.org/grpc"
 
 	"gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"

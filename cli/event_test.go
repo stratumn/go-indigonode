@@ -28,8 +28,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
-	pbevent "github.com/stratumn/alice/grpc/event"
-	"github.com/stratumn/alice/grpc/event/mockevent"
+	pbevent "github.com/stratumn/alice/core/app/event/grpc"
+	"github.com/stratumn/alice/core/app/event/grpc/mockgrpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,7 +91,7 @@ func (s *BoundedServerStream) WaitUntilClosed(t *testing.T) {
 	})
 }
 
-func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, *gomock.Controller, *mockevent.MockEmitter_ListenClient) {
+func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, *gomock.Controller, *mockgrpc.MockEmitter_ListenClient) {
 	mockCtrl := gomock.NewController(t)
 
 	mockSig := mockcli.NewMockSignaler(mockCtrl)

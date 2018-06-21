@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.host;
+package stratumn.alice.core.app.host.grpc;
 
-option go_package = "github.com/stratumn/alice/grpc/host;host";
+option go_package = "github.com/stratumn/alice/core/app/host/grpc;grpc";
 
 // The host service definition.
 service Host {

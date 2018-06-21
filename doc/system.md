@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/grpc/grpcapi"
+	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/release"
 	"github.com/stratumn/alice/test/session"
 	"github.com/stretch/testify/assert"

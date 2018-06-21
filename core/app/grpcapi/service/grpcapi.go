@@ -33,9 +33,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/netutil"
-	pb "github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

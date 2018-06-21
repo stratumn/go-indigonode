@@ -21,8 +21,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/ping"
-	mockpb "github.com/stratumn/alice/grpc/ping/mockping"
+	pb "github.com/stratumn/alice/core/app/ping/grpc"
+	mockpb "github.com/stratumn/alice/core/app/ping/grpc/mockgrpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

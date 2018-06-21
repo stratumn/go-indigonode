@@ -22,10 +22,10 @@ import (
 
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/host/grpc"
 	metrics "github.com/stratumn/alice/core/app/metrics/service"
 	swarmSvc "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/p2p"
-	pb "github.com/stratumn/alice/grpc/host"
 
 	"google.golang.org/grpc"
 

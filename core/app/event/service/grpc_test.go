@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/app/event/grpc"
+	"github.com/stratumn/alice/core/app/event/grpc/mockgrpc"
 	"github.com/stratumn/alice/core/app/event/service/mockservice"
-	pb "github.com/stratumn/alice/grpc/event"
-	mockpb "github.com/stratumn/alice/grpc/event/mockevent"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,13 +41,13 @@ func TestGRPCServer_Listen_Add_Remove_Listeners(t *testing.T) {
 
 	mockEmitter := mockservice.NewMockEmitter(ctrl)
 	srv := testGRPCServer(ctx, t, mockEmitter)
-	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
+	ss := mockgrpc.NewMockEmitter_ListenServer(ctrl)
 
 	ss.EXPECT().Context().AnyTimes().Return(ctx)
 	addListener := mockEmitter.EXPECT().AddListener("topic").Times(1)
 	mockEmitter.EXPECT().RemoveListener(gomock.Any()).After(addListener).Times(1)
 
-	assert.NoError(t, srv.Listen(&pb.ListenReq{Topic: "topic"}, ss), "srv.Listen()")
+	assert.NoError(t, srv.Listen(&grpc.ListenReq{Topic: "topic"}, ss), "srv.Listen()")
 }
 
 func TestGRPCServer_Listen_Send_Events(t *testing.T) {
@@ -60,13 +60,13 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 
 	emitter := NewEmitter(DefaultTimeout)
 	srv := testGRPCServer(ctx, t, emitter)
-	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
+	ss := mockgrpc.NewMockEmitter_ListenServer(ctrl)
 
 	ss.EXPECT().Context().AnyTimes().Return(ctx)
 
 	errChan := make(chan error)
 	go func() {
-		err := srv.Listen(&pb.ListenReq{Topic: "topic"}, ss)
+		err := srv.Listen(&grpc.ListenReq{Topic: "topic"}, ss)
 		errChan <- err
 	}()
 
@@ -79,9 +79,9 @@ func TestGRPCServer_Listen_Send_Events(t *testing.T) {
 		}
 	}
 
-	e := &pb.Event{
+	e := &grpc.Event{
 		Message: "Hello",
-		Level:   pb.Level_INFO,
+		Level:   grpc.Level_INFO,
 		Topic:   "topic",
 	}
 	ss.EXPECT().Send(e)

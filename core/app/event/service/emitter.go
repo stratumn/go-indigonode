@@ -19,12 +19,11 @@ import (
 	"sync"
 	"time"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/event/grpc"
 
-	pb "github.com/stratumn/alice/grpc/event"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
 var (
@@ -35,10 +34,10 @@ var (
 // Emitter emits events.
 // Listeners can be added and removed.
 type Emitter interface {
-	AddListener(topic string) (<-chan *pb.Event, error)
-	RemoveListener(<-chan *pb.Event)
+	AddListener(topic string) (<-chan *grpc.Event, error)
+	RemoveListener(<-chan *grpc.Event)
 	GetListenersCount(topic string) int
-	Emit(*pb.Event)
+	Emit(*grpc.Event)
 	Close()
 }
 
@@ -57,7 +56,7 @@ type ServerEmitter struct {
 
 type listener struct {
 	topic       glob.Glob
-	receiveChan chan *pb.Event
+	receiveChan chan *grpc.Event
 }
 
 // NewEmitter creates a new event emitter.
@@ -70,7 +69,7 @@ func NewEmitter(timeout time.Duration) Emitter {
 
 // AddListener adds an event listener.
 // It returns the channel on which events will be pushed.
-func (e *ServerEmitter) AddListener(topic string) (<-chan *pb.Event, error) {
+func (e *ServerEmitter) AddListener(topic string) (<-chan *grpc.Event, error) {
 	log.Event(context.Background(), "AddListener", logging.Metadata{
 		"topic": topic,
 	})
@@ -80,7 +79,7 @@ func (e *ServerEmitter) AddListener(topic string) (<-chan *pb.Event, error) {
 		return nil, errors.WithMessage(err, topic)
 	}
 
-	receiveChan := make(chan *pb.Event)
+	receiveChan := make(chan *grpc.Event)
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -94,7 +93,7 @@ func (e *ServerEmitter) AddListener(topic string) (<-chan *pb.Event, error) {
 }
 
 // RemoveListener removes an event listener.
-func (e *ServerEmitter) RemoveListener(listener <-chan *pb.Event) {
+func (e *ServerEmitter) RemoveListener(listener <-chan *grpc.Event) {
 	log.Event(context.Background(), "RemoveListener")
 
 	e.mu.Lock()
@@ -129,7 +128,7 @@ func (e *ServerEmitter) GetListenersCount(topic string) int {
 }
 
 // Emit emits an event to connected listeners.
-func (e *ServerEmitter) Emit(ev *pb.Event) {
+func (e *ServerEmitter) Emit(ev *grpc.Event) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -137,7 +136,7 @@ func (e *ServerEmitter) Emit(ev *pb.Event) {
 		if l.topic.Match(ev.Topic) {
 			e.pending.Add(1)
 
-			go func(l chan *pb.Event) {
+			go func(l chan *grpc.Event) {
 				select {
 				case l <- ev:
 				case <-time.After(e.timeout):

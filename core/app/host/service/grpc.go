@@ -18,8 +18,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/host/grpc"
 	"github.com/stratumn/alice/core/p2p"
-	pb "github.com/stratumn/alice/grpc/host"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"

@@ -22,11 +22,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/core/app/grpcapi/service/mockservice"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/netutil"
-	pb "github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

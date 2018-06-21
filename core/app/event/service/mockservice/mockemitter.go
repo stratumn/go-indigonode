@@ -6,7 +6,7 @@ package mockservice
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	event "github.com/stratumn/alice/grpc/event"
+	grpc "github.com/stratumn/alice/core/app/event/grpc"
 	reflect "reflect"
 )
 
@@ -34,9 +34,9 @@ func (m *MockEmitter) EXPECT() *MockEmitterMockRecorder {
 }
 
 // AddListener mocks base method
-func (m *MockEmitter) AddListener(arg0 string) (<-chan *event.Event, error) {
+func (m *MockEmitter) AddListener(arg0 string) (<-chan *grpc.Event, error) {
 	ret := m.ctrl.Call(m, "AddListener", arg0)
-	ret0, _ := ret[0].(<-chan *event.Event)
+	ret0, _ := ret[0].(<-chan *grpc.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -57,7 +57,7 @@ func (mr *MockEmitterMockRecorder) Close() *gomock.Call {
 }
 
 // Emit mocks base method
-func (m *MockEmitter) Emit(arg0 *event.Event) {
+func (m *MockEmitter) Emit(arg0 *grpc.Event) {
 	m.ctrl.Call(m, "Emit", arg0)
 }
 
@@ -79,7 +79,7 @@ func (mr *MockEmitterMockRecorder) GetListenersCount(arg0 interface{}) *gomock.C
 }
 
 // RemoveListener mocks base method
-func (m *MockEmitter) RemoveListener(arg0 <-chan *event.Event) {
+func (m *MockEmitter) RemoveListener(arg0 <-chan *grpc.Event) {
 	m.ctrl.Call(m, "RemoveListener", arg0)
 }
 

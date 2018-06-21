@@ -30,8 +30,8 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	pb "github.com/stratumn/alice/core/app/metrics/grpc"
 	"github.com/stratumn/alice/core/httputil"
-	pb "github.com/stratumn/alice/grpc/metrics"
 	"google.golang.org/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

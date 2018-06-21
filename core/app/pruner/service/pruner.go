@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package pruner defines a service that periodically prunes the service
+// Package service defines a service that periodically prunes the service
 // manager.
-package pruner
+package service
 
 import (
 	"context"

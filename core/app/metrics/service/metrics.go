@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package metrics defines a service that collects metrics and can expose them
+// Package service defines a service that collects metrics and can expose them
 // to a Prometheus server.
 //
 // It exposes the type Metrics which can be used by other services to send
 // metrics.
-package metrics
+package service
 
 import (
 	"context"

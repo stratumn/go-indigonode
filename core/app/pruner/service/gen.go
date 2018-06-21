@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockpruner -destination mockpruner/mockpruner.go github.com/stratumn/alice/core/service/pruner Manager
+//go:generate mockgen -package mockservice -destination mockservice/mockpruner.go github.com/stratumn/alice/core/service/pruner Manager
 
-package pruner
+package service

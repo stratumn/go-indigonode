@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package connmgr defines a service that manages the number of connections
+// Package service defines a service that manages the number of connections
 // kept open.
-package connmgr
+package service
 
 import (
 	"context"

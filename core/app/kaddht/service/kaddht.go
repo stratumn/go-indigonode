@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /*
-Package kaddht defines a service that runs an instance of a Kademlia
+Package service defines a service that runs an instance of a Kademlia
 distributed hash table server or client that can be used to route peer IDs to
 network addresses.
 
@@ -23,7 +23,7 @@ For more information on Kademlia DHT, checkout:
 
 	https://en.wikipedia.org/wiki/Kademlia
 */
-package kaddht
+package service
 
 import (
 	"context"

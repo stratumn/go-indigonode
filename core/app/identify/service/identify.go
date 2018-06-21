@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package identify defines a service that identifies peers on the network.
-package identify
+// Package service defines a service that identifies peers on the network.
+package service
 
 import (
 	"context"

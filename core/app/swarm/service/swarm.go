@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package swarm defines a service that maintains a swarm of connections
+// Package service defines a service that maintains a swarm of connections
 // between this node and its peers.
-package swarm
+package service
 
 import (
 	"context"
 
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
+	metrics "github.com/stratumn/alice/core/app/metrics/service"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/metrics"
 	pb "github.com/stratumn/alice/grpc/swarm"
 	"google.golang.org/grpc"
 

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package signal defines a service that deals with exit signals.
-package signal
+// Package service defines a service that deals with exit signals.
+package service
 
 import (
 	"context"

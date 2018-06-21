@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package host defines a service the wraps a P2P host.
-package host
+// Package service defines a service the wraps a P2P host.
+package service
 
 import (
 	"context"

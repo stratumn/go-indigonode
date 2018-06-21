@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package relay defines a service for the P2P relay circuit, which enables
+// Package service defines a service for the P2P relay circuit, which enables
 // nodes to send traffic through intermediary nodes in order to reach otherwise
 // inaccessible nodes.
-package relay
+package service
 
 import (
 	"context"

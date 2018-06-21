@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /*
-Package grpcapi defines a service that exposes a gRPC API.
+Package service defines a service that exposes a gRPC API.
 
 The API allows external applications such as Alice's command line interface
 to interact with the node without having to connect to the P2P network.
@@ -27,7 +27,7 @@ For more information about gRPC, see:
 
 	https://grpc.io
 */
-package grpcapi
+package service
 
 import (
 	"context"

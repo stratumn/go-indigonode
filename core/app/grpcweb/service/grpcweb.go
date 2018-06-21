@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package grpcweb wraps the grpcapi server to implement the gRPC-Web spec
-package grpcweb
+// Package service wraps the grpcapi server to implement the gRPC-Web spec
+package service
 
 import (
 	"context"

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mssmux defines a service that routes transport protocols to stream
+// Package service defines a service that routes transport protocols to stream
 // multiplexers.
-package mssmux
+package service
 
 import (
 	"context"

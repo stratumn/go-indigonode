@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocknatmgr -destination mocknatmgr/mocknatmgr.go github.com/stratumn/alice/core/service/natmgr Host
+//go:generate mockgen -package mockservice -destination mockservice/mocknatmgr.go github.com/stratumn/alice/core/service/natmgr Host
 
-package natmgr
+package service

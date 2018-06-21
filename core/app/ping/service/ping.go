@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ping defines a service that handles ping requests and responses.
-package ping
+// Package service defines a service that handles ping requests and responses.
+package service
 
 import (
 	"context"

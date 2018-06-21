@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swarm
+package service
 
 import (
 	"context"
@@ -23,9 +23,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	metrics "github.com/stratumn/alice/core/app/metrics/service"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/metrics"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"

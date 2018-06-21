@@ -1,0 +1,55 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/core/app/bootstrap/pb/bootstrap.proto";
+
+package stratumn.alice.core.app.bootstrap.grpc;
+
+option go_package = "github.com/stratumn/alice/core/app/bootstrap/grpc;grpc";
+
+// The bootstrap service definition.
+service Bootstrap {
+  // Propose adding a node to the network.
+  rpc AddNode (stratumn.alice.core.app.bootstrap.pb.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Propose adding a node to the network";
+  }
+
+  // Propose removing a node from the network.
+  rpc RemoveNode (stratumn.alice.core.app.bootstrap.pb.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Propose removing a node from the network";
+  }
+
+  // Accept a proposal to add or remove a network node.
+  rpc Accept (stratumn.alice.core.app.bootstrap.pb.PeerID) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";
+  }
+
+  // Reject a proposal to add or remove a network node.
+  rpc Reject (stratumn.alice.core.app.bootstrap.pb.PeerID) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Reject a proposal to add or remove a network node";
+  }
+
+  // List pending proposals to add or remove a network node.
+  rpc List (stratumn.alice.core.app.bootstrap.pb.Filter) returns (stream stratumn.alice.core.app.bootstrap.pb.UpdateProposal) {
+    option (stratumn.alice.grpc.ext.method_desc) = "List pending proposals to add or remove a network node";
+  }
+
+  // Complete the network bootstrap phase.
+  rpc Complete (stratumn.alice.core.app.bootstrap.pb.CompleteReq) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Complete the network bootstrap phase";
+  }
+}

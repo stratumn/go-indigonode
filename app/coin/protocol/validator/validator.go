@@ -112,7 +112,7 @@ func (g *GossipValidator) ValidateTransactions(transactions []*pb.Transaction, s
 func NewGossipValidator(maxTxPerBlock uint32, engine engine.PoW, chReader chain.Reader) Validator {
 	balanceValidator := NewBalanceValidator(maxTxPerBlock, engine).(*BalanceValidator)
 
-	return &GossipValidator{chReader, balanceValidator}
+	return &GossipValidator{chReader: chReader, BalanceValidator: balanceValidator}
 }
 
 // BalanceValidator validates coin transactions.

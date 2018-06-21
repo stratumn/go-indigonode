@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -40,6 +41,10 @@ var (
 
 // Handler defines the methods to bootstrap and administer a network.
 type Handler interface {
+	// Handshake performs a network handshake.
+	// This should be done when the node starts.
+	Handshake(context.Context) error
+
 	// AddNode adds a node to the network. Depending on the underlying
 	// protocol, adding the node might require other node's approval
 	// or even be rejected.
@@ -69,8 +74,8 @@ type Handler interface {
 // depending on the network parameters.
 // It will register protocols to handle network requests.
 func New(
-	ctx context.Context,
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 	store proposal.Store,
@@ -84,10 +89,12 @@ func New(
 		return &PublicNetworkHandler{}, nil
 	case protector.PrivateWithCoordinatorMode:
 		if networkMode.IsCoordinator {
-			return NewCoordinatorHandler(host, networkConfig, store)
+			h := NewCoordinatorHandler(host, streamProvider, networkConfig, store)
+			return h, nil
 		}
 
-		return NewCoordinatedHandler(ctx, host, networkMode, networkConfig, store)
+		h := NewCoordinatedHandler(host, streamProvider, networkMode, networkConfig, store)
+		return h, nil
 	default:
 		return nil, ErrInvalidProtectionMode
 	}

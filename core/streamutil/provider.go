@@ -32,9 +32,50 @@ var (
 	ErrMissingProtocolIDs = errors.New("missing protocol IDs")
 )
 
+// Stream is a simplified stream abstraction.
+type Stream interface {
+	Conn() inet.Conn
+	Codec() Codec
+	Close()
+}
+
+type wrappedStream struct {
+	codec  Codec
+	stream inet.Stream
+	event  *logging.EventInProgress
+}
+
+// WrapStream wraps a stream to our simplified abstraction.
+func wrapStream(stream inet.Stream, event *logging.EventInProgress) Stream {
+	codec := NewProtobufCodec(stream)
+
+	return &wrappedStream{
+		stream: stream,
+		codec:  codec,
+		event:  event,
+	}
+}
+
+func (s *wrappedStream) Conn() inet.Conn {
+	return s.stream.Conn()
+}
+
+func (s *wrappedStream) Codec() Codec {
+	return s.codec
+}
+
+func (s *wrappedStream) Close() {
+	err := s.stream.Close()
+	if err != nil && s.event != nil {
+		s.event.Append(logging.Metadata{
+			"close_err": err.Error(),
+		})
+	}
+}
+
 // Provider lets you configure streams with added features.
 type Provider interface {
-	NewStream(context.Context, ihost.Host, ...StreamOption) (*WrappedStream, error)
+	NewStream(context.Context, ihost.Host, ...StreamOption) (Stream, error)
 }
 
 // StreamProvider implements the Provider interface.
@@ -43,14 +84,6 @@ type StreamProvider struct{}
 // NewStreamProvider returns a new provider.
 func NewStreamProvider() Provider {
 	return &StreamProvider{}
-}
-
-// WrappedStream wraps a stream with a Codec and a simplified
-// close method.
-type WrappedStream struct {
-	Conn  inet.Conn
-	Codec Codec
-	Close func()
 }
 
 // StreamOptions are used to configure a stream.
@@ -85,7 +118,7 @@ var OptLog = func(event *logging.EventInProgress) StreamOption {
 }
 
 // NewStream creates a new stream.
-func (p *StreamProvider) NewStream(ctx context.Context, host ihost.Host, opts ...StreamOption) (*WrappedStream, error) {
+func (p *StreamProvider) NewStream(ctx context.Context, host ihost.Host, opts ...StreamOption) (Stream, error) {
 	streamOpts := &StreamOptions{}
 	for _, opt := range opts {
 		opt(streamOpts)
@@ -108,19 +141,5 @@ func (p *StreamProvider) NewStream(ctx context.Context, host ihost.Host, opts ..
 		return nil, err
 	}
 
-	codec := NewProtobufCodec(s)
-	close := func() {
-		err := s.Close()
-		if err != nil && streamOpts.Event != nil {
-			streamOpts.Event.Append(logging.Metadata{
-				"close_err": err.Error(),
-			})
-		}
-	}
-
-	return &WrappedStream{
-		Conn:  s.Conn(),
-		Codec: codec,
-		Close: close,
-	}, nil
+	return wrapStream(s, streamOpts.Event), nil
 }

@@ -110,7 +110,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterContactsServer(gs, grpcServer{func() *Manager {
-		return s.mgr
-	}})
+	pb.RegisterContactsServer(gs, grpcServer{
+		GetManager: func() *Manager {
+			return s.mgr
+		},
+	})
 }

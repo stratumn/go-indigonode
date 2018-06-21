@@ -19,12 +19,14 @@ import (
 )
 
 // Connect is a command that creates a connection to the API server.
-var Connect = BasicCmdWrapper{BasicCmd{
-	Name:  "api-connect",
-	Use:   "api-connect [Multiaddress]",
-	Short: "Connect or reconnect to API server",
-	Exec:  execConnect,
-}}
+var Connect = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "api-connect",
+		Use:   "api-connect [Multiaddress]",
+		Short: "Connect or reconnect to API server",
+		Exec:  execConnect,
+	},
+}
 
 func execConnect(ctx *BasicContext) error {
 	argc := len(ctx.Args)

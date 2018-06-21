@@ -23,12 +23,14 @@ import (
 )
 
 // Exit is a command that terminates the current process.
-var Exit = BasicCmdWrapper{BasicCmd{
-	Name:  "exit",
-	Use:   "exit [Status]",
-	Short: "Exit program",
-	Exec:  exitExec,
-}}
+var Exit = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "exit",
+		Use:   "exit [Status]",
+		Short: "Exit program",
+		Exec:  exitExec,
+	},
+}
 
 func exitExec(ctx *BasicContext) error {
 	argc := len(ctx.Args)

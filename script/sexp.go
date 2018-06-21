@@ -119,7 +119,7 @@ func (s SExpSlice) Strings(quote bool) []string {
 }
 
 // nilVal represents the nil value.
-var nilVal = &scell{sexp{0, Meta{}}, nil, nil}
+var nilVal = &scell{sexp: sexp{id: 0, meta: Meta{}}, car: nil, cdr: nil}
 
 func init() {
 	nilVal.car = nilVal
@@ -213,7 +213,7 @@ type atomString struct {
 
 // String creates a new string atom.
 func String(val string, meta Meta) SExp {
-	return atomString{sexp{CellID(), meta}, val}
+	return atomString{sexp: sexp{id: CellID(), meta: meta}, val: val}
 }
 
 func (a atomString) String() string {
@@ -246,7 +246,7 @@ type atomInt64 struct {
 
 // Int64 creates a new 64-bit integer atom.
 func Int64(val int64, meta Meta) SExp {
-	return atomInt64{sexp{CellID(), meta}, val}
+	return atomInt64{sexp: sexp{id: CellID(), meta: meta}, val: val}
 }
 
 func (a atomInt64) String() string {
@@ -279,7 +279,7 @@ type atomBool struct {
 
 // Bool creates a new boolean atom.
 func Bool(val bool, meta Meta) SExp {
-	return atomBool{sexp{CellID(), meta}, val}
+	return atomBool{sexp: sexp{id: CellID(), meta: meta}, val: val}
 }
 
 func (a atomBool) String() string {
@@ -312,7 +312,7 @@ type atomSymbol struct {
 
 // Symbol creates a new symbol atom.
 func Symbol(val string, meta Meta) SExp {
-	return atomSymbol{sexp{CellID(), meta}, val}
+	return atomSymbol{sexp: sexp{id: CellID(), meta: meta}, val: val}
 }
 
 func (a atomSymbol) String() string {
@@ -353,7 +353,7 @@ func Cons(car, cdr SExp, meta Meta) SExp {
 		cdr = Nil()
 	}
 
-	return &scell{sexp{CellID(), meta}, car, cdr}
+	return &scell{sexp: sexp{id: CellID(), meta: meta}, car: car, cdr: cdr}
 }
 
 func (c *scell) String() string {

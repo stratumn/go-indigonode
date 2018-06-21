@@ -96,7 +96,7 @@ func (p *Parser) List(in string) (SExp, error) {
 	p.skipLines()
 
 	if p.tok.Type != TokEOF {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return list, nil
@@ -111,7 +111,7 @@ func (p *Parser) script() (SExp, error) {
 	p.skipLines()
 
 	if tok := p.consume(TokEOF); tok == nil {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return head, nil
@@ -183,7 +183,7 @@ func (p *Parser) call() (SExp, error) {
 	if p.consume(TokLParen) == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	call, err := p.inCallInParen()
@@ -196,7 +196,7 @@ func (p *Parser) call() (SExp, error) {
 	if p.consume(TokRParen) == nil {
 		// This actually never happens because sexpListInParen checks
 		// the token before returning.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return call, nil
@@ -298,7 +298,7 @@ func (p *Parser) quotedSExp() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	p.skipLines()
@@ -318,7 +318,7 @@ func (p *Parser) quasiquotedSExp() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	p.skipLines()
@@ -338,7 +338,7 @@ func (p *Parser) unquotedSExp() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	p.skipLines()
@@ -355,7 +355,7 @@ func (p *Parser) unquotedSExp() (SExp, error) {
 
 func (p *Parser) body() (SExp, error) {
 	if p.consume(TokLBrace) == nil {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	head, err := p.inBody()
@@ -366,7 +366,7 @@ func (p *Parser) body() (SExp, error) {
 	p.skipLines()
 
 	if p.consume(TokRBrace) == nil {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return head, nil
@@ -374,7 +374,7 @@ func (p *Parser) body() (SExp, error) {
 
 func (p *Parser) list() (SExp, error) {
 	if p.consume(TokLParen) == nil {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	list, err := p.sexpListInParen()
@@ -389,7 +389,7 @@ func (p *Parser) list() (SExp, error) {
 	p.skipLines()
 
 	if p.consume(TokRParen) == nil {
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return list, nil
@@ -407,7 +407,7 @@ func (p *Parser) atom() (SExp, error) {
 		return p.bool()
 	}
 
-	return nil, errors.WithStack(ParseError{p.tok})
+	return nil, errors.WithStack(ParseError{Tok: p.tok})
 }
 
 func (p *Parser) symbol() (SExp, error) {
@@ -415,7 +415,7 @@ func (p *Parser) symbol() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return Symbol(tok.Value, Meta{
@@ -429,7 +429,7 @@ func (p *Parser) string() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	return String(tok.Value, Meta{
@@ -443,7 +443,7 @@ func (p *Parser) int() (SExp, error) {
 	if tok == nil {
 		// This actually never happens because the caller checks the
 		// token.
-		return nil, errors.WithStack(ParseError{p.tok})
+		return nil, errors.WithStack(ParseError{Tok: p.tok})
 	}
 
 	i, err := strconv.ParseInt(tok.Value, 0, 64)
@@ -474,5 +474,5 @@ func (p *Parser) bool() (SExp, error) {
 
 	// This actually never happens because the caller checks the
 	// token.
-	return nil, errors.WithStack(ParseError{p.tok})
+	return nil, errors.WithStack(ParseError{Tok: p.tok})
 }

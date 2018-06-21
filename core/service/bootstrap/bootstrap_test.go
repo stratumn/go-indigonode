@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/protector"
 	mockprotector "github.com/stratumn/alice/core/protector/mocks"
+	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -77,12 +78,11 @@ func expectPublicHost(ctx context.Context, t *testing.T, net *mocks.MockNetwork,
 
 	host.EXPECT().Network().Return(net).AnyTimes()
 	host.EXPECT().Peerstore().Return(ps).AnyTimes()
+	host.EXPECT().Connect(gomock.Any(), gomock.Any()).Return(nil)
 
 	net.EXPECT().Peers().Return(ps.Peers())
 	net.EXPECT().Connectedness(seedID).Return(inet.NotConnected)
-	host.EXPECT().Connect(gomock.Any(), gomock.Any()).Return(nil)
-	net.EXPECT().Peers().Return([]peer.ID{seedID})
-	net.EXPECT().Peers().Return([]peer.ID{seedID})
+	net.EXPECT().Peers().Return([]peer.ID{seedID}).Times(2)
 }
 
 func TestService_strings(t *testing.T) {
@@ -145,13 +145,18 @@ func TestService_Run(t *testing.T) {
 		host.EXPECT().ID().Return(hostID).AnyTimes()
 		host.EXPECT().Network().Return(net).AnyTimes()
 		host.EXPECT().Peerstore().Return(peerStore).AnyTimes()
+
 		host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
 		host.EXPECT().RemoveStreamHandler(gomock.Any()).AnyTimes()
-		host.EXPECT().Connect(gomock.Any(), pstore.PeerInfo{ID: peer2}).Times(1)
+
+		host.EXPECT().Connect(gomock.Any(), pstore.PeerInfo{ID: peer2})
+		host.EXPECT().NewStream(gomock.Any(), peer1, protocol.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
+		host.EXPECT().NewStream(gomock.Any(), peer2, protocol.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
 
 		networkCfg := mockprotector.NewMockNetworkConfig(ctrl)
-		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED).Times(1)
+		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED)
 		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{hostID, peer1, peer2}).AnyTimes()
+		networkCfg.EXPECT().Copy(gomock.Any())
 
 		networkMode := &protector.NetworkMode{
 			ProtectionMode: protector.PrivateWithCoordinatorMode,

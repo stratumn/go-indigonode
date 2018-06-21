@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstraptesting
+package bootstraptest
 
 import (
 	"context"
@@ -21,6 +21,8 @@ import (
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/streamutil"
+	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stretchr/testify/require"
 
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
@@ -31,18 +33,17 @@ import (
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
-// ConnectAction connects a node to a network.
-type ConnectAction func() (bootstrap.Handler, error)
-
 // TestNetwork lets you configure a test network.
 type TestNetwork struct {
 	ctx context.Context
 	t   *testing.T
 
 	coordinator      *bhost.BlankHost
+	coordinatorCfg   protector.NetworkConfig
 	coordinatorStore proposal.Store
 
-	coordinated       []*bhost.BlankHost
+	coordinated       map[peer.ID]*bhost.BlankHost
+	coordinatedCfgs   map[peer.ID]protector.NetworkConfig
 	coordinatedStores map[peer.ID]proposal.Store
 }
 
@@ -51,60 +52,78 @@ func NewTestNetwork(ctx context.Context, t *testing.T) *TestNetwork {
 	return &TestNetwork{
 		ctx:               ctx,
 		t:                 t,
+		coordinated:       make(map[peer.ID]*bhost.BlankHost),
+		coordinatedCfgs:   make(map[peer.ID]protector.NetworkConfig),
 		coordinatedStores: make(map[peer.ID]proposal.Store),
 	}
 }
 
-// PrepareCoordinatedNode prepares a coordinated node, giving you access to its peerID
-// before connecting it to the network.
-// Use the returned ConnectAction to actually add the node to the network.
-func (n *TestNetwork) PrepareCoordinatedNode(coordinatorID peer.ID, networkConfig protector.NetworkConfig) (ihost.Host, ConnectAction) {
-	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
-	n.coordinatedStores[h.ID()] = proposal.NewInMemoryStore()
-
-	connect := func() (bootstrap.Handler, error) {
-		if n.coordinator != nil {
-			err := h.Connect(n.ctx, n.coordinator.Peerstore().PeerInfo(n.CoordinatorID()))
-			require.NoError(n.t, err, "h.Connect()")
-
-			n.coordinator.Peerstore().AddAddrs(h.ID(), h.Addrs(), peerstore.PermanentAddrTTL)
-		}
-
-		n.coordinated = append(n.coordinated, h)
-		return bootstrap.NewCoordinatedHandler(
-			n.ctx,
-			h,
-			&protector.NetworkMode{
-				CoordinatorID:  coordinatorID,
-				ProtectionMode: protector.PrivateWithCoordinatorMode,
-			},
-			networkConfig,
-			n.coordinatedStores[h.ID()],
-		)
-	}
-
-	return h, connect
-}
-
-// AddCoordinatedNode adds a coordinated node to the test network.
-func (n *TestNetwork) AddCoordinatedNode(coordinatorID peer.ID, networkConfig protector.NetworkConfig) (bootstrap.Handler, error) {
-	_, connect := n.PrepareCoordinatedNode(coordinatorID, networkConfig)
-	return connect()
-}
-
 // AddCoordinatorNode adds a coordinator node to the network.
-func (n *TestNetwork) AddCoordinatorNode(networkConfig protector.NetworkConfig) (bootstrap.Handler, error) {
-	n.coordinator = bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+func (n *TestNetwork) AddCoordinatorNode() bootstrap.Handler {
+	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+	coordinatorID := h.ID()
+	coordinatorKey := h.Peerstore().PrivKey(coordinatorID)
+
+	cfg, err := protector.NewInMemoryConfig(
+		context.Background(),
+		protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
+	)
+	require.NoError(n.t, err, "protector.NewInMemoryConfig()")
+
+	err = cfg.AddPeer(context.Background(), h.ID(), h.Addrs())
+	require.NoError(n.t, err)
+
+	n.coordinator = h
 	n.coordinatorStore = proposal.NewInMemoryStore()
+	n.coordinatorCfg = cfg
 
 	return bootstrap.NewCoordinatorHandler(
 		n.coordinator,
+		streamutil.NewStreamProvider(),
 		protector.WrapWithSignature(
-			networkConfig,
-			n.coordinator.Peerstore().PrivKey(n.coordinator.ID()),
+			n.coordinatorCfg,
+			coordinatorKey,
 		),
 		n.coordinatorStore,
 	)
+}
+
+// AddCoordinatedNode adds a coordinated node to the test network.
+func (n *TestNetwork) AddCoordinatedNode() (bootstrap.Handler, peer.ID) {
+	require.NotNil(n.t, n.coordinator, "n.coordinator")
+
+	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+	h.Peerstore().AddAddrs(
+		n.CoordinatorID(),
+		n.CoordinatorHost().Addrs(),
+		peerstore.PermanentAddrTTL,
+	)
+
+	cfg, err := protector.NewInMemoryConfig(
+		context.Background(),
+		protectorpb.NewNetworkConfig(protectorpb.NetworkState_BOOTSTRAP),
+	)
+	require.NoError(n.t, err, "protector.NewInMemoryConfig()")
+
+	err = cfg.AddPeer(context.Background(), n.coordinator.ID(), n.coordinator.Addrs())
+	require.NoError(n.t, err)
+
+	propStore := proposal.NewInMemoryStore()
+
+	n.coordinated[h.ID()] = h
+	n.coordinatedCfgs[h.ID()] = cfg
+	n.coordinatedStores[h.ID()] = propStore
+
+	return bootstrap.NewCoordinatedHandler(
+		h,
+		streamutil.NewStreamProvider(),
+		&protector.NetworkMode{
+			CoordinatorID:  n.CoordinatorID(),
+			ProtectionMode: protector.PrivateWithCoordinatorMode,
+		},
+		cfg,
+		propStore,
+	), h.ID()
 }
 
 // CoordinatorHost returns the underlying host of the coordinator.
@@ -130,9 +149,24 @@ func (n *TestNetwork) CoordinatorKey() crypto.PrivKey {
 	return nil
 }
 
+// CoordinatorConfig returns the network config of the coordinator.
+func (n *TestNetwork) CoordinatorConfig() protector.NetworkConfig {
+	return n.coordinatorCfg
+}
+
 // CoordinatorStore returns the proposal store of the coordinator.
 func (n *TestNetwork) CoordinatorStore() proposal.Store {
 	return n.coordinatorStore
+}
+
+// CoordinatedHost returns the underlying host of a given coordinated node.
+func (n *TestNetwork) CoordinatedHost(peerID peer.ID) ihost.Host {
+	return n.coordinated[peerID]
+}
+
+// CoordinatedConfig returns the network config of a given coordinated node.
+func (n *TestNetwork) CoordinatedConfig(peerID peer.ID) protector.NetworkConfig {
+	return n.coordinatedCfgs[peerID]
 }
 
 // CoordinatedStore returns the proposal store of a given coordinated node.

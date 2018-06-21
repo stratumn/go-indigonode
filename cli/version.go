@@ -24,12 +24,14 @@ import (
 )
 
 // Version is a command that displays the client version string.
-var Version = BasicCmdWrapper{BasicCmd{
-	Name:  "cli-version",
-	Short: "Output program version string",
-	Flags: versionFlags,
-	Exec:  versionExec,
-}}
+var Version = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "cli-version",
+		Short: "Output program version string",
+		Flags: versionFlags,
+		Exec:  versionExec,
+	},
+}
 
 func versionFlags() *pflag.FlagSet {
 	flags := pflag.NewFlagSet("cli-version", pflag.ContinueOnError)

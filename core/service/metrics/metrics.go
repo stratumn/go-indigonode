@@ -158,7 +158,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	promDone := make(chan error, 1)
 	if s.config.PrometheusEndpoint != "" {
 		go func() {
-			promDone <- httputil.StartServer(promCtx, s.config.PrometheusEndpoint, promHandler{ctx})
+			promDone <- httputil.StartServer(promCtx, s.config.PrometheusEndpoint, promHandler{ctx: ctx})
 		}()
 	}
 
@@ -192,7 +192,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterMetricsServer(gs, grpcServer{func() *Metrics { return s.metrics }})
+	pb.RegisterMetricsServer(gs, grpcServer{
+		GetMetrics: func() *Metrics { return s.metrics },
+	})
 }
 
 // Metrics embeds a libp2p reporter and a metrics sink.

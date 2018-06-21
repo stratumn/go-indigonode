@@ -12,33 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cli
+package bootstraptest
 
 import (
-	"strings"
-
-	"github.com/pkg/errors"
+	"context"
+	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
-// Disconnect is a command that closes the connection to the API server.
-var Disconnect = BasicCmdWrapper{
-	Cmd: BasicCmd{
-		Name:  "api-disconnect",
-		Short: "Disconnect from API server",
-		Exec:  disconnectExec,
-	},
-}
+// TestLogger can be used in tests to generate events.
+var TestLogger = logging.Logger("test")
 
-func disconnectExec(ctx *BasicContext) error {
-	if len(ctx.Args) > 0 {
-		return NewUseError("unexpected argument(s): " + strings.Join(ctx.Args, " "))
-	}
-
-	if err := ctx.CLI.Disconnect(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	ctx.CLI.Console().Println("Disconnected.")
-
-	return nil
+// NewEvent creates a new empty event.
+func NewEvent() *logging.EventInProgress {
+	return TestLogger.EventBegin(context.Background(), "test")
 }

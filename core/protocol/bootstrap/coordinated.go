@@ -47,35 +47,27 @@ var (
 // CoordinatedHandler is the handler for a non-coordinator node
 // in a private network that has a coordinator.
 type CoordinatedHandler struct {
-	coordinatorID peer.ID
-	host          ihost.Host
-	networkConfig protector.NetworkConfig
-	proposalStore proposal.Store
+	coordinatorID  peer.ID
+	host           ihost.Host
+	streamProvider streamutil.Provider
+	networkConfig  protector.NetworkConfig
+	proposalStore  proposal.Store
 }
 
 // NewCoordinatedHandler returns a Handler for a non-coordinator node.
 func NewCoordinatedHandler(
-	ctx context.Context,
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkMode *protector.NetworkMode,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
-) (Handler, error) {
-	event := log.EventBegin(ctx, "Coordinated.New", logging.Metadata{
-		"coordinatorID": networkMode.CoordinatorID.Pretty(),
-	})
-	defer event.Done()
-
+) Handler {
 	handler := CoordinatedHandler{
-		coordinatorID: networkMode.CoordinatorID,
-		host:          host,
-		networkConfig: networkConfig,
-		proposalStore: proposalStore,
-	}
-
-	err := handler.handshake(ctx)
-	if err != nil {
-		return nil, err
+		coordinatorID:  networkMode.CoordinatorID,
+		host:           host,
+		streamProvider: streamProvider,
+		networkConfig:  networkConfig,
+		proposalStore:  proposalStore,
 	}
 
 	host.SetStreamHandler(
@@ -88,13 +80,76 @@ func NewCoordinatedHandler(
 		streamutil.WithAutoClose(log, "Coordinated.HandlePropose", handler.HandlePropose),
 	)
 
-	return &handler, nil
+	return &handler
 }
 
-// handshake connects to the coordinator for the initial handshake.
+// Close removes the protocol handlers.
+func (h *CoordinatedHandler) Close(ctx context.Context) {
+	log.Event(ctx, "Coordinated.Close")
+
+	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
+	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
+}
+
+// HandleConfigUpdate receives updates to the network configuration.
+func (h *CoordinatedHandler) HandleConfigUpdate(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
+	if stream.Conn().RemotePeer() != h.coordinatorID {
+		return protector.ErrConnectionRefused
+	}
+
+	var networkConfig protectorpb.NetworkConfig
+	if err := codec.Decode(&networkConfig); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
+		return protectorpb.ErrInvalidSignature
+	}
+
+	err := h.networkConfig.Reset(ctx, &networkConfig)
+	if err != nil {
+		return err
+	}
+
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
+
+	return nil
+}
+
+// HandlePropose handles an incoming network update proposal.
+func (h *CoordinatedHandler) HandlePropose(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) error {
+	if stream.Conn().RemotePeer() != h.coordinatorID {
+		return protector.ErrConnectionRefused
+	}
+
+	var updateReq pb.UpdateProposal
+	if err := codec.Decode(&updateReq); err != nil {
+		return errors.WithStack(err)
+	}
+
+	req := &proposal.Request{}
+	err := req.FromUpdateProposal(&updateReq)
+	if err != nil {
+		return err
+	}
+
+	return h.proposalStore.AddRequest(ctx, req)
+}
+
+// Handshake connects to the coordinator for the initial handshake.
 // The node is expected to receive the network configuration during
 // that handshake.
-func (h *CoordinatedHandler) handshake(ctx context.Context) error {
+func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 	event := log.EventBegin(ctx, "Coordinated.handshake")
 	defer event.Done()
 
@@ -104,7 +159,7 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 		return protector.ErrConnectionRefused
 	}
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -117,13 +172,13 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 
 	defer stream.Close()
 
-	if err := stream.Codec.Encode(&pb.Hello{}); err != nil {
+	if err := stream.Codec().Encode(&pb.Hello{}); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
 
 	var networkConfig protectorpb.NetworkConfig
-	if err := stream.Codec.Decode(&networkConfig); err != nil {
+	if err := stream.Codec().Decode(&networkConfig); err != nil {
 		event.SetError(errors.WithStack(err))
 		return protector.ErrConnectionRefused
 	}
@@ -142,69 +197,13 @@ func (h *CoordinatedHandler) handshake(ctx context.Context) error {
 	return h.networkConfig.Reset(ctx, &networkConfig)
 }
 
-// HandleConfigUpdate receives updates to the network configuration.
-func (h *CoordinatedHandler) HandleConfigUpdate(
-	ctx context.Context,
-	event *logging.EventInProgress,
-	stream inet.Stream,
-	codec streamutil.Codec,
-) error {
-	var networkConfig protectorpb.NetworkConfig
-	if err := codec.Decode(&networkConfig); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
-		return protectorpb.ErrInvalidSignature
-	}
-
-	err := h.networkConfig.Reset(ctx, &networkConfig)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		for _, c := range h.host.Network().Conns() {
-			if !h.networkConfig.IsAllowed(ctx, c.RemotePeer()) {
-				err = c.Close()
-				if err != nil {
-					log.Event(ctx, "CloseErr", c.RemotePeer(), logging.Metadata{"err": err.Error()})
-				}
-			}
-		}
-	}()
-
-	return nil
-}
-
-// HandlePropose handles an incoming network update proposal.
-func (h *CoordinatedHandler) HandlePropose(
-	ctx context.Context,
-	event *logging.EventInProgress,
-	stream inet.Stream,
-	codec streamutil.Codec,
-) error {
-	var updateReq pb.UpdateProposal
-	if err := codec.Decode(&updateReq); err != nil {
-		return errors.WithStack(err)
-	}
-
-	req := &proposal.Request{}
-	err := req.FromUpdateProposal(&updateReq)
-	if err != nil {
-		return err
-	}
-
-	return h.proposalStore.AddRequest(ctx, req)
-}
-
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
 func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
 	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
 	defer event.Done()
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -225,7 +224,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 		req.PeerAddr = addr.Bytes()
 	}
 
-	err = stream.Codec.Encode(req)
+	err = stream.Codec().Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -241,7 +240,7 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
 	defer event.Done()
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -255,7 +254,7 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	defer stream.Close()
 
 	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
-	err = stream.Codec.Encode(req)
+	err = stream.Codec().Encode(req)
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -292,7 +291,7 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return err
 	}
 
-	stream, err := (&streamutil.StreamProvider{}).NewStream(
+	stream, err := h.streamProvider.NewStream(
 		ctx,
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
@@ -305,7 +304,7 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 
 	defer stream.Close()
 
-	err = stream.Codec.Encode(v.ToProtoVote())
+	err = stream.Codec().Encode(v.ToProtoVote())
 	if err != nil {
 		event.SetError(errors.WithStack(err))
 		return err
@@ -324,11 +323,4 @@ func (h *CoordinatedHandler) Reject(ctx context.Context, peerID peer.ID) error {
 // Only the coordinator can complete the bootstrap phase.
 func (h *CoordinatedHandler) CompleteBootstrap(context.Context) error {
 	return ErrInvalidOperation
-}
-
-// Close removes the protocol handlers.
-func (h *CoordinatedHandler) Close(ctx context.Context) {
-	log.Event(ctx, "Coordinated.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
-	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
 }

@@ -15,7 +15,6 @@
 package bootstrap_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -27,7 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
 func TestBootstrapNew(t *testing.T) {
@@ -65,21 +63,18 @@ func TestBootstrapNew(t *testing.T) {
 			CoordinatorAddrs: []multiaddr.Multiaddr{peerAddr},
 		},
 		&bootstrap.CoordinatedHandler{},
-		protector.ErrConnectionRefused,
+		nil,
 	}}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
 			host := mocks.NewMockHost(ctrl)
 			host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
-			host.EXPECT().Peerstore().AnyTimes().Return(peerstore.NewPeerstore())
-			host.EXPECT().Connect(gomock.Any(), gomock.Any()).AnyTimes().Return(protector.ErrConnectionRefused)
 
-			h, err := bootstrap.New(ctx, host, tt.networkMode, nil, nil)
+			h, err := bootstrap.New(host, nil, tt.networkMode, nil, nil)
 
 			if tt.expectedErr == nil {
 				require.NoError(t, err)

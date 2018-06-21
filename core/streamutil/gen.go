@@ -13,5 +13,7 @@
 // limitations under the License.
 
 //go:generate mockgen -package mockstream -destination mockstream/mockcodec.go github.com/stratumn/alice/core/streamutil Codec
+//go:generate mockgen -package mockstream -destination mockstream/mockprovider.go github.com/stratumn/alice/core/streamutil Provider
+//go:generate mockgen -package mockstream -destination mockstream/mockstream.go github.com/stratumn/alice/core/streamutil Stream
 
 package streamutil

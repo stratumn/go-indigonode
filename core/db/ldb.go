@@ -82,13 +82,13 @@ func (db levelDB) Get(key []byte) ([]byte, error) {
 
 func (db levelDB) IterateRange(start, stop []byte) Iterator {
 	return levelDBIter{
-		db.ldb.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
+		ldbiter: db.ldb.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
 	}
 }
 
 func (db levelDB) IteratePrefix(prefix []byte) Iterator {
 	return levelDBIter{
-		db.ldb.NewIterator(util.BytesPrefix(prefix), nil),
+		ldbiter: db.ldb.NewIterator(util.BytesPrefix(prefix), nil),
 	}
 }
 
@@ -116,7 +116,7 @@ func (db levelDB) Write(batch Batch) error {
 func (db levelDB) Transaction() (Transaction, error) {
 	tx, err := db.ldb.OpenTransaction()
 
-	return levelDBTx{tx}, errors.WithStack(err)
+	return levelDBTx{ldbtx: tx}, errors.WithStack(err)
 }
 
 func (db levelDB) Close() error {
@@ -137,13 +137,13 @@ func (tx levelDBTx) Get(key []byte) ([]byte, error) {
 
 func (tx levelDBTx) IterateRange(start, stop []byte) Iterator {
 	return levelDBIter{
-		tx.ldbtx.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
+		ldbiter: tx.ldbtx.NewIterator(&util.Range{Start: start, Limit: stop}, nil),
 	}
 }
 
 func (tx levelDBTx) IteratePrefix(prefix []byte) Iterator {
 	return levelDBIter{
-		tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil),
+		ldbiter: tx.ldbtx.NewIterator(util.BytesPrefix(prefix), nil),
 	}
 }
 

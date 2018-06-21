@@ -60,21 +60,24 @@ var (
 // CoordinatorHandler is the handler for the coordinator
 // of a private network.
 type CoordinatorHandler struct {
-	host          ihost.Host
-	networkConfig protector.NetworkConfig
-	proposalStore proposal.Store
+	host           ihost.Host
+	streamProvider streamutil.Provider
+	networkConfig  protector.NetworkConfig
+	proposalStore  proposal.Store
 }
 
 // NewCoordinatorHandler returns a Handler for a coordinator node.
 func NewCoordinatorHandler(
 	host ihost.Host,
+	streamProvider streamutil.Provider,
 	networkConfig protector.NetworkConfig,
 	proposalStore proposal.Store,
-) (Handler, error) {
+) Handler {
 	handler := CoordinatorHandler{
-		host:          host,
-		networkConfig: networkConfig,
-		proposalStore: proposalStore,
+		host:           host,
+		streamProvider: streamProvider,
+		networkConfig:  networkConfig,
+		proposalStore:  proposalStore,
 	}
 
 	host.SetStreamHandler(
@@ -92,19 +95,31 @@ func NewCoordinatorHandler(
 		streamutil.WithAutoClose(log, "Coordinator.HandleVote", handler.HandleVote),
 	)
 
-	return &handler, nil
+	return &handler
+}
+
+// Close removes the protocol handlers.
+func (h *CoordinatorHandler) Close(ctx context.Context) {
+	log.Event(ctx, "Coordinator.Close")
+
+	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
+	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }
 
 // ValidateSender rejects unauthorized requests.
 // This should already be done at the connection level by our protector
 // component, but it's always better to have multi-level security.
-func (h *CoordinatorHandler) ValidateSender(ctx context.Context, stream inet.Stream, event *logging.EventInProgress) error {
+func (h *CoordinatorHandler) ValidateSender(ctx context.Context, peerID peer.ID) error {
+	event := log.EventBegin(ctx, "Coordinator.ValidateSender", peerID)
+	defer event.Done()
+
 	networkState := h.networkConfig.NetworkState(ctx)
-	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
+	allowed := h.networkConfig.IsAllowed(ctx, peerID)
 
 	// Once the bootstrap is complete, we reject non-white-listed peers.
 	if !allowed && networkState == protectorpb.NetworkState_PROTECTED {
-		event.Append(logging.Metadata{"unauthorized": true})
+		event.SetError(protector.ErrConnectionRefused)
 		return protector.ErrConnectionRefused
 	}
 
@@ -119,7 +134,8 @@ func (h *CoordinatorHandler) HandleHandshake(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	remoteID := stream.Conn().RemotePeer()
+	err := h.ValidateSender(ctx, remoteID)
 	if err != nil {
 		return err
 	}
@@ -129,7 +145,7 @@ func (h *CoordinatorHandler) HandleHandshake(
 		return protector.ErrConnectionRefused
 	}
 
-	allowed := h.networkConfig.IsAllowed(ctx, stream.Conn().RemotePeer())
+	allowed := h.networkConfig.IsAllowed(ctx, remoteID)
 
 	// We should not reveal network participants to unwanted peers.
 	if !allowed {
@@ -147,7 +163,8 @@ func (h *CoordinatorHandler) HandlePropose(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	remotePeer := stream.Conn().RemotePeer()
+	err := h.ValidateSender(ctx, remotePeer)
 	if err != nil {
 		return err
 	}
@@ -176,7 +193,7 @@ func (h *CoordinatorHandler) HandlePropose(
 			return codec.Encode(&pb.Ack{Error: err.Error()})
 		}
 
-		if r.PeerID != stream.Conn().RemotePeer() {
+		if r.PeerID != remotePeer {
 			return codec.Encode(&pb.Ack{Error: proposal.ErrInvalidPeerAddr.Error()})
 		}
 
@@ -203,7 +220,7 @@ func (h *CoordinatorHandler) HandlePropose(
 		}
 
 		if req.Type == proposal.RemoveNode {
-			go h.SendProposal(ctx, req)
+			h.SendProposal(ctx, req)
 		}
 	}
 
@@ -217,7 +234,7 @@ func (h *CoordinatorHandler) HandleVote(
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
-	err := h.ValidateSender(ctx, stream, event)
+	err := h.ValidateSender(ctx, stream.Conn().RemotePeer())
 	if err != nil {
 		return err
 	}
@@ -301,6 +318,14 @@ func (h *CoordinatorHandler) voteThresholdReached(ctx context.Context, peerID pe
 	return true, nil
 }
 
+// Handshake sends the current network configuration to all participants.
+func (h *CoordinatorHandler) Handshake(ctx context.Context) error {
+	defer log.EventBegin(ctx, "Coordinator.Handshake").Done()
+
+	h.SendNetworkConfig(ctx)
+	return nil
+}
+
 // AddNode adds the node to the network configuration
 // and notifies network participants.
 func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
@@ -355,14 +380,7 @@ func (h *CoordinatorHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 		return err
 	}
 
-	for _, c := range h.host.Network().Conns() {
-		if c.RemotePeer() == peerID {
-			err = c.Close()
-			if err != nil {
-				event.Append(logging.Metadata{"close_err": err.Error()})
-			}
-		}
-	}
+	Disconnect(h.host, peerID, event)
 
 	h.SendNetworkConfig(ctx)
 
@@ -392,29 +410,14 @@ func (h *CoordinatorHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return err
 	}
 
-	if r.Type == proposal.RemoveNode {
+	switch r.Type {
+	case proposal.AddNode:
+		return h.AddNode(ctx, peerID, r.PeerAddr, r.Info)
+	case proposal.RemoveNode:
 		return h.RemoveNode(ctx, peerID)
+	default:
+		return proposal.ErrInvalidRequestType
 	}
-
-	if r.PeerAddr == nil {
-		event.SetError(proposal.ErrMissingPeerAddr)
-		return proposal.ErrMissingPeerAddr
-	}
-
-	if h.networkConfig.IsAllowed(ctx, peerID) {
-		// Nothing to do, peer was already added.
-		return nil
-	}
-
-	err = h.networkConfig.AddPeer(ctx, peerID, []multiaddr.Multiaddr{r.PeerAddr})
-	if err != nil {
-		event.SetError(err)
-		return err
-	}
-
-	h.SendNetworkConfig(ctx)
-
-	return nil
 }
 
 // Reject ignores a proposal to add or remove a node.
@@ -439,24 +442,9 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 		return err
 	}
 
-	h.SendNetworkConfig(ctx)
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
 
-	// Disconnect from unauthorized nodes.
-	for _, c := range h.host.Network().Conns() {
-		peerID := c.RemotePeer()
-		if !h.networkConfig.IsAllowed(ctx, peerID) {
-			err = c.Close()
-			if err != nil {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): err.Error(),
-				})
-			} else {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): "disconnected",
-				})
-			}
-		}
-	}
+	h.SendNetworkConfig(ctx)
 
 	return nil
 }
@@ -485,7 +473,7 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 			event := log.EventBegin(ctx, "Coordinator.SendProposal.Stream", peerID)
 			defer event.Done()
 
-			stream, err := (&streamutil.StreamProvider{}).NewStream(
+			stream, err := h.streamProvider.NewStream(
 				ctx,
 				h.host,
 				streamutil.OptPeerID(peerID),
@@ -498,10 +486,9 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 
 			defer stream.Close()
 
-			err = stream.Codec.Encode(updateReq)
+			err = stream.Codec().Encode(updateReq)
 			if err != nil {
 				event.SetError(err)
-				return
 			}
 		}(peerID)
 	}
@@ -533,7 +520,7 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 			event := log.EventBegin(ctx, "Coordinator.SendNetworkConfig.Stream", peerID)
 			defer event.Done()
 
-			stream, err := (&streamutil.StreamProvider{}).NewStream(
+			stream, err := h.streamProvider.NewStream(
 				ctx,
 				h.host,
 				streamutil.OptPeerID(peerID),
@@ -546,21 +533,12 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 
 			defer stream.Close()
 
-			err = stream.Codec.Encode(&networkConfig)
+			err = stream.Codec().Encode(&networkConfig)
 			if err != nil {
 				event.SetError(err)
-				return
 			}
 		}(peerID)
 	}
 
 	wg.Wait()
-}
-
-// Close removes the protocol handlers.
-func (h *CoordinatorHandler) Close(ctx context.Context) {
-	log.Event(ctx, "Coordinator.Close")
-	h.host.RemoveStreamHandler(PrivateCoordinatorHandshakePID)
-	h.host.RemoveStreamHandler(PrivateCoordinatorProposePID)
-	h.host.RemoveStreamHandler(PrivateCoordinatorVotePID)
 }

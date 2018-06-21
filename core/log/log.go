@@ -309,7 +309,7 @@ func NewFilteredWriter(writer io.Writer, mu sync.Locker, filter FilterFunc) io.W
 		close(done)
 	}()
 
-	return FilteredWriter{w}
+	return FilteredWriter{WriteCloser: w}
 }
 
 // PrettyWriter writes nicely formatted log output to a console.
@@ -331,7 +331,7 @@ var (
 // NewPrettyWriter creates a new pretty writer.
 func NewPrettyWriter(writer io.Writer, mu sync.Locker, filter FilterFunc, color bool) io.WriteCloser {
 	r, w := io.Pipe()
-	pretty := PrettyWriter{w, writer, color}
+	pretty := PrettyWriter{WriteCloser: w, writer: writer, color: color}
 	scanner := bufio.NewScanner(r)
 	closers = append(closers, w, r)
 	done := make(chan struct{}, 1)
@@ -500,5 +500,5 @@ func NewJournaldWriter(writer io.Writer, mu sync.Locker, filter FilterFunc) io.W
 		close(done)
 	}()
 
-	return JournaldWriter{w}
+	return JournaldWriter{WriteCloser: w}
 }

@@ -39,7 +39,7 @@ func NewManager(dbPath string) (*Manager, error) {
 		return nil, err
 	}
 
-	return &Manager{hdb}, nil
+	return &Manager{hdb: hdb}, nil
 }
 
 // Get returns the chat history with a peer.

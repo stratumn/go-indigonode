@@ -18,10 +18,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/bootstrap/pb"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/streamutil"
-	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

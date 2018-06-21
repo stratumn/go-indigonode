@@ -18,11 +18,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/bootstrap/grpc"
+	"github.com/stratumn/alice/core/app/bootstrap/pb"
 	protocol "github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	grpc "github.com/stratumn/alice/grpc/bootstrap"
-	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

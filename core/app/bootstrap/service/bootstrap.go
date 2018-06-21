@@ -22,12 +22,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	pb "github.com/stratumn/alice/core/app/bootstrap/grpc"
 	protocol "github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/core/streamutil"
-	pb "github.com/stratumn/alice/grpc/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/release"
 

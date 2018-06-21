@@ -20,6 +20,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	bootstrappb "github.com/stratumn/alice/core/app/bootstrap/pb"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/bootstraptest"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
@@ -30,7 +31,6 @@ import (
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	"github.com/stratumn/alice/core/streamutil/streamtest"
-	bootstrappb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"

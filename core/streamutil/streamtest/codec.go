@@ -18,9 +18,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/app/bootstrap/pb"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
-	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stretchr/testify/require"
 

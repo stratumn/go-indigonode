@@ -99,9 +99,9 @@ func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, 
 
 	cons := cli.NewConsole(w, false)
 
-	elc := mockevent.NewMockEmitter_ListenClient(mockCtrl)
+	elc := mockgrpc.NewMockEmitter_ListenClient(mockCtrl)
 
-	client := mockevent.NewMockEmitterClient(mockCtrl)
+	client := mockgrpc.NewMockEmitterClient(mockCtrl)
 	client.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(elc, nil).AnyTimes()
 
 	el := cli.NewConsoleClientEventListener(cons, client, mockSig)

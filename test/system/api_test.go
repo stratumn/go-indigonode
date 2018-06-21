@@ -18,11 +18,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/alice/core/app/grpcapi/grpc"
+	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/release"
 	"github.com/stratumn/alice/test/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"google.golang.org/grpc"
 )
 

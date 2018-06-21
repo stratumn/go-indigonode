@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stratumn/alice/core/app/bootstrap/protocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/streamutil"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stretchr/testify/require"
@@ -59,7 +59,7 @@ func NewTestNetwork(ctx context.Context, t *testing.T) *TestNetwork {
 }
 
 // AddCoordinatorNode adds a coordinator node to the network.
-func (n *TestNetwork) AddCoordinatorNode() bootstrap.Handler {
+func (n *TestNetwork) AddCoordinatorNode() protocol.Handler {
 	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
 	coordinatorID := h.ID()
 	coordinatorKey := h.Peerstore().PrivKey(coordinatorID)
@@ -77,7 +77,7 @@ func (n *TestNetwork) AddCoordinatorNode() bootstrap.Handler {
 	n.coordinatorStore = proposal.NewInMemoryStore()
 	n.coordinatorCfg = cfg
 
-	return bootstrap.NewCoordinatorHandler(
+	return protocol.NewCoordinatorHandler(
 		n.coordinator,
 		streamutil.NewStreamProvider(),
 		protector.WrapWithSignature(
@@ -89,7 +89,7 @@ func (n *TestNetwork) AddCoordinatorNode() bootstrap.Handler {
 }
 
 // AddCoordinatedNode adds a coordinated node to the test network.
-func (n *TestNetwork) AddCoordinatedNode() (bootstrap.Handler, peer.ID) {
+func (n *TestNetwork) AddCoordinatedNode() (protocol.Handler, peer.ID) {
 	require.NotNil(n.t, n.coordinator, "n.coordinator")
 
 	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
@@ -114,7 +114,7 @@ func (n *TestNetwork) AddCoordinatedNode() (bootstrap.Handler, peer.ID) {
 	n.coordinatedCfgs[h.ID()] = cfg
 	n.coordinatedStores[h.ID()] = propStore
 
-	return bootstrap.NewCoordinatedHandler(
+	return protocol.NewCoordinatedHandler(
 		h,
 		streamutil.NewStreamProvider(),
 		&protector.NetworkMode{

@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bootstrap defines a service that bootstraps a host from a set of
-// well known peers.
-package bootstrap
+// Package service defines the bootstrap service implementation.
+package service
 
 import (
 	"context"
@@ -23,9 +22,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	protocol "github.com/stratumn/alice/core/app/bootstrap/protocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/core/streamutil"
 	pb "github.com/stratumn/alice/grpc/bootstrap"

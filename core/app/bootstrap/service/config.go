@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap
+package service
 
 import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 )
 
 // Configuration errors.

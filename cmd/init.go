@@ -20,9 +20,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
+	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/alice/core/service/swarm"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap
+package service
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/mockprotocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal/mocks"
+	"github.com/stratumn/alice/core/app/bootstrap/service/mockservice"
 	"github.com/stratumn/alice/core/protector"
-	protocol "github.com/stratumn/alice/core/protocol/bootstrap"
-	mockprotocol "github.com/stratumn/alice/core/protocol/bootstrap/mockbootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
-	"github.com/stratumn/alice/core/service/bootstrap/mockbootstrap"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
@@ -257,7 +257,7 @@ func TestGRPCServer_List(t *testing.T) {
 			nil,
 		)
 
-		mockServer := mockbootstrap.NewMockBootstrap_ListServer(ctrl)
+		mockServer := mockservice.NewMockBootstrap_ListServer(ctrl)
 		mockServer.EXPECT().Context().Times(1).Return(ctx)
 		mockServer.EXPECT().Send(gomock.Any()).Times(1).Do(func(req *pb.UpdateProposal) error {
 			assert.Equal(t, pb.UpdateType_AddNode, req.UpdateType)

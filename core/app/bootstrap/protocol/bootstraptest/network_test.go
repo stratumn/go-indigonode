@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/require"

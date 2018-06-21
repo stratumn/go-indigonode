@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap_test
+package protocol_test
 
 import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protocol/bootstrap"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
@@ -41,11 +41,11 @@ func TestBootstrapNew(t *testing.T) {
 		"invalid-protection-mode",
 		&protector.NetworkMode{ProtectionMode: "quantum"},
 		nil,
-		bootstrap.ErrInvalidProtectionMode,
+		protocol.ErrInvalidProtectionMode,
 	}, {
 		"public-network",
 		&protector.NetworkMode{},
-		&bootstrap.PublicNetworkHandler{},
+		&protocol.PublicNetworkHandler{},
 		nil,
 	}, {
 		"private-coordinator-node",
@@ -53,7 +53,7 @@ func TestBootstrapNew(t *testing.T) {
 			ProtectionMode: protector.PrivateWithCoordinatorMode,
 			IsCoordinator:  true,
 		},
-		&bootstrap.CoordinatorHandler{},
+		&protocol.CoordinatorHandler{},
 		nil,
 	}, {
 		"private-with-coordinator",
@@ -62,7 +62,7 @@ func TestBootstrapNew(t *testing.T) {
 			CoordinatorID:    peerID,
 			CoordinatorAddrs: []multiaddr.Multiaddr{peerAddr},
 		},
-		&bootstrap.CoordinatedHandler{},
+		&protocol.CoordinatedHandler{},
 		nil,
 	}}
 
@@ -74,7 +74,7 @@ func TestBootstrapNew(t *testing.T) {
 			host := mocks.NewMockHost(ctrl)
 			host.EXPECT().SetStreamHandler(gomock.Any(), gomock.Any()).AnyTimes()
 
-			h, err := bootstrap.New(host, nil, tt.networkMode, nil, nil)
+			h, err := protocol.New(host, nil, tt.networkMode, nil, nil)
 
 			if tt.expectedErr == nil {
 				require.NoError(t, err)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap_test
+package protocol_test
 
 import (
 	"context"
@@ -20,13 +20,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/bootstraptest"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal/mocks"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposaltest"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/protectortest"
-	"github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposaltest"
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	"github.com/stratumn/alice/core/streamutil/streamtest"
@@ -43,8 +43,8 @@ import (
 )
 
 func expectCoordinatedHost(host *mocks.MockHost) {
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedConfigPID, gomock.Any())
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatedProposePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.PrivateCoordinatedConfigPID, gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.PrivateCoordinatedProposePID, gomock.Any())
 }
 
 func TestCoordinated_Close(t *testing.T) {
@@ -57,11 +57,11 @@ func TestCoordinated_Close(t *testing.T) {
 	mode := &protector.NetworkMode{
 		CoordinatorID: test.GeneratePeerID(t),
 	}
-	handler := bootstrap.NewCoordinatedHandler(host, nil, mode, nil, nil)
+	handler := protocol.NewCoordinatedHandler(host, nil, mode, nil, nil)
 	require.NotNil(t, handler)
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedConfigPID)
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatedProposePID)
+	host.EXPECT().RemoveStreamHandler(protocol.PrivateCoordinatedConfigPID)
+	host.EXPECT().RemoveStreamHandler(protocol.PrivateCoordinatedProposePID)
 
 	handler.Close(context.Background())
 }
@@ -77,7 +77,7 @@ type CoordinatedHandleTestCase struct {
 
 func (ht *CoordinatedHandleTestCase) Run(
 	t *testing.T,
-	h func(*bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler,
+	h func(*protocol.CoordinatedHandler) streamutil.AutoCloseHandler,
 ) {
 	t.Run(ht.name, func(t *testing.T) {
 		ctx := context.Background()
@@ -101,7 +101,7 @@ func (ht *CoordinatedHandleTestCase) Run(
 		ht.configure(t, ctrl, host, codec)
 
 		mode := &protector.NetworkMode{CoordinatorID: ht.coordinatorID}
-		handler := bootstrap.NewCoordinatedHandler(host, nil, mode, cfg, s).(*bootstrap.CoordinatedHandler)
+		handler := protocol.NewCoordinatedHandler(host, nil, mode, cfg, s).(*protocol.CoordinatedHandler)
 		err := h(handler)(ctx, bootstraptest.NewEvent(), stream, codec)
 
 		if ht.err != nil {
@@ -215,7 +215,7 @@ func TestCoordinated_HandleConfigUpdate(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt.Run(t, func(handler *bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler {
+		tt.Run(t, func(handler *protocol.CoordinatedHandler) streamutil.AutoCloseHandler {
 			return handler.HandleConfigUpdate
 		})
 	}
@@ -270,7 +270,7 @@ func TestCoordinated_HandlePropose(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt.Run(t, func(handler *bootstrap.CoordinatedHandler) streamutil.AutoCloseHandler {
+		tt.Run(t, func(handler *protocol.CoordinatedHandler) streamutil.AutoCloseHandler {
 			return handler.HandlePropose
 		})
 	}
@@ -310,7 +310,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 				t,
 				p,
 				coordinatorID,
-				bootstrap.PrivateCoordinatorHandshakePID,
+				protocol.PrivateCoordinatorHandshakePID,
 				nil,
 				errors.New("no stream"),
 			)
@@ -423,7 +423,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 				t,
 				p,
 				coordinatorID,
-				bootstrap.PrivateCoordinatorProposePID,
+				protocol.PrivateCoordinatorProposePID,
 				nil,
 				errors.New("no stream"),
 			)
@@ -485,7 +485,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 			tt.configure(t, ctrl, host, prov)
 
 			mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
-			handler := bootstrap.NewCoordinatedHandler(host, prov, mode, cfg, nil)
+			handler := protocol.NewCoordinatedHandler(host, prov, mode, cfg, nil)
 			err := handler.Handshake(context.Background())
 
 			if tt.err != nil {
@@ -510,7 +510,7 @@ func TestCoordinated_AddNode(t *testing.T) {
 	p := mockstream.NewMockProvider(ctrl)
 
 	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
-	handler := bootstrap.NewCoordinatedHandler(host, p, mode, nil, nil)
+	handler := protocol.NewCoordinatedHandler(host, p, mode, nil, nil)
 
 	peerID := test.GeneratePeerID(t)
 	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
@@ -526,7 +526,7 @@ func TestCoordinated_AddNode(t *testing.T) {
 	stream.EXPECT().Codec().Return(codec)
 	stream.EXPECT().Close()
 
-	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorProposePID, stream, nil)
+	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, protocol.PrivateCoordinatorProposePID, stream, nil)
 
 	err := handler.AddNode(context.Background(), peerID, peerAddr, []byte("b4tm4n"))
 	require.NoError(t, err)
@@ -544,7 +544,7 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 	p := mockstream.NewMockProvider(ctrl)
 
 	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
-	handler := bootstrap.NewCoordinatedHandler(host, p, mode, nil, nil)
+	handler := protocol.NewCoordinatedHandler(host, p, mode, nil, nil)
 
 	peerID := test.GeneratePeerID(t)
 
@@ -555,7 +555,7 @@ func TestCoordinated_RemoveNode(t *testing.T) {
 	stream.EXPECT().Codec().Return(codec)
 	stream.EXPECT().Close()
 
-	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorProposePID, stream, nil)
+	streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, protocol.PrivateCoordinatorProposePID, stream, nil)
 
 	err := handler.RemoveNode(context.Background(), peerID)
 	require.NoError(t, err)
@@ -594,7 +594,7 @@ func TestCoordinated_Accept(t *testing.T) {
 			require.NoError(t, err)
 		},
 		func(t *testing.T, _ proposal.Store) {},
-		bootstrap.ErrInvalidOperation,
+		protocol.ErrInvalidOperation,
 	}, {
 		"vote-remove-node",
 		peer1,
@@ -603,7 +603,7 @@ func TestCoordinated_Accept(t *testing.T) {
 			err := propStore.AddRequest(context.Background(), r)
 			require.NoError(t, err)
 
-			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorVotePID, nil, errors.New("no stream"))
+			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, protocol.PrivateCoordinatorVotePID, nil, errors.New("no stream"))
 		},
 		func(t *testing.T, propStore proposal.Store) {
 			r, err := propStore.Get(context.Background(), peer1)
@@ -626,7 +626,7 @@ func TestCoordinated_Accept(t *testing.T) {
 			stream.EXPECT().Codec().Return(codec)
 			stream.EXPECT().Close()
 
-			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, bootstrap.PrivateCoordinatorVotePID, stream, nil)
+			streamtest.ExpectStreamPeerAndProtocol(t, p, coordinatorID, protocol.PrivateCoordinatorVotePID, stream, nil)
 		},
 		func(t *testing.T, propStore proposal.Store) {
 			r, _ := propStore.Get(context.Background(), peer1)
@@ -653,7 +653,7 @@ func TestCoordinated_Accept(t *testing.T) {
 
 			tt.configure(t, ctrl, host, prov, propStore)
 
-			handler := bootstrap.NewCoordinatedHandler(host, prov, mode, nil, propStore)
+			handler := protocol.NewCoordinatedHandler(host, prov, mode, nil, propStore)
 			err := handler.Accept(context.Background(), tt.acceptID)
 
 			if tt.err != nil {
@@ -678,7 +678,7 @@ func TestCoordinated_Reject(t *testing.T) {
 	propStore := mockproposal.NewMockStore(ctrl)
 
 	mode := &protector.NetworkMode{CoordinatorID: coordinatorID}
-	handler := bootstrap.NewCoordinatedHandler(host, nil, mode, nil, propStore)
+	handler := protocol.NewCoordinatedHandler(host, nil, mode, nil, propStore)
 
 	peerID := test.GeneratePeerID(t)
 	propStore.EXPECT().Remove(gomock.Any(), peerID)

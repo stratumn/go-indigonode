@@ -19,12 +19,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/stratumn/go-indigocore/postgresstore"
-
 	"github.com/pkg/errors"
+	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
 	"github.com/stratumn/alice/core/cfg"
-	"github.com/stratumn/alice/core/service/bootstrap"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
+	"github.com/stratumn/go-indigocore/postgresstore"
 )
 
 var (

@@ -17,7 +17,7 @@ package proposaltest
 import (
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	pb "github.com/stratumn/alice/pb/bootstrap"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/require"

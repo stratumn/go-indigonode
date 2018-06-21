@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockproposal -destination mocks/mockstore.go github.com/stratumn/alice/core/protocol/bootstrap/proposal Store
+//go:generate mockgen -package mockproposal -destination mocks/mockstore.go github.com/stratumn/alice/core/app/bootstrap/protocol/proposal Store
 
 package proposal

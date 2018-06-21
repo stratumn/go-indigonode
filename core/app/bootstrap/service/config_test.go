@@ -12,39 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap_test
+package service_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
-	"github.com/stratumn/alice/core/service/bootstrap"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStoreConfig(t *testing.T) {
 	t.Run("unknown-store-type", func(t *testing.T) {
-		_, err := (&bootstrap.Config{
-			StoreConfig: &bootstrap.StoreConfig{
+		_, err := (&service.Config{
+			StoreConfig: &service.StoreConfig{
 				Type: "IPFS",
 			},
 		}).NewStore(context.Background())
 
-		assert.EqualError(t, err, bootstrap.ErrInvalidStoreType.Error())
+		assert.EqualError(t, err, service.ErrInvalidStoreType.Error())
 	})
 
 	t.Run("default-memory-store", func(t *testing.T) {
-		s, err := (&bootstrap.Config{}).NewStore(context.Background())
+		s, err := (&service.Config{}).NewStore(context.Background())
 		require.NoError(t, err)
 		assert.IsType(t, &proposal.InMemoryStore{}, s)
 	})
 
 	t.Run("configure-memory-store", func(t *testing.T) {
-		s, err := (&bootstrap.Config{
-			StoreConfig: &bootstrap.StoreConfig{
-				Type: bootstrap.InMemoryStore,
+		s, err := (&service.Config{
+			StoreConfig: &service.StoreConfig{
+				Type: service.InMemoryStore,
 			},
 		}).NewStore(context.Background())
 
@@ -53,9 +53,9 @@ func TestStoreConfig(t *testing.T) {
 	})
 
 	t.Run("configure-file-store", func(t *testing.T) {
-		s, err := (&bootstrap.Config{
-			StoreConfig: &bootstrap.StoreConfig{
-				Type: bootstrap.FileStore,
+		s, err := (&service.Config{
+			StoreConfig: &service.StoreConfig{
+				Type: service.FileStore,
 			},
 		}).NewStore(context.Background())
 

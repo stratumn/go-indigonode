@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bootstrap implements the network bootstrapping protocols.
+// Package protocol implements the network bootstrapping protocols.
 // It contains the node-to-node communication layer to administer
 // private networks.
-package bootstrap
+package protocol
 
 import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
 	"github.com/stratumn/alice/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bootstrap_test
+package protocol_test
 
 import (
 	"context"
@@ -20,13 +20,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/bootstraptest"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal/mocks"
+	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposaltest"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/protectortest"
-	"github.com/stratumn/alice/core/protocol/bootstrap"
-	"github.com/stratumn/alice/core/protocol/bootstrap/bootstraptest"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposal/mocks"
-	"github.com/stratumn/alice/core/protocol/bootstrap/proposaltest"
 	"github.com/stratumn/alice/core/streamutil"
 	"github.com/stratumn/alice/core/streamutil/mockstream"
 	"github.com/stratumn/alice/core/streamutil/streamtest"
@@ -44,9 +44,9 @@ import (
 )
 
 func expectCoordinatorHost(host *mocks.MockHost) {
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorHandshakePID, gomock.Any())
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorProposePID, gomock.Any())
-	host.EXPECT().SetStreamHandler(bootstrap.PrivateCoordinatorVotePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.PrivateCoordinatorHandshakePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.PrivateCoordinatorProposePID, gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.PrivateCoordinatorVotePID, gomock.Any())
 }
 
 func TestCoordinator_Close(t *testing.T) {
@@ -56,12 +56,12 @@ func TestCoordinator_Close(t *testing.T) {
 	host := mocks.NewMockHost(ctrl)
 	expectCoordinatorHost(host)
 
-	handler := bootstrap.NewCoordinatorHandler(host, nil, nil, nil)
+	handler := protocol.NewCoordinatorHandler(host, nil, nil, nil)
 	require.NotNil(t, handler)
 
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorHandshakePID)
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorProposePID)
-	host.EXPECT().RemoveStreamHandler(bootstrap.PrivateCoordinatorVotePID)
+	host.EXPECT().RemoveStreamHandler(protocol.PrivateCoordinatorHandshakePID)
+	host.EXPECT().RemoveStreamHandler(protocol.PrivateCoordinatorProposePID)
+	host.EXPECT().RemoveStreamHandler(protocol.PrivateCoordinatorVotePID)
 
 	handler.Close(context.Background())
 }
@@ -76,7 +76,7 @@ func TestCoordinator_ValidateSender(t *testing.T) {
 	expectCoordinatorHost(host)
 
 	networkCfg := protectortest.NewTestNetworkConfig(t, protectorpb.NetworkState_BOOTSTRAP)
-	handler := bootstrap.NewCoordinatorHandler(host, nil, networkCfg, nil).(*bootstrap.CoordinatorHandler)
+	handler := protocol.NewCoordinatorHandler(host, nil, networkCfg, nil).(*protocol.CoordinatorHandler)
 
 	peerID := test.GeneratePeerID(t)
 	err := handler.ValidateSender(ctx, peerID)
@@ -101,7 +101,7 @@ type CoordinatorHandleTestCase struct {
 
 func (ht *CoordinatorHandleTestCase) Run(
 	t *testing.T,
-	h func(*bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler,
+	h func(*protocol.CoordinatorHandler) streamutil.AutoCloseHandler,
 ) {
 	t.Run(ht.name, func(t *testing.T) {
 		ctx := context.Background()
@@ -123,12 +123,12 @@ func (ht *CoordinatorHandleTestCase) Run(
 		codec := mockstream.NewMockCodec(ctrl)
 		ht.configure(t, ctrl, host, codec, networkCfg, propStore)
 
-		handler := bootstrap.NewCoordinatorHandler(
+		handler := protocol.NewCoordinatorHandler(
 			host,
 			streamutil.NewStreamProvider(),
 			networkCfg,
 			propStore,
-		).(*bootstrap.CoordinatorHandler)
+		).(*protocol.CoordinatorHandler)
 
 		err := h(handler)(ctx, bootstraptest.NewEvent(), stream, codec)
 		if ht.err != nil {
@@ -218,7 +218,7 @@ func TestCoordinator_HandleHandshake(t *testing.T) {
 		}}
 
 	for _, tt := range testCases {
-		tt.Run(t, func(handler *bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler {
+		tt.Run(t, func(handler *protocol.CoordinatorHandler) streamutil.AutoCloseHandler {
 			return handler.HandleHandshake
 		})
 	}
@@ -364,7 +364,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 				streamtest.ExpectEncodeAck(t, codec, nil)
 
 				h.EXPECT().ID().Return(hostID)
-				h.EXPECT().NewStream(gomock.Any(), peer1, bootstrap.PrivateCoordinatedProposePID).Return(nil, errors.New("no stream"))
+				h.EXPECT().NewStream(gomock.Any(), peer1, protocol.PrivateCoordinatedProposePID).Return(nil, errors.New("no stream"))
 			},
 			func(t *testing.T, cfg protector.NetworkConfig, s proposal.Store) {
 				allowed := cfg.IsAllowed(context.Background(), peer1)
@@ -380,7 +380,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt.Run(t, func(handler *bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler {
+		tt.Run(t, func(handler *protocol.CoordinatorHandler) streamutil.AutoCloseHandler {
 			return handler.HandlePropose
 		})
 	}
@@ -421,7 +421,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 			"during-bootstrap-reject",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				streamtest.ExpectEncodeAck(t, codec, bootstrap.ErrInvalidOperation)
+				streamtest.ExpectEncodeAck(t, codec, protocol.ErrInvalidOperation)
 			},
 			func(*testing.T, protector.NetworkConfig, proposal.Store) {},
 			nil,
@@ -505,7 +505,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 
 				h.EXPECT().ID().Return(hostID).AnyTimes()
 				h.EXPECT().Network().Return(network)
-				h.EXPECT().NewStream(gomock.Any(), peer2, bootstrap.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
+				h.EXPECT().NewStream(gomock.Any(), peer2, protocol.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
 
 				v, _ := proposal.NewVote(peer2Key, removePeer1Req)
 				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
@@ -525,7 +525,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		tt.Run(t, func(handler *bootstrap.CoordinatorHandler) streamutil.AutoCloseHandler {
+		tt.Run(t, func(handler *protocol.CoordinatorHandler) streamutil.AutoCloseHandler {
 			return handler.HandleVote
 		})
 	}
@@ -581,7 +581,7 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 				t,
 				p,
 				peer1,
-				bootstrap.PrivateCoordinatedConfigPID,
+				protocol.PrivateCoordinatedConfigPID,
 				stream,
 				nil,
 			)
@@ -603,12 +603,12 @@ func TestCoordinator_SendNetworkConfig(t *testing.T) {
 			streamProvider := mockstream.NewMockProvider(ctrl)
 			tt.configure(t, ctrl, networkConfig, streamProvider)
 
-			handler := bootstrap.NewCoordinatorHandler(
+			handler := protocol.NewCoordinatorHandler(
 				host,
 				streamProvider,
 				networkConfig,
 				nil,
-			).(*bootstrap.CoordinatorHandler)
+			).(*protocol.CoordinatorHandler)
 
 			handler.SendNetworkConfig(context.Background())
 		})
@@ -666,7 +666,7 @@ func TestCoordinator_SendProposal(t *testing.T) {
 				t,
 				p,
 				peer1,
-				bootstrap.PrivateCoordinatedProposePID,
+				protocol.PrivateCoordinatedProposePID,
 				stream,
 				nil,
 			)
@@ -688,12 +688,12 @@ func TestCoordinator_SendProposal(t *testing.T) {
 			streamProvider := mockstream.NewMockProvider(ctrl)
 			tt.configure(t, ctrl, networkConfig, streamProvider)
 
-			handler := bootstrap.NewCoordinatorHandler(
+			handler := protocol.NewCoordinatorHandler(
 				host,
 				streamProvider,
 				networkConfig,
 				nil,
-			).(*bootstrap.CoordinatorHandler)
+			).(*protocol.CoordinatorHandler)
 
 			handler.SendProposal(context.Background(), req)
 		})
@@ -725,7 +725,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		func(t *testing.T, cfg protector.NetworkConfig) {
 			assert.False(t, cfg.IsAllowed(context.Background(), peer1))
 		},
-		bootstrap.ErrUnknownNode,
+		protocol.ErrUnknownNode,
 	}, {
 		"node-already-white-listed",
 		peer1,
@@ -799,7 +799,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 
 			tt.configure(t, ctrl, host, cfg, prov)
 
-			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
+			handler := protocol.NewCoordinatorHandler(host, prov, cfg, nil)
 			err := handler.AddNode(context.Background(), tt.addNodeID, tt.addNodeAddr, []byte("I'm batman"))
 
 			if tt.err != nil {
@@ -841,7 +841,7 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 		func(t *testing.T, cfg protector.NetworkConfig) {
 			assert.True(t, cfg.IsAllowed(context.Background(), coordinatorID))
 		},
-		bootstrap.ErrInvalidOperation,
+		protocol.ErrInvalidOperation,
 	}, {
 		"remove-peer",
 		peer3,
@@ -897,7 +897,7 @@ func TestCoordinator_RemoveNode(t *testing.T) {
 
 			tt.configure(t, ctrl, host, cfg, prov)
 
-			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
+			handler := protocol.NewCoordinatorHandler(host, prov, cfg, nil)
 			err := handler.RemoveNode(context.Background(), tt.removeNodeID)
 
 			if tt.err != nil {
@@ -998,7 +998,7 @@ func TestCoordinator_Accept(t *testing.T) {
 
 			tt.configure(t, ctrl, host, prov, store)
 
-			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, store)
+			handler := protocol.NewCoordinatorHandler(host, prov, cfg, store)
 			err := handler.Accept(context.Background(), tt.acceptID)
 
 			if tt.err != nil {
@@ -1024,7 +1024,7 @@ func TestCoordinator_Reject(t *testing.T) {
 	store := mockproposal.NewMockStore(ctrl)
 	store.EXPECT().Remove(gomock.Any(), peerID)
 
-	handler := bootstrap.NewCoordinatorHandler(host, nil, nil, store)
+	handler := protocol.NewCoordinatorHandler(host, nil, nil, store)
 
 	err := handler.Reject(ctx, peerID)
 	require.NoError(t, err, "handler.Reject()")
@@ -1094,7 +1094,7 @@ func TestCoordinator_CompleteBootstrap(t *testing.T) {
 
 			tt.configure(ctrl, host, cfg, prov)
 
-			handler := bootstrap.NewCoordinatorHandler(host, prov, cfg, nil)
+			handler := protocol.NewCoordinatorHandler(host, prov, cfg, nil)
 			err := handler.CompleteBootstrap(context.Background())
 			require.NoError(t, err, "handler.CompleteBootstrap()")
 			assert.Equal(t, protectorpb.NetworkState_PROTECTED, cfg.NetworkState(context.Background()))

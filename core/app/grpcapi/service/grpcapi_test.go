@@ -22,10 +22,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/grpcapi/service/mockservice"
 	"github.com/stratumn/alice/core/manager"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/netutil"
-	"github.com/stratumn/alice/core/service/grpcapi/mockgrpcapi"
 	pb "github.com/stratumn/alice/grpc/grpcapi"
 	"github.com/stratumn/alice/release"
 	"github.com/stretchr/testify/assert"
@@ -62,7 +62,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockgrpcapi.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	mgr.EXPECT().List().Return([]string{})
 
 	serv := testService(ctx, t, mgr)
@@ -145,7 +145,7 @@ func TestService_Plug(t *testing.T) {
 		"valid manager",
 		func(c *Config) { c.Manager = "mymgr" },
 		map[string]interface{}{
-			"mymgr": mockgrpcapi.NewMockManager(ctrl),
+			"mymgr": mockservice.NewMockManager(ctrl),
 			"swarm": testutil.GenSwarmNetwork(t, context.Background()),
 		},
 		nil,
@@ -184,7 +184,7 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockgrpcapi.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	mgr.EXPECT().List().Return([]string{})
 
 	serv := testService(ctx, t, mgr)
@@ -226,10 +226,10 @@ func TestService_Registrable(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	p2p := mockgrpcapi.NewMockRegistrable(ctrl)
+	p2p := mockservice.NewMockRegistrable(ctrl)
 	p2pServ := mockRegistrable("p2p", p2p)
 
-	mgr := mockgrpcapi.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	mgr.EXPECT().List().Return([]string{"p2p"})
 	mgr.EXPECT().Find("p2p").Return(p2pServ, nil)
 	p2p.EXPECT().AddToGRPCServer(gomock.Any())
@@ -245,7 +245,7 @@ func TestService_Inform(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockgrpcapi.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	serv := testService(ctx, t, mgr)
 
 	req := &pb.InformReq{}

@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockidentify.go github.com/stratumn/alice/core/service/identify Host
+//go:generate mockgen -package mockservice -destination mockservice/mockidentify.go github.com/stratumn/alice/core/app/identify/service Host
 
 package service

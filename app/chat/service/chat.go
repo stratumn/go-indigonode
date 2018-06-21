@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/alice/app/chat/grpc"
 	chat "github.com/stratumn/alice/app/chat/protocol"
-	"github.com/stratumn/alice/core/service/event"
+	event "github.com/stratumn/alice/core/app/event/service"
 
 	"google.golang.org/grpc"
 

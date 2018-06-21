@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	pbchat "github.com/stratumn/alice/app/chat/grpc"
 	"github.com/stratumn/alice/app/chat/pb"
-	"github.com/stratumn/alice/core/service/event"
+	event "github.com/stratumn/alice/core/app/event/service"
 	pbevent "github.com/stratumn/alice/grpc/event"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"

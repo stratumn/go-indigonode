@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

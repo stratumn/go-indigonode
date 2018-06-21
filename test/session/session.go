@@ -36,10 +36,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core"
 	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
+	grpcapi "github.com/stratumn/alice/core/app/grpcapi/service"
+	metrics "github.com/stratumn/alice/core/app/metrics/service"
 	"github.com/stratumn/alice/core/cfg"
 	logging "github.com/stratumn/alice/core/log"
-	"github.com/stratumn/alice/core/service/grpcapi"
-	"github.com/stratumn/alice/core/service/metrics"
 	"google.golang.org/grpc"
 )
 

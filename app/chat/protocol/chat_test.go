@@ -21,8 +21,8 @@ import (
 	"time"
 
 	pbchat "github.com/stratumn/alice/app/chat/grpc"
+	event "github.com/stratumn/alice/core/app/event/service"
 	"github.com/stratumn/alice/core/p2p"
-	"github.com/stratumn/alice/core/service/event"
 	pbevent "github.com/stratumn/alice/grpc/event"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

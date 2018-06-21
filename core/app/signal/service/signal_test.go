@@ -21,13 +21,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/signal/service/mockservice"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/signal/mocksignal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testService(ctx context.Context, t *testing.T, mgr *mocksignal.MockManager) *Service {
+func testService(ctx context.Context, t *testing.T, mgr *mockservice.MockManager) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 
@@ -53,7 +53,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mocksignal.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	serv := testService(ctx, t, mgr)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
@@ -96,7 +96,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mocksignal.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 
 	tests := []struct {
 		name string

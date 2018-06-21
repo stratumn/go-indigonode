@@ -21,13 +21,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/pruner/service/mockservice"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/pruner/mockpruner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func testService(ctx context.Context, t *testing.T, mgr *mockpruner.MockManager) *Service {
+func testService(ctx context.Context, t *testing.T, mgr *mockservice.MockManager) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 	config.Interval = "100ms"
@@ -54,7 +54,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockpruner.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	serv := testService(ctx, t, mgr)
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
@@ -66,7 +66,7 @@ func TestService_Run_prune(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockpruner.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 	serv := testService(ctx, t, mgr)
 
 	mgr.EXPECT().Prune().MinTimes(1).MaxTimes(5)
@@ -143,7 +143,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mgr := mockpruner.NewMockManager(ctrl)
+	mgr := mockservice.NewMockManager(ctrl)
 
 	tests := []struct {
 		name string

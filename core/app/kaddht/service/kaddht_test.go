@@ -22,8 +22,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/kaddht/service/mockservice"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/kaddht/mockkaddht"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -51,7 +51,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(ctx context.Context, t *testing.T, host *mockkaddht.MockHost) {
+func expectHost(ctx context.Context, t *testing.T, host *mockservice.MockHost) {
 	swm := testutil.GenSwarmNetwork(t, ctx)
 
 	host.EXPECT().ID().Return(swm.LocalPeer()).AnyTimes()
@@ -77,7 +77,7 @@ func TestService_Expose(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockkaddht.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 	expectHost(ctx, t, host)
 
 	serv := testService(ctx, t, host)
@@ -93,7 +93,7 @@ func TestService_Run(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockkaddht.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 	expectHost(ctx, t, host)
 
 	serv := testService(ctx, t, host)
@@ -107,7 +107,7 @@ func TestService_Run_bootstrap(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockkaddht.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 	expectHost(ctx, t, host)
 
 	serv := testService(ctx, t, host)
@@ -177,7 +177,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockkaddht.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 
 	tests := []struct {
 		name string

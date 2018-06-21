@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	mockevent "github.com/stratumn/alice/core/service/event/mockevent"
+	"github.com/stratumn/alice/core/app/event/service/mockservice"
 	pb "github.com/stratumn/alice/grpc/event"
 	mockpb "github.com/stratumn/alice/grpc/event/mockevent"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +39,7 @@ func TestGRPCServer_Listen_Add_Remove_Listeners(t *testing.T) {
 		ctrl.Finish()
 	}()
 
-	mockEmitter := mockevent.NewMockEmitter(ctrl)
+	mockEmitter := mockservice.NewMockEmitter(ctrl)
 	srv := testGRPCServer(ctx, t, mockEmitter)
 	ss := mockpb.NewMockEmitter_ListenServer(ctrl)
 

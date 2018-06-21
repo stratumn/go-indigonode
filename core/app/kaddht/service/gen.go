@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockkaddht.go github.com/stratumn/alice/core/service/kaddht Host
+//go:generate mockgen -package mockservice -destination mockservice/mockkaddht.go github.com/stratumn/alice/core/app/kaddht/service Host
 
 package service

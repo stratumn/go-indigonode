@@ -21,8 +21,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/alice/core/app/identify/service/mockservice"
 	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/service/identify/mockidentify"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +46,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(net *mocks.MockNetwork, host *mockidentify.MockHost) {
+func expectHost(net *mocks.MockNetwork, host *mockservice.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(identify.ID), gomock.Any())
@@ -67,7 +67,7 @@ func TestService_Expose(t *testing.T) {
 	defer ctrl.Finish()
 
 	net := mocks.NewMockNetwork(ctrl)
-	host := mockidentify.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
@@ -84,7 +84,7 @@ func TestService_Run(t *testing.T) {
 	defer ctrl.Finish()
 
 	net := mocks.NewMockNetwork(ctrl)
-	host := mockidentify.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 	expectHost(net, host)
 
 	serv := testService(ctx, t, host)
@@ -129,7 +129,7 @@ func TestService_Plug(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	host := mockidentify.NewMockHost(ctrl)
+	host := mockservice.NewMockHost(ctrl)
 
 	tests := []struct {
 		name string

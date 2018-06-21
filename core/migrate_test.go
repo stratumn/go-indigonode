@@ -21,10 +21,10 @@ import (
 	"testing"
 
 	"github.com/pelletier/go-toml"
+	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
+	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/cfg"
 	logger "github.com/stratumn/alice/core/log"
-	"github.com/stratumn/alice/core/service/kaddht"
-	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

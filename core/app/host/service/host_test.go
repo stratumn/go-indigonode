@@ -21,10 +21,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	metrics "github.com/stratumn/alice/core/app/metrics/service"
+	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/p2p"
-	"github.com/stratumn/alice/core/service/metrics"
-	"github.com/stratumn/alice/core/service/swarm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

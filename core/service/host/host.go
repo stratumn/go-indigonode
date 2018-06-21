@@ -250,7 +250,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterHostServer(gs, grpcServer{func() *p2p.Host { return s.host }})
+	pb.RegisterHostServer(gs, grpcServer{
+		GetHost: func() *p2p.Host { return s.host },
+	})
 }
 
 // periodicMetrics sends bandwidth usage for each protocol.

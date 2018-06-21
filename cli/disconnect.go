@@ -21,11 +21,13 @@ import (
 )
 
 // Disconnect is a command that closes the connection to the API server.
-var Disconnect = BasicCmdWrapper{BasicCmd{
-	Name:  "api-disconnect",
-	Short: "Disconnect from API server",
-	Exec:  disconnectExec,
-}}
+var Disconnect = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "api-disconnect",
+		Short: "Disconnect from API server",
+		Exec:  disconnectExec,
+	},
+}
 
 func disconnectExec(ctx *BasicContext) error {
 	if len(ctx.Args) > 0 {

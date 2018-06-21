@@ -23,13 +23,15 @@ import (
 )
 
 // Echo is a command that outputs text.
-var Echo = BasicCmdWrapper{BasicCmd{
-	Name:  "echo",
-	Short: "Output text",
-	Use:   "echo [Expressions...]",
-	Flags: echoFlags,
-	Exec:  echoExec,
-}}
+var Echo = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "echo",
+		Short: "Output text",
+		Use:   "echo [Expressions...]",
+		Flags: echoFlags,
+		Exec:  echoExec,
+	},
+}
 
 func echoFlags() *pflag.FlagSet {
 	flags := pflag.NewFlagSet("echo", pflag.ContinueOnError)

@@ -24,12 +24,14 @@ import (
 
 // Help is a command that lists all the available commands or displays help for
 // specific command.
-var Help = BasicCmdWrapper{BasicCmd{
-	Name:  "help",
-	Use:   "help [Command]",
-	Short: "Get help on commands",
-	Exec:  helpExec,
-}}
+var Help = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "help",
+		Use:   "help [Command]",
+		Short: "Get help on commands",
+		Exec:  helpExec,
+	},
+}
 
 func helpExec(ctx *BasicContext) error {
 	argc := len(ctx.Args)

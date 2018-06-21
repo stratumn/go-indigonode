@@ -93,7 +93,7 @@ func Migrate(
 		return errors.WithStack(err)
 	}
 
-	t := &Tree{tree}
+	t := &Tree{tree: tree}
 
 	// Apply global migrations.
 	updated, err := t.migrate(migrations, versionKey)

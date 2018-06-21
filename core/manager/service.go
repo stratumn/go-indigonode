@@ -141,5 +141,5 @@ func (s managerService) Expose() interface{} {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s managerService) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterManagerServer(gs, grpcServer{s.mgr})
+	pb.RegisterManagerServer(gs, grpcServer{mgr: s.mgr})
 }

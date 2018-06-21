@@ -36,7 +36,7 @@ type Console struct {
 
 // NewConsole creates a new VT100 console.
 func NewConsole(out io.Writer, color bool) *Console {
-	c := Console{out, color, false}
+	c := Console{Writer: out, color: color, debug: false}
 	return &c
 }
 

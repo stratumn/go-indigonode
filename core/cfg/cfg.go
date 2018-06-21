@@ -132,7 +132,7 @@ func (s Set) Tree() (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Tree{tree}, nil
+	return &Tree{tree: tree}, nil
 }
 
 // Get returns the value of the tree indexed by the provided key.

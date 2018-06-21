@@ -132,14 +132,14 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterPingServer(gs, grpcServer{
-		func(ctx context.Context, pid peer.ID) (<-chan time.Duration, error) {
+		PingPeer: func(ctx context.Context, pid peer.ID) (<-chan time.Duration, error) {
 			if s.ping == nil {
 				return nil, ErrUnavailable
 			}
 
 			return s.ping.Ping(ctx, pid)
 		},
-		func(ctx context.Context, pi pstore.PeerInfo) error {
+		Connect: func(ctx context.Context, pi pstore.PeerInfo) error {
 			if s.host == nil {
 				return ErrUnavailable
 			}

@@ -44,7 +44,7 @@ func Listen(address string) (net.Listener, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return &listenerWrapper{lis, addr}, nil
+	return &listenerWrapper{lis: lis, addr: addr}, nil
 }
 
 // listenerWrapper wraps an manet.Listener to make it compatible with

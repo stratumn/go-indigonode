@@ -869,7 +869,7 @@ func (r ServerReflector) reflectMethod(conn *grpc.ClientConn, d *desc.MethodDesc
 		return r.reflectExec(ctx, d, required, optional, conn)
 	}
 
-	return BasicCmdWrapper{cmd}, nil
+	return BasicCmdWrapper{Cmd: cmd}, nil
 }
 
 // findRequiredFields finds all the required fields.

@@ -35,7 +35,7 @@ func TreeFromMap(m map[string]interface{}) (*Tree, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	return &Tree{t}, nil
+	return &Tree{tree: t}, nil
 }
 
 // Get returns the value of a key.
@@ -46,11 +46,11 @@ func (t *Tree) Get(key string) interface{} {
 
 	switch v := val.(type) {
 	case (*toml.Tree):
-		return &Tree{v}
+		return &Tree{tree: v}
 	case ([]*toml.Tree):
 		trees := make([]*Tree, len(v))
 		for i, child := range v {
-			trees[i] = &Tree{child}
+			trees[i] = &Tree{tree: child}
 		}
 		return trees
 	default:

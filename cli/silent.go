@@ -15,12 +15,14 @@
 package cli
 
 // Silent is a command that executes a command silently.
-var Silent = BasicCmdWrapper{BasicCmd{
-	Name:  "silent",
-	Use:   "silent [Expressions...]",
-	Short: "Execute a command silently",
-	Exec:  silentExec,
-}}
+var Silent = BasicCmdWrapper{
+	Cmd: BasicCmd{
+		Name:  "silent",
+		Use:   "silent [Expressions...]",
+		Short: "Execute a command silently",
+		Exec:  silentExec,
+	},
+}
 
 func silentExec(ctx *BasicContext) error {
 	return nil

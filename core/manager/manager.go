@@ -219,7 +219,7 @@ func (m *Manager) doRegister(ctx context.Context, serv Service) {
 
 // RegisterService registers the manager itself as a service.
 func (m *Manager) RegisterService() {
-	m.Register(managerService{m})
+	m.Register(managerService{mgr: m})
 }
 
 // addFriends finds registered services that like the given service and adds

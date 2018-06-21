@@ -85,8 +85,10 @@ func (e *ServerEmitter) AddListener(topic string) (<-chan *pb.Event, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.listeners[&listener{g,
-		receiveChan}] = struct{}{}
+	e.listeners[&listener{
+		topic:       g,
+		receiveChan: receiveChan,
+	}] = struct{}{}
 
 	return receiveChan, nil
 }

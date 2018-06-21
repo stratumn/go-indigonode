@@ -159,7 +159,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterClockServer(gs, grpcServer{
-		func(ctx context.Context) (*time.Time, error) {
+		LocalTime: func(ctx context.Context) (*time.Time, error) {
 			if s.clock == nil {
 				return nil, ErrUnavailable
 			}
@@ -167,14 +167,14 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			t := time.Now()
 			return &t, nil
 		},
-		func(ctx context.Context, pid peer.ID) (*time.Time, error) {
+		RemoteTime: func(ctx context.Context, pid peer.ID) (*time.Time, error) {
 			if s.clock == nil {
 				return nil, ErrUnavailable
 			}
 
 			return s.clock.RemoteTime(ctx, pid)
 		},
-		func(ctx context.Context, pi pstore.PeerInfo) error {
+		Connect: func(ctx context.Context, pi pstore.PeerInfo) error {
 			if s.host == nil {
 				return ErrUnavailable
 			}

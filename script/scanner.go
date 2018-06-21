@@ -181,31 +181,31 @@ func (s *Scanner) Emit() Token {
 	}
 
 	if isLine(s.ch) {
-		return Token{TokLine, "", s.line, s.offset}
+		return Token{Type: TokLine, Value: "", Line: s.line, Offset: s.offset}
 	}
 
 	if isReserved(s.ch) {
 		s.error(s.line, s.offset, s.ch)
-		return Token{TokInvalid, "", s.line, s.offset}
+		return Token{Type: TokInvalid, Value: "", Line: s.line, Offset: s.offset}
 	}
 
 	switch s.ch {
 	case 0:
-		return Token{TokEOF, "", s.line, s.offset}
+		return Token{Type: TokEOF, Value: "", Line: s.line, Offset: s.offset}
 	case '(':
-		return Token{TokLParen, "", s.line, s.offset}
+		return Token{Type: TokLParen, Value: "", Line: s.line, Offset: s.offset}
 	case ')':
-		return Token{TokRParen, "", s.line, s.offset}
+		return Token{Type: TokRParen, Value: "", Line: s.line, Offset: s.offset}
 	case '{':
-		return Token{TokLBrace, "", s.line, s.offset}
+		return Token{Type: TokLBrace, Value: "", Line: s.line, Offset: s.offset}
 	case '}':
-		return Token{TokRBrace, "", s.line, s.offset}
+		return Token{Type: TokRBrace, Value: "", Line: s.line, Offset: s.offset}
 	case '\'':
-		return Token{TokQuote, "", s.line, s.offset}
+		return Token{Type: TokQuote, Value: "", Line: s.line, Offset: s.offset}
 	case '`':
-		return Token{TokQuasiquote, "", s.line, s.offset}
+		return Token{Type: TokQuasiquote, Value: "", Line: s.line, Offset: s.offset}
 	case ',':
-		return Token{TokUnquote, "", s.line, s.offset}
+		return Token{Type: TokUnquote, Value: "", Line: s.line, Offset: s.offset}
 	}
 
 	return s.atom()
@@ -275,7 +275,7 @@ func (s *Scanner) stripComment() {
 }
 
 func (s *Scanner) error(line, pos int, ch rune) {
-	s.errHandler(errors.WithStack(ScanError{line, pos, ch}))
+	s.errHandler(errors.WithStack(ScanError{Line: line, Offset: pos, Rune: ch}))
 }
 
 func (s *Scanner) atom() Token {
@@ -298,9 +298,9 @@ func (s *Scanner) string() Token {
 		switch {
 		case s.ch == 0:
 			s.error(s.line, s.offset, 0)
-			return Token{TokInvalid, buf, line, offset}
+			return Token{Type: TokInvalid, Value: buf, Line: line, Offset: offset}
 		case s.ch == '"':
-			return Token{TokString, buf, line, offset}
+			return Token{Type: TokString, Value: buf, Line: line, Offset: offset}
 		case s.ch == '\\':
 			s.read()
 			switch s.ch {
@@ -314,7 +314,7 @@ func (s *Scanner) string() Token {
 				buf += string(s.ch)
 			default:
 				s.error(s.line, s.offset, s.ch)
-				return Token{TokInvalid, buf, line, offset}
+				return Token{Type: TokInvalid, Value: buf, Line: line, Offset: offset}
 			}
 			s.read()
 		default:
@@ -338,10 +338,10 @@ func (s *Scanner) appendSymbolOrKeyword(buf string, line, offset int) Token {
 			return makeSymbolOrKeyword(buf, line, offset)
 		case isReserved(s.ch):
 			s.error(s.line, s.offset, s.ch)
-			return Token{TokInvalid, buf, s.line, offset}
+			return Token{Type: TokInvalid, Value: buf, Line: s.line, Offset: offset}
 		case s.ch == '"':
 			s.error(s.line, s.offset, s.ch)
-			return Token{TokInvalid, buf, line, offset}
+			return Token{Type: TokInvalid, Value: buf, Line: line, Offset: offset}
 		default:
 			buf += string(s.ch)
 			s.read()
@@ -368,12 +368,12 @@ func (s *Scanner) intOrSymbol() Token {
 				switch {
 				case isReserved(s.ch):
 					s.error(s.line, s.offset, s.ch)
-					return Token{TokInvalid, buf, line, offset}
+					return Token{Type: TokInvalid, Value: buf, Line: line, Offset: offset}
 				case s.ch == 0:
-					return Token{TokInt, buf, line, offset}
+					return Token{Type: TokInt, Value: buf, Line: line, Offset: offset}
 				case isSpecial(s.ch):
 					s.back()
-					return Token{TokInt, buf, line, offset}
+					return Token{Type: TokInt, Value: buf, Line: line, Offset: offset}
 				case isHex(s.ch):
 					buf += string(s.ch)
 					s.read()
@@ -402,12 +402,12 @@ func (s *Scanner) intOrSymbol() Token {
 		switch {
 		case isReserved(s.ch):
 			s.error(s.line, s.offset, s.ch)
-			return Token{TokInvalid, buf, line, offset}
+			return Token{Type: TokInvalid, Value: buf, Line: line, Offset: offset}
 		case s.ch == 0:
-			return Token{TokInt, buf, line, offset}
+			return Token{Type: TokInt, Value: buf, Line: line, Offset: offset}
 		case isSpecial(s.ch):
 			s.back()
-			return Token{TokInt, buf, line, offset}
+			return Token{Type: TokInt, Value: buf, Line: line, Offset: offset}
 		case octal && isOctal(s.ch):
 			buf += string(s.ch)
 			s.read()
@@ -454,9 +454,9 @@ func isReserved(ch rune) bool {
 func makeSymbolOrKeyword(s string, line, offset int) Token {
 	for k, v := range keywords {
 		if k == s {
-			return Token{v, "", line, offset}
+			return Token{Type: v, Value: "", Line: line, Offset: offset}
 		}
 	}
 
-	return Token{TokSymbol, s, line, offset}
+	return Token{Type: TokSymbol, Value: s, Line: line, Offset: offset}
 }

@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 import "github.com/stratumn/alice/app/storage/pb/storage.proto";
 
 package stratumn.alice.app.storage.grpc;
@@ -46,50 +46,50 @@ service Storage {
 message SessionFileChunk {
   // file name is required only on first message.
   bytes id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Id of the upload session",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
   bytes data = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Bytes of one file chunk",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Bytes of one file chunk",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }
 
 message UploadReq {
   string file_name = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Name of the file",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Name of the file",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }
 
 message UploadSession {
   bytes id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Id of the upload session",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Id of the upload session",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }
 
 message AuthRequest {
   repeated bytes peer_ids = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer IDs",
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_base58) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Peer IDs",
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_base58) = true
   ];
   bytes file_hash = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Hash of the file",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }
 
 message DownloadRequest {
   bytes peer_id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_base58) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_base58) = true
   ];
   bytes file_hash = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Hash of the file",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }
 
@@ -99,7 +99,7 @@ message Ack {
 
 message UploadAck {
   bytes file_hash = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Hash of the file that was uploaded",
-    (stratumn.alice.grpc.ext.field_required) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Hash of the file that was uploaded",
+    (stratumn.alice.cli.grpc.ext.field_required) = true
   ];
 }

@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.core.app.swarm.grpc;
 
@@ -24,17 +24,17 @@ option go_package = "github.com/stratumn/alice/core/app/swarm/grpc;grpc";
 service Swarm {
   // Returns the local peer.
   rpc LocalPeer (LocalPeerReq) returns (Peer) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Display the local peer";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Display the local peer";
   }
 
   // Streams the connected peers.
   rpc Peers (PeersReq) returns (stream Peer) {
-    option (stratumn.alice.grpc.ext.method_desc) = "List all the connected peers";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "List all the connected peers";
   }
 
   // Streams connections.
   rpc Connections (ConnectionsReq) returns (stream Connection) {
-    option (stratumn.alice.grpc.ext.method_desc) = "List connections to peers";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "List connections to peers";
   }
 }
 
@@ -49,19 +49,19 @@ message PeersReq {
 // The connections request message.
 message ConnectionsReq {
   bytes peer_id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Show only connections to this peer",
-    (stratumn.alice.grpc.ext.field_base58) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Show only connections to this peer",
+    (stratumn.alice.cli.grpc.ext.field_base58) = true
   ];
 }
 
 // The peer message containing the ID of the peer.
 message Peer {
-  bytes id = 1 [(stratumn.alice.grpc.ext.field_base58) = true];
+  bytes id = 1 [(stratumn.alice.cli.grpc.ext.field_base58) = true];
 }
 
 // The connection message containing the peer ID and addresses.
 message Connection {
-    bytes peer_id = 1 [(stratumn.alice.grpc.ext.field_base58) = true];
-    bytes local_address = 2 [(stratumn.alice.grpc.ext.field_multiaddr) = true];
-    bytes remote_address = 3 [(stratumn.alice.grpc.ext.field_multiaddr) = true];
+    bytes peer_id = 1 [(stratumn.alice.cli.grpc.ext.field_base58) = true];
+    bytes local_address = 2 [(stratumn.alice.cli.grpc.ext.field_multiaddr) = true];
+    bytes remote_address = 3 [(stratumn.alice.cli.grpc.ext.field_multiaddr) = true];
 }

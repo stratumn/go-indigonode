@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.app.indigo.pb.store;
 
@@ -22,42 +22,42 @@ option go_package = "github.com/stratumn/alice/app/indigo/pb/store;store";
 
 message Link {
     bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded link bytes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "JSON-encoded link bytes"
     ];
 }
 
 message LinkHash {
     bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "32-bytes link hash"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "32-bytes link hash"
     ];
 }
 
 message LinkHashes {
     repeated LinkHash link_hashes = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Link hashes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "Link hashes"
     ];
 }
 
 message Segment {
     bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segment bytes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "JSON-encoded segment bytes"
     ];
 }
 
 message Segments {
     repeated Segment segments = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded segments bytes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "JSON-encoded segments bytes"
     ];
 }
 
 message Evidence {
     bytes data = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded evidence bytes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "JSON-encoded evidence bytes"
     ];
 }
 
 message Evidences {
     repeated Evidence evidences = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "JSON-encoded evidences bytes"
+        (stratumn.alice.cli.grpc.ext.field_desc) = "JSON-encoded evidences bytes"
     ];
 }

@@ -38,7 +38,7 @@ import (
 	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"github.com/stratumn/alice/grpc/ext"
+	"github.com/stratumn/alice/cli/grpc/ext"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 

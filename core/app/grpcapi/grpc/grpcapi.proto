@@ -14,7 +14,7 @@
 
 syntax = "proto3"; 
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.core.app.grpcapi.grpc;
 
@@ -24,7 +24,7 @@ option go_package = "github.com/stratumn/alice/core/app/grpcapi/grpc;grpc";
 service API {
   // Returns information about the API.
   rpc Inform (InformReq) returns (Info) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Get information about the API";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Get information about the API";
   }
 }
 

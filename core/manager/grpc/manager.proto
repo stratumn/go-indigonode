@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.core.manager;
 
@@ -24,27 +24,27 @@ option go_package = "github.com/stratumn/alice/core/manager/grpc;grpc";
 service Manager {
   // Streams the registered services.
   rpc List (ListReq) returns (stream Service) {
-    option (stratumn.alice.grpc.ext.method_desc) = "List all the available services";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "List all the available services";
   }
 
   // Returns information about a service.
   rpc Info (InfoReq) returns (Service) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Get information on a service";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Get information on a service";
   }
 
   // Starts a service.
   rpc Start (StartReq) returns (Service) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Start a service";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Start a service";
   }
 
   // Stops a service.
   rpc Stop (StopReq) returns (Service) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Stop a service";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Stop a service";
   }
 
   // Prunes services.
   rpc Prune (PruneReq) returns (stream Service) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Prune unused services";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Prune unused services";
   }
 }
 
@@ -55,27 +55,27 @@ message ListReq {
 // The info request message.
 message InfoReq {
   string id = 1 [
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_desc) = "Service ID"
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Service ID"
   ];
 }
 
 // The start request message.
 message StartReq {
   string id = 1 [
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_desc) = "Service ID"
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Service ID"
   ];
 }
 
 // The stop request message.
 message StopReq {
   string id = 1 [
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_desc) = "Service ID"
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Service ID"
   ];
   bool prune = 2 [
-    (stratumn.alice.grpc.ext.field_desc) = "Prune services after stopping the service"
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Prune services after stopping the service"
   ];
 }
 

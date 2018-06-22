@@ -21,8 +21,8 @@ import (
 	"github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/core/streamutil"
-	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stretchr/testify/require"
 
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"

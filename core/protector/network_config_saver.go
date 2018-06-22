@@ -20,7 +20,7 @@ import (
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/pb/protector"
+	"github.com/stratumn/alice/core/protector/pb"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

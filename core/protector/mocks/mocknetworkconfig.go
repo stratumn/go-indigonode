@@ -7,7 +7,7 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	protector "github.com/stratumn/alice/pb/protector"
+	pb "github.com/stratumn/alice/core/protector/pb"
 	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	go_libp2p_crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -62,9 +62,9 @@ func (mr *MockNetworkConfigMockRecorder) AllowedPeers(arg0 interface{}) *gomock.
 }
 
 // Copy mocks base method
-func (m *MockNetworkConfig) Copy(arg0 context.Context) protector.NetworkConfig {
+func (m *MockNetworkConfig) Copy(arg0 context.Context) pb.NetworkConfig {
 	ret := m.ctrl.Call(m, "Copy", arg0)
-	ret0, _ := ret[0].(protector.NetworkConfig)
+	ret0, _ := ret[0].(pb.NetworkConfig)
 	return ret0
 }
 
@@ -86,9 +86,9 @@ func (mr *MockNetworkConfigMockRecorder) IsAllowed(arg0, arg1 interface{}) *gomo
 }
 
 // NetworkState mocks base method
-func (m *MockNetworkConfig) NetworkState(arg0 context.Context) protector.NetworkState {
+func (m *MockNetworkConfig) NetworkState(arg0 context.Context) pb.NetworkState {
 	ret := m.ctrl.Call(m, "NetworkState", arg0)
-	ret0, _ := ret[0].(protector.NetworkState)
+	ret0, _ := ret[0].(pb.NetworkState)
 	return ret0
 }
 
@@ -110,7 +110,7 @@ func (mr *MockNetworkConfigMockRecorder) RemovePeer(arg0, arg1 interface{}) *gom
 }
 
 // Reset mocks base method
-func (m *MockNetworkConfig) Reset(arg0 context.Context, arg1 *protector.NetworkConfig) error {
+func (m *MockNetworkConfig) Reset(arg0 context.Context, arg1 *pb.NetworkConfig) error {
 	ret := m.ctrl.Call(m, "Reset", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -122,7 +122,7 @@ func (mr *MockNetworkConfigMockRecorder) Reset(arg0, arg1 interface{}) *gomock.C
 }
 
 // SetNetworkState mocks base method
-func (m *MockNetworkConfig) SetNetworkState(arg0 context.Context, arg1 protector.NetworkState) error {
+func (m *MockNetworkConfig) SetNetworkState(arg0 context.Context, arg1 pb.NetworkState) error {
 	ret := m.ctrl.Call(m, "SetNetworkState", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0

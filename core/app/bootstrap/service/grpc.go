@@ -23,7 +23,7 @@ import (
 	protocol "github.com/stratumn/alice/core/app/bootstrap/protocol"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/pb/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

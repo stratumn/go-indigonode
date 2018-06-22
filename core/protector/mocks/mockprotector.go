@@ -8,7 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	protector "github.com/stratumn/alice/core/protector"
-	protector0 "github.com/stratumn/alice/pb/protector"
+	pb "github.com/stratumn/alice/core/protector/pb"
 	go_libp2p_transport "gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
 	go_multiaddr "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -180,7 +180,7 @@ func (mr *MockStateAwareProtectorMockRecorder) Protect(arg0 interface{}) *gomock
 }
 
 // SetNetworkState mocks base method
-func (m *MockStateAwareProtector) SetNetworkState(arg0 context.Context, arg1 protector0.NetworkState) error {
+func (m *MockStateAwareProtector) SetNetworkState(arg0 context.Context, arg1 pb.NetworkState) error {
 	ret := m.ctrl.Call(m, "SetNetworkState", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0

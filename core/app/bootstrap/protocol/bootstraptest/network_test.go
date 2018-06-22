@@ -22,7 +22,7 @@ import (
 
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/pb/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/require"
 

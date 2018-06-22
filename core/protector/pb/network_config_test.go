@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package protector_test
+package pb_test
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	json "github.com/gibson042/canonicaljson-go"
-	pb "github.com/stratumn/alice/pb/protector"
+	"github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

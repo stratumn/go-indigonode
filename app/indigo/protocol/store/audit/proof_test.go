@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
 	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
-	crypto "github.com/stratumn/alice/pb/crypto"
+	"github.com/stratumn/alice/core/crypto"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"

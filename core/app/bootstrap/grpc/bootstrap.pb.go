@@ -14,7 +14,7 @@ package grpc
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import _ "github.com/stratumn/alice/grpc/ext"
+import _ "github.com/stratumn/alice/cli/grpc/ext"
 import stratumn_alice_core_app_bootstrap_pb "github.com/stratumn/alice/core/app/bootstrap/pb"
 
 import context "context"

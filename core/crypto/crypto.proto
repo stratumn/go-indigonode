@@ -14,11 +14,9 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+package stratumn.alice.core.crypto;
 
-package stratumn.alice.pb.crypto;
-
-option go_package = "github.com/stratumn/alice/pb/crypto;crypto";
+option go_package = "github.com/stratumn/alice/core/crypto;crypto";
 
 // Types of digital keys supported.
 enum KeyType {
@@ -30,16 +28,7 @@ enum KeyType {
 
 // A digital signature.
 message Signature {
-    KeyType key_type = 1 [
-        (stratumn.alice.grpc.ext.field_desc) = "Type of key used",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-    bytes public_key = 2 [
-        (stratumn.alice.grpc.ext.field_desc) = "Signer's public key",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
-    bytes signature = 3 [
-        (stratumn.alice.grpc.ext.field_desc) = "Signature bytes",
-        (stratumn.alice.grpc.ext.field_required) = true
-    ];
+    KeyType key_type = 1;
+    bytes public_key = 2;
+    bytes signature = 3;
 }

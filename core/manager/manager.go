@@ -40,7 +40,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/manager"
+	pb "github.com/stratumn/alice/core/manager/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
-	"github.com/stratumn/alice/pb/crypto"
+	"github.com/stratumn/alice/core/crypto"
 	"github.com/stratumn/go-indigocore/cs"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

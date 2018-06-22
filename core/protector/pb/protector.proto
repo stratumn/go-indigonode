@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/pb/crypto/crypto.proto";
+import "github.com/stratumn/alice/core/crypto/crypto.proto";
 
-package stratumn.alice.pb.protector;
+package stratumn.alice.core.protector;
 
-option go_package = "github.com/stratumn/alice/pb/protector;protector";
+option go_package = "github.com/stratumn/alice/core/protector/pb;pb";
 
 enum NetworkState {
 	// The network is in the bootstrap phase (not fully private yet).    
@@ -37,5 +37,5 @@ message PeerAddrs {
 message NetworkConfig {
     NetworkState network_state = 1;
     map<string, PeerAddrs> participants = 2;
-    stratumn.alice.pb.crypto.Signature signature = 10;
+    stratumn.alice.core.crypto.Signature signature = 10;
 }

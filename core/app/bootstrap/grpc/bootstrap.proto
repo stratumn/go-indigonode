@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 import "github.com/stratumn/alice/core/app/bootstrap/pb/bootstrap.proto";
 
 package stratumn.alice.core.app.bootstrap.grpc;
@@ -25,31 +25,31 @@ option go_package = "github.com/stratumn/alice/core/app/bootstrap/grpc;grpc";
 service Bootstrap {
   // Propose adding a node to the network.
   rpc AddNode (stratumn.alice.core.app.bootstrap.pb.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Propose adding a node to the network";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Propose adding a node to the network";
   }
 
   // Propose removing a node from the network.
   rpc RemoveNode (stratumn.alice.core.app.bootstrap.pb.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Propose removing a node from the network";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Propose removing a node from the network";
   }
 
   // Accept a proposal to add or remove a network node.
   rpc Accept (stratumn.alice.core.app.bootstrap.pb.PeerID) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Accept a proposal to add or remove a network node";
   }
 
   // Reject a proposal to add or remove a network node.
   rpc Reject (stratumn.alice.core.app.bootstrap.pb.PeerID) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Reject a proposal to add or remove a network node";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Reject a proposal to add or remove a network node";
   }
 
   // List pending proposals to add or remove a network node.
   rpc List (stratumn.alice.core.app.bootstrap.pb.Filter) returns (stream stratumn.alice.core.app.bootstrap.pb.UpdateProposal) {
-    option (stratumn.alice.grpc.ext.method_desc) = "List pending proposals to add or remove a network node";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "List pending proposals to add or remove a network node";
   }
 
   // Complete the network bootstrap phase.
   rpc Complete (stratumn.alice.core.app.bootstrap.pb.CompleteReq) returns (stratumn.alice.core.app.bootstrap.pb.Ack) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Complete the network bootstrap phase";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Complete the network bootstrap phase";
   }
 }

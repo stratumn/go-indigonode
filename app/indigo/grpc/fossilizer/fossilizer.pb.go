@@ -18,7 +18,7 @@ package fossilizer
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
-import _ "github.com/stratumn/alice/grpc/ext"
+import _ "github.com/stratumn/alice/cli/grpc/ext"
 
 import context "context"
 import grpc "google.golang.org/grpc"

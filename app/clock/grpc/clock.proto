@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/grpc/ext/ext.proto";
+import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.grpc.clock;
 
@@ -24,12 +24,12 @@ option go_package = "github.com/stratumn/alice/app/clock/grpc;grpc";
 service Clock {
   // Returns the local time.
   rpc Local (LocalReq) returns (Time) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Display the node's local time";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Display the node's local time";
   }
 
   // Returns a peer's remote time.
   rpc Remote (RemoteReq) returns (Time) {
-    option (stratumn.alice.grpc.ext.method_desc) = "Display the peer's remote time";
+    option (stratumn.alice.cli.grpc.ext.method_desc) = "Display the peer's remote time";
   }
 }
 
@@ -40,14 +40,14 @@ message LocalReq {
 // The Remote request message.
 message RemoteReq {
   bytes peer_id = 1 [
-    (stratumn.alice.grpc.ext.field_desc) = "Peer ID",
-    (stratumn.alice.grpc.ext.field_required) = true,
-    (stratumn.alice.grpc.ext.field_base58) = true
+    (stratumn.alice.cli.grpc.ext.field_desc) = "Peer ID",
+    (stratumn.alice.cli.grpc.ext.field_required) = true,
+    (stratumn.alice.cli.grpc.ext.field_base58) = true
   ];
 }
 
 // The time message containing a Unix nano timestamp.
 message Time {
-  int64 timestamp = 1 [(stratumn.alice.grpc.ext.field_time) = true];
+  int64 timestamp = 1 [(stratumn.alice.cli.grpc.ext.field_time) = true];
 }
 

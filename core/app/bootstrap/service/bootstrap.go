@@ -27,8 +27,8 @@ import (
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/core/streamutil"
-	protectorpb "github.com/stratumn/alice/pb/protector"
 	"github.com/stratumn/alice/release"
 
 	"google.golang.org/grpc"

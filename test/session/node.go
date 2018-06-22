@@ -39,8 +39,8 @@ import (
 	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
 	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/cfg"
+	managerpb "github.com/stratumn/alice/core/manager/grpc"
 	"github.com/stratumn/alice/core/netutil"
-	managerpb "github.com/stratumn/alice/grpc/manager"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 

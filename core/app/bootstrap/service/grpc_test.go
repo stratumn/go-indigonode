@@ -27,7 +27,7 @@ import (
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal/mocks"
 	"github.com/stratumn/alice/core/app/bootstrap/service/mockservice"
 	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/pb/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

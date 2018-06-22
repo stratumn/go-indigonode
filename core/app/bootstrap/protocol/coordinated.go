@@ -21,8 +21,8 @@ import (
 	"github.com/stratumn/alice/core/app/bootstrap/pb"
 	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/alice/core/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/core/streamutil"
-	protectorpb "github.com/stratumn/alice/pb/protector"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

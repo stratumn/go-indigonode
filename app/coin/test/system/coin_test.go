@@ -22,23 +22,23 @@ import (
 	"time"
 
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
-	"github.com/stratumn/alice/test"
-	"google.golang.org/grpc"
-
 	"github.com/mohae/deepcopy"
+	"github.com/pkg/errors"
 	coinpb "github.com/stratumn/alice/app/coin/grpc"
 	"github.com/stratumn/alice/app/coin/pb"
+	"github.com/stratumn/alice/app/coin/protocol/coinutil"
 	coin "github.com/stratumn/alice/app/coin/service"
 	"github.com/stratumn/alice/core/cfg"
-	mngrpb "github.com/stratumn/alice/grpc/manager"
+	mngrpb "github.com/stratumn/alice/core/manager/grpc"
+	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/session"
 	system "github.com/stratumn/alice/test/system"
 	"github.com/stretchr/testify/assert"
 
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"google.golang.org/grpc"
+
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 func TestCoin(t *testing.T) {

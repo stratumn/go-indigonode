@@ -25,7 +25,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/core/protector"
 	"github.com/stratumn/alice/core/protector/mocks"
-	pb "github.com/stratumn/alice/pb/protector"
+	"github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/test"
 	libp2pmocks "github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"

@@ -26,7 +26,7 @@ import (
 	"github.com/stratumn/alice/core/manager/testservice"
 	"github.com/stratumn/alice/core/protector"
 	mockprotector "github.com/stratumn/alice/core/protector/mocks"
-	protectorpb "github.com/stratumn/alice/pb/protector"
+	protectorpb "github.com/stratumn/alice/core/protector/pb"
 	"github.com/stratumn/alice/test"
 	"github.com/stratumn/alice/test/mocks"
 	"github.com/stretchr/testify/assert"

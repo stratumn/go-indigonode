@@ -24,24 +24,24 @@ option go_package = "github.com/stratumn/alice/core/app/ping/grpc;grpc";
 service Ping {
   // Pings an address and streams responses.
   rpc Ping (PingReq) returns (stream Response) {
-    option (stratumn.alice.cli.grpc.ext.method_desc) = "Ping a peer";
+    option (stratumn.alice.cli.ext.method_desc) = "Ping a peer";
   }
 }
 
 // The ping request message.
 message PingReq {
   bytes peer_id = 1 [
-    (stratumn.alice.cli.grpc.ext.field_desc) = "Peer ID",
-    (stratumn.alice.cli.grpc.ext.field_required) = true,
-    (stratumn.alice.cli.grpc.ext.field_base58) = true
+    (stratumn.alice.cli.ext.field_desc) = "Peer ID",
+    (stratumn.alice.cli.ext.field_required) = true,
+    (stratumn.alice.cli.ext.field_base58) = true
   ];
   uint32 times = 2 [
-    (stratumn.alice.cli.grpc.ext.field_desc) = "The number of pings"
+    (stratumn.alice.cli.ext.field_desc) = "The number of pings"
   ];
 }
 
 // The response message containing the latenty.
 message Response {
-  int64 latency = 1 [(stratumn.alice.cli.grpc.ext.field_duration) = true];
+  int64 latency = 1 [(stratumn.alice.cli.ext.field_duration) = true];
 }
 

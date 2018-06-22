@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
-package stratumn.alice.cli.grpc.ext;
+package stratumn.alice.cli.ext;
 
 option go_package = "github.com/stratumn/alice/cli/grpc/ext;ext";
 

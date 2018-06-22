@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/alice/core/app/bootstrap/pb"
-	"github.com/stratumn/alice/pb/crypto"
+	"github.com/stratumn/alice/core/crypto"
 
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"

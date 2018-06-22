@@ -60,7 +60,7 @@ CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' |
 GRPC_PROTOS=$(shell find grpc -name '*.proto') $(shell find app -name '*.proto') $(shell find core/app -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
-PROTOS=$(shell find pb -name '*.proto') $(shell find app -name '*.proto')  $(shell find core/app -name '*.proto')
+PROTOS=$(shell find pb -name '*.proto') $(shell find app -name '*.proto')  $(shell find core/app -name '*.proto') $(shell find core/crypto -name '*.proto')
 PROTOS_GO=$(PROTOS:.proto=.pb.go)
 
 NIX_EXECS=$(foreach os-arch, $(NIX_OS_ARCHS), $(DIST_DIR)/$(os-arch)/$(CMD))

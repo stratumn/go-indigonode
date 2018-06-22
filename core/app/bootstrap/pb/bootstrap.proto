@@ -15,7 +15,7 @@
 syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/pb/crypto/crypto.proto";
+import "github.com/stratumn/alice/core/crypto/crypto.proto";
 
 package stratumn.alice.core.app.bootstrap.pb;
 
@@ -77,5 +77,5 @@ message Vote {
     UpdateType update_type = 1;
     bytes peer_id = 2;
     bytes challenge = 3;
-    stratumn.alice.pb.crypto.Signature signature = 4;
+    stratumn.alice.core.crypto.Signature signature = 4;
 }

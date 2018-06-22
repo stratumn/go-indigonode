@@ -6,10 +6,9 @@ package mockmanager
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
-	manager "github.com/stratumn/alice/grpc/manager"
+	grpc "github.com/stratumn/alice/core/manager/grpc"
+	reflect "reflect"
 )
 
 // MockService is a mock of Service interface
@@ -257,7 +256,7 @@ func (m *MockRunner) EXPECT() *MockRunnerMockRecorder {
 }
 
 // Run mocks base method
-func (m *MockRunner) Run(arg0 context.Context, arg1, arg2 chan<- struct{}) error {
+func (m *MockRunner) Run(arg0 context.Context, arg1, arg2 func()) error {
 	ret := m.ctrl.Call(m, "Run", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -304,9 +303,9 @@ func (mr *MockGRPCManagerMockRecorder) List() *gomock.Call {
 }
 
 // Proto mocks base method
-func (m *MockGRPCManager) Proto(arg0 string) (*manager.Service, error) {
+func (m *MockGRPCManager) Proto(arg0 string) (*grpc.Service, error) {
 	ret := m.ctrl.Call(m, "Proto", arg0)
-	ret0, _ := ret[0].(*manager.Service)
+	ret0, _ := ret[0].(*grpc.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

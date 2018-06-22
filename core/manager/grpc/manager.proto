@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "github.com/stratumn/alice/grpc/ext/ext.proto";
 
-package stratumn.alice.grpc.manager;
+package stratumn.alice.core.manager;
 
-option go_package = "github.com/stratumn/alice/grpc/manager;manager";
+option go_package = "github.com/stratumn/alice/core/manager/grpc;grpc";
 
 // The manager service definition.
 service Manager {

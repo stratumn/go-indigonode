@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
-	"github.com/stratumn/alice/grpc/manager"
+	manager "github.com/stratumn/alice/core/manager/grpc"
 	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"
 )

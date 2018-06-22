@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/grpc/manager"
+	pb "github.com/stratumn/alice/core/manager/grpc"
 	"google.golang.org/grpc"
 )
 

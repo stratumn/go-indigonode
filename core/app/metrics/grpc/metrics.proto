@@ -1,0 +1,49 @@
+// Copyright © 2017-2018 Stratumn SAS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "github.com/stratumn/alice/grpc/ext/ext.proto";
+
+package stratumn.alice.core.app.metrics.grpc;
+
+option go_package = "github.com/stratumn/alice/core/app/metrics/grpc;grpc";
+
+// The metrics service definition.
+service Metrics {
+  // Returns bandwidth usage.
+  rpc Bandwidth (BandwidthReq) returns (BandwidthStats) {
+    option (stratumn.alice.grpc.ext.method_desc) = "Display bandwidth usage";
+  }
+}
+
+// The bandwidth request message.
+message BandwidthReq {
+  bytes peer_id = 1 [
+    (stratumn.alice.grpc.ext.field_desc) = "Show usage for peer",
+    (stratumn.alice.grpc.ext.field_base58) = true
+  ];
+  string protocol_id = 2 [
+    (stratumn.alice.grpc.ext.field_desc) = "Show usage for protocol"
+  ];
+}
+
+// The bandwidth stats message containing totals and rates.
+message BandwidthStats {
+  uint64 total_in = 1 [(stratumn.alice.grpc.ext.field_bytesize) = true];
+  uint64 total_out = 2 [(stratumn.alice.grpc.ext.field_bytesize) = true];
+  uint64 rate_in = 3 [(stratumn.alice.grpc.ext.field_byterate) = true];
+  uint64 rate_out = 4 [(stratumn.alice.grpc.ext.field_byterate) = true];
+}
+

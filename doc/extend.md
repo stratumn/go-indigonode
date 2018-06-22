@@ -153,21 +153,21 @@ package core
 
 import (
 	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/service/bootstrap"
-	"github.com/stratumn/alice/core/service/connmgr"
-	"github.com/stratumn/alice/core/service/grpcapi"
-	"github.com/stratumn/alice/core/service/host"
-	"github.com/stratumn/alice/core/service/identify"
-	"github.com/stratumn/alice/core/service/kaddht"
-	"github.com/stratumn/alice/core/service/metrics"
-	"github.com/stratumn/alice/core/service/mssmux"
-	"github.com/stratumn/alice/core/service/natmgr"
-	"github.com/stratumn/alice/core/service/ping"
-	"github.com/stratumn/alice/core/service/pruner"
-	"github.com/stratumn/alice/core/service/relay"
-	"github.com/stratumn/alice/core/service/signal"
-	"github.com/stratumn/alice/core/service/swarm"
-	"github.com/stratumn/alice/core/service/yamux"
+	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
+	connmgr "github.com/stratumn/alice/core/app/connmgr/service"
+	grpcapi "github.com/stratumn/alice/core/app/grpcapi/service"
+	host "github.com/stratumn/alice/core/app/host/service"
+	identify "github.com/stratumn/alice/core/app/identify/service"
+	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
+	metrics "github.com/stratumn/alice/core/app/metrics/service"
+	mssmux "github.com/stratumn/alice/core/app/mssmux/service"
+	natmgr "github.com/stratumn/alice/core/app/natmgr/service"
+	ping "github.com/stratumn/alice/core/app/ping/service"
+	pruner "github.com/stratumn/alice/core/app/pruner/service"
+	relay "github.com/stratumn/alice/core/app/relay/service"
+	signal "github.com/stratumn/alice/core/app/signal/service"
+	swarm "github.com/stratumn/alice/core/app/swarm/service"
+	yamux "github.com/stratumn/alice/core/app/yamux/service"
 )
 
 // BuiltinServices returns all the builtin services.
@@ -194,7 +194,7 @@ func BuiltinServices() []manager.Service {
 ```
 
 If your service has configuration options, you should add a migration to add
-them to the config file. The migrations for the core Alice modules are in 
+them to the config file. The migrations for the core Alice modules are in
 `core/migrate.go`. You can append one for your service:
 
 ```go

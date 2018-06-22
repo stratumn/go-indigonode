@@ -28,8 +28,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/cli/mockcli"
-	pbevent "github.com/stratumn/alice/grpc/event"
-	"github.com/stratumn/alice/grpc/event/mockevent"
+	pbevent "github.com/stratumn/alice/core/app/event/grpc"
+	"github.com/stratumn/alice/core/app/event/grpc/mockgrpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,7 +91,7 @@ func (s *BoundedServerStream) WaitUntilClosed(t *testing.T) {
 	})
 }
 
-func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, *gomock.Controller, *mockevent.MockEmitter_ListenClient) {
+func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, *gomock.Controller, *mockgrpc.MockEmitter_ListenClient) {
 	mockCtrl := gomock.NewController(t)
 
 	mockSig := mockcli.NewMockSignaler(mockCtrl)
@@ -99,9 +99,9 @@ func testConsoleRPCEventListener(t *testing.T, w io.Writer) (cli.EventListener, 
 
 	cons := cli.NewConsole(w, false)
 
-	elc := mockevent.NewMockEmitter_ListenClient(mockCtrl)
+	elc := mockgrpc.NewMockEmitter_ListenClient(mockCtrl)
 
-	client := mockevent.NewMockEmitterClient(mockCtrl)
+	client := mockgrpc.NewMockEmitterClient(mockCtrl)
 	client.EXPECT().Listen(gomock.Any(), gomock.Any()).Return(elc, nil).AnyTimes()
 
 	el := cli.NewConsoleClientEventListener(cons, client, mockSig)

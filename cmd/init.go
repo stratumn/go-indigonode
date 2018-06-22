@@ -21,9 +21,9 @@ import (
 	"github.com/stratumn/alice/cli"
 	"github.com/stratumn/alice/core"
 	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
+	swarm "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/alice/core/cfg"
 	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/service/swarm"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"

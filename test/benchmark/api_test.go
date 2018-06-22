@@ -19,7 +19,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stratumn/alice/grpc/grpcapi"
+	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
 	"github.com/stratumn/alice/grpc/manager"
 	"github.com/stratumn/alice/test/session"
 	"google.golang.org/grpc"

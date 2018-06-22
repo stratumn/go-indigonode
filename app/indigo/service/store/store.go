@@ -22,7 +22,7 @@ import (
 	rpcpb "github.com/stratumn/alice/app/indigo/grpc/store"
 	protocol "github.com/stratumn/alice/app/indigo/protocol/store"
 	"github.com/stratumn/alice/app/indigo/protocol/store/sync"
-	swarmSvc "github.com/stratumn/alice/core/service/swarm"
+	swarmSvc "github.com/stratumn/alice/core/app/swarm/service"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"

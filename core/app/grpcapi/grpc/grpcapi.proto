@@ -24,7 +24,7 @@ option go_package = "github.com/stratumn/alice/core/app/grpcapi/grpc;grpc";
 service API {
   // Returns information about the API.
   rpc Inform (InformReq) returns (Info) {
-    option (stratumn.alice.cli.grpc.ext.method_desc) = "Get information about the API";
+    option (stratumn.alice.cli.ext.method_desc) = "Get information about the API";
   }
 }
 

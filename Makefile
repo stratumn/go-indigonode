@@ -57,7 +57,7 @@ LINT_PACKAGES=$(shell $(GO_LIST) ./... | grep -v vendor | grep -v './grpc/' | gr
 BUILD_SOURCES=$(shell find . -name '*.go' | grep -v 'mock' | grep -v 'test' | grep -v '_test.go')
 CYCLO_SOURCES=$(shell find . -name '*.go' | grep -v vendor | grep -v './grpc/' | grep -v './pb/' | grep -v 'mock' | grep -v 'test')
 
-GRPC_PROTOS=$(shell find grpc -name '*.proto') $(shell find app -name '*.proto') $(shell find core/app -name '*.proto')
+GRPC_PROTOS=$(shell find cli/grpc -name '*.proto') $(shell find app -name '*.proto') $(shell find core/app -name '*.proto')
 GRPC_GO=$(GRPC_PROTOS:.proto=.pb.go)
 
 PROTOS=$(shell find app -name '*.proto')  $(shell find core -name '*.proto')

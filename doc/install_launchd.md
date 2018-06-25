@@ -1,10 +1,10 @@
 # Launchd Installation
 
-Make sure Alice is installed somewhere in your `$PATH`.
+Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Launchd
 
-Edit `alice.core.toml` so that the `log` section looks like this:
+Edit `indigo_node.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -41,24 +41,24 @@ You should also disable the boot screen in the `core` section:
   enable_boot_screen = false
 ```
 
-## Setup The Alice Daemon
+## Setup The Indigo Node Daemon
 
 Install the property list file:
 
 ```bash
-$ alice daemon install --core-config /path/to/alice.core.toml
+$ indigo-node daemon install --core-config /path/to/indigo_node.core.toml
 ```
 
-Start the Alice service:
+Start the Indigo Node service:
 
 ```bash
-$ sudo launchctl load /Library/LaunchDaemons/alice.plist
+$ sudo launchctl load /Library/LaunchDaemons/indigo-node.plist
 ```
 
 You can stop it with:
 
 ```bash
-$ sudo launchctl unload /Library/LaunchDaemons/alice.plist
+$ sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
 ```
 
 ## View Logs
@@ -66,12 +66,11 @@ $ sudo launchctl unload /Library/LaunchDaemons/alice.plist
 To view the streaming info logs, run:
 
 ```bash
-$ alice log -f /usr/local/var/log/alice.log 
+$ indigo-node log -f /usr/local/var/log/indigo-node.log
 ```
 
 To view the streaming error logs, run:
 
 ```bash
-$ alice log -f /usr/local/var/log/alice.err 
+$ indigo-node log -f /usr/local/var/log/indigo-node.err
 ```
-

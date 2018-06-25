@@ -21,10 +21,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/chain"
-	"github.com/stratumn/alice/app/coin/protocol/state"
-	"github.com/stratumn/alice/app/coin/protocol/validator"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/validator"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"

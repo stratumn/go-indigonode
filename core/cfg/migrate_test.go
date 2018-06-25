@@ -113,7 +113,7 @@ func TestMigrate(t *testing.T) {
 		&testHandler{},
 		[]MigrateHandler{
 			func(tree *Tree) error {
-				return tree.Set("author", "alice")
+				return tree.Set("author", "bob")
 			},
 		},
 	}
@@ -131,7 +131,7 @@ func TestMigrate(t *testing.T) {
 	assert.Equal("tar", tar.name, "tar.name")
 	assert.Equal(3, version.config.Version, "version.config.Version")
 	assert.Equal("tar", tar.testHandler.name, "tar.name")
-	assert.Equal("alice", tar.testHandler.author, "tar.author")
+	assert.Equal("bob", tar.testHandler.author, "tar.author")
 }
 
 func TestMigrate_migrationError(t *testing.T) {

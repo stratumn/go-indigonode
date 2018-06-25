@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/protector/pb"
+	"github.com/stratumn/go-indigonode/core/protector/pb"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

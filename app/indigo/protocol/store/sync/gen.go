@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/alice/app/indigo/protocol/store/sync Engine
+//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync Engine
 
 package sync

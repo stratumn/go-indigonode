@@ -17,7 +17,7 @@ package store_test
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/types"

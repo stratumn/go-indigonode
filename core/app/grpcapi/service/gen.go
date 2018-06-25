@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockgrpcapi.go github.com/stratumn/alice/core/app/grpcapi/service Manager,Registrable
+//go:generate mockgen -package mockservice -destination mockservice/mockgrpcapi.go github.com/stratumn/go-indigonode/core/app/grpcapi/service Manager,Registrable
 
 package service

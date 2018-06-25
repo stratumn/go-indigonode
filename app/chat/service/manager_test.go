@@ -1,4 +1,4 @@
-// Copyright © 2017-2018  Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	pb "github.com/stratumn/alice/app/chat/grpc"
+	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
 )
 
 var testPID1 peer.ID

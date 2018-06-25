@@ -21,8 +21,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
 	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
@@ -36,7 +36,7 @@ var (
 	ErrInvalidNetworkID = errors.New("invalid or missing network ID")
 )
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // NetworkManager provides methods to manage and join PoP networks.

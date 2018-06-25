@@ -19,11 +19,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/storage/pb"
-	"github.com/stratumn/alice/app/storage/protocol/acl"
-	"github.com/stratumn/alice/app/storage/protocol/file"
-	"github.com/stratumn/alice/app/storage/protocol/p2p"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/app/storage/pb"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/acl"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/file"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/p2p"
+	"github.com/stratumn/go-indigonode/core/db"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -35,7 +35,7 @@ import (
 // ChunkSize size of a chunk of data
 const ChunkSize = 1024
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // log is the logger for the service.

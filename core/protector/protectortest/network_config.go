@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/test"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

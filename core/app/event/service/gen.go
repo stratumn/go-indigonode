@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockemitter.go github.com/stratumn/alice/core/app/event/service Emitter
+//go:generate mockgen -package mockservice -destination mockservice/mockemitter.go github.com/stratumn/go-indigonode/core/app/event/service Emitter
 
 package service

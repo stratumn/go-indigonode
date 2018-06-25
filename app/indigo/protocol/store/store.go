@@ -18,9 +18,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
-	"github.com/stratumn/alice/app/indigo/protocol/store/sync"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stratumn/go-indigocore/store"

@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/core/httputil/mockhttputil"
-	"github.com/stratumn/alice/core/netutil"
-	"github.com/stratumn/alice/test"
+	"github.com/stratumn/go-indigonode/core/httputil/mockhttputil"
+	"github.com/stratumn/go-indigonode/core/netutil"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

@@ -19,10 +19,10 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/app/indigo/pb/store"
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
+	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -36,7 +36,7 @@ var (
 	// SingleNodeProtocolID is the protocol ID of the sync engine
 	// that connects to the node that created and shared the new link
 	// to sync all missing links.
-	SingleNodeProtocolID = protocol.ID("/alice/indigo/store/sync/singlenode/v1.0.0")
+	SingleNodeProtocolID = protocol.ID("/indigo/node/indigo/store/sync/singlenode/v1.0.0")
 )
 
 // SingleNodeEngine synchronously syncs with the node that created the new

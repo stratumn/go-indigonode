@@ -17,7 +17,7 @@ package constants_test
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/testutil"
 	"github.com/stretchr/testify/assert"

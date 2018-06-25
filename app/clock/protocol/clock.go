@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/clock/pb"
+	"github.com/stratumn/go-indigonode/app/clock/pb"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -35,11 +35,11 @@ import (
 // log is the logger for the protocol.
 var log = logging.Logger("clock")
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the protocol.
-var ProtocolID = protocol.ID("/alice/clock/v1.0.0")
+var ProtocolID = protocol.ID("/indigo/node/clock/v1.0.0")
 
 // Clock implements the clock protocol.
 type Clock struct {

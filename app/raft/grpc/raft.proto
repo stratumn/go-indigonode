@@ -1,4 +1,4 @@
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,43 +14,43 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.app.raft.grpc;
+package stratumn.indigonode.app.raft.grpc;
 
-option go_package = "github.com/stratumn/alice/app/raft/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/app/raft/grpc;grpc";
 
 // The clock service definition.
 service Raft {
   rpc Start (Empty) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Start single node raft server";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Start single node raft server";
   }
   rpc Stop (Empty) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Stop the server and remove the data";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Stop the server and remove the data";
   }
   rpc Status (Empty) returns (StatusInfo) {
-    option (stratumn.alice.cli.ext.method_desc) = "Get server status";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Get server status";
   }
   rpc Peers (Empty) returns (stream Peer) {
-    option (stratumn.alice.cli.ext.method_desc) = "Get cluster peers";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Get cluster peers";
   }
   rpc Discover (PeerID) returns (stream Peer) {
-    option (stratumn.alice.cli.ext.method_desc) = "Discover Raft cluster";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Discover Raft cluster";
   }
   rpc Invite (PeerID) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Add a node to the cluster";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Add a node to the cluster";
   }
   rpc Join (PeerID) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Join exisiting cluster";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Join exisiting cluster";
   }
   rpc Expel (PeerID) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Remove peer from the cluster";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Remove peer from the cluster";
   }
   rpc Propose (Proposal) returns (Empty) {
-    option (stratumn.alice.cli.ext.method_desc) = "Put data";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Put data";
   }
   rpc Log (Empty) returns (stream Entry) {
-    option (stratumn.alice.cli.ext.method_desc) = "Get log of entries";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Get log of entries";
   }
 
 }
@@ -59,34 +59,34 @@ message Empty {
 }
 
 message Peer {
-  uint64 id = 1 [(stratumn.alice.cli.ext.field_desc) = "Raft ID"];
+  uint64 id = 1 [(stratumn.indigonode.cli.ext.field_desc) = "Raft ID"];
   bytes address = 2 [
-    (stratumn.alice.cli.ext.field_desc) = "Peer ID",
-    (stratumn.alice.cli.ext.field_base58) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
+    (stratumn.indigonode.cli.ext.field_base58) = true
   ];
 }
 
 message PeerID {
   bytes address = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Peer ID",
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_base58) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_base58) = true
   ];
 }
 
 message StatusInfo {
-  bool running = 1 [(stratumn.alice.cli.ext.field_desc) = "Running"];
-  uint64 id = 2 [(stratumn.alice.cli.ext.field_desc) = "Raft ID"];
+  bool running = 1 [(stratumn.indigonode.cli.ext.field_desc) = "Running"];
+  uint64 id = 2 [(stratumn.indigonode.cli.ext.field_desc) = "Raft ID"];
 }
 
 message Proposal {
   bytes data = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Data",
-    (stratumn.alice.cli.ext.field_required) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Data",
+    (stratumn.indigonode.cli.ext.field_required) = true
   ];
 }
 
 message Entry {
-  uint64 index = 1 [(stratumn.alice.cli.ext.field_desc) = "Index"];
-  bytes data = 2 [(stratumn.alice.cli.ext.field_desc) = "Data"];
+  uint64 index = 1 [(stratumn.indigonode.cli.ext.field_desc) = "Index"];
+  bytes data = 2 [(stratumn.indigonode.cli.ext.field_desc) = "Data"];
 }

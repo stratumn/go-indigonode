@@ -6,7 +6,7 @@ import (
 	"github.com/coreos/etcd/raft"
 	"github.com/coreos/etcd/raft/raftpb"
 
-	"github.com/stratumn/alice/app/raft/protocol/lib"
+	"github.com/stratumn/go-indigonode/app/raft/protocol/lib"
 )
 
 type raftImpl struct{}

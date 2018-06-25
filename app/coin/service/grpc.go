@@ -18,9 +18,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/alice/app/coin/grpc"
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
+	rpcpb "github.com/stratumn/go-indigonode/app/coin/grpc"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )

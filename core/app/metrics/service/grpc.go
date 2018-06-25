@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/app/metrics/grpc"
+	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
 
 	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"

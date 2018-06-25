@@ -2,7 +2,7 @@
 
 System testing is key to developing reliable peer-to-peer applications.
 
-The package `github.com/stratumn/alice/test/session` facilitates creating test
+The package `github.com/stratumn/go-indigonode/test/session` facilitates creating test
 networks. It makes it easy to launch nodes in separate processes and interact
 with them via provided API clients.
 
@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
-	"github.com/stratumn/alice/release"
-	"github.com/stratumn/alice/test/session"
+	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc"
+	"github.com/stratumn/go-indigonode/release"
+	"github.com/stratumn/go-indigonode/test/session"
 	"github.com/stretch/testify/assert"
 	"google.golang.org/grpc"
 )

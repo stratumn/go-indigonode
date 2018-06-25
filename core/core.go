@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core defines Alice's core functionality.
+// Package core defines Indigo Node's core functionality.
 package core
 
 import (
@@ -28,11 +28,11 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/cfg"
-	logger "github.com/stratumn/alice/core/log"
-	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/p2p"
-	"github.com/stratumn/alice/release"
+	"github.com/stratumn/go-indigonode/core/cfg"
+	logger "github.com/stratumn/go-indigonode/core/log"
+	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-indigonode/core/p2p"
+	"github.com/stratumn/go-indigonode/release"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
@@ -41,7 +41,7 @@ import (
 
 // Set the identify protocol client version.
 func init() {
-	identify.ClientVersion = "alice/" + release.Version + "/" + release.GitCommit
+	identify.ClientVersion = "indigo-node/" + release.Version + "/" + release.GitCommit
 }
 
 var (
@@ -53,13 +53,12 @@ var (
 var log = logging.Logger("core")
 
 // art is shown upon booting.
-const art = "\033[0;34m      .o.       oooo   o8o\n" +
-	"     .888.      `888   `\"'\n" +
-	"    .8\"888.      888  oooo   .ooooo.   .ooooo.\n" +
-	"   .8' `888.     888  `888  d88' `\"Y8 d88' `88b\n" +
-	"  .88ooo8888.    888   888  888       888ooo888\n" +
-	" .8'     `888.   888   888  888   .o8 888    .o\n" +
-	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'\033[0m"
+const art = "\033[0;34m    ____          ___                _   __          __\n" +
+	"   /  _/___  ____/ (_)___ _____     / | / /___  ____/ /__\n" +
+	"   / // __ \\/ __  / / __ `/ __ \\   /  |/ / __ \\/ __  / _ \\\n" +
+	" _/ // / / / /_/ / / /_/ / /_/ /  / /|  / /_/ / /_/ /  __/\n" +
+	"/___/_/ /_/\\__,_/_/\\__, /\\____/  /_/ |_/\\____/\\__,_/\\___/\n" +
+	"                  /____/\n\033[0m"
 
 // Opt is a core option.
 type Opt func(*Core)

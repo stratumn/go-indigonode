@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stretchr/testify/require"
 )
 

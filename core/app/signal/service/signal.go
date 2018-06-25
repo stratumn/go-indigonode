@@ -23,7 +23,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	logger "github.com/stratumn/alice/core/log"
+	logger "github.com/stratumn/go-indigonode/core/log"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

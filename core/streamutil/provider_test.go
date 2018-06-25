@@ -20,9 +20,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/streamutil"
-	"github.com/stratumn/alice/test"
-	"github.com/stratumn/alice/test/mocks"
+	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +34,7 @@ func TestNewStream(t *testing.T) {
 	provider := streamutil.NewStreamProvider()
 
 	peerID := test.GeneratePeerID(t)
-	protocolID := protocol.ID("/alice/test/streamutil/v1.0.0")
+	protocolID := protocol.ID("/indigo/node/test/streamutil/v1.0.0")
 
 	t.Run("reject-missing-peer-id", func(t *testing.T) {
 		ctrl := gomock.NewController(t)

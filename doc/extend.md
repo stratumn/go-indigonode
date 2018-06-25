@@ -1,12 +1,12 @@
-# Extend Alice By Writing Your Own Service
+# Extend Indigo Node By Writing Your Own Service
 
-Great care went into making Alice extendable with minimum hassle. The core of
-Alice handles service dependencies and configuration files. Extending the API
+Great care went into making Indigo Node extendable with minimum hassle. The core of
+Indigo Node handles service dependencies and configuration files. Extending the API
 is a little more work but it's still very reasonable, and the CLI uses
 reflection to automatically add new commands, so you don't have to worry about
 that part.
 
-Adding new services to Alice is easy. A service needs to implement at least the
+Adding new services to Indigo Node is easy. A service needs to implement at least the
 three methods of the `Service` interface (`ID`, `Name`, and `Desc`). You can
 start from this template, which implements all the most commonly used
 interfaces:
@@ -130,7 +130,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 It should be self-explanatory if you are experienced with the Go programming
 language.
 
-To build `alice` with your service included, all you have to do is register
+To build `indigo-node` with your service included, all you have to do is register
 your package somewhere. For instance the core services are registered in
 `core/service.go`:
 
@@ -152,22 +152,22 @@ your package somewhere. For instance the core services are registered in
 package core
 
 import (
-	"github.com/stratumn/alice/core/manager"
-	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
-	connmgr "github.com/stratumn/alice/core/app/connmgr/service"
-	grpcapi "github.com/stratumn/alice/core/app/grpcapi/service"
-	host "github.com/stratumn/alice/core/app/host/service"
-	identify "github.com/stratumn/alice/core/app/identify/service"
-	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	mssmux "github.com/stratumn/alice/core/app/mssmux/service"
-	natmgr "github.com/stratumn/alice/core/app/natmgr/service"
-	ping "github.com/stratumn/alice/core/app/ping/service"
-	pruner "github.com/stratumn/alice/core/app/pruner/service"
-	relay "github.com/stratumn/alice/core/app/relay/service"
-	signal "github.com/stratumn/alice/core/app/signal/service"
-	swarm "github.com/stratumn/alice/core/app/swarm/service"
-	yamux "github.com/stratumn/alice/core/app/yamux/service"
+	"github.com/stratumn/go-indigonode/core/manager"
+	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
+	connmgr "github.com/stratumn/go-indigonode/core/app/connmgr/service"
+	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
+	host "github.com/stratumn/go-indigonode/core/app/host/service"
+	identify "github.com/stratumn/go-indigonode/core/app/identify/service"
+	kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
+	natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
+	ping "github.com/stratumn/go-indigonode/core/app/ping/service"
+	pruner "github.com/stratumn/go-indigonode/core/app/pruner/service"
+	relay "github.com/stratumn/go-indigonode/core/app/relay/service"
+	signal "github.com/stratumn/go-indigonode/core/app/signal/service"
+	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	yamux "github.com/stratumn/go-indigonode/core/app/yamux/service"
 )
 
 // BuiltinServices returns all the builtin services.
@@ -194,7 +194,7 @@ func BuiltinServices() []manager.Service {
 ```
 
 If your service has configuration options, you should add a migration to add
-them to the config file. The migrations for the core Alice modules are in
+them to the config file. The migrations for the core Indigo Node modules are in
 `core/migrate.go`. You can append one for your service:
 
 ```go
@@ -208,7 +208,7 @@ var migrations = []cfg.MigrateHandler{
 }
 ```
 
-After registering your service, you can build `alice` using `go build`.
+After registering your service, you can build `indigo-node` using `go build`.
 
 You should now be able to start your service from the CLI using
 `manager-start myservice`.
@@ -266,7 +266,7 @@ The service manager understands the following interfaces:
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Service describes an Alice service.
+// Service describes an Indigo Node service.
 type Service interface {
 	// ID returns a unique identifier.
 	ID() string
@@ -328,26 +328,26 @@ type Runner interface {
 
 ## Available Services
 
-| ID        | NAME                | DESC                                       | EXPOSES                                                        |
-| --------- | ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
-| api       | API Services        | Starts API services.                       |                                                                |
-| boot      | Boot Services       | Starts boot services.                      |                                                                |
-| bootstrap | Bootstrap           | Periodically connects to known peers.      | struct{}{}                                                     |
-| connmgr   | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
-| grpcapi   | gRPC API            | Starts a gRPC API server.                  |                                                                |
-| host      | Host                | Starts a P2P host.                         | github.com/stratumn/alice/core/\*p2p.Host                      |
-| identify  | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
-| kaddht    | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
-| manager   | Service Manager     | Manages services.                          | github.com/stratumn/alice/core/\*manager.Manager               |
-| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/alice/core/service/\*metrics.Metrics       |
-| mssmux    | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
-| natmgr    | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |
-| network   | Network Services    | Starts network services.                   |                                                                |
-| p2p       | P2P Services        | Starts P2P services.                       |                                                                |
-| ping      | Ping                | Handles ping requests and responses.       | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService   |
-| pruner    | Service Pruner      | Prunes unused services.                    |                                                                |
-| relay     | Relay               | Enables the P2P circuit relay transport.   |                                                                |
-| signal    | Signal Handler      | Handles exit signals.                      |                                                                |
-| swarm     | Swarm               | Connects to peers.                         | github.com/libp2p/\*go-libp2p-swarm.Swarm                      |
-| system    | System Services     | Starts system services.                    |                                                                |
-| yamux     | Yamux               | Multiplexes streams using Yamux.           | github.com/libp2p/go-stream-muxer.Transport                    |
+| ID        | NAME                | DESC                                       | EXPOSES                                                          |
+| --------- | ------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
+| api       | API Services        | Starts API services.                       |                                                                  |
+| boot      | Boot Services       | Starts boot services.                      |                                                                  |
+| bootstrap | Bootstrap           | Periodically connects to known peers.      | struct{}{}                                                       |
+| connmgr   | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr               |
+| grpcapi   | gRPC API            | Starts a gRPC API server.                  |                                                                  |
+| host      | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host                |
+| identify  | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService   |
+| kaddht    | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                    |
+| manager   | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager         |
+| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/go-indigonode/core/service/\*metrics.Metrics |
+| mssmux    | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                      |
+| natmgr    | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager            |
+| network   | Network Services    | Starts network services.                   |                                                                  |
+| p2p       | P2P Services        | Starts P2P services.                       |                                                                  |
+| ping      | Ping                | Handles ping requests and responses.       | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService     |
+| pruner    | Service Pruner      | Prunes unused services.                    |                                                                  |
+| relay     | Relay               | Enables the P2P circuit relay transport.   |                                                                  |
+| signal    | Signal Handler      | Handles exit signals.                      |                                                                  |
+| swarm     | Swarm               | Connects to peers.                         | github.com/libp2p/\*go-libp2p-swarm.Swarm                        |
+| system    | System Services     | Starts system services.                    |                                                                  |
+| yamux     | Yamux               | Multiplexes streams using Yamux.           | github.com/libp2p/go-stream-muxer.Transport                      |

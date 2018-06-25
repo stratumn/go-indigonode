@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockcli -destination mockcli/mockcli.go github.com/stratumn/alice/cli CLI
-//go:generate mockgen -package mockcli -destination mockcli/mocksignaler.go github.com/stratumn/alice/cli Signaler
-//go:generate mockgen -package mockcli -destination mockcli/mockserverstream.go github.com/stratumn/alice/cli ServerStream
+//go:generate mockgen -package mockcli -destination mockcli/mockcli.go github.com/stratumn/go-indigonode/cli CLI
+//go:generate mockgen -package mockcli -destination mockcli/mocksignaler.go github.com/stratumn/go-indigonode/cli Signaler
+//go:generate mockgen -package mockcli -destination mockcli/mockserverstream.go github.com/stratumn/go-indigonode/cli ServerStream
 
 package cli

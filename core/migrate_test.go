@@ -21,10 +21,10 @@ import (
 	"testing"
 
 	"github.com/pelletier/go-toml"
-	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
-	swarm "github.com/stratumn/alice/core/app/swarm/service"
-	"github.com/stratumn/alice/core/cfg"
-	logger "github.com/stratumn/alice/core/log"
+	kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
+	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/cfg"
+	logger "github.com/stratumn/go-indigonode/core/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,7 +88,7 @@ func TestMigrations(t *testing.T) {
 
 // Original configuration before migrations.
 const confZero = `
-# Alice configuration file. Keep private!!!
+# Indigo Node configuration file. Keep private!!!
 
 # Settings for the bootstrap module.
 [bootstrap]
@@ -141,7 +141,7 @@ const confZero = `
   # Whether to show the boot screen when starting the node.
   enable_boot_screen = true
 
-  # The version of Alice that generated this file.
+  # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 
   [[core.service_groups]]

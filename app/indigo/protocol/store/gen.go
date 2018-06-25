@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocknetworkmanager -destination mocknetwork/mocknetwork.go github.com/stratumn/alice/app/indigo/protocol/store NetworkManager
+//go:generate mockgen -package mocknetworkmanager -destination mocknetwork/mocknetwork.go github.com/stratumn/go-indigonode/app/indigo/protocol/store NetworkManager
 //go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/go-indigocore/store Adapter
 //go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/go-indigocore/validator Validator
 //go:generate mockgen -package mockvalidator -destination mockvalidator/mockgovernance.go github.com/stratumn/go-indigocore/validator GovernanceManager

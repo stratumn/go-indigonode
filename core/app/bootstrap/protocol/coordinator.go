@@ -19,11 +19,11 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/app/bootstrap/pb"
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/core/streamutil"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/core/protector"
+	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -39,17 +39,17 @@ var (
 	// PrivateCoordinatorHandshakePID is the protocol for handling handshake
 	// messages and sending the network participants list.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorHandshakePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/handshake/v1.0.0")
+	PrivateCoordinatorHandshakePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/handshake/v1.0.0")
 
 	// PrivateCoordinatorProposePID is the protocol for receiving network update
 	// proposals from peers.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorProposePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/propose/v1.0.0")
+	PrivateCoordinatorProposePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/propose/v1.0.0")
 
 	// PrivateCoordinatorVotePID is the protocol for receiving votes
 	// from network participants.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorVotePID = protocol.ID("/alice/indigo/bootstrap/private/coordinator/vote/v1.0.0")
+	PrivateCoordinatorVotePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/vote/v1.0.0")
 )
 
 // Errors used by the coordinator.

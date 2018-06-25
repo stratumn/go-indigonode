@@ -14,36 +14,36 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.core.app.metrics.grpc;
+package stratumn.indigonode.core.app.metrics.grpc;
 
-option go_package = "github.com/stratumn/alice/core/app/metrics/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/core/app/metrics/grpc;grpc";
 
 // The metrics service definition.
 service Metrics {
   // Returns bandwidth usage.
   rpc Bandwidth (BandwidthReq) returns (BandwidthStats) {
-    option (stratumn.alice.cli.ext.method_desc) = "Display bandwidth usage";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Display bandwidth usage";
   }
 }
 
 // The bandwidth request message.
 message BandwidthReq {
   bytes peer_id = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Show usage for peer",
-    (stratumn.alice.cli.ext.field_base58) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Show usage for peer",
+    (stratumn.indigonode.cli.ext.field_base58) = true
   ];
   string protocol_id = 2 [
-    (stratumn.alice.cli.ext.field_desc) = "Show usage for protocol"
+    (stratumn.indigonode.cli.ext.field_desc) = "Show usage for protocol"
   ];
 }
 
 // The bandwidth stats message containing totals and rates.
 message BandwidthStats {
-  uint64 total_in = 1 [(stratumn.alice.cli.ext.field_bytesize) = true];
-  uint64 total_out = 2 [(stratumn.alice.cli.ext.field_bytesize) = true];
-  uint64 rate_in = 3 [(stratumn.alice.cli.ext.field_byterate) = true];
-  uint64 rate_out = 4 [(stratumn.alice.cli.ext.field_byterate) = true];
+  uint64 total_in = 1 [(stratumn.indigonode.cli.ext.field_bytesize) = true];
+  uint64 total_out = 2 [(stratumn.indigonode.cli.ext.field_bytesize) = true];
+  uint64 rate_in = 3 [(stratumn.indigonode.cli.ext.field_byterate) = true];
+  uint64 rate_out = 4 [(stratumn.indigonode.cli.ext.field_byterate) = true];
 }
 

@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/test"
-	libp2pmocks "github.com/stratumn/alice/test/mocks"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/test"
+	libp2pmocks "github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

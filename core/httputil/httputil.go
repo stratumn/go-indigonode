@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package httputil provides an utility method to start an HTTP server in the
-// context of an Alice service.
+// context of an Indigo Node service.
 package httputil
 
 import (
@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/netutil"
+	"github.com/stratumn/go-indigonode/core/netutil"
 )
 
 // StartServer starts an HTTP server that listens on the provided address.

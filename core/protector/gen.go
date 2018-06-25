@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocks -destination mocks/mockprotector.go github.com/stratumn/alice/core/protector Protector,StateAwareProtector
-//go:generate mockgen -package mocks -destination mocks/mocknetworkconfig.go github.com/stratumn/alice/core/protector NetworkConfig
+//go:generate mockgen -package mocks -destination mocks/mockprotector.go github.com/stratumn/go-indigonode/core/protector Protector,StateAwareProtector
+//go:generate mockgen -package mocks -destination mocks/mocknetworkconfig.go github.com/stratumn/go-indigonode/core/protector NetworkConfig
 
 package protector

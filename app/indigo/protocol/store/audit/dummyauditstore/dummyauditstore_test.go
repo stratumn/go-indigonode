@@ -17,9 +17,9 @@ package dummyauditstore_test
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/dummyauditstore"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/storetestcases"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/storetestcases"
 )
 
 func TestDummyAuditStore(t *testing.T) {

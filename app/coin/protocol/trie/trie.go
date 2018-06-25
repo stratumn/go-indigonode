@@ -1,4 +1,4 @@
-// Copyright © 2017-2018  Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/core/db"
 
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )

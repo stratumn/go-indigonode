@@ -16,9 +16,9 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
-package stratumn.alice.cli.ext;
+package stratumn.indigonode.cli.ext;
 
-option go_package = "github.com/stratumn/alice/cli/grpc/ext;ext";
+option go_package = "github.com/stratumn/go-indigonode/cli/grpc/ext;ext";
 
 extend google.protobuf.MethodOptions {
   string method_desc = 50000;

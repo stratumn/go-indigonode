@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	host "github.com/stratumn/alice/core/app/host/grpc"
-	"github.com/stratumn/alice/test/session"
+	host "github.com/stratumn/go-indigonode/core/app/host/grpc"
+	"github.com/stratumn/go-indigonode/test/session"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 

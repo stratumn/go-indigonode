@@ -14,48 +14,48 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/app/indigo/pb/store/segment.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/app/indigo/pb/store/segment.proto";
 
-package stratumn.alice.app.indigo.store.grpc;
+package stratumn.indigonode.app.indigo.store.grpc;
 
-option go_package = "github.com/stratumn/alice/app/indigo/grpc/store;store";
+option go_package = "github.com/stratumn/go-indigonode/app/indigo/grpc/store;store";
 
 // The Indigo Store service definition.
 service IndigoStore {
     // Get store information.
     rpc GetInfo(InfoReq) returns (InfoResp) {
-        option (stratumn.alice.cli.ext.method_desc) = "Get information about the Indigo Store service";
+        option (stratumn.indigonode.cli.ext.method_desc) = "Get information about the Indigo Store service";
     }
 
     // Create a link.
-    rpc CreateLink(stratumn.alice.app.indigo.store.Link) returns (stratumn.alice.app.indigo.store.LinkHash) {
-        option (stratumn.alice.cli.ext.method_desc) = "Create a new link";
+    rpc CreateLink(stratumn.indigonode.app.indigo.store.Link) returns (stratumn.indigonode.app.indigo.store.LinkHash) {
+        option (stratumn.indigonode.cli.ext.method_desc) = "Create a new link";
     }
 
     // Get a segment.
-    rpc GetSegment(stratumn.alice.app.indigo.store.LinkHash) returns (stratumn.alice.app.indigo.store.Segment) {
-        option (stratumn.alice.cli.ext.method_desc) = "Get an existing segment from its link hash";
+    rpc GetSegment(stratumn.indigonode.app.indigo.store.LinkHash) returns (stratumn.indigonode.app.indigo.store.Segment) {
+        option (stratumn.indigonode.cli.ext.method_desc) = "Get an existing segment from its link hash";
     }
 
     // Find segments.
-    rpc FindSegments(SegmentFilter) returns (stratumn.alice.app.indigo.store.Segments) {
-        option (stratumn.alice.cli.ext.method_desc) = "Find existing segments";
+    rpc FindSegments(SegmentFilter) returns (stratumn.indigonode.app.indigo.store.Segments) {
+        option (stratumn.indigonode.cli.ext.method_desc) = "Find existing segments";
     }
 
     // Get map IDs.
     rpc GetMapIDs(MapFilter) returns (MapIDs) {
-        option (stratumn.alice.cli.ext.method_desc) = "Get existing map IDs";
+        option (stratumn.indigonode.cli.ext.method_desc) = "Get existing map IDs";
     }
 
     // Add evidence to a segment.
     rpc AddEvidence(AddEvidenceReq) returns (AddEvidenceResp) {
-        option (stratumn.alice.cli.ext.method_desc) = "Add evidence to a segment";
+        option (stratumn.indigonode.cli.ext.method_desc) = "Add evidence to a segment";
     }
 
     // Get segment evidences.
-    rpc GetEvidences(stratumn.alice.app.indigo.store.LinkHash) returns (stratumn.alice.app.indigo.store.Evidences) {
-        option (stratumn.alice.cli.ext.method_desc) = "Get segment evidences";
+    rpc GetEvidences(stratumn.indigonode.app.indigo.store.LinkHash) returns (stratumn.indigonode.app.indigo.store.Evidences) {
+        option (stratumn.indigonode.cli.ext.method_desc) = "Get segment evidences";
     }
 }
 
@@ -64,34 +64,34 @@ message InfoReq {
 
 message InfoResp {
     bytes data = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "JSON-encoded store information"
+        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded store information"
     ];
 }
 
 message SegmentFilter {
     bytes data = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "JSON-encoded segment filter bytes"
+        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded segment filter bytes"
     ];
 }
 
 message MapIDs {
     repeated string map_ids = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Map IDs"
+        (stratumn.indigonode.cli.ext.field_desc) = "Map IDs"
     ];
 }
 
 message MapFilter {
     bytes data = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "JSON-encoded map filter bytes"
+        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded map filter bytes"
     ];
 }
 
 message AddEvidenceReq {
-    stratumn.alice.app.indigo.store.LinkHash link_hash = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "32-bytes link hash"
+    stratumn.indigonode.app.indigo.store.LinkHash link_hash = 1 [
+        (stratumn.indigonode.cli.ext.field_desc) = "32-bytes link hash"
     ];
-    stratumn.alice.app.indigo.store.Evidence evidence = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "JSON-encoded evidence bytes"
+    stratumn.indigonode.app.indigo.store.Evidence evidence = 2 [
+        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded evidence bytes"
     ];
 }
 

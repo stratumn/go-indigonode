@@ -21,9 +21,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/manager/grpc"
-	mockpb "github.com/stratumn/alice/core/manager/grpc/mockgrpc"
-	"github.com/stratumn/alice/core/manager/mockmanager"
+	pb "github.com/stratumn/go-indigonode/core/manager/grpc"
+	mockpb "github.com/stratumn/go-indigonode/core/manager/grpc/mockgrpc"
+	"github.com/stratumn/go-indigonode/core/manager/mockmanager"
 	"github.com/stretchr/testify/assert"
 )
 

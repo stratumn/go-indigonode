@@ -4,7 +4,7 @@ The coin application implements a simple proof-of-work blockchain.
 This service isn't enabled by default, you need to start it yourself:
 
 ```bash
-Alice> manager-start coin
+IndigoNode> manager-start coin
 ```
 
 Once started, it will start mining blocks (this is CPU intensive).
@@ -12,7 +12,7 @@ Once started, it will start mining blocks (this is CPU intensive).
 ## Configuration
 
 Most of the configuration values will be automatically set.
-You can tweak them in the `coin` section in `alice.core.toml`.
+You can tweak them in the `coin` section in `indigo_node.core.toml`.
 But be careful because other nodes in the network might reject your blocks if you use invalid configuration values.
 
 In order to be able to start the coin service, you'll need to provide your peer ID in that configuration file.
@@ -36,7 +36,7 @@ func GenerateKeyPair() error {
         return err
     }
 
-    // This is how your miner_id should appear in alice.core.toml
+    // This is how your miner_id should appear in indigo_node.core.toml
     configMinerID := peer.IDB58Encode(minerID)
 }
 ```

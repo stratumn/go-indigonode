@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/go-indigonode/cli"
 )
 
 func TestEcho(t *testing.T) {

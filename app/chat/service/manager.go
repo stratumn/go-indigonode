@@ -1,4 +1,4 @@
-// Copyright © 2017-2018  Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/app/chat/grpc"
-	"github.com/stratumn/alice/core/db"
+	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
+	"github.com/stratumn/go-indigonode/core/db"
 )
 
 // PeerHistory represents a list of messages

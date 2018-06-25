@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/storage/pb"
-	"github.com/stratumn/alice/app/storage/protocol/constants"
-	"github.com/stratumn/alice/app/storage/protocol/file"
+	"github.com/stratumn/go-indigonode/app/storage/pb"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/constants"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/file"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

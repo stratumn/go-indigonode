@@ -30,8 +30,8 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	pb "github.com/stratumn/alice/core/app/metrics/grpc"
-	"github.com/stratumn/alice/core/httputil"
+	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
+	"github.com/stratumn/go-indigonode/core/httputil"
 	"google.golang.org/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -132,7 +132,7 @@ func (s *Service) SetConfig(config interface{}) error {
 // Expose exposes the bandwidth reporter to other services.
 //
 // It exposes the type:
-//	github.com/stratumn/alice/core/service/*metrics.Metrics
+//	github.com/stratumn/go-indigonode/core/service/*metrics.Metrics
 func (s *Service) Expose() interface{} {
 	return s.metrics
 }

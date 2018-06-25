@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	pbchat "github.com/stratumn/alice/app/chat/grpc"
-	"github.com/stratumn/alice/app/chat/pb"
-	pbevent "github.com/stratumn/alice/core/app/event/grpc"
-	event "github.com/stratumn/alice/core/app/event/service"
+	pbchat "github.com/stratumn/go-indigonode/app/chat/grpc"
+	"github.com/stratumn/go-indigonode/app/chat/pb"
+	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
+	event "github.com/stratumn/go-indigonode/core/app/event/service"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -33,11 +33,11 @@ import (
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
+var ProtocolID = protocol.ID("/indigo/node/chat/v1.0.0")
 
 // log is the logger for the service.
 var log = logging.Logger("chat")

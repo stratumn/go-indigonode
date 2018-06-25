@@ -17,8 +17,8 @@ package testutil
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/coin/protocol/state"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/core/db"
 	"github.com/stretchr/testify/require"
 )
 

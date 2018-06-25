@@ -20,8 +20,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

@@ -14,27 +14,27 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.core.app.host.grpc;
+package stratumn.indigonode.core.app.host.grpc;
 
-option go_package = "github.com/stratumn/alice/core/app/host/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/core/app/host/grpc;grpc";
 
 // The host service definition.
 service Host {
   // Returns the host ID.
   rpc ID (IdReq) returns (HostId) {
-    option (stratumn.alice.cli.ext.method_desc) = "Display the host's ID";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Display the host's ID";
   }
 
   // Streams the host addresses.
   rpc Addresses (AddressesReq) returns (stream Address) {
-    option (stratumn.alice.cli.ext.method_desc) = "List all the host's addresses";
+    option (stratumn.indigonode.cli.ext.method_desc) = "List all the host's addresses";
   }
 
   // Connects to a multiaddress.
   rpc Connect (ConnectReq) returns (stream Connection) {
-    option (stratumn.alice.cli.ext.method_desc) = "Ensure there is a connection to this peer";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Ensure there is a connection to this peer";
   }
 }
 
@@ -49,25 +49,25 @@ message AddressesReq {
 // The connect request message.
 message ConnectReq {
   bytes address = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Multiaddress",
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_multiaddr) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Multiaddress",
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_multiaddr) = true
   ];
 }
 
 // The host ID message containing the ID of the host.
 message HostId {
-  bytes id = 1 [(stratumn.alice.cli.ext.field_base58) = true];
+  bytes id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
 }
 
 // The address message containing a multiaddress.
 message Address {
-    bytes address = 2 [(stratumn.alice.cli.ext.field_multiaddr) = true];
+    bytes address = 2 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
 }
 
 // The connection message containing the peer ID and addresses.
 message Connection {
-    bytes peer_id = 1 [(stratumn.alice.cli.ext.field_base58) = true];
-    bytes local_address = 2 [(stratumn.alice.cli.ext.field_multiaddr) = true];
-    bytes remote_address = 3 [(stratumn.alice.cli.ext.field_multiaddr) = true];
+    bytes peer_id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
+    bytes local_address = 2 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
+    bytes remote_address = 3 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
 }

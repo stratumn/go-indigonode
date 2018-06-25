@@ -15,7 +15,7 @@
 /*
 Package service defines a service that exposes a gRPC API.
 
-The API allows external applications such as Alice's command line interface
+The API allows external applications such as Indigo Node's command line interface
 to interact with the node without having to connect to the P2P network.
 
 The API is implemented using gRPC. It is possible to automatically generate API
@@ -33,10 +33,10 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/app/grpcapi/grpc"
-	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/netutil"
-	"github.com/stratumn/alice/release"
+	pb "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc"
+	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-indigonode/core/netutil"
+	"github.com/stratumn/go-indigonode/release"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"

@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-## When did Alice start?
+## When did Indigo Node start?
 
 October 12th 2017.
 
@@ -14,6 +14,6 @@ if we need them without risking of conflicting with other applications.
 ## Why a CLI instead of terminal commands?
 
 Because the CLI uses reflection to automatically create commands from the API.
-It is possible that the API has functions the `alice` binary doesn't know
+It is possible that the API has functions the `indigo-node` binary doesn't know
 about when it's compiled, so it cannot have commands for them. You can use
-`alice cli -c command` though.
+`indigo-node cli -c command` though.

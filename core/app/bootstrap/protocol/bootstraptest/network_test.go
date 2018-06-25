@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/test"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/core/protector"
+	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/require"
 
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"

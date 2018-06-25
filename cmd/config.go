@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/go-indigonode/core/cfg"
 )
 
 var backup bool
@@ -85,7 +85,7 @@ var getConfig = &cobra.Command{
 }
 
 func init() {
-	configCmd := &cobra.Command{Use: "config", Short: "Manage alice configurations"}
+	configCmd := &cobra.Command{Use: "config", Short: "Manage Indigo Node configurations"}
 	setConfig.Flags().BoolVar(&backup, "backup", true, "save configuration backup when editing")
 	configCmd.AddCommand(setConfig)
 	configCmd.AddCommand(getConfig)

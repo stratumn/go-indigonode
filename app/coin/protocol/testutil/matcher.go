@@ -17,7 +17,7 @@ package testutil
 import (
 	"fmt"
 
-	"github.com/stratumn/alice/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
 )
 
 // TxMatcher matches transactions.

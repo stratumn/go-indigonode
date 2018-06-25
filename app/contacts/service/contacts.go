@@ -1,4 +1,4 @@
-// Copyright © 2017-2018  Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/app/contacts/grpc"
+	pb "github.com/stratumn/go-indigonode/app/contacts/grpc"
 	"google.golang.org/grpc"
 )
 

@@ -27,7 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/core/db"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	mh "gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
@@ -51,7 +51,7 @@ var (
 	prefixFilesHashes = []byte("fh") // prefixFilesHashes + filehash -> filepath
 )
 
-// Handler contains the methods to handle a file on the alice node.
+// Handler contains the methods to handle a file on the Indigo node.
 type Handler interface {
 	// BeginWrite creates an empty file.
 	BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error)

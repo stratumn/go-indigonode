@@ -19,10 +19,10 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/chain"
-	"github.com/stratumn/alice/app/coin/protocol/processor"
-	"github.com/stratumn/alice/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/processor"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
 )
 
 // InstrumentedProcessor adds method calls instrumentation to a processor.

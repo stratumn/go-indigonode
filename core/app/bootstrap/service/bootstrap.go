@@ -22,14 +22,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/app/bootstrap/grpc"
-	protocol "github.com/stratumn/alice/core/app/bootstrap/protocol"
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
-	swarm "github.com/stratumn/alice/core/app/swarm/service"
-	"github.com/stratumn/alice/core/protector"
-	protectorpb "github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/core/streamutil"
-	"github.com/stratumn/alice/release"
+	pb "github.com/stratumn/go-indigonode/core/app/bootstrap/grpc"
+	protocol "github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/protector"
+	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-indigonode/release"
 
 	"google.golang.org/grpc"
 
@@ -61,7 +61,7 @@ var (
 // log is the logger for the service.
 var log = logging.Logger(ServiceID)
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host ihost.Host
 
 // Service is the Bootstrap service.

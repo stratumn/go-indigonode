@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 
-package stratumn.alice.core.crypto;
+package stratumn.indigonode.core.crypto;
 
-option go_package = "github.com/stratumn/alice/core/crypto;crypto";
+option go_package = "github.com/stratumn/go-indigonode/core/crypto;crypto";
 
 // Types of digital keys supported.
 enum KeyType {

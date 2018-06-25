@@ -1,4 +1,4 @@
-// Copyright © 2018 Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ const (
 	// InventoryFlagName is the name of the flag to pass the ansible inventory file.
 	InventoryFlagName = "inventory"
 
-	// DefaultInventory is the default name for the alice test network inventory file.
+	// DefaultInventory is the default name for the Indigo test network inventory file.
 	DefaultInventory = "network.ini"
 
 	// PlaybookFlagName is the name of the flag for the ansible playbook.
@@ -47,7 +47,7 @@ const (
 	DeploymentKeyFlagName = "key"
 
 	// DefaultDeploymentKey is the path to the private key setup on the cloud platform.
-	DefaultDeploymentKey = "/keybase/team/stratumn_eng/alice_test_network/alice-test-key.pem"
+	DefaultDeploymentKey = "/keybase/team/stratumn_eng/indigo_node_test_network/indigo-node-test-key.pem"
 
 	// AnsibleConfigFlagName is the name of the flag ansible configuration file path.
 	AnsibleConfigFlagName = "ansible-cfg"
@@ -85,7 +85,7 @@ func setupEnv(cmd *exec.Cmd) {
 func getDependencies() {
 	_, err := exec.LookPath("python")
 	if err != nil {
-		osExit(1, "python must be installed to run alice deploy")
+		osExit(1, "python must be installed to run indigo-node deploy")
 	}
 
 	// Install python dependencies.
@@ -133,7 +133,7 @@ func runDeploy(cmd *exec.Cmd) {
 // deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploys an alice network on the cloud",
+	Short: "Deploys an indigo network on the cloud",
 	Run: func(cmd *cobra.Command, args []string) {
 		getDependencies()
 		ansibleCmd := exec.Command(

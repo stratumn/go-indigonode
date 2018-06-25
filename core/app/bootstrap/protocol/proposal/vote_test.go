@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stratumn/alice/core/app/bootstrap/pb"
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/alice/test"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

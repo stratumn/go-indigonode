@@ -21,8 +21,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/app/natmgr/service/mockservice"
-	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/go-indigonode/core/app/natmgr/service/mockservice"
+	"github.com/stratumn/go-indigonode/core/manager/testservice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

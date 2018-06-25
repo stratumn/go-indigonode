@@ -36,7 +36,7 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("relay")
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // Service is the Relay service.

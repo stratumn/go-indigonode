@@ -14,22 +14,22 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.app.clock.grpc;
+package stratumn.indigonode.app.clock.grpc;
 
-option go_package = "github.com/stratumn/alice/app/clock/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/app/clock/grpc;grpc";
 
 // The clock service definition.
 service Clock {
   // Returns the local time.
   rpc Local (LocalReq) returns (Time) {
-    option (stratumn.alice.cli.ext.method_desc) = "Display the node's local time";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Display the node's local time";
   }
 
   // Returns a peer's remote time.
   rpc Remote (RemoteReq) returns (Time) {
-    option (stratumn.alice.cli.ext.method_desc) = "Display the peer's remote time";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Display the peer's remote time";
   }
 }
 
@@ -40,14 +40,14 @@ message LocalReq {
 // The Remote request message.
 message RemoteReq {
   bytes peer_id = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Peer ID",
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_base58) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_base58) = true
   ];
 }
 
 // The time message containing a Unix nano timestamp.
 message Time {
-  int64 timestamp = 1 [(stratumn.alice.cli.ext.field_time) = true];
+  int64 timestamp = 1 [(stratumn.indigonode.cli.ext.field_time) = true];
 }
 

@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockcoin -destination mockcoin/mockcoin.go github.com/stratumn/alice/app/coin/grpc Coin_AccountTransactionsServer
+//go:generate mockgen -package mockcoin -destination mockcoin/mockcoin.go github.com/stratumn/go-indigonode/app/coin/grpc Coin_AccountTransactionsServer
 
 package grpc

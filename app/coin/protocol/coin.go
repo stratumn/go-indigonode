@@ -21,16 +21,16 @@ import (
 	"fmt"
 	"io"
 
-	pb "github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/chain"
-	"github.com/stratumn/alice/app/coin/protocol/engine"
-	"github.com/stratumn/alice/app/coin/protocol/gossip"
-	"github.com/stratumn/alice/app/coin/protocol/miner"
-	"github.com/stratumn/alice/app/coin/protocol/p2p"
-	"github.com/stratumn/alice/app/coin/protocol/processor"
-	"github.com/stratumn/alice/app/coin/protocol/state"
-	"github.com/stratumn/alice/app/coin/protocol/synchronizer"
-	"github.com/stratumn/alice/app/coin/protocol/validator"
+	pb "github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/gossip"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/miner"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/processor"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/validator"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -39,7 +39,7 @@ import (
 )
 
 // ProtocolID is the protocol ID of the protocol.
-var ProtocolID = protocol.ID("/alice/coin/v1.0.0")
+var ProtocolID = protocol.ID("/indigo/node/coin/v1.0.0")
 
 // log is the logger for the service.
 var log = logging.Logger("coin")

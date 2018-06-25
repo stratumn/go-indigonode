@@ -23,11 +23,11 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/core/protector/mocks"
-	"github.com/stratumn/alice/core/protector/pb"
-	"github.com/stratumn/alice/test"
-	libp2pmocks "github.com/stratumn/alice/test/mocks"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/core/protector/mocks"
+	"github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-indigonode/test"
+	libp2pmocks "github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -310,7 +310,7 @@ func TestConfigSigner(t *testing.T) {
 func TestConfigSaver(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 	configPath := path.Join(dir, "config.json")
 
 	signerKey := test.GeneratePrivateKey(t)
@@ -523,7 +523,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 func TestLoadOrInitNetworkConfig(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 	configPath := path.Join(dir, "config.json")
 
 	signerKey := test.GeneratePrivateKey(t)

@@ -14,7 +14,7 @@ protocols:
 - multistream - self-describing stream network protocols
 - multigram (WIP) - self-describing packet network protocols
 
-Alice uses these when possible.
+Indigo Node uses these when possible.
 
 The string representation of the formats should be used in documentation and
 human readable files such as configuration files.
@@ -48,7 +48,7 @@ Use commit messages of the form `package: short description`. For instance:
 
 ## Logging
 
-For consistency with libp2p, Alice uses
+For consistency with libp2p, Indigo Node uses
 [go-log](https://github.com/ipfs/go-log) as the logger.
 
 It is an event based logger (use events, not the deprecated Debug, Info,
@@ -108,7 +108,7 @@ You can view the internal dependency graph of this package using:
 
 ```bash
 $ go get -u github.com/davecheney/graphpkg
-$ graphpkg -match github.com/stratumn/alice github.com/stratumn/alice
+$ graphpkg -match github.com/stratumn/go-indigonode github.com/stratumn/go-indigonode
 ```
 
 Use the [github.com/pkg/errors](http://github.com/pkg/errors) package to add

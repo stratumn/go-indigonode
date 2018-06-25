@@ -1,4 +1,4 @@
-// Copyright 2017 Stratumn SAS. All rights reserved.
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"database/sql"
 	"encoding/json"
 
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 	"github.com/stratumn/go-indigocore/cs"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

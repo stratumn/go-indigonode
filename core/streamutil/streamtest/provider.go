@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/core/streamutil"
-	"github.com/stratumn/alice/core/streamutil/mockstream"
+	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-indigonode/core/streamutil/mockstream"
 	"github.com/stretchr/testify/assert"
 
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"

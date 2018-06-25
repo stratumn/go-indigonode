@@ -20,10 +20,10 @@ import (
 
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/chain"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
-	"github.com/stratumn/alice/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
 
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

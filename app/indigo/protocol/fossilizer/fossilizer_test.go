@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/app/indigo/protocol/fossilizer"
-	"github.com/stratumn/alice/app/indigo/protocol/fossilizer/mockbatchfossilizer"
-	"github.com/stratumn/alice/app/indigo/protocol/fossilizer/mockfossilizer"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer/mockbatchfossilizer"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer/mockfossilizer"
 	indigofossilizer "github.com/stratumn/go-indigocore/fossilizer"
 	"github.com/stretchr/testify/assert"
 )

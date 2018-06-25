@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/app/ping/grpc"
+	pb "github.com/stratumn/go-indigonode/core/app/ping/grpc"
 	"google.golang.org/grpc"
 
 	ping "gx/ipfs/QmWsV6kzPaYGBDVyuUfWBvyQygEc9Qrv9vzo8vZ7X4mdLN/go-libp2p/p2p/protocol/ping"
@@ -38,7 +38,7 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // Service is the Ping service.

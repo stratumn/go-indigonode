@@ -18,8 +18,8 @@ package manager_test
 import (
 	"testing"
 
-	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-indigonode/core/manager/testservice"
 )
 
 func TestServiceGroup_strings(t *testing.T) {

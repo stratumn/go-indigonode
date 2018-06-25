@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	pb "github.com/stratumn/alice/app/chat/grpc"
-	mockpb "github.com/stratumn/alice/app/chat/grpc/mockchat"
+	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
+	mockpb "github.com/stratumn/go-indigonode/app/chat/grpc/mockchat"
 	"github.com/stretchr/testify/assert"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

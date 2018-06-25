@@ -21,9 +21,9 @@ import (
 
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	pb "github.com/stratumn/alice/core/app/swarm/grpc"
-	"github.com/stratumn/alice/core/protector"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	pb "github.com/stratumn/go-indigonode/core/app/swarm/grpc"
+	"github.com/stratumn/go-indigonode/core/protector"
 	"google.golang.org/grpc"
 
 	"gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
@@ -102,7 +102,7 @@ func (s *Service) Desc() string {
 // Config returns the current service configuration or creates one with
 // good default values.
 //
-// It can panic but it can only happen during `alice init`.
+// It can panic but it can only happen during `indigo-node init`.
 func (s *Service) Config() interface{} {
 	if s.config != nil {
 		return *s.config
@@ -214,7 +214,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 // Expose exposes the swarm to other services.
 //
 // It exposes the type:
-//	github.com/stratumn/alice/core/service/*swarm.Swarm
+//	github.com/stratumn/go-indigonode/core/service/*swarm.Swarm
 func (s *Service) Expose() interface{} {
 	return &Swarm{
 		NetworkConfig: s.networkConfig,

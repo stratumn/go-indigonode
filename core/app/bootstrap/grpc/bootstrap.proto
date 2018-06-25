@@ -14,42 +14,42 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/core/app/bootstrap/pb/bootstrap.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/core/app/bootstrap/pb/bootstrap.proto";
 
-package stratumn.alice.core.app.bootstrap.grpc;
+package stratumn.indigonode.core.app.bootstrap.grpc;
 
-option go_package = "github.com/stratumn/alice/core/app/bootstrap/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/core/app/bootstrap/grpc;grpc";
 
 // The bootstrap service definition.
 service Bootstrap {
   // Propose adding a node to the network.
-  rpc AddNode (stratumn.alice.core.app.bootstrap.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.Ack) {
-    option (stratumn.alice.cli.ext.method_desc) = "Propose adding a node to the network";
+  rpc AddNode (stratumn.indigonode.core.app.bootstrap.NodeIdentity) returns (stratumn.indigonode.core.app.bootstrap.Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Propose adding a node to the network";
   }
 
   // Propose removing a node from the network.
-  rpc RemoveNode (stratumn.alice.core.app.bootstrap.NodeIdentity) returns (stratumn.alice.core.app.bootstrap.Ack) {
-    option (stratumn.alice.cli.ext.method_desc) = "Propose removing a node from the network";
+  rpc RemoveNode (stratumn.indigonode.core.app.bootstrap.NodeIdentity) returns (stratumn.indigonode.core.app.bootstrap.Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Propose removing a node from the network";
   }
 
   // Accept a proposal to add or remove a network node.
-  rpc Accept (stratumn.alice.core.app.bootstrap.PeerID) returns (stratumn.alice.core.app.bootstrap.Ack) {
-    option (stratumn.alice.cli.ext.method_desc) = "Accept a proposal to add or remove a network node";
+  rpc Accept (stratumn.indigonode.core.app.bootstrap.PeerID) returns (stratumn.indigonode.core.app.bootstrap.Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Accept a proposal to add or remove a network node";
   }
 
   // Reject a proposal to add or remove a network node.
-  rpc Reject (stratumn.alice.core.app.bootstrap.PeerID) returns (stratumn.alice.core.app.bootstrap.Ack) {
-    option (stratumn.alice.cli.ext.method_desc) = "Reject a proposal to add or remove a network node";
+  rpc Reject (stratumn.indigonode.core.app.bootstrap.PeerID) returns (stratumn.indigonode.core.app.bootstrap.Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Reject a proposal to add or remove a network node";
   }
 
   // List pending proposals to add or remove a network node.
-  rpc List (stratumn.alice.core.app.bootstrap.Filter) returns (stream stratumn.alice.core.app.bootstrap.UpdateProposal) {
-    option (stratumn.alice.cli.ext.method_desc) = "List pending proposals to add or remove a network node";
+  rpc List (stratumn.indigonode.core.app.bootstrap.Filter) returns (stream stratumn.indigonode.core.app.bootstrap.UpdateProposal) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "List pending proposals to add or remove a network node";
   }
 
   // Complete the network bootstrap phase.
-  rpc Complete (stratumn.alice.core.app.bootstrap.CompleteReq) returns (stratumn.alice.core.app.bootstrap.Ack) {
-    option (stratumn.alice.cli.ext.method_desc) = "Complete the network bootstrap phase";
+  rpc Complete (stratumn.indigonode.core.app.bootstrap.CompleteReq) returns (stratumn.indigonode.core.app.bootstrap.Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Complete the network bootstrap phase";
   }
 }

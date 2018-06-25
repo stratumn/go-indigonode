@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
-	pbevent "github.com/stratumn/alice/core/app/event/grpc"
+	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 )
@@ -138,7 +138,7 @@ func (el *ConsoleRPCEventListener) connect(ctx context.Context) (pbevent.Emitter
 
 // print prints the event to the console.
 func (el *ConsoleRPCEventListener) print(ev *pbevent.Event) {
-	// The prefix is to get rid of the "Alice>" prompt at the
+	// The prefix is to get rid of the "IndigoNode>" prompt at the
 	// beginning of the received event.
 	msg := fmt.Sprintf("\x0d%s", ev.Message)
 

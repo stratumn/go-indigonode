@@ -14,28 +14,28 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.app.storage;
+package stratumn.indigonode.app.storage;
 
-option go_package = "github.com/stratumn/alice/app/storage/pb;pb";
+option go_package = "github.com/stratumn/go-indigonode/app/storage/pb;pb";
 
 
 message FileChunk {
   // file name is required only on first message.
   string file_name = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Name of the file",
-    (stratumn.alice.cli.ext.field_required) = false
+    (stratumn.indigonode.cli.ext.field_desc) = "Name of the file",
+    (stratumn.indigonode.cli.ext.field_required) = false
   ];
   bytes data = 2 [
-    (stratumn.alice.cli.ext.field_desc) = "Bytes of one file chunk",
-    (stratumn.alice.cli.ext.field_required) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Bytes of one file chunk",
+    (stratumn.indigonode.cli.ext.field_required) = true
   ];
 }
 
 message FileInfo {
   bytes hash = 1 [
-    (stratumn.alice.cli.ext.field_desc) = "Hash of the file",
-    (stratumn.alice.cli.ext.field_required) = true
+    (stratumn.indigonode.cli.ext.field_desc) = "Hash of the file",
+    (stratumn.indigonode.cli.ext.field_required) = true
   ];
 }

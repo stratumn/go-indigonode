@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/manager/grpc"
+	pb "github.com/stratumn/go-indigonode/core/manager/grpc"
 )
 
 // GRPCManager represents a manager that can be used by the gRPC server.

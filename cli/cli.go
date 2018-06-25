@@ -13,14 +13,14 @@
 // limitations under the License.
 
 /*
-Package cli defines types for Alice's command line interface.
+Package cli defines types for Indigo Node's command line interface.
 
 It comes with only of handful of builtin commands. The bulk of commands are
 reflected from the API.
 
 The main type is the CLI struct, which wraps everything needed to run the
 command line interface. It can, amongst other things, make suggestions for
-auto-completion and connect to an Alice node.
+auto-completion and connect to an Indigo node.
 
 The CLI needs a Console and a Prompt. The console is responsible for rendering
 text. The Prompt is responsible for getting user input.
@@ -50,8 +50,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/cfg"
-	"github.com/stratumn/alice/script"
+	"github.com/stratumn/go-indigonode/core/cfg"
+	"github.com/stratumn/go-indigonode/script"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -72,19 +72,10 @@ var StaticCmds = []Cmd{
 	Version,
 }
 
-// art is displayed by the init script.
-const art = "      .o.       oooo   o8o\n" +
-	"     .888.      `888   `\\\"'\n" +
-	"    .8\\\"888.      888  oooo   .ooooo.   .ooooo.\n" +
-	"   .8' `888.     888  `888  d88' `\\\"Y8 d88' `88b\n" +
-	"  .88ooo8888.    888   888  888       888ooo888\n" +
-	" .8'     `888.   888   888  888   .o8 888    .o\n" +
-	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
-
 // initScript is executed when the CLI is launched.
 const initScript = `
 echo
-echo --log info "` + art + `"
+echo Indigo Node CLI
 echo
 cli-version --git-commit-length 7
 echo

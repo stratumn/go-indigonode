@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockchat -destination mockchat/mockchat.go github.com/stratumn/alice/app/chat/grpc Chat_GetHistoryServer
+//go:generate mockgen -package mockchat -destination mockchat/mockchat.go github.com/stratumn/go-indigonode/app/chat/grpc Chat_GetHistoryServer
 
 package grpc

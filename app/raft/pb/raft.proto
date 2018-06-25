@@ -1,4 +1,4 @@
-// Copyright © 2017 Stratumn SAS
+// Copyright © 2017-2018 Stratumn SAS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
 
 syntax = "proto3";
 
-package stratumn.alice.app.raft.pb;
+package stratumn.indigonode.app.raft.pb;
 
-option go_package = "github.com/stratumn/alice/app/raft/pb;pb";
+option go_package = "github.com/stratumn/go-indigonode/app/raft/pb;pb";
 
 message Empty {
 }

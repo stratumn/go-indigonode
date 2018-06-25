@@ -18,7 +18,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/stratumn/alice/script"
+	"github.com/stratumn/go-indigonode/script"
 )
 
 func Example_simple() {

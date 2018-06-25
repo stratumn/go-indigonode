@@ -28,9 +28,9 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/stratumn/alice/app/storage/protocol/file"
-	"github.com/stratumn/alice/app/storage/protocol/file/mockhandler"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/file"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/file/mockhandler"
+	"github.com/stratumn/go-indigonode/core/db"
 	"github.com/stretchr/testify/assert"
 )
 

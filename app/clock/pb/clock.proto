@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package stratumn.alice.pb.clock;
+package stratumn.indigonode.pb.clock;
 
 option go_package = "github.com/stratumn/go-indigonode/app/clock/pb;pb";
 

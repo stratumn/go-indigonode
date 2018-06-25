@@ -131,7 +131,7 @@ func (m *Transaction) GetSignature() *Signature {
 
 // A digital signature.
 type Signature struct {
-	KeyType   KeyType `protobuf:"varint,1,opt,name=key_type,json=keyType,proto3,enum=stratumn.alice.app.coin.KeyType" json:"key_type,omitempty"`
+	KeyType   KeyType `protobuf:"varint,1,opt,name=key_type,json=keyType,proto3,enum=stratumn.indigonode.app.coin.KeyType" json:"key_type,omitempty"`
 	PublicKey []byte  `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	Signature []byte  `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
 }
@@ -789,21 +789,21 @@ func (m *ProofNode) GetChildHashes() [][]byte {
 }
 
 func init() {
-	proto.RegisterType((*Transaction)(nil), "stratumn.alice.app.coin.Transaction")
-	proto.RegisterType((*Signature)(nil), "stratumn.alice.app.coin.Signature")
-	proto.RegisterType((*Header)(nil), "stratumn.alice.app.coin.Header")
-	proto.RegisterType((*Block)(nil), "stratumn.alice.app.coin.Block")
-	proto.RegisterType((*Account)(nil), "stratumn.alice.app.coin.Account")
-	proto.RegisterType((*Request)(nil), "stratumn.alice.app.coin.Request")
-	proto.RegisterType((*Response)(nil), "stratumn.alice.app.coin.Response")
-	proto.RegisterType((*HeaderRequest)(nil), "stratumn.alice.app.coin.HeaderRequest")
-	proto.RegisterType((*HeadersRequest)(nil), "stratumn.alice.app.coin.HeadersRequest")
-	proto.RegisterType((*Headers)(nil), "stratumn.alice.app.coin.Headers")
-	proto.RegisterType((*BlockRequest)(nil), "stratumn.alice.app.coin.BlockRequest")
-	proto.RegisterType((*BlocksRequest)(nil), "stratumn.alice.app.coin.BlocksRequest")
-	proto.RegisterType((*Blocks)(nil), "stratumn.alice.app.coin.Blocks")
-	proto.RegisterType((*ProofNode)(nil), "stratumn.alice.app.coin.ProofNode")
-	proto.RegisterEnum("stratumn.alice.app.coin.KeyType", KeyType_name, KeyType_value)
+	proto.RegisterType((*Transaction)(nil), "stratumn.indigonode.app.coin.Transaction")
+	proto.RegisterType((*Signature)(nil), "stratumn.indigonode.app.coin.Signature")
+	proto.RegisterType((*Header)(nil), "stratumn.indigonode.app.coin.Header")
+	proto.RegisterType((*Block)(nil), "stratumn.indigonode.app.coin.Block")
+	proto.RegisterType((*Account)(nil), "stratumn.indigonode.app.coin.Account")
+	proto.RegisterType((*Request)(nil), "stratumn.indigonode.app.coin.Request")
+	proto.RegisterType((*Response)(nil), "stratumn.indigonode.app.coin.Response")
+	proto.RegisterType((*HeaderRequest)(nil), "stratumn.indigonode.app.coin.HeaderRequest")
+	proto.RegisterType((*HeadersRequest)(nil), "stratumn.indigonode.app.coin.HeadersRequest")
+	proto.RegisterType((*Headers)(nil), "stratumn.indigonode.app.coin.Headers")
+	proto.RegisterType((*BlockRequest)(nil), "stratumn.indigonode.app.coin.BlockRequest")
+	proto.RegisterType((*BlocksRequest)(nil), "stratumn.indigonode.app.coin.BlocksRequest")
+	proto.RegisterType((*Blocks)(nil), "stratumn.indigonode.app.coin.Blocks")
+	proto.RegisterType((*ProofNode)(nil), "stratumn.indigonode.app.coin.ProofNode")
+	proto.RegisterEnum("stratumn.indigonode.app.coin.KeyType", KeyType_name, KeyType_value)
 }
 func (m *Transaction) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

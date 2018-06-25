@@ -31,7 +31,7 @@ var E_MethodDesc = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.MethodOptions)(nil),
 	ExtensionType: (*string)(nil),
 	Field:         50000,
-	Name:          "stratumn.alice.cli.ext.method_desc",
+	Name:          "stratumn.indigonode.cli.ext.method_desc",
 	Tag:           "bytes,50000,opt,name=method_desc,json=methodDesc",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -40,7 +40,7 @@ var E_MethodNoCli = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.MethodOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50002,
-	Name:          "stratumn.alice.cli.ext.method_no_cli",
+	Name:          "stratumn.indigonode.cli.ext.method_no_cli",
 	Tag:           "varint,50002,opt,name=method_no_cli,json=methodNoCli",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -49,7 +49,7 @@ var E_FieldDesc = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*string)(nil),
 	Field:         50100,
-	Name:          "stratumn.alice.cli.ext.field_desc",
+	Name:          "stratumn.indigonode.cli.ext.field_desc",
 	Tag:           "bytes,50100,opt,name=field_desc,json=fieldDesc",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -58,7 +58,7 @@ var E_FieldRequired = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50101,
-	Name:          "stratumn.alice.cli.ext.field_required",
+	Name:          "stratumn.indigonode.cli.ext.field_required",
 	Tag:           "varint,50101,opt,name=field_required,json=fieldRequired",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -67,7 +67,7 @@ var E_FieldBase58 = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50110,
-	Name:          "stratumn.alice.cli.ext.field_base58",
+	Name:          "stratumn.indigonode.cli.ext.field_base58",
 	Tag:           "varint,50110,opt,name=field_base58,json=fieldBase58",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -76,7 +76,7 @@ var E_FieldMultiaddr = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50111,
-	Name:          "stratumn.alice.cli.ext.field_multiaddr",
+	Name:          "stratumn.indigonode.cli.ext.field_multiaddr",
 	Tag:           "varint,50111,opt,name=field_multiaddr,json=fieldMultiaddr",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -85,7 +85,7 @@ var E_FieldTime = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50120,
-	Name:          "stratumn.alice.cli.ext.field_time",
+	Name:          "stratumn.indigonode.cli.ext.field_time",
 	Tag:           "varint,50120,opt,name=field_time,json=fieldTime",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -94,7 +94,7 @@ var E_FieldDuration = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50121,
-	Name:          "stratumn.alice.cli.ext.field_duration",
+	Name:          "stratumn.indigonode.cli.ext.field_duration",
 	Tag:           "varint,50121,opt,name=field_duration,json=fieldDuration",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -103,7 +103,7 @@ var E_FieldBytesize = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50130,
-	Name:          "stratumn.alice.cli.ext.field_bytesize",
+	Name:          "stratumn.indigonode.cli.ext.field_bytesize",
 	Tag:           "varint,50130,opt,name=field_bytesize,json=fieldBytesize",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -112,7 +112,7 @@ var E_FieldByterate = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50131,
-	Name:          "stratumn.alice.cli.ext.field_byterate",
+	Name:          "stratumn.indigonode.cli.ext.field_byterate",
 	Tag:           "varint,50131,opt,name=field_byterate,json=fieldByterate",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -121,7 +121,7 @@ var E_FieldBlockchainBlocks = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50140,
-	Name:          "stratumn.alice.cli.ext.field_blockchain_blocks",
+	Name:          "stratumn.indigonode.cli.ext.field_blockchain_blocks",
 	Tag:           "varint,50140,opt,name=field_blockchain_blocks,json=fieldBlockchainBlocks",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }
@@ -130,7 +130,7 @@ var E_FieldBlockchainTxs = &proto.ExtensionDesc{
 	ExtendedType:  (*google_protobuf.FieldOptions)(nil),
 	ExtensionType: (*bool)(nil),
 	Field:         50141,
-	Name:          "stratumn.alice.cli.ext.field_blockchain_txs",
+	Name:          "stratumn.indigonode.cli.ext.field_blockchain_txs",
 	Tag:           "varint,50141,opt,name=field_blockchain_txs,json=fieldBlockchainTxs",
 	Filename:      "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto",
 }

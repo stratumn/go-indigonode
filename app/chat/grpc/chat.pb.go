@@ -129,10 +129,10 @@ func (m *DatedMessage) GetTime() *google_protobuf.Timestamp {
 }
 
 func init() {
-	proto.RegisterType((*ChatMessage)(nil), "stratumn.alice.app.chat.grpc.ChatMessage")
-	proto.RegisterType((*Ack)(nil), "stratumn.alice.app.chat.grpc.Ack")
-	proto.RegisterType((*HistoryReq)(nil), "stratumn.alice.app.chat.grpc.HistoryReq")
-	proto.RegisterType((*DatedMessage)(nil), "stratumn.alice.app.chat.grpc.DatedMessage")
+	proto.RegisterType((*ChatMessage)(nil), "stratumn.indigonode.app.chat.grpc.ChatMessage")
+	proto.RegisterType((*Ack)(nil), "stratumn.indigonode.app.chat.grpc.Ack")
+	proto.RegisterType((*HistoryReq)(nil), "stratumn.indigonode.app.chat.grpc.HistoryReq")
+	proto.RegisterType((*DatedMessage)(nil), "stratumn.indigonode.app.chat.grpc.DatedMessage")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -162,7 +162,7 @@ func NewChatClient(cc *grpc1.ClientConn) ChatClient {
 
 func (c *chatClient) Message(ctx context.Context, in *ChatMessage, opts ...grpc1.CallOption) (*Ack, error) {
 	out := new(Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.chat.grpc.Chat/Message", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.chat.grpc.Chat/Message", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (c *chatClient) Message(ctx context.Context, in *ChatMessage, opts ...grpc1
 }
 
 func (c *chatClient) GetHistory(ctx context.Context, in *HistoryReq, opts ...grpc1.CallOption) (Chat_GetHistoryClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Chat_serviceDesc.Streams[0], c.cc, "/stratumn.alice.app.chat.grpc.Chat/GetHistory", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Chat_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.app.chat.grpc.Chat/GetHistory", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,7 @@ func _Chat_Message_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.chat.grpc.Chat/Message",
+		FullMethod: "/stratumn.indigonode.app.chat.grpc.Chat/Message",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ChatServer).Message(ctx, req.(*ChatMessage))
@@ -254,7 +254,7 @@ func (x *chatGetHistoryServer) Send(m *DatedMessage) error {
 }
 
 var _Chat_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.chat.grpc.Chat",
+	ServiceName: "stratumn.indigonode.app.chat.grpc.Chat",
 	HandlerType: (*ChatServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

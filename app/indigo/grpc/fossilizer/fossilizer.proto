@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.app.indigo.fossilizer.grpc;
+package stratumn.indigonode.app.indigo.fossilizer.grpc;
 
 option go_package = "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilizer;fossilizer";
 
@@ -24,12 +24,12 @@ option go_package = "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilize
 service IndigoFossilizer {
     // Get information about the Indigo Fossilizer service.
     rpc GetInfo(InfoReq) returns (InfoResp) {
-        option (stratumn.alice.cli.ext.method_desc) = "Get information about the Indigo Fossilizer service";
+        option (stratumn.indigonode.cli.ext.method_desc) = "Get information about the Indigo Fossilizer service";
     }
 
     // Requests data to be fossilized.
     rpc Fossilize(FossilizeReq) returns (FossilizeResp) {
-        option (stratumn.alice.cli.ext.method_desc) = "Requests data to be fossilized";
+        option (stratumn.indigonode.cli.ext.method_desc) = "Requests data to be fossilized";
     }
 
 }
@@ -39,16 +39,16 @@ message InfoReq {
 
 message InfoResp {
     bytes data = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "JSON-encoded fossilizer information"
+        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded fossilizer information"
     ];
 }
 
 message FossilizeReq {
     bytes data = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "data to fossilize"
+        (stratumn.indigonode.cli.ext.field_desc) = "data to fossilize"
     ];
     bytes meta = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "meta information about the data to fossilize"
+        (stratumn.indigonode.cli.ext.field_desc) = "meta information about the data to fossilize"
     ];
 }
 

@@ -189,14 +189,14 @@ func (m *Internode) GetMessage() []byte {
 }
 
 func init() {
-	proto.RegisterType((*Empty)(nil), "stratumn.alice.app.raft.pb.Empty")
-	proto.RegisterType((*Peer)(nil), "stratumn.alice.app.raft.pb.Peer")
-	proto.RegisterType((*PeerID)(nil), "stratumn.alice.app.raft.pb.PeerID")
-	proto.RegisterType((*StatusInfo)(nil), "stratumn.alice.app.raft.pb.StatusInfo")
-	proto.RegisterType((*Proposal)(nil), "stratumn.alice.app.raft.pb.Proposal")
-	proto.RegisterType((*Entry)(nil), "stratumn.alice.app.raft.pb.Entry")
-	proto.RegisterType((*Peers)(nil), "stratumn.alice.app.raft.pb.Peers")
-	proto.RegisterType((*Internode)(nil), "stratumn.alice.app.raft.pb.Internode")
+	proto.RegisterType((*Empty)(nil), "stratumn.indigonode.app.raft.pb.Empty")
+	proto.RegisterType((*Peer)(nil), "stratumn.indigonode.app.raft.pb.Peer")
+	proto.RegisterType((*PeerID)(nil), "stratumn.indigonode.app.raft.pb.PeerID")
+	proto.RegisterType((*StatusInfo)(nil), "stratumn.indigonode.app.raft.pb.StatusInfo")
+	proto.RegisterType((*Proposal)(nil), "stratumn.indigonode.app.raft.pb.Proposal")
+	proto.RegisterType((*Entry)(nil), "stratumn.indigonode.app.raft.pb.Entry")
+	proto.RegisterType((*Peers)(nil), "stratumn.indigonode.app.raft.pb.Peers")
+	proto.RegisterType((*Internode)(nil), "stratumn.indigonode.app.raft.pb.Internode")
 }
 func (m *Empty) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

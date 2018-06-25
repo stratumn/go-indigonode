@@ -59,7 +59,7 @@ func (KeyType) EnumDescriptor() ([]byte, []int) { return fileDescriptorCrypto, [
 
 // A digital signature.
 type Signature struct {
-	KeyType   KeyType `protobuf:"varint,1,opt,name=key_type,json=keyType,proto3,enum=stratumn.alice.core.crypto.KeyType" json:"key_type,omitempty"`
+	KeyType   KeyType `protobuf:"varint,1,opt,name=key_type,json=keyType,proto3,enum=stratumn.indigonode.core.crypto.KeyType" json:"key_type,omitempty"`
 	PublicKey []byte  `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
 	Signature []byte  `protobuf:"bytes,3,opt,name=signature,proto3" json:"signature,omitempty"`
 }
@@ -91,8 +91,8 @@ func (m *Signature) GetSignature() []byte {
 }
 
 func init() {
-	proto.RegisterType((*Signature)(nil), "stratumn.alice.core.crypto.Signature")
-	proto.RegisterEnum("stratumn.alice.core.crypto.KeyType", KeyType_name, KeyType_value)
+	proto.RegisterType((*Signature)(nil), "stratumn.indigonode.core.crypto.Signature")
+	proto.RegisterEnum("stratumn.indigonode.core.crypto.KeyType", KeyType_name, KeyType_value)
 }
 func (m *Signature) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

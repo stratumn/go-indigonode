@@ -17,7 +17,7 @@ syntax = "proto3";
 import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 import "google/protobuf/timestamp.proto";
 
-package stratumn.alice.app.coin;
+package stratumn.indigonode.app.coin;
 
 option go_package = "github.com/stratumn/go-indigonode/app/coin/pb;pb";
 
@@ -25,30 +25,30 @@ option go_package = "github.com/stratumn/go-indigonode/app/coin/pb;pb";
 // A coin transaction.
 message Transaction {
     bytes from = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Sender Peer ID",
-        (stratumn.alice.cli.ext.field_required) = true,
-        (stratumn.alice.cli.ext.field_base58) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Sender Peer ID",
+        (stratumn.indigonode.cli.ext.field_required) = true,
+        (stratumn.indigonode.cli.ext.field_base58) = true
     ];
     bytes to = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Recipient Peer ID",
-        (stratumn.alice.cli.ext.field_required) = true,
-        (stratumn.alice.cli.ext.field_base58) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Recipient Peer ID",
+        (stratumn.indigonode.cli.ext.field_required) = true,
+        (stratumn.indigonode.cli.ext.field_base58) = true
     ];
     uint64 value = 3 [
-        (stratumn.alice.cli.ext.field_desc) = "Value to send",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Value to send",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 fee = 4 [
-        (stratumn.alice.cli.ext.field_desc) = "Transaction fee (for the miner)",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Transaction fee (for the miner)",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 nonce = 5 [
-        (stratumn.alice.cli.ext.field_desc) = "Nonce to prevent replay attacks",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Nonce to prevent replay attacks",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     Signature signature = 6 [
-        (stratumn.alice.cli.ext.field_desc) = "Signature of the transaction proving ownership of the coins",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Signature of the transaction proving ownership of the coins",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
@@ -63,68 +63,68 @@ enum KeyType {
 // A digital signature.
 message Signature {
     KeyType key_type = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Type of key used",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Type of key used",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     bytes public_key = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Signer's public key",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Signer's public key",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     bytes signature = 3 [
-        (stratumn.alice.cli.ext.field_desc) = "Signature bytes",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Signature bytes",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
 // A block header.
 message Header {
     int32 version = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Block version",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block version",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 block_number = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Block number",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block number",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     bytes previous_hash = 3 [
-        (stratumn.alice.cli.ext.field_desc) = "Hash of the previous header using multihash format",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Hash of the previous header using multihash format",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     bytes merkle_root = 4 [
-        (stratumn.alice.cli.ext.field_desc) = "Merkle root of block transactions",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Merkle root of block transactions",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     google.protobuf.Timestamp timestamp = 5 [
-        (stratumn.alice.cli.ext.field_desc) = "Timestamp of the block creation",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Timestamp of the block creation",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 nonce = 6 [
-        (stratumn.alice.cli.ext.field_desc) = "The nonce used to generate the block to allow variations of the header",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "The nonce used to generate the block to allow variations of the header",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
 // A block.
 message Block {
     Header header = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Block header",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block header",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     repeated Transaction transactions = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Block transactions",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block transactions",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
 // An account.
 message Account {
     uint64 balance = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Balance",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Balance",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 nonce = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Nonce",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Nonce",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
@@ -152,20 +152,20 @@ message Response {
 // request one header from a peer.
 message HeaderRequest {
     bytes hash = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Block hash",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block hash",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
 // request a list of headers from a peer.
 message HeadersRequest {
     uint64 from = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Headers starting at this number",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Headers starting at this number",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 amount = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Amount of headers requested",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Amount of headers requested",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
@@ -176,20 +176,20 @@ message Headers {
 // request one block from a peer.
 message BlockRequest {
     bytes hash = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Block hash",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Block hash",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
 // request a list of blocks from a peer.
 message BlocksRequest {
     uint64 from = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Blocks starting at this number",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Blocks starting at this number",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
     uint64 amount = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Amount of blocks requested",
-        (stratumn.alice.cli.ext.field_required) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Amount of blocks requested",
+        (stratumn.indigonode.cli.ext.field_required) = true
     ];
 }
 
@@ -200,13 +200,13 @@ message Blocks {
 // ProofNode describes a node in a proof.
 message ProofNode {
     bytes key = 1 [
-        (stratumn.alice.cli.ext.field_desc) = "Node key"
+        (stratumn.indigonode.cli.ext.field_desc) = "Node key"
     ];
     bytes value = 2 [
-        (stratumn.alice.cli.ext.field_desc) = "Node value"
+        (stratumn.indigonode.cli.ext.field_desc) = "Node value"
     ];
     repeated bytes child_hashes = 3 [
-        (stratumn.alice.cli.ext.field_desc) = "Hashes of child nodes",
-        (stratumn.alice.cli.ext.field_base58) = true
+        (stratumn.indigonode.cli.ext.field_desc) = "Hashes of child nodes",
+        (stratumn.indigonode.cli.ext.field_base58) = true
     ];
 }

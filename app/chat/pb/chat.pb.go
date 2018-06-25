@@ -47,7 +47,7 @@ func (m *Message) GetMessage() string {
 }
 
 func init() {
-	proto.RegisterType((*Message)(nil), "stratumn.alice.pb.chat.Message")
+	proto.RegisterType((*Message)(nil), "stratumn.indigonode.pb.chat.Message")
 }
 func (m *Message) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.core.manager.grpc;
+package stratumn.indigonode.core.manager.grpc;
 
 option go_package = "github.com/stratumn/go-indigonode/core/manager/grpc;grpc";
 
@@ -24,27 +24,27 @@ option go_package = "github.com/stratumn/go-indigonode/core/manager/grpc;grpc";
 service Manager {
   // Streams the registered services.
   rpc List (ListReq) returns (stream Service) {
-    option (stratumn.alice.cli.ext.method_desc) = "List all the available services";
+    option (stratumn.indigonode.cli.ext.method_desc) = "List all the available services";
   }
 
   // Returns information about a service.
   rpc Info (InfoReq) returns (Service) {
-    option (stratumn.alice.cli.ext.method_desc) = "Get information on a service";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Get information on a service";
   }
 
   // Starts a service.
   rpc Start (StartReq) returns (Service) {
-    option (stratumn.alice.cli.ext.method_desc) = "Start a service";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Start a service";
   }
 
   // Stops a service.
   rpc Stop (StopReq) returns (Service) {
-    option (stratumn.alice.cli.ext.method_desc) = "Stop a service";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Stop a service";
   }
 
   // Prunes services.
   rpc Prune (PruneReq) returns (stream Service) {
-    option (stratumn.alice.cli.ext.method_desc) = "Prune unused services";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Prune unused services";
   }
 }
 
@@ -55,27 +55,27 @@ message ListReq {
 // The info request message.
 message InfoReq {
   string id = 1 [
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_desc) = "Service ID"
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_desc) = "Service ID"
   ];
 }
 
 // The start request message.
 message StartReq {
   string id = 1 [
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_desc) = "Service ID"
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_desc) = "Service ID"
   ];
 }
 
 // The stop request message.
 message StopReq {
   string id = 1 [
-    (stratumn.alice.cli.ext.field_required) = true,
-    (stratumn.alice.cli.ext.field_desc) = "Service ID"
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_desc) = "Service ID"
   ];
   bool prune = 2 [
-    (stratumn.alice.cli.ext.field_desc) = "Prune services after stopping the service"
+    (stratumn.indigonode.cli.ext.field_desc) = "Prune services after stopping the service"
   ];
 }
 

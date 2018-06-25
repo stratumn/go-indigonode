@@ -79,9 +79,9 @@ func (m *Time) GetTimestamp() int64 {
 }
 
 func init() {
-	proto.RegisterType((*LocalReq)(nil), "stratumn.alice.app.clock.grpc.LocalReq")
-	proto.RegisterType((*RemoteReq)(nil), "stratumn.alice.app.clock.grpc.RemoteReq")
-	proto.RegisterType((*Time)(nil), "stratumn.alice.app.clock.grpc.Time")
+	proto.RegisterType((*LocalReq)(nil), "stratumn.indigonode.app.clock.grpc.LocalReq")
+	proto.RegisterType((*RemoteReq)(nil), "stratumn.indigonode.app.clock.grpc.RemoteReq")
+	proto.RegisterType((*Time)(nil), "stratumn.indigonode.app.clock.grpc.Time")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -111,7 +111,7 @@ func NewClockClient(cc *grpc1.ClientConn) ClockClient {
 
 func (c *clockClient) Local(ctx context.Context, in *LocalReq, opts ...grpc1.CallOption) (*Time, error) {
 	out := new(Time)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.clock.grpc.Clock/Local", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.clock.grpc.Clock/Local", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (c *clockClient) Local(ctx context.Context, in *LocalReq, opts ...grpc1.Cal
 
 func (c *clockClient) Remote(ctx context.Context, in *RemoteReq, opts ...grpc1.CallOption) (*Time, error) {
 	out := new(Time)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.clock.grpc.Clock/Remote", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.clock.grpc.Clock/Remote", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func _Clock_Local_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.clock.grpc.Clock/Local",
+		FullMethod: "/stratumn.indigonode.app.clock.grpc.Clock/Local",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClockServer).Local(ctx, req.(*LocalReq))
@@ -168,7 +168,7 @@ func _Clock_Remote_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.clock.grpc.Clock/Remote",
+		FullMethod: "/stratumn.indigonode.app.clock.grpc.Clock/Remote",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClockServer).Remote(ctx, req.(*RemoteReq))
@@ -177,7 +177,7 @@ func _Clock_Remote_Handler(srv interface{}, ctx context.Context, dec func(interf
 }
 
 var _Clock_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.clock.grpc.Clock",
+	ServiceName: "stratumn.indigonode.app.clock.grpc.Clock",
 	HandlerType: (*ClockServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

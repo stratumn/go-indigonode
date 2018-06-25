@@ -123,11 +123,11 @@ func (m *Connection) GetRemoteAddress() []byte {
 }
 
 func init() {
-	proto.RegisterType((*LocalPeerReq)(nil), "stratumn.alice.core.app.swarm.grpc.LocalPeerReq")
-	proto.RegisterType((*PeersReq)(nil), "stratumn.alice.core.app.swarm.grpc.PeersReq")
-	proto.RegisterType((*ConnectionsReq)(nil), "stratumn.alice.core.app.swarm.grpc.ConnectionsReq")
-	proto.RegisterType((*Peer)(nil), "stratumn.alice.core.app.swarm.grpc.Peer")
-	proto.RegisterType((*Connection)(nil), "stratumn.alice.core.app.swarm.grpc.Connection")
+	proto.RegisterType((*LocalPeerReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.LocalPeerReq")
+	proto.RegisterType((*PeersReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.PeersReq")
+	proto.RegisterType((*ConnectionsReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.ConnectionsReq")
+	proto.RegisterType((*Peer)(nil), "stratumn.indigonode.core.app.swarm.grpc.Peer")
+	proto.RegisterType((*Connection)(nil), "stratumn.indigonode.core.app.swarm.grpc.Connection")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -159,7 +159,7 @@ func NewSwarmClient(cc *grpc1.ClientConn) SwarmClient {
 
 func (c *swarmClient) LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...grpc1.CallOption) (*Peer, error) {
 	out := new(Peer)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.swarm.grpc.Swarm/LocalPeer", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.swarm.grpc.Swarm/LocalPeer", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (c *swarmClient) LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...g
 }
 
 func (c *swarmClient) Peers(ctx context.Context, in *PeersReq, opts ...grpc1.CallOption) (Swarm_PeersClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Swarm_serviceDesc.Streams[0], c.cc, "/stratumn.alice.core.app.swarm.grpc.Swarm/Peers", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Swarm_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.core.app.swarm.grpc.Swarm/Peers", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (x *swarmPeersClient) Recv() (*Peer, error) {
 }
 
 func (c *swarmClient) Connections(ctx context.Context, in *ConnectionsReq, opts ...grpc1.CallOption) (Swarm_ConnectionsClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Swarm_serviceDesc.Streams[1], c.cc, "/stratumn.alice.core.app.swarm.grpc.Swarm/Connections", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Swarm_serviceDesc.Streams[1], c.cc, "/stratumn.indigonode.core.app.swarm.grpc.Swarm/Connections", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func _Swarm_LocalPeer_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.swarm.grpc.Swarm/LocalPeer",
+		FullMethod: "/stratumn.indigonode.core.app.swarm.grpc.Swarm/LocalPeer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SwarmServer).LocalPeer(ctx, req.(*LocalPeerReq))
@@ -306,7 +306,7 @@ func (x *swarmConnectionsServer) Send(m *Connection) error {
 }
 
 var _Swarm_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.swarm.grpc.Swarm",
+	ServiceName: "stratumn.indigonode.core.app.swarm.grpc.Swarm",
 	HandlerType: (*SwarmServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

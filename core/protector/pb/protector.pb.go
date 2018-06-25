@@ -74,7 +74,7 @@ func (m *PeerAddrs) GetAddresses() []string {
 // The NetworkConfig message contains the network state
 // and its participants (signed by a trusted node).
 type NetworkConfig struct {
-	NetworkState NetworkState                          `protobuf:"varint,1,opt,name=network_state,json=networkState,proto3,enum=stratumn.alice.core.protector.NetworkState" json:"network_state,omitempty"`
+	NetworkState NetworkState                          `protobuf:"varint,1,opt,name=network_state,json=networkState,proto3,enum=stratumn.indigonode.core.protector.NetworkState" json:"network_state,omitempty"`
 	Participants map[string]*PeerAddrs                 `protobuf:"bytes,2,rep,name=participants" json:"participants,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value"`
 	Signature    *stratumn_alice_core_crypto.Signature `protobuf:"bytes,10,opt,name=signature" json:"signature,omitempty"`
 }
@@ -106,9 +106,9 @@ func (m *NetworkConfig) GetSignature() *stratumn_alice_core_crypto.Signature {
 }
 
 func init() {
-	proto.RegisterType((*PeerAddrs)(nil), "stratumn.alice.core.protector.PeerAddrs")
-	proto.RegisterType((*NetworkConfig)(nil), "stratumn.alice.core.protector.NetworkConfig")
-	proto.RegisterEnum("stratumn.alice.core.protector.NetworkState", NetworkState_name, NetworkState_value)
+	proto.RegisterType((*PeerAddrs)(nil), "stratumn.indigonode.core.protector.PeerAddrs")
+	proto.RegisterType((*NetworkConfig)(nil), "stratumn.indigonode.core.protector.NetworkConfig")
+	proto.RegisterEnum("stratumn.indigonode.core.protector.NetworkState", NetworkState_name, NetworkState_value)
 }
 func (m *PeerAddrs) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

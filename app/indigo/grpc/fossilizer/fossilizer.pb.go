@@ -93,10 +93,10 @@ func (*FossilizeResp) ProtoMessage()               {}
 func (*FossilizeResp) Descriptor() ([]byte, []int) { return fileDescriptorFossilizer, []int{3} }
 
 func init() {
-	proto.RegisterType((*InfoReq)(nil), "stratumn.alice.app.indigo.fossilizer.grpc.InfoReq")
-	proto.RegisterType((*InfoResp)(nil), "stratumn.alice.app.indigo.fossilizer.grpc.InfoResp")
-	proto.RegisterType((*FossilizeReq)(nil), "stratumn.alice.app.indigo.fossilizer.grpc.FossilizeReq")
-	proto.RegisterType((*FossilizeResp)(nil), "stratumn.alice.app.indigo.fossilizer.grpc.FossilizeResp")
+	proto.RegisterType((*InfoReq)(nil), "stratumn.indigonode.app.indigo.fossilizer.grpc.InfoReq")
+	proto.RegisterType((*InfoResp)(nil), "stratumn.indigonode.app.indigo.fossilizer.grpc.InfoResp")
+	proto.RegisterType((*FossilizeReq)(nil), "stratumn.indigonode.app.indigo.fossilizer.grpc.FossilizeReq")
+	proto.RegisterType((*FossilizeResp)(nil), "stratumn.indigonode.app.indigo.fossilizer.grpc.FossilizeResp")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -126,7 +126,7 @@ func NewIndigoFossilizerClient(cc *grpc.ClientConn) IndigoFossilizerClient {
 
 func (c *indigoFossilizerClient) GetInfo(ctx context.Context, in *InfoReq, opts ...grpc.CallOption) (*InfoResp, error) {
 	out := new(InfoResp)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.fossilizer.grpc.IndigoFossilizer/GetInfo", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.fossilizer.grpc.IndigoFossilizer/GetInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (c *indigoFossilizerClient) GetInfo(ctx context.Context, in *InfoReq, opts 
 
 func (c *indigoFossilizerClient) Fossilize(ctx context.Context, in *FossilizeReq, opts ...grpc.CallOption) (*FossilizeResp, error) {
 	out := new(FossilizeResp)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.fossilizer.grpc.IndigoFossilizer/Fossilize", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.fossilizer.grpc.IndigoFossilizer/Fossilize", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func _IndigoFossilizer_GetInfo_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.fossilizer.grpc.IndigoFossilizer/GetInfo",
+		FullMethod: "/stratumn.indigonode.app.indigo.fossilizer.grpc.IndigoFossilizer/GetInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoFossilizerServer).GetInfo(ctx, req.(*InfoReq))
@@ -183,7 +183,7 @@ func _IndigoFossilizer_Fossilize_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.fossilizer.grpc.IndigoFossilizer/Fossilize",
+		FullMethod: "/stratumn.indigonode.app.indigo.fossilizer.grpc.IndigoFossilizer/Fossilize",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoFossilizerServer).Fossilize(ctx, req.(*FossilizeReq))
@@ -192,7 +192,7 @@ func _IndigoFossilizer_Fossilize_Handler(srv interface{}, ctx context.Context, d
 }
 
 var _IndigoFossilizer_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "stratumn.alice.app.indigo.fossilizer.grpc.IndigoFossilizer",
+	ServiceName: "stratumn.indigonode.app.indigo.fossilizer.grpc.IndigoFossilizer",
 	HandlerType: (*IndigoFossilizerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

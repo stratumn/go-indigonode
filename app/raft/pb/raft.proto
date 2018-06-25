@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package stratumn.alice.app.raft.pb;
+package stratumn.indigonode.app.raft.pb;
 
 option go_package = "github.com/stratumn/go-indigonode/app/raft/pb;pb";
 

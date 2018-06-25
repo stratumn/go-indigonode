@@ -131,11 +131,11 @@ func (m *DeleteReq) GetName() string {
 }
 
 func init() {
-	proto.RegisterType((*Contact)(nil), "stratumn.alice.app.contacts.grpc.Contact")
-	proto.RegisterType((*ListReq)(nil), "stratumn.alice.app.contacts.grpc.ListReq")
-	proto.RegisterType((*GetReq)(nil), "stratumn.alice.app.contacts.grpc.GetReq")
-	proto.RegisterType((*SetReq)(nil), "stratumn.alice.app.contacts.grpc.SetReq")
-	proto.RegisterType((*DeleteReq)(nil), "stratumn.alice.app.contacts.grpc.DeleteReq")
+	proto.RegisterType((*Contact)(nil), "stratumn.indigonode.app.contacts.grpc.Contact")
+	proto.RegisterType((*ListReq)(nil), "stratumn.indigonode.app.contacts.grpc.ListReq")
+	proto.RegisterType((*GetReq)(nil), "stratumn.indigonode.app.contacts.grpc.GetReq")
+	proto.RegisterType((*SetReq)(nil), "stratumn.indigonode.app.contacts.grpc.SetReq")
+	proto.RegisterType((*DeleteReq)(nil), "stratumn.indigonode.app.contacts.grpc.DeleteReq")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -168,7 +168,7 @@ func NewContactsClient(cc *grpc1.ClientConn) ContactsClient {
 }
 
 func (c *contactsClient) List(ctx context.Context, in *ListReq, opts ...grpc1.CallOption) (Contacts_ListClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Contacts_serviceDesc.Streams[0], c.cc, "/stratumn.alice.app.contacts.grpc.Contacts/List", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Contacts_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.app.contacts.grpc.Contacts/List", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (x *contactsListClient) Recv() (*Contact, error) {
 
 func (c *contactsClient) Get(ctx context.Context, in *GetReq, opts ...grpc1.CallOption) (*Contact, error) {
 	out := new(Contact)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.contacts.grpc.Contacts/Get", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.contacts.grpc.Contacts/Get", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (c *contactsClient) Get(ctx context.Context, in *GetReq, opts ...grpc1.Call
 
 func (c *contactsClient) Set(ctx context.Context, in *SetReq, opts ...grpc1.CallOption) (*Contact, error) {
 	out := new(Contact)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.contacts.grpc.Contacts/Set", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.contacts.grpc.Contacts/Set", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (c *contactsClient) Set(ctx context.Context, in *SetReq, opts ...grpc1.Call
 
 func (c *contactsClient) Delete(ctx context.Context, in *DeleteReq, opts ...grpc1.CallOption) (*Contact, error) {
 	out := new(Contact)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.contacts.grpc.Contacts/Delete", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.contacts.grpc.Contacts/Delete", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func _Contacts_Get_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.contacts.grpc.Contacts/Get",
+		FullMethod: "/stratumn.indigonode.app.contacts.grpc.Contacts/Get",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ContactsServer).Get(ctx, req.(*GetReq))
@@ -292,7 +292,7 @@ func _Contacts_Set_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.contacts.grpc.Contacts/Set",
+		FullMethod: "/stratumn.indigonode.app.contacts.grpc.Contacts/Set",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ContactsServer).Set(ctx, req.(*SetReq))
@@ -310,7 +310,7 @@ func _Contacts_Delete_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.contacts.grpc.Contacts/Delete",
+		FullMethod: "/stratumn.indigonode.app.contacts.grpc.Contacts/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ContactsServer).Delete(ctx, req.(*DeleteReq))
@@ -319,7 +319,7 @@ func _Contacts_Delete_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 var _Contacts_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.contacts.grpc.Contacts",
+	ServiceName: "stratumn.indigonode.app.contacts.grpc.Contacts",
 	HandlerType: (*ContactsServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

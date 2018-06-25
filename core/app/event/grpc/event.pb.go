@@ -82,7 +82,7 @@ func (m *ListenReq) GetTopic() string {
 // display customization (if supported by the listener).
 type Event struct {
 	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	Level   Level  `protobuf:"varint,2,opt,name=level,proto3,enum=stratumn.alice.core.app.event.grpc.Level" json:"level,omitempty"`
+	Level   Level  `protobuf:"varint,2,opt,name=level,proto3,enum=stratumn.indigonode.core.app.event.grpc.Level" json:"level,omitempty"`
 	Topic   string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
 }
 
@@ -113,9 +113,9 @@ func (m *Event) GetTopic() string {
 }
 
 func init() {
-	proto.RegisterType((*ListenReq)(nil), "stratumn.alice.core.app.event.grpc.ListenReq")
-	proto.RegisterType((*Event)(nil), "stratumn.alice.core.app.event.grpc.Event")
-	proto.RegisterEnum("stratumn.alice.core.app.event.grpc.Level", Level_name, Level_value)
+	proto.RegisterType((*ListenReq)(nil), "stratumn.indigonode.core.app.event.grpc.ListenReq")
+	proto.RegisterType((*Event)(nil), "stratumn.indigonode.core.app.event.grpc.Event")
+	proto.RegisterEnum("stratumn.indigonode.core.app.event.grpc.Level", Level_name, Level_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -142,7 +142,7 @@ func NewEmitterClient(cc *grpc1.ClientConn) EmitterClient {
 }
 
 func (c *emitterClient) Listen(ctx context.Context, in *ListenReq, opts ...grpc1.CallOption) (Emitter_ListenClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Emitter_serviceDesc.Streams[0], c.cc, "/stratumn.alice.core.app.event.grpc.Emitter/Listen", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Emitter_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.core.app.event.grpc.Emitter/Listen", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (x *emitterListenServer) Send(m *Event) error {
 }
 
 var _Emitter_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.event.grpc.Emitter",
+	ServiceName: "stratumn.indigonode.core.app.event.grpc.Emitter",
 	HandlerType: (*EmitterServer)(nil),
 	Methods:     []grpc1.MethodDesc{},
 	Streams: []grpc1.StreamDesc{

@@ -171,13 +171,13 @@ func (m *UploadAck) GetFileHash() []byte {
 }
 
 func init() {
-	proto.RegisterType((*SessionFileChunk)(nil), "stratumn.alice.app.storage.grpc.SessionFileChunk")
-	proto.RegisterType((*UploadReq)(nil), "stratumn.alice.app.storage.grpc.UploadReq")
-	proto.RegisterType((*UploadSession)(nil), "stratumn.alice.app.storage.grpc.UploadSession")
-	proto.RegisterType((*AuthRequest)(nil), "stratumn.alice.app.storage.grpc.AuthRequest")
-	proto.RegisterType((*DownloadRequest)(nil), "stratumn.alice.app.storage.grpc.DownloadRequest")
-	proto.RegisterType((*Ack)(nil), "stratumn.alice.app.storage.grpc.Ack")
-	proto.RegisterType((*UploadAck)(nil), "stratumn.alice.app.storage.grpc.UploadAck")
+	proto.RegisterType((*SessionFileChunk)(nil), "stratumn.indigonode.app.storage.grpc.SessionFileChunk")
+	proto.RegisterType((*UploadReq)(nil), "stratumn.indigonode.app.storage.grpc.UploadReq")
+	proto.RegisterType((*UploadSession)(nil), "stratumn.indigonode.app.storage.grpc.UploadSession")
+	proto.RegisterType((*AuthRequest)(nil), "stratumn.indigonode.app.storage.grpc.AuthRequest")
+	proto.RegisterType((*DownloadRequest)(nil), "stratumn.indigonode.app.storage.grpc.DownloadRequest")
+	proto.RegisterType((*Ack)(nil), "stratumn.indigonode.app.storage.grpc.Ack")
+	proto.RegisterType((*UploadAck)(nil), "stratumn.indigonode.app.storage.grpc.UploadAck")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -214,7 +214,7 @@ func NewStorageClient(cc *grpc1.ClientConn) StorageClient {
 }
 
 func (c *storageClient) Upload(ctx context.Context, opts ...grpc1.CallOption) (Storage_UploadClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Storage_serviceDesc.Streams[0], c.cc, "/stratumn.alice.app.storage.grpc.Storage/Upload", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Storage_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.app.storage.grpc.Storage/Upload", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func (x *storageUploadClient) CloseAndRecv() (*UploadAck, error) {
 
 func (c *storageClient) StartUpload(ctx context.Context, in *UploadReq, opts ...grpc1.CallOption) (*UploadSession, error) {
 	out := new(UploadSession)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.storage.grpc.Storage/StartUpload", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.storage.grpc.Storage/StartUpload", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (c *storageClient) StartUpload(ctx context.Context, in *UploadReq, opts ...
 
 func (c *storageClient) UploadChunk(ctx context.Context, in *SessionFileChunk, opts ...grpc1.CallOption) (*Ack, error) {
 	out := new(Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.storage.grpc.Storage/UploadChunk", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.storage.grpc.Storage/UploadChunk", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +267,7 @@ func (c *storageClient) UploadChunk(ctx context.Context, in *SessionFileChunk, o
 
 func (c *storageClient) EndUpload(ctx context.Context, in *UploadSession, opts ...grpc1.CallOption) (*UploadAck, error) {
 	out := new(UploadAck)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.storage.grpc.Storage/EndUpload", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.storage.grpc.Storage/EndUpload", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (c *storageClient) EndUpload(ctx context.Context, in *UploadSession, opts .
 
 func (c *storageClient) AuthorizePeers(ctx context.Context, in *AuthRequest, opts ...grpc1.CallOption) (*Ack, error) {
 	out := new(Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.storage.grpc.Storage/AuthorizePeers", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.storage.grpc.Storage/AuthorizePeers", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func (c *storageClient) AuthorizePeers(ctx context.Context, in *AuthRequest, opt
 }
 
 func (c *storageClient) Download(ctx context.Context, in *DownloadRequest, opts ...grpc1.CallOption) (Storage_DownloadClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Storage_serviceDesc.Streams[1], c.cc, "/stratumn.alice.app.storage.grpc.Storage/Download", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Storage_serviceDesc.Streams[1], c.cc, "/stratumn.indigonode.app.storage.grpc.Storage/Download", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +372,7 @@ func _Storage_StartUpload_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.storage.grpc.Storage/StartUpload",
+		FullMethod: "/stratumn.indigonode.app.storage.grpc.Storage/StartUpload",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageServer).StartUpload(ctx, req.(*UploadReq))
@@ -390,7 +390,7 @@ func _Storage_UploadChunk_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.storage.grpc.Storage/UploadChunk",
+		FullMethod: "/stratumn.indigonode.app.storage.grpc.Storage/UploadChunk",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageServer).UploadChunk(ctx, req.(*SessionFileChunk))
@@ -408,7 +408,7 @@ func _Storage_EndUpload_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.storage.grpc.Storage/EndUpload",
+		FullMethod: "/stratumn.indigonode.app.storage.grpc.Storage/EndUpload",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageServer).EndUpload(ctx, req.(*UploadSession))
@@ -426,7 +426,7 @@ func _Storage_AuthorizePeers_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.storage.grpc.Storage/AuthorizePeers",
+		FullMethod: "/stratumn.indigonode.app.storage.grpc.Storage/AuthorizePeers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StorageServer).AuthorizePeers(ctx, req.(*AuthRequest))
@@ -456,7 +456,7 @@ func (x *storageDownloadServer) Send(m *stratumn_alice_app_storage.FileChunk) er
 }
 
 var _Storage_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.storage.grpc.Storage",
+	ServiceName: "stratumn.indigonode.app.storage.grpc.Storage",
 	HandlerType: (*StorageServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

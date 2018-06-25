@@ -184,13 +184,13 @@ func (m *TransactionPoolResp) GetTxs() []*stratumn_alice_app_coin.Transaction {
 }
 
 func init() {
-	proto.RegisterType((*AccountReq)(nil), "stratumn.alice.app.coin.grpc.AccountReq")
-	proto.RegisterType((*BlockchainReq)(nil), "stratumn.alice.app.coin.grpc.BlockchainReq")
-	proto.RegisterType((*BlockchainResp)(nil), "stratumn.alice.app.coin.grpc.BlockchainResp")
-	proto.RegisterType((*TransactionResp)(nil), "stratumn.alice.app.coin.grpc.TransactionResp")
-	proto.RegisterType((*AccountTransactionsReq)(nil), "stratumn.alice.app.coin.grpc.AccountTransactionsReq")
-	proto.RegisterType((*TransactionPoolReq)(nil), "stratumn.alice.app.coin.grpc.TransactionPoolReq")
-	proto.RegisterType((*TransactionPoolResp)(nil), "stratumn.alice.app.coin.grpc.TransactionPoolResp")
+	proto.RegisterType((*AccountReq)(nil), "stratumn.indigonode.app.coin.grpc.AccountReq")
+	proto.RegisterType((*BlockchainReq)(nil), "stratumn.indigonode.app.coin.grpc.BlockchainReq")
+	proto.RegisterType((*BlockchainResp)(nil), "stratumn.indigonode.app.coin.grpc.BlockchainResp")
+	proto.RegisterType((*TransactionResp)(nil), "stratumn.indigonode.app.coin.grpc.TransactionResp")
+	proto.RegisterType((*AccountTransactionsReq)(nil), "stratumn.indigonode.app.coin.grpc.AccountTransactionsReq")
+	proto.RegisterType((*TransactionPoolReq)(nil), "stratumn.indigonode.app.coin.grpc.TransactionPoolReq")
+	proto.RegisterType((*TransactionPoolResp)(nil), "stratumn.indigonode.app.coin.grpc.TransactionPoolResp")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -226,7 +226,7 @@ func NewCoinClient(cc *grpc1.ClientConn) CoinClient {
 
 func (c *coinClient) GetAccount(ctx context.Context, in *AccountReq, opts ...grpc1.CallOption) (*stratumn_alice_app_coin.Account, error) {
 	out := new(stratumn_alice_app_coin.Account)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.coin.grpc.Coin/GetAccount", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.coin.grpc.Coin/GetAccount", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func (c *coinClient) GetAccount(ctx context.Context, in *AccountReq, opts ...grp
 
 func (c *coinClient) SendTransaction(ctx context.Context, in *stratumn_alice_app_coin.Transaction, opts ...grpc1.CallOption) (*TransactionResp, error) {
 	out := new(TransactionResp)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.coin.grpc.Coin/SendTransaction", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.coin.grpc.Coin/SendTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (c *coinClient) SendTransaction(ctx context.Context, in *stratumn_alice_app
 }
 
 func (c *coinClient) AccountTransactions(ctx context.Context, in *AccountTransactionsReq, opts ...grpc1.CallOption) (Coin_AccountTransactionsClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Coin_serviceDesc.Streams[0], c.cc, "/stratumn.alice.app.coin.grpc.Coin/AccountTransactions", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Coin_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.app.coin.grpc.Coin/AccountTransactions", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (x *coinAccountTransactionsClient) Recv() (*stratumn_alice_app_coin.Transac
 
 func (c *coinClient) TransactionPool(ctx context.Context, in *TransactionPoolReq, opts ...grpc1.CallOption) (*TransactionPoolResp, error) {
 	out := new(TransactionPoolResp)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.coin.grpc.Coin/TransactionPool", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.coin.grpc.Coin/TransactionPool", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (c *coinClient) TransactionPool(ctx context.Context, in *TransactionPoolReq
 
 func (c *coinClient) Blockchain(ctx context.Context, in *BlockchainReq, opts ...grpc1.CallOption) (*BlockchainResp, error) {
 	out := new(BlockchainResp)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.coin.grpc.Coin/Blockchain", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.coin.grpc.Coin/Blockchain", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func _Coin_GetAccount_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.coin.grpc.Coin/GetAccount",
+		FullMethod: "/stratumn.indigonode.app.coin.grpc.Coin/GetAccount",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CoinServer).GetAccount(ctx, req.(*AccountReq))
@@ -339,7 +339,7 @@ func _Coin_SendTransaction_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.coin.grpc.Coin/SendTransaction",
+		FullMethod: "/stratumn.indigonode.app.coin.grpc.Coin/SendTransaction",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CoinServer).SendTransaction(ctx, req.(*stratumn_alice_app_coin.Transaction))
@@ -378,7 +378,7 @@ func _Coin_TransactionPool_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.coin.grpc.Coin/TransactionPool",
+		FullMethod: "/stratumn.indigonode.app.coin.grpc.Coin/TransactionPool",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CoinServer).TransactionPool(ctx, req.(*TransactionPoolReq))
@@ -396,7 +396,7 @@ func _Coin_Blockchain_Handler(srv interface{}, ctx context.Context, dec func(int
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.coin.grpc.Coin/Blockchain",
+		FullMethod: "/stratumn.indigonode.app.coin.grpc.Coin/Blockchain",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CoinServer).Blockchain(ctx, req.(*BlockchainReq))
@@ -405,7 +405,7 @@ func _Coin_Blockchain_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 var _Coin_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.coin.grpc.Coin",
+	ServiceName: "stratumn.indigonode.app.coin.grpc.Coin",
 	HandlerType: (*CoinServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

@@ -149,13 +149,13 @@ func (m *Evidences) GetEvidences() []*Evidence {
 }
 
 func init() {
-	proto.RegisterType((*Link)(nil), "stratumn.alice.app.indigo.store.Link")
-	proto.RegisterType((*LinkHash)(nil), "stratumn.alice.app.indigo.store.LinkHash")
-	proto.RegisterType((*LinkHashes)(nil), "stratumn.alice.app.indigo.store.LinkHashes")
-	proto.RegisterType((*Segment)(nil), "stratumn.alice.app.indigo.store.Segment")
-	proto.RegisterType((*Segments)(nil), "stratumn.alice.app.indigo.store.Segments")
-	proto.RegisterType((*Evidence)(nil), "stratumn.alice.app.indigo.store.Evidence")
-	proto.RegisterType((*Evidences)(nil), "stratumn.alice.app.indigo.store.Evidences")
+	proto.RegisterType((*Link)(nil), "stratumn.indigonode.app.indigo.store.Link")
+	proto.RegisterType((*LinkHash)(nil), "stratumn.indigonode.app.indigo.store.LinkHash")
+	proto.RegisterType((*LinkHashes)(nil), "stratumn.indigonode.app.indigo.store.LinkHashes")
+	proto.RegisterType((*Segment)(nil), "stratumn.indigonode.app.indigo.store.Segment")
+	proto.RegisterType((*Segments)(nil), "stratumn.indigonode.app.indigo.store.Segments")
+	proto.RegisterType((*Evidence)(nil), "stratumn.indigonode.app.indigo.store.Evidence")
+	proto.RegisterType((*Evidences)(nil), "stratumn.indigonode.app.indigo.store.Evidences")
 }
 func (m *Link) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

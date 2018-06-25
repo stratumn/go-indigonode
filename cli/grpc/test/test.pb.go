@@ -71,8 +71,8 @@ type Message struct {
 	U64Repeated         []uint64       `protobuf:"varint,21,rep,packed,name=u64_repeated,json=u64Repeated" json:"u64_repeated,omitempty"`
 	Buf                 []byte         `protobuf:"bytes,22,opt,name=buf,proto3" json:"buf,omitempty"`
 	BufRepeated         [][]byte       `protobuf:"bytes,23,rep,name=buf_repeated,json=bufRepeated" json:"buf_repeated,omitempty"`
-	Enumeration         Message_Enum   `protobuf:"varint,30,opt,name=enumeration,proto3,enum=stratumn.alice.cli.test.Message_Enum" json:"enumeration,omitempty"`
-	EnumerationRepeated []Message_Enum `protobuf:"varint,31,rep,packed,name=enumeration_repeated,json=enumerationRepeated,enum=stratumn.alice.cli.test.Message_Enum" json:"enumeration_repeated,omitempty"`
+	Enumeration         Message_Enum   `protobuf:"varint,30,opt,name=enumeration,proto3,enum=stratumn.indigonode.cli.test.Message_Enum" json:"enumeration,omitempty"`
+	EnumerationRepeated []Message_Enum `protobuf:"varint,31,rep,packed,name=enumeration_repeated,json=enumerationRepeated,enum=stratumn.indigonode.cli.test.Message_Enum" json:"enumeration_repeated,omitempty"`
 	Base58              []byte         `protobuf:"bytes,50,opt,name=base58,proto3" json:"base58,omitempty"`
 	Base58Repeated      [][]byte       `protobuf:"bytes,51,rep,name=base58_repeated,json=base58Repeated" json:"base58_repeated,omitempty"`
 	Multiaddr           []byte         `protobuf:"bytes,52,opt,name=multiaddr,proto3" json:"multiaddr,omitempty"`
@@ -303,8 +303,8 @@ func (m *Message) GetByterateRepeated() []uint64 {
 }
 
 func init() {
-	proto.RegisterType((*Message)(nil), "stratumn.alice.cli.test.Message")
-	proto.RegisterEnum("stratumn.alice.cli.test.Message_Enum", Message_Enum_name, Message_Enum_value)
+	proto.RegisterType((*Message)(nil), "stratumn.indigonode.cli.test.Message")
+	proto.RegisterEnum("stratumn.indigonode.cli.test.Message_Enum", Message_Enum_name, Message_Enum_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -333,7 +333,7 @@ func NewTestClient(cc *grpc.ClientConn) TestClient {
 
 func (c *testClient) UnaryReq(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
 	out := new(Message)
-	err := grpc.Invoke(ctx, "/stratumn.alice.cli.test.Test/UnaryReq", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.cli.test.Test/UnaryReq", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,7 @@ func (c *testClient) UnaryReq(ctx context.Context, in *Message, opts ...grpc.Cal
 }
 
 func (c *testClient) ServerStream(ctx context.Context, in *Message, opts ...grpc.CallOption) (Test_ServerStreamClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Test_serviceDesc.Streams[0], c.cc, "/stratumn.alice.cli.test.Test/ServerStream", opts...)
+	stream, err := grpc.NewClientStream(ctx, &_Test_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.cli.test.Test/ServerStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func (x *testServerStreamClient) Recv() (*Message, error) {
 
 func (c *testClient) NoExt(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
 	out := new(Message)
-	err := grpc.Invoke(ctx, "/stratumn.alice.cli.test.Test/NoExt", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.cli.test.Test/NoExt", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +403,7 @@ func _Test_UnaryReq_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.cli.test.Test/UnaryReq",
+		FullMethod: "/stratumn.indigonode.cli.test.Test/UnaryReq",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TestServer).UnaryReq(ctx, req.(*Message))
@@ -442,7 +442,7 @@ func _Test_NoExt_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.cli.test.Test/NoExt",
+		FullMethod: "/stratumn.indigonode.cli.test.Test/NoExt",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TestServer).NoExt(ctx, req.(*Message))
@@ -451,7 +451,7 @@ func _Test_NoExt_Handler(srv interface{}, ctx context.Context, dec func(interfac
 }
 
 var _Test_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "stratumn.alice.cli.test.Test",
+	ServiceName: "stratumn.indigonode.cli.test.Test",
 	HandlerType: (*TestServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

@@ -101,8 +101,8 @@ func (m *BandwidthStats) GetRateOut() uint64 {
 }
 
 func init() {
-	proto.RegisterType((*BandwidthReq)(nil), "stratumn.alice.core.app.metrics.grpc.BandwidthReq")
-	proto.RegisterType((*BandwidthStats)(nil), "stratumn.alice.core.app.metrics.grpc.BandwidthStats")
+	proto.RegisterType((*BandwidthReq)(nil), "stratumn.indigonode.core.app.metrics.grpc.BandwidthReq")
+	proto.RegisterType((*BandwidthStats)(nil), "stratumn.indigonode.core.app.metrics.grpc.BandwidthStats")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -130,7 +130,7 @@ func NewMetricsClient(cc *grpc1.ClientConn) MetricsClient {
 
 func (c *metricsClient) Bandwidth(ctx context.Context, in *BandwidthReq, opts ...grpc1.CallOption) (*BandwidthStats, error) {
 	out := new(BandwidthStats)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.metrics.grpc.Metrics/Bandwidth", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.metrics.grpc.Metrics/Bandwidth", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func _Metrics_Bandwidth_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.metrics.grpc.Metrics/Bandwidth",
+		FullMethod: "/stratumn.indigonode.core.app.metrics.grpc.Metrics/Bandwidth",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MetricsServer).Bandwidth(ctx, req.(*BandwidthReq))
@@ -167,7 +167,7 @@ func _Metrics_Bandwidth_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 var _Metrics_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.metrics.grpc.Metrics",
+	ServiceName: "stratumn.indigonode.core.app.metrics.grpc.Metrics",
 	HandlerType: (*MetricsServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

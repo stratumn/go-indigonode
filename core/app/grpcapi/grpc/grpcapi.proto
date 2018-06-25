@@ -16,7 +16,7 @@ syntax = "proto3";
 
 import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
-package stratumn.alice.core.app.grpcapi.grpc;
+package stratumn.indigonode.core.app.grpcapi.grpc;
 
 option go_package = "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc;grpc";
 
@@ -24,7 +24,7 @@ option go_package = "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc;grp
 service API {
   // Returns information about the API.
   rpc Inform (InformReq) returns (Info) {
-    option (stratumn.alice.cli.ext.method_desc) = "Get information about the API";
+    option (stratumn.indigonode.cli.ext.method_desc) = "Get information about the API";
   }
 }
 

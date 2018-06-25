@@ -77,8 +77,8 @@ func (m *Info) GetGitCommit() []byte {
 }
 
 func init() {
-	proto.RegisterType((*InformReq)(nil), "stratumn.alice.core.app.grpcapi.grpc.InformReq")
-	proto.RegisterType((*Info)(nil), "stratumn.alice.core.app.grpcapi.grpc.Info")
+	proto.RegisterType((*InformReq)(nil), "stratumn.indigonode.core.app.grpcapi.grpc.InformReq")
+	proto.RegisterType((*Info)(nil), "stratumn.indigonode.core.app.grpcapi.grpc.Info")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -106,7 +106,7 @@ func NewAPIClient(cc *grpc1.ClientConn) APIClient {
 
 func (c *aPIClient) Inform(ctx context.Context, in *InformReq, opts ...grpc1.CallOption) (*Info, error) {
 	out := new(Info)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.grpcapi.grpc.API/Inform", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.grpcapi.grpc.API/Inform", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func _API_Inform_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.grpcapi.grpc.API/Inform",
+		FullMethod: "/stratumn.indigonode.core.app.grpcapi.grpc.API/Inform",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(APIServer).Inform(ctx, req.(*InformReq))
@@ -143,7 +143,7 @@ func _API_Inform_Handler(srv interface{}, ctx context.Context, dec func(interfac
 }
 
 var _API_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.grpcapi.grpc.API",
+	ServiceName: "stratumn.indigonode.core.app.grpcapi.grpc.API",
 	HandlerType: (*APIServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

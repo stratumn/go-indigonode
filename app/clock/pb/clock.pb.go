@@ -47,7 +47,7 @@ func (m *Time) GetTimestamp() int64 {
 }
 
 func init() {
-	proto.RegisterType((*Time)(nil), "stratumn.alice.pb.clock.Time")
+	proto.RegisterType((*Time)(nil), "stratumn.indigonode.pb.clock.Time")
 }
 func (m *Time) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

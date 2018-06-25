@@ -145,13 +145,13 @@ func (*AddEvidenceResp) ProtoMessage()               {}
 func (*AddEvidenceResp) Descriptor() ([]byte, []int) { return fileDescriptorStore, []int{6} }
 
 func init() {
-	proto.RegisterType((*InfoReq)(nil), "stratumn.alice.app.indigo.store.grpc.InfoReq")
-	proto.RegisterType((*InfoResp)(nil), "stratumn.alice.app.indigo.store.grpc.InfoResp")
-	proto.RegisterType((*SegmentFilter)(nil), "stratumn.alice.app.indigo.store.grpc.SegmentFilter")
-	proto.RegisterType((*MapIDs)(nil), "stratumn.alice.app.indigo.store.grpc.MapIDs")
-	proto.RegisterType((*MapFilter)(nil), "stratumn.alice.app.indigo.store.grpc.MapFilter")
-	proto.RegisterType((*AddEvidenceReq)(nil), "stratumn.alice.app.indigo.store.grpc.AddEvidenceReq")
-	proto.RegisterType((*AddEvidenceResp)(nil), "stratumn.alice.app.indigo.store.grpc.AddEvidenceResp")
+	proto.RegisterType((*InfoReq)(nil), "stratumn.indigonode.app.indigo.store.grpc.InfoReq")
+	proto.RegisterType((*InfoResp)(nil), "stratumn.indigonode.app.indigo.store.grpc.InfoResp")
+	proto.RegisterType((*SegmentFilter)(nil), "stratumn.indigonode.app.indigo.store.grpc.SegmentFilter")
+	proto.RegisterType((*MapIDs)(nil), "stratumn.indigonode.app.indigo.store.grpc.MapIDs")
+	proto.RegisterType((*MapFilter)(nil), "stratumn.indigonode.app.indigo.store.grpc.MapFilter")
+	proto.RegisterType((*AddEvidenceReq)(nil), "stratumn.indigonode.app.indigo.store.grpc.AddEvidenceReq")
+	proto.RegisterType((*AddEvidenceResp)(nil), "stratumn.indigonode.app.indigo.store.grpc.AddEvidenceResp")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -191,7 +191,7 @@ func NewIndigoStoreClient(cc *grpc.ClientConn) IndigoStoreClient {
 
 func (c *indigoStoreClient) GetInfo(ctx context.Context, in *InfoReq, opts ...grpc.CallOption) (*InfoResp, error) {
 	out := new(InfoResp)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetInfo", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (c *indigoStoreClient) GetInfo(ctx context.Context, in *InfoReq, opts ...gr
 
 func (c *indigoStoreClient) CreateLink(ctx context.Context, in *stratumn_alice_app_indigo_store.Link, opts ...grpc.CallOption) (*stratumn_alice_app_indigo_store.LinkHash, error) {
 	out := new(stratumn_alice_app_indigo_store.LinkHash)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/CreateLink", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/CreateLink", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (c *indigoStoreClient) CreateLink(ctx context.Context, in *stratumn_alice_a
 
 func (c *indigoStoreClient) GetSegment(ctx context.Context, in *stratumn_alice_app_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_app_indigo_store.Segment, error) {
 	out := new(stratumn_alice_app_indigo_store.Segment)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetSegment", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetSegment", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (c *indigoStoreClient) GetSegment(ctx context.Context, in *stratumn_alice_a
 
 func (c *indigoStoreClient) FindSegments(ctx context.Context, in *SegmentFilter, opts ...grpc.CallOption) (*stratumn_alice_app_indigo_store.Segments, error) {
 	out := new(stratumn_alice_app_indigo_store.Segments)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/FindSegments", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/FindSegments", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (c *indigoStoreClient) FindSegments(ctx context.Context, in *SegmentFilter,
 
 func (c *indigoStoreClient) GetMapIDs(ctx context.Context, in *MapFilter, opts ...grpc.CallOption) (*MapIDs, error) {
 	out := new(MapIDs)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetMapIDs", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetMapIDs", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (c *indigoStoreClient) GetMapIDs(ctx context.Context, in *MapFilter, opts .
 
 func (c *indigoStoreClient) AddEvidence(ctx context.Context, in *AddEvidenceReq, opts ...grpc.CallOption) (*AddEvidenceResp, error) {
 	out := new(AddEvidenceResp)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/AddEvidence", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/AddEvidence", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (c *indigoStoreClient) AddEvidence(ctx context.Context, in *AddEvidenceReq,
 
 func (c *indigoStoreClient) GetEvidences(ctx context.Context, in *stratumn_alice_app_indigo_store.LinkHash, opts ...grpc.CallOption) (*stratumn_alice_app_indigo_store.Evidences, error) {
 	out := new(stratumn_alice_app_indigo_store.Evidences)
-	err := grpc.Invoke(ctx, "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetEvidences", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetEvidences", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func _IndigoStore_GetInfo_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetInfo",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).GetInfo(ctx, req.(*InfoReq))
@@ -303,7 +303,7 @@ func _IndigoStore_CreateLink_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/CreateLink",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/CreateLink",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).CreateLink(ctx, req.(*stratumn_alice_app_indigo_store.Link))
@@ -321,7 +321,7 @@ func _IndigoStore_GetSegment_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetSegment",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetSegment",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).GetSegment(ctx, req.(*stratumn_alice_app_indigo_store.LinkHash))
@@ -339,7 +339,7 @@ func _IndigoStore_FindSegments_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/FindSegments",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/FindSegments",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).FindSegments(ctx, req.(*SegmentFilter))
@@ -357,7 +357,7 @@ func _IndigoStore_GetMapIDs_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetMapIDs",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetMapIDs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).GetMapIDs(ctx, req.(*MapFilter))
@@ -375,7 +375,7 @@ func _IndigoStore_AddEvidence_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/AddEvidence",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/AddEvidence",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).AddEvidence(ctx, req.(*AddEvidenceReq))
@@ -393,7 +393,7 @@ func _IndigoStore_GetEvidences_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.indigo.store.grpc.IndigoStore/GetEvidences",
+		FullMethod: "/stratumn.indigonode.app.indigo.store.grpc.IndigoStore/GetEvidences",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IndigoStoreServer).GetEvidences(ctx, req.(*stratumn_alice_app_indigo_store.LinkHash))
@@ -402,7 +402,7 @@ func _IndigoStore_GetEvidences_Handler(srv interface{}, ctx context.Context, dec
 }
 
 var _IndigoStore_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "stratumn.alice.app.indigo.store.grpc.IndigoStore",
+	ServiceName: "stratumn.indigonode.app.indigo.store.grpc.IndigoStore",
 	HandlerType: (*IndigoStoreServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

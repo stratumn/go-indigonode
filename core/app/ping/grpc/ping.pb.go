@@ -77,8 +77,8 @@ func (m *Response) GetLatency() int64 {
 }
 
 func init() {
-	proto.RegisterType((*PingReq)(nil), "stratumn.alice.core.app.ping.grpc.PingReq")
-	proto.RegisterType((*Response)(nil), "stratumn.alice.core.app.ping.grpc.Response")
+	proto.RegisterType((*PingReq)(nil), "stratumn.indigonode.core.app.ping.grpc.PingReq")
+	proto.RegisterType((*Response)(nil), "stratumn.indigonode.core.app.ping.grpc.Response")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -105,7 +105,7 @@ func NewPingClient(cc *grpc1.ClientConn) PingClient {
 }
 
 func (c *pingClient) Ping(ctx context.Context, in *PingReq, opts ...grpc1.CallOption) (Ping_PingClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Ping_serviceDesc.Streams[0], c.cc, "/stratumn.alice.core.app.ping.grpc.Ping/Ping", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Ping_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.core.app.ping.grpc.Ping/Ping", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (x *pingPingServer) Send(m *Response) error {
 }
 
 var _Ping_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.ping.grpc.Ping",
+	ServiceName: "stratumn.indigonode.core.app.ping.grpc.Ping",
 	HandlerType: (*PingServer)(nil),
 	Methods:     []grpc1.MethodDesc{},
 	Streams: []grpc1.StreamDesc{

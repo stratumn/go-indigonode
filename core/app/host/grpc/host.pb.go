@@ -141,12 +141,12 @@ func (m *Connection) GetRemoteAddress() []byte {
 }
 
 func init() {
-	proto.RegisterType((*IdReq)(nil), "stratumn.alice.core.app.host.grpc.IdReq")
-	proto.RegisterType((*AddressesReq)(nil), "stratumn.alice.core.app.host.grpc.AddressesReq")
-	proto.RegisterType((*ConnectReq)(nil), "stratumn.alice.core.app.host.grpc.ConnectReq")
-	proto.RegisterType((*HostId)(nil), "stratumn.alice.core.app.host.grpc.HostId")
-	proto.RegisterType((*Address)(nil), "stratumn.alice.core.app.host.grpc.Address")
-	proto.RegisterType((*Connection)(nil), "stratumn.alice.core.app.host.grpc.Connection")
+	proto.RegisterType((*IdReq)(nil), "stratumn.indigonode.core.app.host.grpc.IdReq")
+	proto.RegisterType((*AddressesReq)(nil), "stratumn.indigonode.core.app.host.grpc.AddressesReq")
+	proto.RegisterType((*ConnectReq)(nil), "stratumn.indigonode.core.app.host.grpc.ConnectReq")
+	proto.RegisterType((*HostId)(nil), "stratumn.indigonode.core.app.host.grpc.HostId")
+	proto.RegisterType((*Address)(nil), "stratumn.indigonode.core.app.host.grpc.Address")
+	proto.RegisterType((*Connection)(nil), "stratumn.indigonode.core.app.host.grpc.Connection")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -178,7 +178,7 @@ func NewHostClient(cc *grpc1.ClientConn) HostClient {
 
 func (c *hostClient) ID(ctx context.Context, in *IdReq, opts ...grpc1.CallOption) (*HostId, error) {
 	out := new(HostId)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.host.grpc.Host/ID", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.host.grpc.Host/ID", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func (c *hostClient) ID(ctx context.Context, in *IdReq, opts ...grpc1.CallOption
 }
 
 func (c *hostClient) Addresses(ctx context.Context, in *AddressesReq, opts ...grpc1.CallOption) (Host_AddressesClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Host_serviceDesc.Streams[0], c.cc, "/stratumn.alice.core.app.host.grpc.Host/Addresses", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Host_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.core.app.host.grpc.Host/Addresses", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (x *hostAddressesClient) Recv() (*Address, error) {
 }
 
 func (c *hostClient) Connect(ctx context.Context, in *ConnectReq, opts ...grpc1.CallOption) (Host_ConnectClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Host_serviceDesc.Streams[1], c.cc, "/stratumn.alice.core.app.host.grpc.Host/Connect", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Host_serviceDesc.Streams[1], c.cc, "/stratumn.indigonode.core.app.host.grpc.Host/Connect", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func _Host_ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.host.grpc.Host/ID",
+		FullMethod: "/stratumn.indigonode.core.app.host.grpc.Host/ID",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(HostServer).ID(ctx, req.(*IdReq))
@@ -325,7 +325,7 @@ func (x *hostConnectServer) Send(m *Connection) error {
 }
 
 var _Host_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.host.grpc.Host",
+	ServiceName: "stratumn.indigonode.core.app.host.grpc.Host",
 	HandlerType: (*HostServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

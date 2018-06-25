@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-package stratumn.alice.pb.chat;
+package stratumn.indigonode.pb.chat;
 
 option go_package = "github.com/stratumn/go-indigonode/app/chat/pb;pb";
 

@@ -73,8 +73,8 @@ func (m *FileInfo) GetHash() []byte {
 }
 
 func init() {
-	proto.RegisterType((*FileChunk)(nil), "stratumn.alice.app.storage.FileChunk")
-	proto.RegisterType((*FileInfo)(nil), "stratumn.alice.app.storage.FileInfo")
+	proto.RegisterType((*FileChunk)(nil), "stratumn.indigonode.app.storage.FileChunk")
+	proto.RegisterType((*FileInfo)(nil), "stratumn.indigonode.app.storage.FileInfo")
 }
 func (m *FileChunk) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

@@ -159,7 +159,7 @@ func (m *NodeIdentity) GetIdentityProof() []byte {
 
 // Proposal to update the network.
 type UpdateProposal struct {
-	UpdateType  UpdateType    `protobuf:"varint,1,opt,name=update_type,json=updateType,proto3,enum=stratumn.alice.core.app.bootstrap.UpdateType" json:"update_type,omitempty"`
+	UpdateType  UpdateType    `protobuf:"varint,1,opt,name=update_type,json=updateType,proto3,enum=stratumn.indigonode.core.app.bootstrap.UpdateType" json:"update_type,omitempty"`
 	NodeDetails *NodeIdentity `protobuf:"bytes,2,opt,name=node_details,json=nodeDetails" json:"node_details,omitempty"`
 	Challenge   []byte        `protobuf:"bytes,3,opt,name=challenge,proto3" json:"challenge,omitempty"`
 }
@@ -191,7 +191,7 @@ func (m *UpdateProposal) GetChallenge() []byte {
 }
 
 type Vote struct {
-	UpdateType UpdateType                            `protobuf:"varint,1,opt,name=update_type,json=updateType,proto3,enum=stratumn.alice.core.app.bootstrap.UpdateType" json:"update_type,omitempty"`
+	UpdateType UpdateType                            `protobuf:"varint,1,opt,name=update_type,json=updateType,proto3,enum=stratumn.indigonode.core.app.bootstrap.UpdateType" json:"update_type,omitempty"`
 	PeerId     []byte                                `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 	Challenge  []byte                                `protobuf:"bytes,3,opt,name=challenge,proto3" json:"challenge,omitempty"`
 	Signature  *stratumn_alice_core_crypto.Signature `protobuf:"bytes,4,opt,name=signature" json:"signature,omitempty"`
@@ -231,15 +231,15 @@ func (m *Vote) GetSignature() *stratumn_alice_core_crypto.Signature {
 }
 
 func init() {
-	proto.RegisterType((*Hello)(nil), "stratumn.alice.core.app.bootstrap.Hello")
-	proto.RegisterType((*Ack)(nil), "stratumn.alice.core.app.bootstrap.Ack")
-	proto.RegisterType((*CompleteReq)(nil), "stratumn.alice.core.app.bootstrap.CompleteReq")
-	proto.RegisterType((*Filter)(nil), "stratumn.alice.core.app.bootstrap.Filter")
-	proto.RegisterType((*PeerID)(nil), "stratumn.alice.core.app.bootstrap.PeerID")
-	proto.RegisterType((*NodeIdentity)(nil), "stratumn.alice.core.app.bootstrap.NodeIdentity")
-	proto.RegisterType((*UpdateProposal)(nil), "stratumn.alice.core.app.bootstrap.UpdateProposal")
-	proto.RegisterType((*Vote)(nil), "stratumn.alice.core.app.bootstrap.Vote")
-	proto.RegisterEnum("stratumn.alice.core.app.bootstrap.UpdateType", UpdateType_name, UpdateType_value)
+	proto.RegisterType((*Hello)(nil), "stratumn.indigonode.core.app.bootstrap.Hello")
+	proto.RegisterType((*Ack)(nil), "stratumn.indigonode.core.app.bootstrap.Ack")
+	proto.RegisterType((*CompleteReq)(nil), "stratumn.indigonode.core.app.bootstrap.CompleteReq")
+	proto.RegisterType((*Filter)(nil), "stratumn.indigonode.core.app.bootstrap.Filter")
+	proto.RegisterType((*PeerID)(nil), "stratumn.indigonode.core.app.bootstrap.PeerID")
+	proto.RegisterType((*NodeIdentity)(nil), "stratumn.indigonode.core.app.bootstrap.NodeIdentity")
+	proto.RegisterType((*UpdateProposal)(nil), "stratumn.indigonode.core.app.bootstrap.UpdateProposal")
+	proto.RegisterType((*Vote)(nil), "stratumn.indigonode.core.app.bootstrap.Vote")
+	proto.RegisterEnum("stratumn.indigonode.core.app.bootstrap.UpdateType", UpdateType_name, UpdateType_value)
 }
 func (m *Hello) Marshal() (dAtA []byte, err error) {
 	size := m.Size()

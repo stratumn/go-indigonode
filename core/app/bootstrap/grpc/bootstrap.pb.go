@@ -66,7 +66,7 @@ func NewBootstrapClient(cc *grpc1.ClientConn) BootstrapClient {
 
 func (c *bootstrapClient) AddNode(ctx context.Context, in *stratumn_alice_core_app_bootstrap.NodeIdentity, opts ...grpc1.CallOption) (*stratumn_alice_core_app_bootstrap.Ack, error) {
 	out := new(stratumn_alice_core_app_bootstrap.Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/AddNode", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/AddNode", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *bootstrapClient) AddNode(ctx context.Context, in *stratumn_alice_core_a
 
 func (c *bootstrapClient) RemoveNode(ctx context.Context, in *stratumn_alice_core_app_bootstrap.NodeIdentity, opts ...grpc1.CallOption) (*stratumn_alice_core_app_bootstrap.Ack, error) {
 	out := new(stratumn_alice_core_app_bootstrap.Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/RemoveNode", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/RemoveNode", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (c *bootstrapClient) RemoveNode(ctx context.Context, in *stratumn_alice_cor
 
 func (c *bootstrapClient) Accept(ctx context.Context, in *stratumn_alice_core_app_bootstrap.PeerID, opts ...grpc1.CallOption) (*stratumn_alice_core_app_bootstrap.Ack, error) {
 	out := new(stratumn_alice_core_app_bootstrap.Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Accept", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Accept", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (c *bootstrapClient) Accept(ctx context.Context, in *stratumn_alice_core_ap
 
 func (c *bootstrapClient) Reject(ctx context.Context, in *stratumn_alice_core_app_bootstrap.PeerID, opts ...grpc1.CallOption) (*stratumn_alice_core_app_bootstrap.Ack, error) {
 	out := new(stratumn_alice_core_app_bootstrap.Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Reject", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Reject", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (c *bootstrapClient) Reject(ctx context.Context, in *stratumn_alice_core_ap
 }
 
 func (c *bootstrapClient) List(ctx context.Context, in *stratumn_alice_core_app_bootstrap.Filter, opts ...grpc1.CallOption) (Bootstrap_ListClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Bootstrap_serviceDesc.Streams[0], c.cc, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/List", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Bootstrap_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/List", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (x *bootstrapListClient) Recv() (*stratumn_alice_core_app_bootstrap.UpdateP
 
 func (c *bootstrapClient) Complete(ctx context.Context, in *stratumn_alice_core_app_bootstrap.CompleteReq, opts ...grpc1.CallOption) (*stratumn_alice_core_app_bootstrap.Ack, error) {
 	out := new(stratumn_alice_core_app_bootstrap.Ack)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Complete", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Complete", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func _Bootstrap_AddNode_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/AddNode",
+		FullMethod: "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/AddNode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BootstrapServer).AddNode(ctx, req.(*stratumn_alice_core_app_bootstrap.NodeIdentity))
@@ -190,7 +190,7 @@ func _Bootstrap_RemoveNode_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/RemoveNode",
+		FullMethod: "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/RemoveNode",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BootstrapServer).RemoveNode(ctx, req.(*stratumn_alice_core_app_bootstrap.NodeIdentity))
@@ -208,7 +208,7 @@ func _Bootstrap_Accept_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Accept",
+		FullMethod: "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Accept",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BootstrapServer).Accept(ctx, req.(*stratumn_alice_core_app_bootstrap.PeerID))
@@ -226,7 +226,7 @@ func _Bootstrap_Reject_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Reject",
+		FullMethod: "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Reject",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BootstrapServer).Reject(ctx, req.(*stratumn_alice_core_app_bootstrap.PeerID))
@@ -265,7 +265,7 @@ func _Bootstrap_Complete_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.core.app.bootstrap.grpc.Bootstrap/Complete",
+		FullMethod: "/stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap/Complete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BootstrapServer).Complete(ctx, req.(*stratumn_alice_core_app_bootstrap.CompleteReq))
@@ -274,7 +274,7 @@ func _Bootstrap_Complete_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 var _Bootstrap_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.core.app.bootstrap.grpc.Bootstrap",
+	ServiceName: "stratumn.indigonode.core.app.bootstrap.grpc.Bootstrap",
 	HandlerType: (*BootstrapServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

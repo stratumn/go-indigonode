@@ -151,12 +151,12 @@ func (m *Entry) GetData() []byte {
 }
 
 func init() {
-	proto.RegisterType((*Empty)(nil), "stratumn.alice.app.raft.grpc.Empty")
-	proto.RegisterType((*Peer)(nil), "stratumn.alice.app.raft.grpc.Peer")
-	proto.RegisterType((*PeerID)(nil), "stratumn.alice.app.raft.grpc.PeerID")
-	proto.RegisterType((*StatusInfo)(nil), "stratumn.alice.app.raft.grpc.StatusInfo")
-	proto.RegisterType((*Proposal)(nil), "stratumn.alice.app.raft.grpc.Proposal")
-	proto.RegisterType((*Entry)(nil), "stratumn.alice.app.raft.grpc.Entry")
+	proto.RegisterType((*Empty)(nil), "stratumn.indigonode.app.raft.grpc.Empty")
+	proto.RegisterType((*Peer)(nil), "stratumn.indigonode.app.raft.grpc.Peer")
+	proto.RegisterType((*PeerID)(nil), "stratumn.indigonode.app.raft.grpc.PeerID")
+	proto.RegisterType((*StatusInfo)(nil), "stratumn.indigonode.app.raft.grpc.StatusInfo")
+	proto.RegisterType((*Proposal)(nil), "stratumn.indigonode.app.raft.grpc.Proposal")
+	proto.RegisterType((*Entry)(nil), "stratumn.indigonode.app.raft.grpc.Entry")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -192,7 +192,7 @@ func NewRaftClient(cc *grpc1.ClientConn) RaftClient {
 
 func (c *raftClient) Start(ctx context.Context, in *Empty, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Start", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Start", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (c *raftClient) Start(ctx context.Context, in *Empty, opts ...grpc1.CallOpt
 
 func (c *raftClient) Stop(ctx context.Context, in *Empty, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Stop", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Stop", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (c *raftClient) Stop(ctx context.Context, in *Empty, opts ...grpc1.CallOpti
 
 func (c *raftClient) Status(ctx context.Context, in *Empty, opts ...grpc1.CallOption) (*StatusInfo, error) {
 	out := new(StatusInfo)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Status", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Status", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (c *raftClient) Status(ctx context.Context, in *Empty, opts ...grpc1.CallOp
 }
 
 func (c *raftClient) Peers(ctx context.Context, in *Empty, opts ...grpc1.CallOption) (Raft_PeersClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[0], c.cc, "/stratumn.alice.app.raft.grpc.Raft/Peers", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[0], c.cc, "/stratumn.indigonode.app.raft.grpc.Raft/Peers", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func (x *raftPeersClient) Recv() (*Peer, error) {
 }
 
 func (c *raftClient) Discover(ctx context.Context, in *PeerID, opts ...grpc1.CallOption) (Raft_DiscoverClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[1], c.cc, "/stratumn.alice.app.raft.grpc.Raft/Discover", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[1], c.cc, "/stratumn.indigonode.app.raft.grpc.Raft/Discover", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (x *raftDiscoverClient) Recv() (*Peer, error) {
 
 func (c *raftClient) Invite(ctx context.Context, in *PeerID, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Invite", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Invite", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (c *raftClient) Invite(ctx context.Context, in *PeerID, opts ...grpc1.CallO
 
 func (c *raftClient) Join(ctx context.Context, in *PeerID, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Join", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Join", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (c *raftClient) Join(ctx context.Context, in *PeerID, opts ...grpc1.CallOpt
 
 func (c *raftClient) Expel(ctx context.Context, in *PeerID, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Expel", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Expel", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (c *raftClient) Expel(ctx context.Context, in *PeerID, opts ...grpc1.CallOp
 
 func (c *raftClient) Propose(ctx context.Context, in *Proposal, opts ...grpc1.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := grpc1.Invoke(ctx, "/stratumn.alice.app.raft.grpc.Raft/Propose", in, out, c.cc, opts...)
+	err := grpc1.Invoke(ctx, "/stratumn.indigonode.app.raft.grpc.Raft/Propose", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (c *raftClient) Propose(ctx context.Context, in *Proposal, opts ...grpc1.Ca
 }
 
 func (c *raftClient) Log(ctx context.Context, in *Empty, opts ...grpc1.CallOption) (Raft_LogClient, error) {
-	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[2], c.cc, "/stratumn.alice.app.raft.grpc.Raft/Log", opts...)
+	stream, err := grpc1.NewClientStream(ctx, &_Raft_serviceDesc.Streams[2], c.cc, "/stratumn.indigonode.app.raft.grpc.Raft/Log", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func _Raft_Start_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Start",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Start",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Start(ctx, req.(*Empty))
@@ -396,7 +396,7 @@ func _Raft_Stop_Handler(srv interface{}, ctx context.Context, dec func(interface
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Stop",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Stop",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Stop(ctx, req.(*Empty))
@@ -414,7 +414,7 @@ func _Raft_Status_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Status",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Status",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Status(ctx, req.(*Empty))
@@ -474,7 +474,7 @@ func _Raft_Invite_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Invite",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Invite",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Invite(ctx, req.(*PeerID))
@@ -492,7 +492,7 @@ func _Raft_Join_Handler(srv interface{}, ctx context.Context, dec func(interface
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Join",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Join",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Join(ctx, req.(*PeerID))
@@ -510,7 +510,7 @@ func _Raft_Expel_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Expel",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Expel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Expel(ctx, req.(*PeerID))
@@ -528,7 +528,7 @@ func _Raft_Propose_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc1.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/stratumn.alice.app.raft.grpc.Raft/Propose",
+		FullMethod: "/stratumn.indigonode.app.raft.grpc.Raft/Propose",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RaftServer).Propose(ctx, req.(*Proposal))
@@ -558,7 +558,7 @@ func (x *raftLogServer) Send(m *Entry) error {
 }
 
 var _Raft_serviceDesc = grpc1.ServiceDesc{
-	ServiceName: "stratumn.alice.app.raft.grpc.Raft",
+	ServiceName: "stratumn.indigonode.app.raft.grpc.Raft",
 	HandlerType: (*RaftServer)(nil),
 	Methods: []grpc1.MethodDesc{
 		{

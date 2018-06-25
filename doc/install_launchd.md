@@ -4,7 +4,7 @@ Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Launchd
 
-Edit `indigonode.core.toml` so that the `log` section looks like this:
+Edit `indigo_node.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -46,7 +46,7 @@ You should also disable the boot screen in the `core` section:
 Install the property list file:
 
 ```bash
-$ indigo-node daemon install --core-config /path/to/indigonode.core.toml
+$ indigo-node daemon install --core-config /path/to/indigo_node.core.toml
 ```
 
 Start the Indigo Node service:

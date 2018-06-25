@@ -45,8 +45,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().String("core-config", "indigonode.core.toml", "core configuration file")
-	RootCmd.PersistentFlags().String("cli-config", "indigonode.cli.toml", "command line interface configuration file")
+	RootCmd.PersistentFlags().String("core-config", "indigo_node.core.toml", "core configuration file")
+	RootCmd.PersistentFlags().String("cli-config", "indigo_node.cli.toml", "command line interface configuration file")
 
 	err := viper.BindPFlags(RootCmd.PersistentFlags())
 	if err != nil {

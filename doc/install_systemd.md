@@ -4,7 +4,7 @@ Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Journald
 
-Edit `indigonode.core.toml` so that the `log` section looks like this:
+Edit `indigo_node.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -35,7 +35,7 @@ You should also disable the boot screen in the `core` section:
 Install the systemd unit file:
 
 ```bash
-$ indigo-node daemon install --core-config /path/to/indigonode.core.toml
+$ indigo-node daemon install --core-config /path/to/indigo_node.core.toml
 ```
 
 Tell systemd to reload the unit files:

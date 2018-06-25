@@ -54,7 +54,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "An event emitter. Clients can connect to receive events from Alice services."
+	return "An event emitter. Clients can connect to receive events from Indigo Node services."
 }
 
 // Config returns the current service configuration or creates one with

@@ -112,7 +112,7 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	confFile := filepath.Join(dir, "alice.core.toml")
+	confFile := filepath.Join(dir, "indigonode.core.toml")
 	if err := config.Save(confFile, 0600, cfg.ConfigSaveOpts{
 		Overwrite: false,
 		Backup:    false,
@@ -145,7 +145,7 @@ func (h *TestNode) Up(ctx context.Context) error {
 	defer logf.Close()
 	defer logf.Sync()
 
-	cmd := exec.Command("alice", "up")
+	cmd := exec.Command("indigo-node", "up")
 	cmd.Dir = h.dir
 	cmd.Stdout = logf
 	cmd.Stderr = logf
@@ -304,7 +304,7 @@ func NewTestNodeSet(dir string, n int, config cfg.ConfigSet) (TestNodeSet, error
 	nodes.randSeeds()
 
 	for _, node := range nodes {
-		confFile := filepath.Join(node.dir, "alice.core.toml")
+		confFile := filepath.Join(node.dir, "indigonode.core.toml")
 		if err := node.conf.Save(confFile, 0600, cfg.ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,
@@ -343,7 +343,7 @@ func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (Test
 	nodes.randSeeds()
 
 	for _, node := range nodes {
-		confFile := filepath.Join(node.dir, "alice.core.toml")
+		confFile := filepath.Join(node.dir, "indigonode.core.toml")
 		if err := node.conf.Save(confFile, 0600, cfg.ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,

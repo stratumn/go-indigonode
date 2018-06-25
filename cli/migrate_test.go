@@ -71,7 +71,7 @@ func TestMigrations(t *testing.T) {
 
 // Original configuration before migrations.
 const confZero = `
-# Alice configuration file. Keep private!!!
+# Indigo Node configuration file. Keep private!!!
 
 # Settings for the cli module.
 [cli]
@@ -88,7 +88,7 @@ const confZero = `
   # Whether to display debug output.
   enable_debug_output = false
 
-  # The version of Alice that generated this file.
+  # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 
   # Which prompt backend to use (vt100, readline). VT100 is not available on Windows.

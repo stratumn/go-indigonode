@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package core defines Alice's core functionality.
+// Package core defines Indigo Node's core functionality.
 package core
 
 import (
@@ -41,7 +41,7 @@ import (
 
 // Set the identify protocol client version.
 func init() {
-	identify.ClientVersion = "alice/" + release.Version + "/" + release.GitCommit
+	identify.ClientVersion = "indigo-node/" + release.Version + "/" + release.GitCommit
 }
 
 var (

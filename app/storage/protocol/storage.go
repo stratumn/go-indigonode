@@ -35,7 +35,7 @@ import (
 // ChunkSize size of a chunk of data
 const ChunkSize = 1024
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // log is the logger for the service.

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package service is a service to interact with Alice coins.
-// It runs a proof of work consensus engine between Alice nodes.
+// Package service is a service to interact with Indigo coins.
+// It runs a proof of work consensus engine between Indigo nodes.
 package service
 
 import (
@@ -67,7 +67,7 @@ var (
 
 var log = logging.Logger("coin")
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // Service is the Coin service.
@@ -160,7 +160,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "A service to use Alice coins."
+	return "A service to use Indigo coins."
 }
 
 // Config returns the current service configuration or creates one with

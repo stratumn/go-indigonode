@@ -51,7 +51,7 @@ func requireCoreConfigSet() cfg.Set {
 		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename(), err)
 
 		if os.IsNotExist(errors.Cause(err)) {
-			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
+			fmt.Fprintln(os.Stderr, "You can create one using `indigo-node init`.")
 		}
 
 		os.Exit(1)
@@ -68,7 +68,7 @@ func requireCLIConfigSet() cfg.Set {
 		fmt.Fprintf(os.Stderr, "Could not load the command line interface configuration file %q: %s.\n", cliCfgFilename(), err)
 
 		if os.IsNotExist(errors.Cause(err)) {
-			fmt.Fprintln(os.Stderr, "You can create one using `alice init`.")
+			fmt.Fprintln(os.Stderr, "You can create one using `indigo-node init`.")
 		}
 
 		os.Exit(1)

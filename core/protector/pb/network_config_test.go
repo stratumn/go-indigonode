@@ -174,7 +174,7 @@ func TestNetworkConfig_ValidateContent(t *testing.T) {
 }
 
 func TestNetworkConfig_Load(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 
 	signerKey := test.GeneratePrivateKey(t)
 	signerID := test.GetPeerIDFromKey(t, signerKey)

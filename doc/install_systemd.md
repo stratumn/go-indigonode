@@ -1,10 +1,10 @@
 # Systemd Installation
 
-Make sure Alice is installed somewhere in your `$PATH`.
+Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Journald
 
-Edit `alice.core.toml` so that the `log` section looks like this:
+Edit `indigonode.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -30,12 +30,12 @@ You should also disable the boot screen in the `core` section:
   enable_boot_screen = false
 ```
 
-## Setup The Alice Daemon
+## Setup The Indigo Node Daemon
 
 Install the systemd unit file:
 
 ```bash
-$ alice daemon install --core-config /path/to/alice.core.toml
+$ indigo-node daemon install --core-config /path/to/indigonode.core.toml
 ```
 
 Tell systemd to reload the unit files:
@@ -44,16 +44,16 @@ Tell systemd to reload the unit files:
 $ systemctl daemon-reload
 ```
 
-Start the Alice service:
+Start the Indigo Node service:
 
 ```bash
-$ systemctl start alice
+$ systemctl start indigo-node
 ```
 
 You can stop it with:
 
 ```bash
-$ systemctl stop alice
+$ systemctl stop indigo-node
 ```
 
 ## View Logs
@@ -61,12 +61,11 @@ $ systemctl stop alice
 To view all the streaming logs, run:
 
 ```bash
-$ journalctl -f -u alice
+$ journalctl -f -u indigo-node
 ```
 
 To view only errors, run (errors have a priority of three):
 
 ```bash
-$ journalctl -f -u alice -p 3
+$ journalctl -f -u indigo-node -p 3
 ```
-

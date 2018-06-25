@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	// Protocol is the protocol used by Alice.
-	Protocol = "/alice/0.0.1"
+	// Protocol is the protocol used by Indigo Node.
+	Protocol = "/indigo/node/0.0.1"
 
 	// Version is the release version string.
 	Version = "v0.0.1"

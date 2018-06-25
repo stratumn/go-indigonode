@@ -203,8 +203,7 @@
   "gxVersion": "0.11.0",
   "language": "go",
   "license": "",
-  "name": "alice",
+  "name": "indigo-node",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "version": "0.0.0"
 }
-

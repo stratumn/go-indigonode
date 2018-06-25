@@ -31,7 +31,7 @@ import (
 func TestSaver(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 	peer1 := test.GeneratePeerID(t)
 	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 

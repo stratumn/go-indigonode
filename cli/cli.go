@@ -13,14 +13,14 @@
 // limitations under the License.
 
 /*
-Package cli defines types for Alice's command line interface.
+Package cli defines types for Indigo Node's command line interface.
 
 It comes with only of handful of builtin commands. The bulk of commands are
 reflected from the API.
 
 The main type is the CLI struct, which wraps everything needed to run the
 command line interface. It can, amongst other things, make suggestions for
-auto-completion and connect to an Alice node.
+auto-completion and connect to an Indigo node.
 
 The CLI needs a Console and a Prompt. The console is responsible for rendering
 text. The Prompt is responsible for getting user input.

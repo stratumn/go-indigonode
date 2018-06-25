@@ -88,7 +88,7 @@ func TestMigrations(t *testing.T) {
 
 // Original configuration before migrations.
 const confZero = `
-# Alice configuration file. Keep private!!!
+# Indigo Node configuration file. Keep private!!!
 
 # Settings for the bootstrap module.
 [bootstrap]
@@ -141,7 +141,7 @@ const confZero = `
   # Whether to show the boot screen when starting the node.
   enable_boot_screen = true
 
-  # The version of Alice that generated this file.
+  # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 
   [[core.service_groups]]

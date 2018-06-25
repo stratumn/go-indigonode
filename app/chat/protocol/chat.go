@@ -33,11 +33,11 @@ import (
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/alice/chat/v1.0.0")
+var ProtocolID = protocol.ID("/indigo/node/chat/v1.0.0")
 
 // log is the logger for the service.
 var log = logging.Logger("chat")

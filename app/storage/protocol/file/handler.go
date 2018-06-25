@@ -51,7 +51,7 @@ var (
 	prefixFilesHashes = []byte("fh") // prefixFilesHashes + filehash -> filepath
 )
 
-// Handler contains the methods to handle a file on the alice node.
+// Handler contains the methods to handle a file on the Indigo node.
 type Handler interface {
 	// BeginWrite creates an empty file.
 	BeginWrite(ctx context.Context, fileName string) (uuid.UUID, error)

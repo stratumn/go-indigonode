@@ -310,7 +310,7 @@ func TestConfigSigner(t *testing.T) {
 func TestConfigSaver(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 	configPath := path.Join(dir, "config.json")
 
 	signerKey := test.GeneratePrivateKey(t)
@@ -523,7 +523,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 func TestLoadOrInitNetworkConfig(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "alice")
+	dir, _ := ioutil.TempDir("", "indigo-node")
 	configPath := path.Join(dir, "config.json")
 
 	signerKey := test.GeneratePrivateKey(t)

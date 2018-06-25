@@ -24,7 +24,7 @@ option go_package = "github.com/stratumn/go-indigonode/app/storage/grpc;grpc";
 // The storage service definition.
 service Storage {
   
-  // Upload a file to the alice node.
+  // Upload a file to the Indigo node.
   rpc Upload (stream stratumn.indigonode.app.storage.FileChunk) returns (UploadAck) {}
 
   // Sends a request to the server to start a new upload.

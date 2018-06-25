@@ -22,7 +22,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Service describes an Alice service.
+// Service describes an Indigo Node service.
 type Service interface {
 	// ID returns a unique identifier.
 	ID() string

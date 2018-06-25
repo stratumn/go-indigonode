@@ -46,7 +46,7 @@ var (
 
 var log = logging.Logger("storage.service")
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // Service is the Storage service.

@@ -50,7 +50,7 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("kaddht")
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host interface {
 	ihost.Host
 

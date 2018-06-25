@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package benchmark defines integration benchmarks for Alice.
+// Package benchmark defines integration benchmarks for Indigo Node.
 //
-// The tests are done by connecting via the API to Alice nodes launched in
+// The tests are done by connecting via the API to Indigo nodes launched in
 // separate processes.
 package benchmark
 

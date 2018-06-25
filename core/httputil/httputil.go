@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package httputil provides an utility method to start an HTTP server in the
-// context of an Alice service.
+// context of an Indigo Node service.
 package httputil
 
 import (

@@ -39,7 +39,7 @@ import (
 )
 
 // ProtocolID is the protocol ID of the protocol.
-var ProtocolID = protocol.ID("/alice/coin/v1.0.0")
+var ProtocolID = protocol.ID("/indigo/node/coin/v1.0.0")
 
 // log is the logger for the service.
 var log = logging.Logger("coin")

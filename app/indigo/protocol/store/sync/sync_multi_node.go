@@ -20,10 +20,10 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
+	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -36,7 +36,7 @@ import (
 var (
 	// MultiNodeProtocolID is the protocol ID of the sync engine
 	// that splits the sync load between several nodes.
-	MultiNodeProtocolID = protocol.ID("/alice/indigo/store/sync/multinode/v1.0.0")
+	MultiNodeProtocolID = protocol.ID("/indigo/node/indigo/store/sync/multinode/v1.0.0")
 )
 
 // MultiNodeEngine synchronously syncs with peers to get

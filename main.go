@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Command alice manages an Alice node.
+// Command indigo-node manages an Indigo Node.
 //
-// Alice is virtual infrastructure for interoperable P2P services.
+// Indigo Node is virtual infrastructure for interoperable P2P services.
 package main
 
 import "github.com/stratumn/go-indigonode/cmd"

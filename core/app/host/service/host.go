@@ -104,7 +104,7 @@ func (s *Service) Desc() string {
 // Config returns the current service configuration or creates one with
 // good default values.
 //
-// It can panic but it can only happen during `alice init`.
+// It can panic but it can only happen during `indigo-node init`.
 func (s *Service) Config() interface{} {
 	if s.config != nil {
 		return *s.config

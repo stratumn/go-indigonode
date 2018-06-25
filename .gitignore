@@ -9,7 +9,6 @@ vendor
 tmp
 data
 log.jsonld
-alice.*
 server.*
 GPATH
 GRTAGS

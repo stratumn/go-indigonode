@@ -82,7 +82,7 @@ func TestService_Expose(t *testing.T) {
 		[]OptConfig{
 			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
 			func(cfg *Config) {
-				configDir, _ := ioutil.TempDir("", "alice")
+				configDir, _ := ioutil.TempDir("", "indigo-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
 					CoordinatorID:        peerID.Pretty(),
 					CoordinatorAddresses: []string{"/ip4/127.0.0.1/tcp/8903"},
@@ -107,7 +107,7 @@ func TestService_Expose(t *testing.T) {
 		[]OptConfig{
 			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
 			func(cfg *Config) {
-				configDir, _ := ioutil.TempDir("", "alice")
+				configDir, _ := ioutil.TempDir("", "indigo-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
 					IsCoordinator: true,
 					ConfigPath:    path.Join(configDir, "config.json"),
@@ -168,11 +168,11 @@ func TestService_SetConfig(t *testing.T) {
 		err  error
 	}{{
 		"invalid peer ID",
-		func(c *Config) { c.PeerID = "alice" },
+		func(c *Config) { c.PeerID = "indigo-node" },
 		errAny,
 	}, {
 		"invalid private key",
-		func(c *Config) { c.PrivateKey = "alice" },
+		func(c *Config) { c.PrivateKey = "indigo-node" },
 		errAny,
 	}, {
 		"invalid-protection-mode",

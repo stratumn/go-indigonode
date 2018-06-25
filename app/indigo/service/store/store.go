@@ -19,14 +19,14 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/store"
-	protocol "github.com/stratumn/go-indigonode/app/indigo/protocol/store"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
-	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
+	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/store"
+	protocol "github.com/stratumn/go-indigonode/app/indigo/protocol/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
+	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
 
 	"google.golang.org/grpc"
 
@@ -45,7 +45,7 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// Host represents an Alice host.
+// Host represents an Indigo Node host.
 type Host = ihost.Host
 
 // Service is the Indigo Store service.

@@ -14,9 +14,9 @@
 
 //+build !lint
 
-// Package system defines system tests for Alice.
+// Package system defines system tests for Indigo Node.
 //
-// The tests are done by connecting via the API to Alice nodes launched in
+// The tests are done by connecting via the API to Indigo nodes launched in
 // separate processes.
 package system
 

@@ -18,7 +18,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/stratumn/alice/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
 	"github.com/stretchr/testify/assert"
 )
 

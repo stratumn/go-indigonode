@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockprocessor -destination mockprocessor/mockprocessor.go github.com/stratumn/alice/app/coin/protocol/processor Processor
+//go:generate mockgen -package mockprocessor -destination mockprocessor/mockprocessor.go github.com/stratumn/go-indigonode/app/coin/protocol/processor Processor
 
 package processor

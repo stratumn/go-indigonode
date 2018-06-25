@@ -26,10 +26,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
-	pbevent "github.com/stratumn/alice/core/app/event/grpc"
-	"github.com/stratumn/alice/core/app/event/grpc/mockgrpc"
+	"github.com/stratumn/go-indigonode/cli"
+	"github.com/stratumn/go-indigonode/cli/mockcli"
+	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
+	"github.com/stratumn/go-indigonode/core/app/event/grpc/mockgrpc"
 	"github.com/stretchr/testify/assert"
 )
 

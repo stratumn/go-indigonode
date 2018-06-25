@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/core/app/event/grpc"
+	"github.com/stratumn/go-indigonode/core/app/event/grpc"
 	"github.com/stretchr/testify/assert"
 )
 

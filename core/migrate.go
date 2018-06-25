@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
-	"github.com/stratumn/alice/core/cfg"
+	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
+	"github.com/stratumn/go-indigonode/core/cfg"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
 	"github.com/stratumn/go-indigocore/postgresstore"
 )

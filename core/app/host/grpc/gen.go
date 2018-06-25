@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockhost.go github.com/stratumn/alice/core/app/host/grpc Host_AddressesServer,Host_ConnectServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockhost.go github.com/stratumn/go-indigonode/core/app/host/grpc Host_AddressesServer,Host_ConnectServer
 
 package grpc

@@ -17,8 +17,8 @@ package blocktest
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
 	"github.com/stretchr/testify/require"
 )
 

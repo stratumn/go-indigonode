@@ -20,9 +20,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/core"
-	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/go-indigonode/cli"
+	"github.com/stratumn/go-indigonode/core"
+	"github.com/stratumn/go-indigonode/core/cfg"
 )
 
 // fail prints an error and exits if the error is not nil.

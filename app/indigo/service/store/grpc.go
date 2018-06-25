@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/alice/app/indigo/grpc/store"
-	pb "github.com/stratumn/alice/app/indigo/pb/store"
+	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/store"
+	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigocore/cs"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"

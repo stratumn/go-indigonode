@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockserver.go github.com/stratumn/alice/core/app/bootstrap/grpc Bootstrap_ListServer
+//go:generate mockgen -package mockservice -destination mockservice/mockserver.go github.com/stratumn/go-indigonode/core/app/bootstrap/grpc Bootstrap_ListServer
 
 package service

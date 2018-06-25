@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/core/app/bootstrap/pb/bootstrap.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/core/app/bootstrap/pb/bootstrap.proto";
 
 package stratumn.alice.core.app.bootstrap.grpc;
 
-option go_package = "github.com/stratumn/alice/core/app/bootstrap/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/core/app/bootstrap/grpc;grpc";
 
 // The bootstrap service definition.
 service Bootstrap {

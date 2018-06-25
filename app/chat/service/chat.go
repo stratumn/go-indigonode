@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/app/chat/grpc"
-	chat "github.com/stratumn/alice/app/chat/protocol"
-	event "github.com/stratumn/alice/core/app/event/service"
+	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
+	chat "github.com/stratumn/go-indigonode/app/chat/protocol"
+	event "github.com/stratumn/go-indigonode/core/app/event/service"
 
 	"google.golang.org/grpc"
 

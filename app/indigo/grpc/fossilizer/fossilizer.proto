@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.app.indigo.fossilizer.grpc;
 
-option go_package = "github.com/stratumn/alice/app/indigo/grpc/fossilizer;fossilizer";
+option go_package = "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilizer;fossilizer";
 
 // The Indigo Fossilizer service definition.
 service IndigoFossilizer {

@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockstorage -destination mockstorage/mockstorage.go github.com/stratumn/alice/app/storage/grpc Storage_UploadServer,Storage_DownloadServer
+//go:generate mockgen -package mockstorage -destination mockstorage/mockstorage.go github.com/stratumn/go-indigonode/app/storage/grpc Storage_UploadServer,Storage_DownloadServer
 
 package grpc

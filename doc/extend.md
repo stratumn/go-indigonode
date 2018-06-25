@@ -152,22 +152,22 @@ your package somewhere. For instance the core services are registered in
 package core
 
 import (
-	"github.com/stratumn/alice/core/manager"
-	bootstrap "github.com/stratumn/alice/core/app/bootstrap/service"
-	connmgr "github.com/stratumn/alice/core/app/connmgr/service"
-	grpcapi "github.com/stratumn/alice/core/app/grpcapi/service"
-	host "github.com/stratumn/alice/core/app/host/service"
-	identify "github.com/stratumn/alice/core/app/identify/service"
-	kaddht "github.com/stratumn/alice/core/app/kaddht/service"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	mssmux "github.com/stratumn/alice/core/app/mssmux/service"
-	natmgr "github.com/stratumn/alice/core/app/natmgr/service"
-	ping "github.com/stratumn/alice/core/app/ping/service"
-	pruner "github.com/stratumn/alice/core/app/pruner/service"
-	relay "github.com/stratumn/alice/core/app/relay/service"
-	signal "github.com/stratumn/alice/core/app/signal/service"
-	swarm "github.com/stratumn/alice/core/app/swarm/service"
-	yamux "github.com/stratumn/alice/core/app/yamux/service"
+	"github.com/stratumn/go-indigonode/core/manager"
+	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
+	connmgr "github.com/stratumn/go-indigonode/core/app/connmgr/service"
+	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
+	host "github.com/stratumn/go-indigonode/core/app/host/service"
+	identify "github.com/stratumn/go-indigonode/core/app/identify/service"
+	kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
+	natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
+	ping "github.com/stratumn/go-indigonode/core/app/ping/service"
+	pruner "github.com/stratumn/go-indigonode/core/app/pruner/service"
+	relay "github.com/stratumn/go-indigonode/core/app/relay/service"
+	signal "github.com/stratumn/go-indigonode/core/app/signal/service"
+	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	yamux "github.com/stratumn/go-indigonode/core/app/yamux/service"
 )
 
 // BuiltinServices returns all the builtin services.
@@ -335,11 +335,11 @@ type Runner interface {
 | bootstrap | Bootstrap           | Periodically connects to known peers.      | struct{}{}                                                     |
 | connmgr   | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
 | grpcapi   | gRPC API            | Starts a gRPC API server.                  |                                                                |
-| host      | Host                | Starts a P2P host.                         | github.com/stratumn/alice/core/\*p2p.Host                      |
+| host      | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host                      |
 | identify  | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht    | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
-| manager   | Service Manager     | Manages services.                          | github.com/stratumn/alice/core/\*manager.Manager               |
-| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/alice/core/service/\*metrics.Metrics       |
+| manager   | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager               |
+| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/go-indigonode/core/service/\*metrics.Metrics       |
 | mssmux    | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
 | natmgr    | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |
 | network   | Network Services    | Starts network services.                   |                                                                |

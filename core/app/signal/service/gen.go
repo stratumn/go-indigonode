@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockservice -destination mockservice/mocksignal.go github.com/stratumn/alice/core/app/signal/service Manager
+//go:generate mockgen -package mockservice -destination mockservice/mocksignal.go github.com/stratumn/go-indigonode/core/app/signal/service Manager
 
 package service

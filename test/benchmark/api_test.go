@@ -19,9 +19,9 @@ import (
 	"io"
 	"testing"
 
-	grpcapi "github.com/stratumn/alice/core/app/grpcapi/grpc"
-	manager "github.com/stratumn/alice/core/manager/grpc"
-	"github.com/stratumn/alice/test/session"
+	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc"
+	manager "github.com/stratumn/go-indigonode/core/manager/grpc"
+	"github.com/stratumn/go-indigonode/test/session"
 	"google.golang.org/grpc"
 )
 

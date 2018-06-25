@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/test/session"
+	"github.com/stratumn/go-indigonode/test/session"
 	"github.com/stretchr/testify/assert"
 )
 

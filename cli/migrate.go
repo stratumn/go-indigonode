@@ -15,7 +15,7 @@
 package cli
 
 import (
-	"github.com/stratumn/alice/core/cfg"
+	"github.com/stratumn/go-indigonode/core/cfg"
 )
 
 var migrations = []cfg.MigrateHandler{

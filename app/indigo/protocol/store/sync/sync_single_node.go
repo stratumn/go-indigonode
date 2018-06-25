@@ -19,8 +19,8 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/app/indigo/pb/store"
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
+	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 

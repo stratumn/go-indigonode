@@ -17,7 +17,7 @@
 // Alice is virtual infrastructure for interoperable P2P services.
 package main
 
-import "github.com/stratumn/alice/cmd"
+import "github.com/stratumn/go-indigonode/cmd"
 
 func main() {
 	cmd.Execute()

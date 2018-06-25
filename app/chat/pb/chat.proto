@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package stratumn.alice.pb.chat;
 
-option go_package = "github.com/stratumn/alice/app/chat/pb;pb";
+option go_package = "github.com/stratumn/go-indigonode/app/chat/pb;pb";
 
 // The chat message containing a simple message.
 message Message {

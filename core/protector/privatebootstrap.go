@@ -18,7 +18,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/stratumn/alice/core/protector/pb"
+	"github.com/stratumn/go-indigonode/core/protector/pb"
 
 	"gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/alice/app/coin/protocol/chain Reader
-//go:generate mockgen -package mockchain -destination mockchain/mockchainwriter.go github.com/stratumn/alice/app/coin/protocol/chain Writer
-//go:generate mockgen -package mockchain -destination mockchain/mockchain.go github.com/stratumn/alice/app/coin/protocol/chain Chain
+//go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Reader
+//go:generate mockgen -package mockchain -destination mockchain/mockchainwriter.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Writer
+//go:generate mockgen -package mockchain -destination mockchain/mockchain.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Chain
 
 package chain

@@ -108,7 +108,7 @@ You can view the internal dependency graph of this package using:
 
 ```bash
 $ go get -u github.com/davecheney/graphpkg
-$ graphpkg -match github.com/stratumn/alice github.com/stratumn/alice
+$ graphpkg -match github.com/stratumn/go-indigonode github.com/stratumn/go-indigonode
 ```
 
 Use the [github.com/pkg/errors](http://github.com/pkg/errors) package to add

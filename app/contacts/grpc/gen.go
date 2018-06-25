@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockcontacts -destination mockcontacts/mockcontacts.go github.com/stratumn/alice/app/contacts/grpc Contacts_ListServer
+//go:generate mockgen -package mockcontacts -destination mockcontacts/mockcontacts.go github.com/stratumn/go-indigonode/app/contacts/grpc Contacts_ListServer
 
 package grpc

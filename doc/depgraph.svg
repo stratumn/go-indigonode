@@ -12,12 +12,12 @@
 <!-- N20 -->
 <g id="node1" class="node"><title>N20</title>
 <polygon fill="none" stroke="black" points="5629.25,-468 5366.75,-468 5366.75,-432 5629.25,-432 5629.25,-468"/>
-<text text-anchor="middle" x="5498" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin</text>
+<text text-anchor="middle" x="5498" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin</text>
 </g>
 <!-- N45 -->
 <g id="node2" class="node"><title>N45</title>
 <polygon fill="none" stroke="black" points="5650.25,-396 5351.75,-396 5351.75,-360 5650.25,-360 5650.25,-396"/>
-<text text-anchor="middle" x="5501" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/miner</text>
+<text text-anchor="middle" x="5501" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/miner</text>
 </g>
 <!-- N20&#45;&gt;N45 -->
 <g id="edge104" class="edge"><title>N20&#45;&gt;N45</title>
@@ -27,7 +27,7 @@
 <!-- N7 -->
 <g id="node21" class="node"><title>N7</title>
 <polygon fill="none" stroke="black" points="5575,-324 5273,-324 5273,-288 5575,-288 5575,-324"/>
-<text text-anchor="middle" x="5424" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/engine</text>
+<text text-anchor="middle" x="5424" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/engine</text>
 </g>
 <!-- N20&#45;&gt;N7 -->
 <g id="edge103" class="edge"><title>N20&#45;&gt;N7</title>
@@ -37,7 +37,7 @@
 <!-- N34 -->
 <g id="node23" class="node"><title>N34</title>
 <polygon fill="none" stroke="black" points="6021,-324 5707,-324 5707,-288 6021,-288 6021,-324"/>
-<text text-anchor="middle" x="5864" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/validator</text>
+<text text-anchor="middle" x="5864" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/validator</text>
 </g>
 <!-- N20&#45;&gt;N34 -->
 <g id="edge107" class="edge"><title>N20&#45;&gt;N34</title>
@@ -47,7 +47,7 @@
 <!-- N33 -->
 <g id="node30" class="node"><title>N33</title>
 <polygon fill="none" stroke="black" points="5563.5,-108 5360.5,-108 5360.5,-72 5563.5,-72 5563.5,-108"/>
-<text text-anchor="middle" x="5462" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/pb/coin</text>
+<text text-anchor="middle" x="5462" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/pb/coin</text>
 </g>
 <!-- N20&#45;&gt;N33 -->
 <g id="edge108" class="edge"><title>N20&#45;&gt;N33</title>
@@ -57,7 +57,7 @@
 <!-- N54 -->
 <g id="node42" class="node"><title>N54</title>
 <polygon fill="none" stroke="black" points="5822.25,-252 5531.75,-252 5531.75,-216 5822.25,-216 5822.25,-252"/>
-<text text-anchor="middle" x="5677" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/state</text>
+<text text-anchor="middle" x="5677" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/state</text>
 </g>
 <!-- N20&#45;&gt;N54 -->
 <g id="edge106" class="edge"><title>N20&#45;&gt;N54</title>
@@ -67,7 +67,7 @@
 <!-- N21 -->
 <g id="node54" class="node"><title>N21</title>
 <polygon fill="none" stroke="black" points="5178.5,-324 4861.5,-324 4861.5,-288 5178.5,-288 5178.5,-324"/>
-<text text-anchor="middle" x="5020" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/processor</text>
+<text text-anchor="middle" x="5020" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/processor</text>
 </g>
 <!-- N20&#45;&gt;N21 -->
 <g id="edge105" class="edge"><title>N20&#45;&gt;N21</title>
@@ -77,7 +77,7 @@
 <!-- N13 -->
 <g id="node55" class="node"><title>N13</title>
 <polygon fill="none" stroke="black" points="5392,-252 5096,-252 5096,-216 5392,-216 5392,-252"/>
-<text text-anchor="middle" x="5244" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/chain</text>
+<text text-anchor="middle" x="5244" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/chain</text>
 </g>
 <!-- N20&#45;&gt;N13 -->
 <g id="edge102" class="edge"><title>N20&#45;&gt;N13</title>
@@ -117,12 +117,12 @@
 <!-- N51 -->
 <g id="node3" class="node"><title>N51</title>
 <polygon fill="none" stroke="black" points="6082.25,-108 5867.75,-108 5867.75,-72 6082.25,-72 6082.25,-108"/>
-<text text-anchor="middle" x="5975" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/ping</text>
+<text text-anchor="middle" x="5975" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/ping</text>
 </g>
 <!-- N27 -->
 <g id="node37" class="node"><title>N27</title>
 <polygon fill="none" stroke="black" points="4086,-36 3878,-36 3878,-0 4086,-0 4086,-36"/>
-<text text-anchor="middle" x="3982" y="-14.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/ext</text>
+<text text-anchor="middle" x="3982" y="-14.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/ext</text>
 </g>
 <!-- N51&#45;&gt;N27 -->
 <g id="edge59" class="edge"><title>N51&#45;&gt;N27</title>
@@ -132,7 +132,7 @@
 <!-- N52 -->
 <g id="node4" class="node"><title>N52</title>
 <polygon fill="none" stroke="black" points="3885,-180 3657,-180 3657,-144 3885,-144 3885,-180"/>
-<text text-anchor="middle" x="3771" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/swarm</text>
+<text text-anchor="middle" x="3771" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/swarm</text>
 </g>
 <!-- N52&#45;&gt;N27 -->
 <g id="edge98" class="edge"><title>N52&#45;&gt;N27</title>
@@ -142,7 +142,7 @@
 <!-- N11 -->
 <g id="node5" class="node"><title>N11</title>
 <polygon fill="none" stroke="black" points="1889.5,-324 1676.5,-324 1676.5,-288 1889.5,-288 1889.5,-324"/>
-<text text-anchor="middle" x="1783" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/chat</text>
+<text text-anchor="middle" x="1783" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/chat</text>
 </g>
 <!-- N11&#45;&gt;N27 -->
 <g id="edge60" class="edge"><title>N11&#45;&gt;N27</title>
@@ -152,7 +152,7 @@
 <!-- N19 -->
 <g id="node6" class="node"><title>N19</title>
 <polygon fill="none" stroke="black" points="4227.5,-108 4014.5,-108 4014.5,-72 4227.5,-72 4227.5,-108"/>
-<text text-anchor="middle" x="4121" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/host</text>
+<text text-anchor="middle" x="4121" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/host</text>
 </g>
 <!-- N19&#45;&gt;N27 -->
 <g id="edge90" class="edge"><title>N19&#45;&gt;N27</title>
@@ -162,27 +162,27 @@
 <!-- N25 -->
 <g id="node7" class="node"><title>N25</title>
 <polygon fill="none" stroke="black" points="749.25,-396 546.75,-396 546.75,-360 749.25,-360 749.25,-396"/>
-<text text-anchor="middle" x="648" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/pb/chat</text>
+<text text-anchor="middle" x="648" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/pb/chat</text>
 </g>
 <!-- N37 -->
 <g id="node8" class="node"><title>N37</title>
 <polygon fill="none" stroke="black" points="3954.25,-396 3729.75,-396 3729.75,-360 3954.25,-360 3954.25,-396"/>
-<text text-anchor="middle" x="3842" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/netutil</text>
+<text text-anchor="middle" x="3842" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/netutil</text>
 </g>
 <!-- N46 -->
 <g id="node9" class="node"><title>N46</title>
 <polygon fill="none" stroke="black" points="5846,-180 5566,-180 5566,-144 5846,-144 5846,-180"/>
-<text text-anchor="middle" x="5706" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/db</text>
+<text text-anchor="middle" x="5706" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/db</text>
 </g>
 <!-- N47 -->
 <g id="node10" class="node"><title>N47</title>
 <polygon fill="none" stroke="black" points="4652.25,-468 4383.75,-468 4383.75,-432 4652.25,-432 4652.25,-468"/>
-<text text-anchor="middle" x="4518" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/clock</text>
+<text text-anchor="middle" x="4518" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/clock</text>
 </g>
 <!-- N35 -->
 <g id="node39" class="node"><title>N35</title>
 <polygon fill="none" stroke="black" points="4623,-396 4413,-396 4413,-360 4623,-360 4623,-396"/>
-<text text-anchor="middle" x="4518" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/pb/clock</text>
+<text text-anchor="middle" x="4518" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/pb/clock</text>
 </g>
 <!-- N47&#45;&gt;N35 -->
 <g id="edge13" class="edge"><title>N47&#45;&gt;N35</title>
@@ -192,7 +192,7 @@
 <!-- N0 -->
 <g id="node11" class="node"><title>N0</title>
 <polygon fill="none" stroke="black" points="4962.25,-180 4747.75,-180 4747.75,-144 4962.25,-144 4962.25,-180"/>
-<text text-anchor="middle" x="4855" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/coin</text>
+<text text-anchor="middle" x="4855" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/coin</text>
 </g>
 <!-- N0&#45;&gt;N33 -->
 <g id="edge93" class="edge"><title>N0&#45;&gt;N33</title>
@@ -207,17 +207,17 @@
 <!-- N4 -->
 <g id="node12" class="node"><title>N4</title>
 <polygon fill="none" stroke="black" points="193.5,-468 0.5,-468 0.5,-432 193.5,-432 193.5,-468"/>
-<text text-anchor="middle" x="97" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/script</text>
+<text text-anchor="middle" x="97" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/script</text>
 </g>
 <!-- N29 -->
 <g id="node13" class="node"><title>N29</title>
 <polygon fill="none" stroke="black" points="2361,-756 2201,-756 2201,-720 2361,-720 2361,-756"/>
-<text text-anchor="middle" x="2281" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice</text>
+<text text-anchor="middle" x="2281" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode</text>
 </g>
 <!-- N55 -->
 <g id="node20" class="node"><title>N55</title>
 <polygon fill="none" stroke="black" points="2375,-684 2187,-684 2187,-648 2375,-648 2375,-684"/>
-<text text-anchor="middle" x="2281" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/cmd</text>
+<text text-anchor="middle" x="2281" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/cmd</text>
 </g>
 <!-- N29&#45;&gt;N55 -->
 <g id="edge1" class="edge"><title>N29&#45;&gt;N55</title>
@@ -227,7 +227,7 @@
 <!-- N48 -->
 <g id="node14" class="node"><title>N48</title>
 <polygon fill="none" stroke="black" points="5624,-540 5368,-540 5368,-504 5624,-504 5624,-540"/>
-<text text-anchor="middle" x="5496" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/coin</text>
+<text text-anchor="middle" x="5496" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/coin</text>
 </g>
 <!-- N48&#45;&gt;N20 -->
 <g id="edge18" class="edge"><title>N48&#45;&gt;N20</title>
@@ -257,7 +257,7 @@
 <!-- N49 -->
 <g id="node50" class="node"><title>N49</title>
 <polygon fill="none" stroke="black" points="5396,-180 5088,-180 5088,-144 5396,-144 5396,-180"/>
-<text text-anchor="middle" x="5242" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/coin/coinutil</text>
+<text text-anchor="middle" x="5242" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/coin/coinutil</text>
 </g>
 <!-- N48&#45;&gt;N49 -->
 <g id="edge20" class="edge"><title>N48&#45;&gt;N49</title>
@@ -272,7 +272,7 @@
 <!-- N22 -->
 <g id="node15" class="node"><title>N22</title>
 <polygon fill="none" stroke="black" points="4097.5,-252 3866.5,-252 3866.5,-216 4097.5,-216 4097.5,-252"/>
-<text text-anchor="middle" x="3982" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/metrics</text>
+<text text-anchor="middle" x="3982" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/metrics</text>
 </g>
 <!-- N22&#45;&gt;N27 -->
 <g id="edge109" class="edge"><title>N22&#45;&gt;N27</title>
@@ -282,12 +282,12 @@
 <!-- N28 -->
 <g id="node16" class="node"><title>N28</title>
 <polygon fill="none" stroke="black" points="3549.25,-540 3284.75,-540 3284.75,-504 3549.25,-504 3549.25,-540"/>
-<text text-anchor="middle" x="3417" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/signal</text>
+<text text-anchor="middle" x="3417" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/signal</text>
 </g>
 <!-- N53 -->
 <g id="node51" class="node"><title>N53</title>
 <polygon fill="none" stroke="black" points="3440,-468 3232,-468 3232,-432 3440,-432 3440,-468"/>
-<text text-anchor="middle" x="3336" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/log</text>
+<text text-anchor="middle" x="3336" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/log</text>
 </g>
 <!-- N28&#45;&gt;N53 -->
 <g id="edge95" class="edge"><title>N28&#45;&gt;N53</title>
@@ -297,7 +297,7 @@
 <!-- N41 -->
 <g id="node17" class="node"><title>N41</title>
 <polygon fill="none" stroke="black" points="4489.25,-180 4268.75,-180 4268.75,-144 4489.25,-144 4489.25,-180"/>
-<text text-anchor="middle" x="4379" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/clock</text>
+<text text-anchor="middle" x="4379" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/clock</text>
 </g>
 <!-- N41&#45;&gt;N27 -->
 <g id="edge61" class="edge"><title>N41&#45;&gt;N27</title>
@@ -307,17 +307,17 @@
 <!-- N2 -->
 <g id="node18" class="node"><title>N2</title>
 <polygon fill="none" stroke="black" points="464,-540 204,-540 204,-504 464,-504 464,-540"/>
-<text text-anchor="middle" x="334" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/relay</text>
+<text text-anchor="middle" x="334" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/relay</text>
 </g>
 <!-- N36 -->
 <g id="node19" class="node"><title>N36</title>
 <polygon fill="none" stroke="black" points="2283,-468 2045,-468 2045,-432 2283,-432 2283,-468"/>
-<text text-anchor="middle" x="2164" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/manager</text>
+<text text-anchor="middle" x="2164" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/manager</text>
 </g>
 <!-- N3 -->
 <g id="node57" class="node"><title>N3</title>
 <polygon fill="none" stroke="black" points="2526.25,-108 2287.75,-108 2287.75,-72 2526.25,-72 2526.25,-108"/>
-<text text-anchor="middle" x="2407" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/manager</text>
+<text text-anchor="middle" x="2407" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/manager</text>
 </g>
 <!-- N36&#45;&gt;N3 -->
 <g id="edge89" class="edge"><title>N36&#45;&gt;N3</title>
@@ -327,7 +327,7 @@
 <!-- N30 -->
 <g id="node33" class="node"><title>N30</title>
 <polygon fill="none" stroke="black" points="185.25,-540 8.75,-540 8.75,-504 185.25,-504 185.25,-540"/>
-<text text-anchor="middle" x="97" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/cli</text>
+<text text-anchor="middle" x="97" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/cli</text>
 </g>
 <!-- N55&#45;&gt;N30 -->
 <g id="edge87" class="edge"><title>N55&#45;&gt;N30</title>
@@ -337,7 +337,7 @@
 <!-- N14 -->
 <g id="node43" class="node"><title>N14</title>
 <polygon fill="none" stroke="black" points="3142.25,-612 2955.75,-612 2955.75,-576 3142.25,-576 3142.25,-612"/>
-<text text-anchor="middle" x="3049" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core</text>
+<text text-anchor="middle" x="3049" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core</text>
 </g>
 <!-- N55&#45;&gt;N14 -->
 <g id="edge88" class="edge"><title>N55&#45;&gt;N14</title>
@@ -367,7 +367,7 @@
 <!-- N9 -->
 <g id="node22" class="node"><title>N9</title>
 <polygon fill="none" stroke="black" points="6448.25,-252 6191.75,-252 6191.75,-216 6448.25,-216 6448.25,-252"/>
-<text text-anchor="middle" x="6320" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/ping</text>
+<text text-anchor="middle" x="6320" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/ping</text>
 </g>
 <!-- N9&#45;&gt;N51 -->
 <g id="edge91" class="edge"><title>N9&#45;&gt;N51</title>
@@ -387,7 +387,7 @@
 <!-- N38 -->
 <g id="node24" class="node"><title>N38</title>
 <polygon fill="none" stroke="black" points="779,-468 517,-468 517,-432 779,-432 779,-468"/>
-<text text-anchor="middle" x="648" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/protocol/chat</text>
+<text text-anchor="middle" x="648" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/protocol/chat</text>
 </g>
 <!-- N38&#45;&gt;N25 -->
 <g id="edge57" class="edge"><title>N38&#45;&gt;N25</title>
@@ -397,7 +397,7 @@
 <!-- N44 -->
 <g id="node49" class="node"><title>N44</title>
 <polygon fill="none" stroke="black" points="818.25,-324 597.75,-324 597.75,-288 818.25,-288 818.25,-324"/>
-<text text-anchor="middle" x="708" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/event</text>
+<text text-anchor="middle" x="708" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/event</text>
 </g>
 <!-- N38&#45;&gt;N44 -->
 <g id="edge56" class="edge"><title>N38&#45;&gt;N44</title>
@@ -407,7 +407,7 @@
 <!-- N10 -->
 <g id="node58" class="node"><title>N10</title>
 <polygon fill="none" stroke="black" points="1030,-396 768,-396 768,-360 1030,-360 1030,-396"/>
-<text text-anchor="middle" x="899" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/event</text>
+<text text-anchor="middle" x="899" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/event</text>
 </g>
 <!-- N38&#45;&gt;N10 -->
 <g id="edge55" class="edge"><title>N38&#45;&gt;N10</title>
@@ -417,7 +417,7 @@
 <!-- N42 -->
 <g id="node25" class="node"><title>N42</title>
 <polygon fill="none" stroke="black" points="775.25,-540 520.75,-540 520.75,-504 775.25,-504 775.25,-540"/>
-<text text-anchor="middle" x="648" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/chat</text>
+<text text-anchor="middle" x="648" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/chat</text>
 </g>
 <!-- N42&#45;&gt;N11 -->
 <g id="edge101" class="edge"><title>N42&#45;&gt;N11</title>
@@ -437,12 +437,12 @@
 <!-- N6 -->
 <g id="node26" class="node"><title>N6</title>
 <polygon fill="none" stroke="black" points="1062.25,-540 793.75,-540 793.75,-504 1062.25,-504 1062.25,-540"/>
-<text text-anchor="middle" x="928" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/kaddht</text>
+<text text-anchor="middle" x="928" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/kaddht</text>
 </g>
 <!-- N24 -->
 <g id="node27" class="node"><title>N24</title>
 <polygon fill="none" stroke="black" points="2300.25,-540 2027.75,-540 2027.75,-504 2300.25,-504 2300.25,-540"/>
-<text text-anchor="middle" x="2164" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/grpcapi</text>
+<text text-anchor="middle" x="2164" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/grpcapi</text>
 </g>
 <!-- N24&#45;&gt;N37 -->
 <g id="edge76" class="edge"><title>N24&#45;&gt;N37</title>
@@ -457,7 +457,7 @@
 <!-- N43 -->
 <g id="node41" class="node"><title>N43</title>
 <polygon fill="none" stroke="black" points="2815.25,-468 2614.75,-468 2614.75,-432 2815.25,-432 2815.25,-468"/>
-<text text-anchor="middle" x="2715" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/release</text>
+<text text-anchor="middle" x="2715" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/release</text>
 </g>
 <!-- N24&#45;&gt;N43 -->
 <g id="edge78" class="edge"><title>N24&#45;&gt;N43</title>
@@ -467,7 +467,7 @@
 <!-- N16 -->
 <g id="node44" class="node"><title>N16</title>
 <polygon fill="none" stroke="black" points="2913.5,-252 2682.5,-252 2682.5,-216 2913.5,-216 2913.5,-252"/>
-<text text-anchor="middle" x="2798" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/grpcapi</text>
+<text text-anchor="middle" x="2798" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/grpcapi</text>
 </g>
 <!-- N24&#45;&gt;N16 -->
 <g id="edge77" class="edge"><title>N24&#45;&gt;N16</title>
@@ -477,12 +477,12 @@
 <!-- N5 -->
 <g id="node28" class="node"><title>N5</title>
 <polygon fill="none" stroke="black" points="1387,-540 1119,-540 1119,-504 1387,-504 1387,-540"/>
-<text text-anchor="middle" x="1253" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/pruner</text>
+<text text-anchor="middle" x="1253" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/pruner</text>
 </g>
 <!-- N50 -->
 <g id="node29" class="node"><title>N50</title>
 <polygon fill="none" stroke="black" points="1680.25,-540 1405.75,-540 1405.75,-504 1680.25,-504 1680.25,-540"/>
-<text text-anchor="middle" x="1543" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/identify</text>
+<text text-anchor="middle" x="1543" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/identify</text>
 </g>
 <!-- N33&#45;&gt;N27 -->
 <g id="edge72" class="edge"><title>N33&#45;&gt;N27</title>
@@ -492,7 +492,7 @@
 <!-- N56 -->
 <g id="node31" class="node"><title>N56</title>
 <polygon fill="none" stroke="black" points="4639,-108 4403,-108 4403,-72 4639,-72 4639,-108"/>
-<text text-anchor="middle" x="4521" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/grpc/contacts</text>
+<text text-anchor="middle" x="4521" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/grpc/contacts</text>
 </g>
 <!-- N56&#45;&gt;N27 -->
 <g id="edge15" class="edge"><title>N56&#45;&gt;N27</title>
@@ -502,7 +502,7 @@
 <!-- N15 -->
 <g id="node32" class="node"><title>N15</title>
 <polygon fill="none" stroke="black" points="3836.25,-540 3567.75,-540 3567.75,-504 3836.25,-504 3836.25,-540"/>
-<text text-anchor="middle" x="3702" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/swarm</text>
+<text text-anchor="middle" x="3702" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/swarm</text>
 </g>
 <!-- N15&#45;&gt;N52 -->
 <g id="edge97" class="edge"><title>N15&#45;&gt;N52</title>
@@ -512,7 +512,7 @@
 <!-- N12 -->
 <g id="node47" class="node"><title>N12</title>
 <polygon fill="none" stroke="black" points="4097.25,-468 3824.75,-468 3824.75,-432 4097.25,-432 4097.25,-468"/>
-<text text-anchor="middle" x="3961" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/metrics</text>
+<text text-anchor="middle" x="3961" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/metrics</text>
 </g>
 <!-- N15&#45;&gt;N12 -->
 <g id="edge96" class="edge"><title>N15&#45;&gt;N12</title>
@@ -537,7 +537,7 @@
 <!-- N31 -->
 <g id="node46" class="node"><title>N31</title>
 <polygon fill="none" stroke="black" points="498,-468 290,-468 290,-432 498,-432 498,-468"/>
-<text text-anchor="middle" x="394" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/cfg</text>
+<text text-anchor="middle" x="394" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/cfg</text>
 </g>
 <!-- N30&#45;&gt;N31 -->
 <g id="edge2" class="edge"><title>N30&#45;&gt;N31</title>
@@ -552,12 +552,12 @@
 <!-- N39 -->
 <g id="node34" class="node"><title>N39</title>
 <polygon fill="none" stroke="black" points="2009,-540 1737,-540 1737,-504 2009,-504 2009,-540"/>
-<text text-anchor="middle" x="1873" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/natmgr</text>
+<text text-anchor="middle" x="1873" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/natmgr</text>
 </g>
 <!-- N23 -->
 <g id="node35" class="node"><title>N23</title>
 <polygon fill="none" stroke="black" points="2890.25,-540 2607.75,-540 2607.75,-504 2890.25,-504 2890.25,-540"/>
-<text text-anchor="middle" x="2749" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/bootstrap</text>
+<text text-anchor="middle" x="2749" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/bootstrap</text>
 </g>
 <!-- N23&#45;&gt;N43 -->
 <g id="edge54" class="edge"><title>N23&#45;&gt;N43</title>
@@ -567,12 +567,12 @@
 <!-- N26 -->
 <g id="node36" class="node"><title>N26</title>
 <polygon fill="none" stroke="black" points="2589,-540 2319,-540 2319,-504 2589,-504 2589,-540"/>
-<text text-anchor="middle" x="2454" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/yamux</text>
+<text text-anchor="middle" x="2454" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/yamux</text>
 </g>
 <!-- N57 -->
 <g id="node38" class="node"><title>N57</title>
 <polygon fill="none" stroke="black" points="4735.25,-540 4480.75,-540 4480.75,-504 4735.25,-504 4735.25,-540"/>
-<text text-anchor="middle" x="4608" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/host</text>
+<text text-anchor="middle" x="4608" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/host</text>
 </g>
 <!-- N57&#45;&gt;N19 -->
 <g id="edge27" class="edge"><title>N57&#45;&gt;N19</title>
@@ -582,7 +582,7 @@
 <!-- N18 -->
 <g id="node45" class="node"><title>N18</title>
 <polygon fill="none" stroke="black" points="4365.25,-468 4154.75,-468 4154.75,-432 4365.25,-432 4365.25,-468"/>
-<text text-anchor="middle" x="4260" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/p2p</text>
+<text text-anchor="middle" x="4260" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/p2p</text>
 </g>
 <!-- N57&#45;&gt;N18 -->
 <g id="edge25" class="edge"><title>N57&#45;&gt;N18</title>
@@ -597,7 +597,7 @@
 <!-- N40 -->
 <g id="node40" class="node"><title>N40</title>
 <polygon fill="none" stroke="black" points="3189.25,-540 2908.75,-540 2908.75,-504 3189.25,-504 3189.25,-540"/>
-<text text-anchor="middle" x="3049" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/connmgr</text>
+<text text-anchor="middle" x="3049" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/connmgr</text>
 </g>
 <!-- N54&#45;&gt;N46 -->
 <g id="edge16" class="edge"><title>N54&#45;&gt;N46</title>
@@ -712,7 +712,7 @@
 <!-- N32 -->
 <g id="node48" class="node"><title>N32</title>
 <polygon fill="none" stroke="black" points="4127,-540 3855,-540 3855,-504 4127,-504 4127,-540"/>
-<text text-anchor="middle" x="3991" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/pubsub</text>
+<text text-anchor="middle" x="3991" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/pubsub</text>
 </g>
 <!-- N14&#45;&gt;N32 -->
 <g id="edge48" class="edge"><title>N14&#45;&gt;N32</title>
@@ -727,7 +727,7 @@
 <!-- N1 -->
 <g id="node52" class="node"><title>N1</title>
 <polygon fill="none" stroke="black" points="4462.25,-540 4183.75,-540 4183.75,-504 4462.25,-504 4462.25,-540"/>
-<text text-anchor="middle" x="4323" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/mssmux</text>
+<text text-anchor="middle" x="4323" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/mssmux</text>
 </g>
 <!-- N14&#45;&gt;N1 -->
 <g id="edge44" class="edge"><title>N14&#45;&gt;N1</title>
@@ -737,7 +737,7 @@
 <!-- N8 -->
 <g id="node53" class="node"><title>N8</title>
 <polygon fill="none" stroke="black" points="5054,-540 4792,-540 4792,-504 5054,-504 5054,-540"/>
-<text text-anchor="middle" x="4923" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/clock</text>
+<text text-anchor="middle" x="4923" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/clock</text>
 </g>
 <!-- N14&#45;&gt;N8 -->
 <g id="edge34" class="edge"><title>N14&#45;&gt;N8</title>
@@ -747,7 +747,7 @@
 <!-- N17 -->
 <g id="node56" class="node"><title>N17</title>
 <polygon fill="none" stroke="black" points="5349.25,-540 5072.75,-540 5072.75,-504 5349.25,-504 5349.25,-540"/>
-<text text-anchor="middle" x="5211" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/alice/core/service/contacts</text>
+<text text-anchor="middle" x="5211" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go-indigonode/core/service/contacts</text>
 </g>
 <!-- N14&#45;&gt;N17 -->
 <g id="edge37" class="edge"><title>N14&#45;&gt;N17</title>

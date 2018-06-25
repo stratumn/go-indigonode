@@ -26,7 +26,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	pb "github.com/stratumn/alice/app/chat/grpc"
+	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
 )
 
 var testPID1 peer.ID

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	eventgrpc "github.com/stratumn/alice/core/app/event/grpc"
+	eventgrpc "github.com/stratumn/go-indigonode/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 

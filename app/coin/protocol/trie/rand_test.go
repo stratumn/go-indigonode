@@ -19,7 +19,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/core/db"
 	"github.com/stretchr/testify/require"
 )
 

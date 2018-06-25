@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
-	pbevent "github.com/stratumn/alice/core/app/event/grpc"
+	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 )

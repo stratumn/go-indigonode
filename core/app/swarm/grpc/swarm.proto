@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.core.app.swarm.grpc;
 
-option go_package = "github.com/stratumn/alice/core/app/swarm/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/core/app/swarm/grpc;grpc";
 
 // The swarm service definition.
 service Swarm {

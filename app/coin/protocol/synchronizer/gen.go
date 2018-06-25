@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mocksynchronizer.go github.com/stratumn/alice/app/coin/protocol/synchronizer Synchronizer
-//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mockcontentproviderfinder.go github.com/stratumn/alice/app/coin/protocol/synchronizer ContentProviderFinder
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mocksynchronizer.go github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer Synchronizer
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mockcontentproviderfinder.go github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer ContentProviderFinder
 
 package synchronizer

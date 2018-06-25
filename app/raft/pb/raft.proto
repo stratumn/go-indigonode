@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package stratumn.alice.app.raft.pb;
 
-option go_package = "github.com/stratumn/alice/app/raft/pb;pb";
+option go_package = "github.com/stratumn/go-indigonode/app/raft/pb;pb";
 
 message Empty {
 }

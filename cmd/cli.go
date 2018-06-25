@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stratumn/alice/cli"
+	"github.com/stratumn/go-indigonode/cli"
 	"google.golang.org/grpc"
 )
 

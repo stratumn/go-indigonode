@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/app/coin/pb/coin.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/app/coin/pb/coin.proto";
 
 package stratumn.alice.app.coin.grpc;
 
-option go_package = "github.com/stratumn/alice/app/coin/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/app/coin/grpc;grpc";
 
 // The coin service definition.
 service Coin {

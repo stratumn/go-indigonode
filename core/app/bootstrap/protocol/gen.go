@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockprotocol -destination mockprotocol/mockhandler.go github.com/stratumn/alice/core/app/bootstrap/protocol Handler
+//go:generate mockgen -package mockprotocol -destination mockprotocol/mockhandler.go github.com/stratumn/go-indigonode/core/app/bootstrap/protocol Handler
 
 package protocol

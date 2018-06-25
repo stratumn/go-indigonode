@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/cli/mockcli"
+	"github.com/stratumn/go-indigonode/cli"
+	"github.com/stratumn/go-indigonode/cli/mockcli"
 )
 
 func TestAddr(t *testing.T) {

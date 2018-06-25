@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
-	"github.com/stratumn/alice/app/coin/protocol/processor"
-	"github.com/stratumn/alice/app/coin/protocol/state"
-	"github.com/stratumn/alice/app/coin/protocol/testutil"
-	txtest "github.com/stratumn/alice/app/coin/protocol/testutil/transaction"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/processor"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/testutil"
+	txtest "github.com/stratumn/go-indigonode/app/coin/protocol/testutil/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/satori/go.uuid"
-	"github.com/stratumn/alice/app/indigo/protocol/store"
-	"github.com/stratumn/alice/app/indigo/protocol/store/constants"
-	"github.com/stratumn/alice/core/p2p"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"

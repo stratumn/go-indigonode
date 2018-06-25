@@ -18,7 +18,7 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
 
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 )

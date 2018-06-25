@@ -16,7 +16,7 @@ package trie
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/db"
+	"github.com/stratumn/go-indigonode/core/db"
 )
 
 // nodeDB deals with storing trie nodes.

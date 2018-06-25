@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/netutil"
+	"github.com/stratumn/go-indigonode/core/manager/testservice"
+	"github.com/stratumn/go-indigonode/core/netutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"

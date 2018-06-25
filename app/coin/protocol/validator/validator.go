@@ -18,11 +18,11 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/chain"
-	"github.com/stratumn/alice/app/coin/protocol/coinutil"
-	"github.com/stratumn/alice/app/coin/protocol/engine"
-	"github.com/stratumn/alice/app/coin/protocol/state"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"

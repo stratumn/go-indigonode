@@ -23,9 +23,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	grpcpb "github.com/stratumn/alice/app/storage/grpc"
-	"github.com/stratumn/alice/app/storage/grpc/mockstorage"
-	"github.com/stratumn/alice/app/storage/pb"
+	grpcpb "github.com/stratumn/go-indigonode/app/storage/grpc"
+	"github.com/stratumn/go-indigonode/app/storage/grpc/mockstorage"
+	"github.com/stratumn/go-indigonode/app/storage/pb"
 	"github.com/stretchr/testify/assert"
 )
 

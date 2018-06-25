@@ -2,8 +2,8 @@
 
 Alice is virtual infrastructure for interoperable P2P services.
 
-[![Build Status](https://semaphoreci.com/api/v1/projects/166bfa53-a45d-4a19-8007-6c729666beb4/1747974/badge.svg)](https://semaphoreci.com/stratumn/alice)
-[![codecov](https://codecov.io/gh/stratumn/alice/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/alice)
+[![Build Status](https://semaphoreci.com/api/v1/projects/166bfa53-a45d-4a19-8007-6c729666beb4/1747974/badge.svg)](https://semaphoreci.com/stratumn/go-indigonode)
+[![codecov](https://codecov.io/gh/stratumn/go-indigonode/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-indigonode)
 
 Copyright © 2017 Stratumn SAS
 

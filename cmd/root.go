@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stratumn/alice/core"
+	"github.com/stratumn/go-indigonode/core"
 )
 
 // services are the services that will be used by core.

@@ -17,7 +17,7 @@ package transaction
 import (
 	"testing"
 
-	"github.com/stratumn/alice/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
 	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

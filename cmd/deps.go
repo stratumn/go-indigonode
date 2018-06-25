@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/stratumn/alice/core"
+	"github.com/stratumn/go-indigonode/core"
 )
 
 // depsService is the ID of the service of which to show dependencies.

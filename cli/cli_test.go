@@ -24,9 +24,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/netutil"
-	"github.com/stratumn/alice/release"
-	"github.com/stratumn/alice/script"
+	"github.com/stratumn/go-indigonode/core/netutil"
+	"github.com/stratumn/go-indigonode/release"
+	"github.com/stratumn/go-indigonode/script"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"

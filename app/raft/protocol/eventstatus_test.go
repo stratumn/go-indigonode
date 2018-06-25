@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/app/raft/pb"
-	"github.com/stratumn/alice/app/raft/protocol/lib/mocklib"
+	"github.com/stratumn/go-indigonode/app/raft/pb"
+	"github.com/stratumn/go-indigonode/app/raft/protocol/lib/mocklib"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

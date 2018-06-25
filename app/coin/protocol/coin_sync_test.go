@@ -20,12 +20,12 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/app/coin/pb"
-	"github.com/stratumn/alice/app/coin/protocol/engine/mockengine"
-	"github.com/stratumn/alice/app/coin/protocol/processor/mockprocessor"
-	"github.com/stratumn/alice/app/coin/protocol/synchronizer/mocksynchronizer"
-	ctestutil "github.com/stratumn/alice/app/coin/protocol/testutil"
-	"github.com/stratumn/alice/app/coin/protocol/validator/mockvalidator"
+	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/engine/mockengine"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/processor/mockprocessor"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer/mocksynchronizer"
+	ctestutil "github.com/stratumn/go-indigonode/app/coin/protocol/testutil"
+	"github.com/stratumn/go-indigonode/app/coin/protocol/validator/mockvalidator"
 	"github.com/stretchr/testify/assert"
 )
 

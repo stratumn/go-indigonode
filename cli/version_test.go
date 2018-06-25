@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stratumn/alice/cli"
-	"github.com/stratumn/alice/release"
+	"github.com/stratumn/go-indigonode/cli"
+	"github.com/stratumn/go-indigonode/release"
 )
 
 func TestVersion(t *testing.T) {

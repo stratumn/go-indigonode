@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"github.com/stratumn/alice/release"
+	"github.com/stratumn/go-indigonode/release"
 )
 
 // Version is a command that displays the client version string.

@@ -23,10 +23,10 @@ import (
 
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	grpcpb "github.com/stratumn/alice/app/storage/grpc"
-	"github.com/stratumn/alice/app/storage/protocol"
-	"github.com/stratumn/alice/app/storage/protocol/constants"
-	"github.com/stratumn/alice/core/db"
+	grpcpb "github.com/stratumn/go-indigonode/app/storage/grpc"
+	"github.com/stratumn/go-indigonode/app/storage/protocol"
+	"github.com/stratumn/go-indigonode/app/storage/protocol/constants"
+	"github.com/stratumn/go-indigonode/core/db"
 
 	"google.golang.org/grpc"
 

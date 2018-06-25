@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockengine -destination mockengine/mockengine.go github.com/stratumn/alice/app/coin/protocol/engine Engine,PoW
+//go:generate mockgen -package mockengine -destination mockengine/mockengine.go github.com/stratumn/go-indigonode/app/coin/protocol/engine Engine,PoW
 
 package engine

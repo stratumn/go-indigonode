@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/core/crypto/crypto.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/core/crypto/crypto.proto";
 
 package stratumn.alice.core.app.bootstrap;
 
-option go_package = "github.com/stratumn/alice/core/app/bootstrap/pb;pb";
+option go_package = "github.com/stratumn/go-indigonode/core/app/bootstrap/pb;pb";
 
 // A simple Hello handshake message.
 message Hello {}

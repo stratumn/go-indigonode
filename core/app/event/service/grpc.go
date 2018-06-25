@@ -16,7 +16,7 @@ package service
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/app/event/grpc"
+	"github.com/stratumn/go-indigonode/core/app/event/grpc"
 )
 
 // grpcServer is a gRPC server for the chat service.

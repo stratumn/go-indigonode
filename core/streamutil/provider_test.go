@@ -20,9 +20,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/streamutil"
-	"github.com/stratumn/alice/test"
-	"github.com/stratumn/alice/test/mocks"
+	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

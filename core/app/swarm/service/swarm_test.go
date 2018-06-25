@@ -23,11 +23,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	"github.com/stratumn/alice/core/manager/testservice"
-	"github.com/stratumn/alice/core/protector"
-	"github.com/stratumn/alice/test"
-	"github.com/stratumn/alice/test/mocks"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	"github.com/stratumn/go-indigonode/core/manager/testservice"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

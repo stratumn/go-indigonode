@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	"github.com/stratumn/alice/core/cfg"
-	"github.com/stratumn/alice/core/manager"
-	"github.com/stratumn/alice/core/p2p"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	"github.com/stratumn/go-indigonode/core/cfg"
+	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

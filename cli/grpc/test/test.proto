@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
 
 package stratumn.alice.cli.test;
 
-option go_package = "github.com/stratumn/alice/cli/grpc/test;test";
+option go_package = "github.com/stratumn/go-indigonode/cli/grpc/test;test";
 
 service Test {
   rpc UnaryReq (Message) returns (Message) {

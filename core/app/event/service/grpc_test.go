@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/alice/core/app/event/grpc"
-	"github.com/stratumn/alice/core/app/event/grpc/mockgrpc"
-	"github.com/stratumn/alice/core/app/event/service/mockservice"
+	"github.com/stratumn/go-indigonode/core/app/event/grpc"
+	"github.com/stratumn/go-indigonode/core/app/event/grpc/mockgrpc"
+	"github.com/stratumn/go-indigonode/core/app/event/service/mockservice"
 	"github.com/stretchr/testify/assert"
 )
 

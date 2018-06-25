@@ -22,10 +22,10 @@ import (
 
 	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/alice/core/app/host/grpc"
-	metrics "github.com/stratumn/alice/core/app/metrics/service"
-	swarmSvc "github.com/stratumn/alice/core/app/swarm/service"
-	"github.com/stratumn/alice/core/p2p"
+	pb "github.com/stratumn/go-indigonode/core/app/host/grpc"
+	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/p2p"
 
 	"google.golang.org/grpc"
 
@@ -201,7 +201,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 //
 // It exposes the type:
 //
-//	github.com/stratumn/alice/core/*p2p.Host
+//	github.com/stratumn/go-indigonode/core/*p2p.Host
 func (s *Service) Expose() interface{} {
 	return s.host
 }

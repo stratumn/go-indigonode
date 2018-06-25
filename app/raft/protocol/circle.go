@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/stratumn/alice/app/raft/pb"
-	"github.com/stratumn/alice/app/raft/protocol/lib"
+	"github.com/stratumn/go-indigonode/app/raft/pb"
+	"github.com/stratumn/go-indigonode/app/raft/protocol/lib"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

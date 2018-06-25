@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/postgresauditstore"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/storetestcases"
-	"github.com/stratumn/alice/test/containers"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/storetestcases"
+	"github.com/stratumn/go-indigonode/test/containers"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stretchr/testify/assert"
 

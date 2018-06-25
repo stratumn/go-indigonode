@@ -19,9 +19,9 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/dummyauditstore"
-	"github.com/stratumn/alice/app/indigo/protocol/store/audit/postgresauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"

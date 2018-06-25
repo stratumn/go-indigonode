@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
 )
 
 // Configuration errors.

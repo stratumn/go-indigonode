@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/alice/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/alice/app/storage/pb/storage.proto";
+import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-indigonode/app/storage/pb/storage.proto";
 
 package stratumn.alice.app.storage.grpc;
 
-option go_package = "github.com/stratumn/alice/app/storage/grpc;grpc";
+option go_package = "github.com/stratumn/go-indigonode/app/storage/grpc;grpc";
 
 // The storage service definition.
 service Storage {

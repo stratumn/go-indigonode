@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockmanager.go github.com/stratumn/alice/core/manager/grpc Manager_ListServer,Manager_PruneServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockmanager.go github.com/stratumn/go-indigonode/core/manager/grpc Manager_ListServer,Manager_PruneServer
 
 package grpc

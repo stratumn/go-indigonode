@@ -17,9 +17,9 @@ package proposaltest
 import (
 	"testing"
 
-	"github.com/stratumn/alice/core/app/bootstrap/pb"
-	"github.com/stratumn/alice/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/alice/test"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
+	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

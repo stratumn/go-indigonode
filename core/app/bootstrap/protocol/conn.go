@@ -17,7 +17,7 @@ package protocol
 import (
 	"context"
 
-	"github.com/stratumn/alice/core/protector"
+	"github.com/stratumn/go-indigonode/core/protector"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"

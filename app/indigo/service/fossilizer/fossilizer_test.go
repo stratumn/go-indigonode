@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/alice/app/indigo/service/fossilizer"
-	"github.com/stratumn/alice/core/manager/testservice"
+	"github.com/stratumn/go-indigonode/app/indigo/service/fossilizer"
+	"github.com/stratumn/go-indigonode/core/manager/testservice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

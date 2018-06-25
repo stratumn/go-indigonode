@@ -6,11 +6,10 @@ package mockgrpc
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	grpc "github.com/stratumn/go-indigonode/core/app/host/grpc"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockHost_AddressesServer is a mock of Host_AddressesServer interface

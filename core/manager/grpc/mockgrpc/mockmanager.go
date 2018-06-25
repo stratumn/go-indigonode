@@ -6,11 +6,10 @@ package mockgrpc
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	grpc "github.com/stratumn/go-indigonode/core/manager/grpc"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockManager_ListServer is a mock of Manager_ListServer interface

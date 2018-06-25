@@ -6,12 +6,11 @@ package mockgrpc
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	grpc "github.com/stratumn/go-indigonode/core/app/event/grpc"
 	grpc0 "google.golang.org/grpc"
 	metadata "google.golang.org/grpc/metadata"
+	reflect "reflect"
 )
 
 // MockEmitter_ListenServer is a mock of Emitter_ListenServer interface

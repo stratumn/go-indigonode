@@ -72,19 +72,10 @@ var StaticCmds = []Cmd{
 	Version,
 }
 
-// art is displayed by the init script.
-const art = "      .o.       oooo   o8o\n" +
-	"     .888.      `888   `\\\"'\n" +
-	"    .8\\\"888.      888  oooo   .ooooo.   .ooooo.\n" +
-	"   .8' `888.     888  `888  d88' `\\\"Y8 d88' `88b\n" +
-	"  .88ooo8888.    888   888  888       888ooo888\n" +
-	" .8'     `888.   888   888  888   .o8 888    .o\n" +
-	"o88o     o8888o o888o o888o `Y8bod8P' `Y8bod8P'"
-
 // initScript is executed when the CLI is launched.
 const initScript = `
 echo
-echo --log info "` + art + `"
+echo Indigo Node CLI
 echo
 cli-version --git-commit-length 7
 echo

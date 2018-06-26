@@ -80,7 +80,7 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(SYSTEM_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo install build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(LINT_LIST) $(SYSTEM_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
@@ -225,6 +225,11 @@ lint:
 # == cyclomatic complexity ====================================================
 cyclo: $(CYCLO_SOURCES)
 	@$(GO_CYCLO) -over 9 $(CYCLO_SOURCES)
+
+# == install ==================================================================
+install:
+	$(GO_CMD) build -o indigo-node
+	mv indigo-node $(GOPATH)/bin
 
 # == build ====================================================================
 build: $(EXECS)

@@ -46,19 +46,19 @@ You should also disable the boot screen in the `core` section:
 Install the property list file:
 
 ```bash
-$ indigo-node daemon install --core-config /path/to/indigo_node.core.toml
+indigo-node daemon install --core-config /path/to/indigo_node.core.toml
 ```
 
 Start the Indigo Node service:
 
 ```bash
-$ sudo launchctl load /Library/LaunchDaemons/indigo-node.plist
+sudo launchctl load /Library/LaunchDaemons/indigo-node.plist
 ```
 
 You can stop it with:
 
 ```bash
-$ sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
+sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
 ```
 
 ## View Logs
@@ -66,11 +66,11 @@ $ sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
 To view the streaming info logs, run:
 
 ```bash
-$ indigo-node log -f /usr/local/var/log/indigo-node.log
+indigo-node log -f /usr/local/var/log/indigo-node.log
 ```
 
 To view the streaming error logs, run:
 
 ```bash
-$ indigo-node log -f /usr/local/var/log/indigo-node.err
+indigo-node log -f /usr/local/var/log/indigo-node.err
 ```

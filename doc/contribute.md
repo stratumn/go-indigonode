@@ -11,8 +11,7 @@ you are working on.
 
 ## Code Reviews
 
-* Check conventions are respected.
-* Check for typos, punctuation, and other obvious mistakes.
-* Aim for fast merges to the master branch to reduce friction.
-* Some improvements are better left for other pull requests.
-
+- Check conventions are respected.
+- Check for typos, punctuation, and other obvious mistakes.
+- Aim for fast merges to the master branch to reduce friction.
+- Some improvements are better left for other pull requests.

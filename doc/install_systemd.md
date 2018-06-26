@@ -35,25 +35,25 @@ You should also disable the boot screen in the `core` section:
 Install the systemd unit file:
 
 ```bash
-$ indigo-node daemon install --core-config /path/to/indigo_node.core.toml
+indigo-node daemon install --core-config /path/to/indigo_node.core.toml
 ```
 
 Tell systemd to reload the unit files:
 
 ```bash
-$ systemctl daemon-reload
+systemctl daemon-reload
 ```
 
 Start the Indigo Node service:
 
 ```bash
-$ systemctl start indigo-node
+systemctl start indigo-node
 ```
 
 You can stop it with:
 
 ```bash
-$ systemctl stop indigo-node
+systemctl stop indigo-node
 ```
 
 ## View Logs
@@ -61,11 +61,11 @@ $ systemctl stop indigo-node
 To view all the streaming logs, run:
 
 ```bash
-$ journalctl -f -u indigo-node
+journalctl -f -u indigo-node
 ```
 
 To view only errors, run (errors have a priority of three):
 
 ```bash
-$ journalctl -f -u indigo-node -p 3
+journalctl -f -u indigo-node -p 3
 ```

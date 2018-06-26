@@ -14,7 +14,7 @@ control the node from the CLI.
 From the CLI prompt, you can list the available services using the
 `manager-list` command.
 
-```
+```bash
 IndigoNode> manager-list
 ID       STATUS   NEEDS            STOPPABLE  PRUNABLE  NAME             DESC
 api      RUNNING  [grpcapi]        false      false     API Services     Starts API services.
@@ -45,7 +45,7 @@ if it is already running. Using the CLI, let's make sure the gRPC API service
 never gets pruned (don't worry, it should never happen under normal
 circumstances).
 
-```
+```bash
 IndigoNode> manager-start grpcapi
 ID         grpcapi
 STATUS     RUNNING
@@ -59,7 +59,7 @@ DESC       Exposes a gRPC API.
 The gRPC API service is no longer `PRUNABLE`. In the spirit of minimalism,
 let's stop everything but the gRPC API services.
 
-```
+```bash
 IndigoNode> manager-stop boot
 ID         boot
 STATUS     STOPPED
@@ -89,7 +89,7 @@ prune the services so they would be removed right away.
 
 You can turn the services back on by starting the `boot` service again.
 
-```
+```bash
 IndigoNode> manager-start boot
 ID         boot
 STATUS     RUNNING

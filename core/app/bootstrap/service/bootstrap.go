@@ -88,7 +88,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "Periodically connects to known peers."
+	return "Bootstraps network connections."
 }
 
 // Config returns the current service configuration or creates one with

@@ -23,6 +23,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// ErrInvalidGroup is returned when a configuration file contains
+	// an invalid service group.
+	ErrInvalidGroup = errors.New("the service group is invalid")
+)
+
 // Tree is used to modify the configuration tree.
 type Tree struct {
 	tree *toml.Tree
@@ -93,6 +99,80 @@ func (t *Tree) Set(key string, val interface{}) (err error) {
 	t.tree.Set(key, "", false, val)
 
 	return
+}
+
+// AddGroup adds a group if it doesn't exist yet.
+func (t *Tree) AddGroup(id, name, desc string) error {
+	groups, ok := t.Get("core.service_groups").([]*Tree)
+	if !ok {
+		groups = []*Tree{}
+	}
+
+	for _, group := range groups {
+		if group.Get("id") == id {
+			return nil
+		}
+	}
+
+	group, err := TreeFromMap(map[string]interface{}{
+		"id":          id,
+		"name":        name,
+		"description": desc,
+	})
+	if err != nil {
+		return err
+	}
+
+	return t.Set("core.service_groups", append(groups, group))
+}
+
+// AddServiceToGroup adds a service to an existing group if it isn't already
+// part of the group.
+//
+// If the group is not found, it prints a warning and doesn't return an error.
+// The user could have intentionally removed the group.
+func (t *Tree) AddServiceToGroup(service, group string) error {
+	groups, ok := t.Get("core.service_groups").([]*Tree)
+	if !ok {
+		fmt.Printf(
+			"Warning: could not add service %s to group %s because all groups were removed.",
+			service, group,
+		)
+		return nil
+	}
+
+	for _, g := range groups {
+		if g.Get("id") == group {
+			var services []interface{}
+
+			if v := g.Get("services"); v != nil {
+				services, ok = v.([]interface{})
+				if !ok {
+					return errors.Wrap(ErrInvalidGroup, group)
+				}
+			}
+
+			for _, s := range services {
+				sid, ok := s.(string)
+				if !ok {
+					return errors.Wrap(ErrInvalidGroup, group)
+				}
+
+				if sid == service {
+					return nil
+				}
+			}
+
+			return g.Set("services", append(services, service))
+		}
+	}
+
+	fmt.Printf(
+		"Warning: could not add service %s to group %s because the group was removed.",
+		service, group,
+	)
+
+	return nil
 }
 
 // migrate applies migrations to a tree.

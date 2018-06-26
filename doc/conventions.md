@@ -151,9 +151,10 @@ punctuation.
 
 ### Testing
 
-Use a separate package for tests (`mycomponent_test`).
-Your tests will be less brittle as you won't be testing internal
-implementation details.
+If you don't need to test implementation details of your component,
+consider using a separate package for tests (`mycomponent_test`).
+Your tests will be less brittle as you will only be testing the public API,
+which is less likely to change than internal details.
 
 Use the standard Go test packages with assertions from
 [testify](https://github.com/stretchr/testify).

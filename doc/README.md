@@ -5,6 +5,7 @@
 - [Systemd Installation](install_systemd.md)
 - [Launchd Installation](install_launchd.md)
 - [Services](services.md)
+- [Networks](networks.md)
 - [FAQ](faq.md)
 
 ## Developers

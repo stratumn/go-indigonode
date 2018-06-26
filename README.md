@@ -7,87 +7,91 @@ Indigo Node is virtual infrastructure for interoperable P2P services.
 
 ## Project Status
 
-The current focus is to build a solid architecture to develop P2P services.
+The current focus is to build a solid architecture to develop P2P services and run Stratumn's Indigo products.
 
 ### Current features
 
-- uses IPFS's go-libp2p library
+- powered by IPFS's go-libp2p library
 - core services (P2P, NAT, DHT routing, relay, etc...)
 - P2P bootstrapping from seed nodes
+- P2P bootstrapping for private networks (with a coordinator node)
+- Indigo Store and Fossilizer support
 - gRPC API
-- neat and powerful inner-process service based architecture
 - CLI with gRPC command reflection
+- neat and powerful inner-process service based architecture
+- raft support for replicated state machine (non-BFT)
 - system test framework
-- nice logs
-- Prometheus metrics
+- monitoring
 
 ### Next
 
-- ability to create and join multiple private or public P2P services
-- Proof-Of-Work for public blockchains
-- Proof-Of-Authority for consortiums
+- private networks without coordinator
+- layer 2 private networks
+- BFT consensus mechanisms
 - a simple, script-less, digital asset
-- Indigo integration (compatibility with Tendermint ABCI?)
+- third-party applications/ecosystem
 
 ## Installation
 
 Install Go. On macOS, you can install using `homebrew`:
 
 ```bash
-$ brew install go
+brew install go
 ```
 
 Install Go dependencies:
 
 ```bash
-$ make deps
+make deps
 ```
 
 Compile and install `indigo-node`:
 
 ```bash
-$ go install
+make install
 ```
 
 ## Usage
 
-Create a new directory. Open a terminal in that directory then create
-configuration files using `indigo-node init`:
+Create a new directory for your node. Open a terminal in that directory
+then create configuration files using `indigo-node init`:
 
 ```bash
-$ indigo-node init
+indigo-node init
 ```
 
 Now you can launch a node (from the same directory):
 
 ```bash
-$ indigo-node up
+indigo-node up
 ```
 
 Open another terminal and connect to the node (from the same directory):
 
 ```bash
-$ indigo-node cli
+indigo-node cli
 ```
+
+The auto-completion should help you explore available APIs easily.
 
 ## Logs And Metrics
 
 To view streaming logs (from the same directory):
 
 ```bash
-$ indigo-node log -f log.jsonld
+indigo-node log -f log.jsonld
 ```
 
 To view metrics you need to install Prometheus. On macOS:
 
 ```bash
-$ brew install prometheus
+brew install prometheus
 ```
 
 Then copy `prometheus.yml` and launch Prometheus:
 
 ```bash
-$ prometheus
+prometheus
 ```
 
 By default, Prometheus is available at `http://localhost:9090`.

@@ -111,6 +111,25 @@ const confZero = `
   # Services that should be started in addition to the host before bootstrapping.
   needs = ["p2p"]
 
+  # The name of the swarm service.
+  swarm = "swarm"
+
+  # Configure the store used for network update proposals.
+  [bootstrap.store_config]
+
+    # Type of store to use.
+    # Supported values: in-memory and file.
+    type = "in-memory"
+
+# Settings for the chat module.
+[chat]
+  
+  # The name of the event service.
+  event = "event"
+
+  # The name of the host service.
+  host = "host"
+
 # Settings for the clock module.
 [clock]
 
@@ -119,6 +138,30 @@ const confZero = `
 
   # How long to wait before closing the stream when writing the time to a peer.
   write_timeout = "10s"
+
+# Settings for the coin module.
+[coin]
+
+  # The difficulty for block production.
+  block_difficulty = 30
+
+  # The name of the host service.
+  host = "host"
+
+  # The name of the kaddht service.
+  kaddht = "kaddht"
+
+  # The maximum number of transactions in a block.
+  max_tx_per_block = 100
+
+  # The reward miners should get when producing blocks.
+  miner_reward = 10
+
+  # The name of the pubsub service.
+  pubsub = "pubsub"
+
+  # The version of the coin service.
+  version = 1
 
 # Settings for the connmgr module.
 [connmgr]
@@ -141,6 +184,12 @@ const confZero = `
   # Whether to show the boot screen when starting the node.
   enable_boot_screen = true
 
+  # Name of the host service used by the boot screen to display metrics and host addresses.
+  boot_screen_host = "host"
+
+  # Name of the metrics service used by the boot screen to display metrics.
+  boot_screen_metrics = "metrics"
+
   # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 
@@ -156,7 +205,7 @@ const confZero = `
     name = "Boot Services"
 
     # Services started by the group.
-    services = ["system","bootstrap","api"]
+    services = ["system","bootstrap","api", "util"]
 
   [[core.service_groups]]
 
@@ -184,7 +233,7 @@ const confZero = `
     name = "P2P Services"
 
     # Services started by the group.
-    services = ["identify","relay","kaddht","ping","clock"]
+    services = ["identify","relay","kaddht","ping","clock","pubsub"]
 
   [[core.service_groups]]
 
@@ -212,7 +261,41 @@ const confZero = `
     name = "API Services"
 
     # Services started by the group.
-    services = ["grpcapi"]
+    services = ["grpcapi","grpcweb"]
+
+  [[core.service_groups]]
+
+    # Description of the service group.
+    description = "Starts utility services."
+
+    # Unique identifier of the service group.
+    id = "util"
+
+    # Name of the service group.
+    name = "Utility Services"
+
+    # Services started by the group.
+    services = ["contacts","event"]
+
+  [[core.service_groups]]
+
+    # Description of the service group.
+    description = "Starts Stratumn Indigo services for Proof-of-Process networks."
+
+    # Unique identifier of the service group.
+    id = "indigo"
+
+    # Name of the service group.
+    name = "Stratumn Indigo Services"
+
+    # Services started by the group.
+    services = ["indigostore","indigofossilizer"]
+
+# Settings for the event module.
+[event]
+
+  # How long to wait before dropping a message when listeners are too slow.
+  write_timeout = "100ms"    
 
 # Settings for the grpcapi module.
 [grpcapi]
@@ -231,6 +314,15 @@ const confZero = `
 
   # Path to a TLS key.
   tls_key_file = ""
+
+# Settings for the grpcweb module.
+[grpcweb]
+
+  # Address to bind to.
+  address = "/ip4/127.0.0.1/tcp/8906"
+
+  # The name of the grpcapi service.
+  grpcapi = "grpcapi"
 
 # Settings for the host module.
 [host]
@@ -255,6 +347,55 @@ const confZero = `
 
   # The name of the host service.
   host = "host"
+
+# Settings for the indigofossilizer module.
+[indigofossilizer]
+
+  # amount of the fee to use when sending transactions to the bitcoin blockchain (only applicable to the bitcoin fossilizer).
+  bitcoin_fee = 15000
+
+  # The type of fossilizer (eg: dummy, dummybatch, bitcoin...).
+  fossilizer_type = "dummy"
+
+  # The time interval between batches expressed in seconds (only applicable to fossilizers using batches).
+  interval = 0
+
+  # The maximum number of leaves of a merkle tree in a batch (only applicable to fossilizers using batches).
+  max_leaves = 0
+
+  # The version of the indigo fossilizer service.
+  version = "0.1.0"
+
+# Settings for the indigostore module.
+[indigostore]
+
+  # The name of the host service.
+  host = "host"
+
+  # The type of storage to use.
+  # Supported values: in-memory and postgreSQL.
+  storage_type = "in-memory"
+
+  # The name of the swarm service.
+  swarm = "swarm"
+
+  # The version of the indigo service.
+  version = "0.1.0"
+
+  # Configure settings for the Indigo PostgreSQL Store in the following section.
+  [indigostore.postgres]
+
+    # If external storage is used, the url of that storage.
+    storage_db_url = "postgres://postgres@postgres/postgres?sslmode=disable"
+
+  # Configure settings for the validation rules of your indigo network in the following section.
+  [indigostore.validation]
+
+    # The directory where the validator scripts are located.
+    plugins_path = ""
+
+    # The path to the validation rules file.
+    rules_path = ""
 
 # Settings for the kaddht module.
 [kaddht]
@@ -349,6 +490,30 @@ const confZero = `
   # The name of the manager service.
   manager = "manager"
 
+# Settings for the pubsub module.
+[pubsub]
+
+  # The name of the host service.
+  host = "host"
+
+# Settings for the raft module.
+[raft]
+
+  # the number of Node.Tick invocations that must pass between elections
+  election_tick = 10
+
+  # the number of Node.Tick invocations that must pass between heartbeats
+  heartbeat_tick = 1
+
+  # limits the max number of in-flight append messages during optimistic replication phase
+  max_inflight_msgs = 256
+
+  # limits the max size of each append message
+  max_size_per_msg = 1048576
+
+  # defines the unit of time in ms
+  ticker_interval = 100
+
 # Settings for the relay module.
 [relay]
 
@@ -366,6 +531,15 @@ const confZero = `
 
   # The name of the manager service.
   manager = "manager"
+
+# Settings for the storage module.
+[storage]
+
+  # The name of the host service.
+  host = "host"
+
+  # The time after which an upload session will be reset (and the partial file deleted)
+  upload_timeout = "10m"
 
 # Settings for the swarm module.
 [swarm]

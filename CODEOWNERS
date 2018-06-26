@@ -1,4 +1,6 @@
 * @stephan83
-/core/protocol/coin/ @t-bast
-/core/service/indigo/ @t-bast
-/core/protocol/indigo/ @t-bast
+/app/coin/ @t-bast
+/app/indigo/ @t-bast
+/core/app/bootstrap/ @t-bast
+/app/storage/ @bejito
+/app/raft/ @azuenko

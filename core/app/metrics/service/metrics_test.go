@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/manager/testservice"
 	"github.com/stratumn/go-indigonode/core/netutil"
@@ -40,16 +39,6 @@ func testService(ctx context.Context, t *testing.T) *Service {
 
 func TestService_strings(t *testing.T) {
 	testservice.CheckStrings(t, &Service{})
-}
-
-func TestService_Expose(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	serv := testService(ctx, t)
-	exposed := testservice.Expose(ctx, t, serv, time.Second)
-
-	assert.IsType(t, &Metrics{}, exposed, "exposed type")
 }
 
 func TestService_Run(t *testing.T) {
@@ -90,43 +79,5 @@ func TestService_SetConfig(t *testing.T) {
 				assert.Equal(t, tt.err, err)
 			}
 		})
-	}
-}
-
-func TestMetrics_AddPeriodicHandler(t *testing.T) {
-	mtrx := newMetrics(nil, nil)
-
-	ch := make(chan struct{}, 1)
-	remove := mtrx.AddPeriodicHandler(func(metrics.MetricSink) {
-		ch <- struct{}{}
-	})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	doneCh := make(chan struct{})
-	go func() {
-		mtrx.start(ctx, 100*time.Millisecond)
-		close(doneCh)
-	}()
-
-	select {
-	case <-time.After(time.Second):
-		assert.Fail(t, "periodic function not called")
-	case <-ch:
-	}
-
-	remove()
-
-	select {
-	case <-time.After(200 * time.Millisecond):
-	case <-ch:
-		assert.Fail(t, "periodic function called")
-	}
-
-	cancel()
-
-	select {
-	case <-time.After(time.Second):
-		assert.Fail(t, "metrics did not stop")
-	case <-doneCh:
 	}
 }

@@ -103,13 +103,6 @@ func OptAddrsFilters(filter *mafilter.Filters) HostOption {
 	}
 }
 
-// OptBandwidthReporter adds a bandwidth reporter to a host.
-func OptBandwidthReporter(bwc metrics.Reporter) HostOption {
-	return func(h *Host) {
-		h.bwc = bwc
-	}
-}
-
 // DefHostOpts are the default options for a host.
 //
 // These options are set before the options passed to NewHost are processed.
@@ -125,6 +118,7 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 		ctx:  ctx,
 		netw: netw,
 		mux:  msmux.NewMultistreamMuxer(),
+		bwc:  &streamReporter{},
 	}
 
 	for _, o := range DefHostOpts {

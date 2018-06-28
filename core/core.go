@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/bytefmt"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/cfg"
@@ -35,7 +34,6 @@ import (
 	"github.com/stratumn/go-indigonode/release"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	identify "gx/ipfs/QmWsV6kzPaYGBDVyuUfWBvyQygEc9Qrv9vzo8vZ7X4mdLN/go-libp2p/p2p/protocol/identify"
 )
 
@@ -309,10 +307,10 @@ func (c *Core) hostInfo() {
 
 const (
 	// metricsInterval is the interval between metrics ticks.
-	metricsInterval = 500 * time.Millisecond
+	metricsInterval = time.Second
 
 	// metricsFmt is the format string for metrics.
-	metricsFmt = "\033[2K\rPeers: %d | Conns: %d | Total: ↓%s ↑%s | Rate: ↓%s/s ↑%s/s"
+	metricsFmt = "\033[2K\rPeers: %d | Conns: %d"
 )
 
 // nodeMetrics periodically displays some node metrics.
@@ -331,9 +329,8 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 			// We have to fetch these every tick because the
 			// services could be stopped or restarted.
 			hst := c.findHost()
-			bwc := c.findMetrics()
 
-			if hst == nil || bwc == nil {
+			if hst == nil {
 				fmt.Fprint(c.stdout, "\033[2K\rMetrics are not available.")
 
 				for _, f := range c.metricsHandlers {
@@ -346,18 +343,7 @@ func (c *Core) nodeMetrics(ctx context.Context) {
 			peers := len(hst.Network().Peers())
 			conns := len(hst.Network().Conns())
 
-			bw := bwc.GetBandwidthTotals()
-			totalIn := bytefmt.ByteSize(uint64(bw.TotalIn))
-			totalOut := bytefmt.ByteSize(uint64(bw.TotalOut))
-			rateIn := bytefmt.ByteSize(uint64(bw.RateIn))
-			rateOut := bytefmt.ByteSize(uint64(bw.RateOut))
-
-			fmt.Fprintf(
-				c.stdout, metricsFmt,
-				peers, conns,
-				totalIn, totalOut,
-				rateIn, rateOut,
-			)
+			fmt.Fprintf(c.stdout, metricsFmt, peers, conns)
 
 			for _, f := range c.metricsHandlers {
 				f()
@@ -375,20 +361,6 @@ func (c *Core) findHost() *p2p.Host {
 
 	if hst, ok := exposed.(*p2p.Host); ok {
 		return hst
-	}
-
-	return nil
-}
-
-// findMetrics finds the metrics service.
-func (c *Core) findMetrics() metrics.Reporter {
-	exposed, err := c.mgr.Expose(c.config.BootScreenMetrics)
-	if err != nil {
-		return nil
-	}
-
-	if bwc, ok := exposed.(metrics.Reporter); ok {
-		return bwc
 	}
 
 	return nil

@@ -187,9 +187,6 @@ const confZero = `
   # Name of the host service used by the boot screen to display metrics and host addresses.
   boot_screen_host = "host"
 
-  # Name of the metrics service used by the boot screen to display metrics.
-  boot_screen_metrics = "metrics"
-
   # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 

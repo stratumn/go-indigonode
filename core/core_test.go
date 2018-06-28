@@ -22,14 +22,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
 	"github.com/stratumn/go-indigonode/core/cfg"
 	"github.com/stratumn/go-indigonode/core/manager"
 	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	p2pmetrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 )
 
@@ -45,26 +43,16 @@ type coreTest struct {
 var coreTests = []coreTest{{
 	"with metrics",
 	withValidServices,
-	[]string{"host", "metrics"},
+	[]string{"host"},
 	true,
 	validateCompose(
 		validateRegexp("Starting host.+ok"),
-		validateRegexp("Starting metrics.+ok"),
 		validateRegexp("Starting boot.+ok"),
 		validateRegexp(`Listening at \/ip4\/127\.0\.0\.1\/tcp\/[0-9]+`),
 		validateRegexp(`Announcing \/ip4\/127\.0\.0\.1\/tcp\/[0-9]+`),
 		validateRegexp("Peers: 0"),
 		validateRegexp("Conns: 0"),
-		validateRegexp("Total: ↓0 ↑0"),
-		validateRegexp(`Rate: ↓0\/s ↑0\/s`),
 	),
-	validateEmpty,
-}, {
-	"without metrics",
-	withValidServices,
-	[]string{"host"},
-	true,
-	validateRegexp("Metrics are not available"),
 	validateEmpty,
 }}
 
@@ -94,7 +82,7 @@ func (s *mockService) Run(ctx context.Context, running, stopping func()) error {
 	return ctx.Err()
 }
 
-// withValidServices mocks valid host and metrics services.
+// withValidServices mocks a valid host service.
 func withValidServices(ctx context.Context, t *testing.T) ([]manager.Service, func() error) {
 	host := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
 
@@ -102,10 +90,6 @@ func withValidServices(ctx context.Context, t *testing.T) ([]manager.Service, fu
 		&mockService{
 			"host",
 			host,
-			false,
-		}, &mockService{
-			"metrics",
-			&metrics.Metrics{Reporter: p2pmetrics.NewBandwidthCounter()},
 			false,
 		},
 	}
@@ -246,11 +230,11 @@ func TestDeps(t *testing.T) {
 	services, close := withValidServices(ctx, t)
 	defer close()
 
-	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+	config := createTestConfig(ctx, t, services, []string{"host"})
 	deps, err := Deps(services, config, "boot")
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"host", "metrics", "boot"}, deps)
+	assert.Equal(t, []string{"host", "boot"}, deps)
 }
 
 func TestDeps_noServiceID(t *testing.T) {
@@ -260,11 +244,11 @@ func TestDeps_noServiceID(t *testing.T) {
 	services, close := withValidServices(ctx, t)
 	defer close()
 
-	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+	config := createTestConfig(ctx, t, services, []string{"host"})
 	deps, err := Deps(services, config, "")
 
 	require.NoError(t, err)
-	assert.Equal(t, []string{"host", "metrics", "boot"}, deps)
+	assert.Equal(t, []string{"host", "boot"}, deps)
 }
 
 func TestFGraph(t *testing.T) {
@@ -276,12 +260,10 @@ func TestFGraph(t *testing.T) {
 
 	w := bytes.NewBuffer(nil)
 
-	config := createTestConfig(ctx, t, services, []string{"metrics", "host"})
+	config := createTestConfig(ctx, t, services, []string{"host"})
 
 	require.NoError(t, Fgraph(w, services, config, "boot"))
 
-	assert.Equal(t, `boot┬host
-    │
-    └metrics
+	assert.Equal(t, `boot─host
 `, w.String())
 }

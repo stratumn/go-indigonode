@@ -64,9 +64,8 @@ var DefaultConfig = Config{
 		Desc:     "Starts Stratumn Indigo services for Proof-of-Process networks.",
 		Services: []string{"indigostore", "indigofossilizer"},
 	}},
-	EnableBootScreen:  true,
-	BootScreenHost:    "host",
-	BootScreenMetrics: "metrics",
+	EnableBootScreen: true,
+	BootScreenHost:   "host",
 }
 
 // NewConfigurableSet creates a new set of configurables bound to the given
@@ -126,10 +125,6 @@ type Config struct {
 	// BootScreenHost is the name of the host service used by the
 	// boot screen to display metrics and host addresses.
 	BootScreenHost string `toml:"boot_screen_host" comment:"Name of the host service used by the boot screen to display metrics and host addresses."`
-
-	// BootScreenMetrics is the name of the metrics service used by the
-	// boot screen to display metrics.
-	BootScreenMetrics string `toml:"boot_screen_metrics" comment:"Name of the metrics service used by the boot screen to display metrics."`
 }
 
 // ConfigHandler is a configurable for the core settings.

@@ -122,11 +122,8 @@ func (s *Service) SetConfig(config interface{}) error {
 
 // Expose doesn't need to expose anything.
 // It's a pull model instead of a push one: every component should expose
-// custom metrics, and we choose her which metrics we want to record.
+// custom metric views, and we choose here which metrics we want to record.
 func (s *Service) Expose() interface{} {
-	// TODO: in fact it will be helpful to expose basic metrics to display
-	// in a corner of the UI/CLI
-	// Like number of peers/conns
 	return nil
 }
 

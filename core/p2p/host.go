@@ -137,7 +137,8 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 	netw.SetConnHandler(h.newConnHandler)
 	netw.SetStreamHandler(h.newStreamHandler)
 
-	h.collectMetrics()
+	// This go-routine will be stopped when Host.Close() is called.
+	go h.collectMetrics()
 
 	return h
 }

@@ -333,9 +333,6 @@ const confZero = `
   # The name of the connection manager service.
   connection_manager = "connmgr"
 
-  # The name of the metrics service (blank = disabled).
-  metrics = "metrics"
-
   # The negotiation timeout.
   negotiation_timeout = "1m"
 

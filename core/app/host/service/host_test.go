@@ -21,7 +21,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
 	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
 	"github.com/stratumn/go-indigonode/core/manager/testservice"
 	"github.com/stratumn/go-indigonode/core/p2p"
@@ -36,7 +35,6 @@ func testService(ctx context.Context, t *testing.T) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
 	config.ConnectionManager = ""
-	config.Metrics = ""
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
@@ -112,15 +110,11 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"network",
 		func(c *Config) { c.Network = "myswarm" },
-		[]string{"connmgr", "metrics", "myswarm"},
+		[]string{"connmgr", "myswarm"},
 	}, {
 		"connmgr",
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
-		[]string{"myconnmgr", "metrics", "swarm"},
-	}, {
-		"metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		[]string{"connmgr", "mymetrics", "swarm"},
+		[]string{"myconnmgr", "swarm"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -192,22 +186,6 @@ func TestService_Plug(t *testing.T) {
 			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
 		},
 		ErrNotConnManager,
-	}, {
-		"valid metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		map[string]interface{}{
-			"mymetrics": &metrics.Metrics{},
-			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
-		},
-		nil,
-	}, {
-		"invalid metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		map[string]interface{}{
-			"mymetrics": struct{}{},
-			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
-		},
-		ErrNotMetrics,
 	}}
 
 	for _, tt := range tests {
@@ -215,7 +193,6 @@ func TestService_Plug(t *testing.T) {
 			serv := Service{}
 			config := serv.Config().(Config)
 			config.ConnectionManager = ""
-			config.Metrics = ""
 			tt.set(&config)
 
 			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")

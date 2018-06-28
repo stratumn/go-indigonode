@@ -19,10 +19,9 @@ package service
 import (
 	"context"
 
-	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
 	pb "github.com/stratumn/go-indigonode/core/app/swarm/grpc"
+	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stratumn/go-indigonode/core/protector"
 	"google.golang.org/grpc"
 
@@ -48,10 +47,6 @@ var (
 	// stream muxer.
 	ErrNotStreamMuxer = errors.New("connected service is not a stream muxer")
 
-	// ErrNotMetrics is returned when a specified service is not of type
-	// metrics.
-	ErrNotMetrics = errors.New("connected service is not of type metrics")
-
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
@@ -64,13 +59,11 @@ type Transport = smux.Transport
 type Service struct {
 	config *Config
 
-	metrics *metrics.Metrics
-	smuxer  Transport
-
 	peerID  peer.ID
 	privKey crypto.PrivKey
 	addrs   []ma.Multiaddr
 	swarm   *swarm.Swarm
+	smuxer  Transport
 
 	networkConfig protector.NetworkConfig
 	networkMode   *protector.NetworkMode
@@ -131,7 +124,6 @@ func (s *Service) Config() interface{} {
 			"/ip6/::/tcp/8903",
 		},
 		StreamMuxer: "mssmux",
-		Metrics:     "metrics",
 	}
 }
 
@@ -186,10 +178,6 @@ func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.StreamMuxer] = struct{}{}
 
-	if s.config.Metrics != "" {
-		needs[s.config.Metrics] = struct{}{}
-	}
-
 	return needs
 }
 
@@ -199,13 +187,6 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.smuxer, ok = exposed[s.config.StreamMuxer].(Transport); !ok {
 		return errors.WithStack(ErrNotStreamMuxer)
-	}
-
-	if s.config.Metrics != "" {
-		mtrx := exposed[s.config.Metrics]
-		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
-			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
-		}
 	}
 
 	return nil
@@ -248,7 +229,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	swmCtx, swmCancel := context.WithCancel(ctx)
 	defer swmCancel()
 
-	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, protect, s.smuxer, s.metrics)
+	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, protect, s.smuxer, &p2p.MetricsReporter{})
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -256,19 +237,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	s.networkConfig = networkConfig
 	s.swarm = swm
 
-	var cancelPeriodicMetrics func()
-
-	if s.metrics != nil {
-		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
-	}
-
 	running()
 	<-ctx.Done()
 	stopping()
-
-	if cancelPeriodicMetrics != nil {
-		cancelPeriodicMetrics()
-	}
 
 	swmCancel()
 
@@ -289,23 +260,4 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 			return s.swarm
 		},
 	})
-}
-
-// periodicMetrics sends periodic stats about peers, connections, and total
-// bandwidth usage.
-func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
-	labels := []gometrics.Label{{
-		Name:  "service",
-		Value: s.ID(),
-	}}
-
-	sink.SetGaugeWithLabels([]string{"peers"}, float32(len(s.swarm.Peers())), labels)
-	sink.SetGaugeWithLabels([]string{"connections"}, float32(len(s.swarm.Connections())), labels)
-
-	stats := s.metrics.GetBandwidthTotals()
-
-	sink.SetGaugeWithLabels([]string{"bandwidthTotalIn"}, float32(stats.TotalIn), labels)
-	sink.SetGaugeWithLabels([]string{"bandwidthTotalOut"}, float32(stats.TotalOut), labels)
-	sink.SetGaugeWithLabels([]string{"bandwidthRateIn"}, float32(stats.RateIn), labels)
-	sink.SetGaugeWithLabels([]string{"bandwidthRateOut"}, float32(stats.RateOut), labels)
 }

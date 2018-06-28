@@ -46,6 +46,9 @@ var (
 var views = []*view.View{
 	p2p.BandwidthInView,
 	p2p.BandwidthOutView,
+	p2p.ConnectionsView,
+	p2p.PeersView,
+	p2p.LatencyView,
 }
 
 // log is the logger for the service.

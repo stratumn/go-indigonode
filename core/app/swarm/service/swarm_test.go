@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
 	"github.com/stratumn/go-indigonode/core/manager/testservice"
 	"github.com/stratumn/go-indigonode/core/protector"
 	"github.com/stratumn/go-indigonode/test"
@@ -41,7 +40,6 @@ func testService(ctx context.Context, t *testing.T, smuxer Transport, cfgOpts ..
 	serv := &Service{}
 	config := serv.Config().(Config)
 	config.Addresses = []string{"/ip4/0.0.0.0/tcp/35768"}
-	config.Metrics = ""
 
 	for _, opt := range cfgOpts {
 		opt(&config)
@@ -265,11 +263,7 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"stream muxer",
 		func(c *Config) { c.StreamMuxer = "mysmux" },
-		[]string{"mysmux", "metrics"},
-	}, {
-		"metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		[]string{"mssmux", "mymetrics"},
+		[]string{"mysmux"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -320,29 +314,12 @@ func TestService_Plug(t *testing.T) {
 			"mysmux": struct{}{},
 		},
 		ErrNotStreamMuxer,
-	}, {
-		"valid metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		map[string]interface{}{
-			"mymetrics": &metrics.Metrics{},
-			"mssmux":    smuxer,
-		},
-		nil,
-	}, {
-		"invalid metrics",
-		func(c *Config) { c.Metrics = "mymetrics" },
-		map[string]interface{}{
-			"mymetrics": struct{}{},
-			"mssmux":    smuxer,
-		},
-		ErrNotMetrics,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			serv := Service{}
 			config := serv.Config().(Config)
-			config.Metrics = ""
 			tt.set(&config)
 
 			require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")

@@ -547,9 +547,6 @@ const confZero = `
   # List of addresses to bind to.
   addresses = ["/ip4/0.0.0.0/tcp/8903","/ip6/::/tcp/8903"]
 
-  # The name of the metrics service (blank = disabled).
-  metrics = "metrics"
-
   # The peer ID of the host.
   peer_id = "` + cfg.ConfZeroPID + `"
 

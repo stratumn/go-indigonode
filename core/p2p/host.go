@@ -27,6 +27,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
+
 	madns "gx/ipfs/QmQMRYmPn77CKRFf4YFjX3M5e6uw6DFAgsQffCX6mwZ4mA/go-multiaddr-dns"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	msmux "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
@@ -69,7 +72,8 @@ type Host struct {
 	ids    *identify.IDService
 	router func(context.Context, peer.ID) (pstore.PeerInfo, error)
 
-	bwc metrics.Reporter
+	bwc  metrics.Reporter
+	tick *time.Ticker
 }
 
 // HostOption configures a host.
@@ -118,7 +122,8 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 		ctx:  ctx,
 		netw: netw,
 		mux:  msmux.NewMultistreamMuxer(),
-		bwc:  &streamReporter{},
+		bwc:  &MetricsReporter{},
+		tick: time.NewTicker(time.Second),
 	}
 
 	for _, o := range DefHostOpts {
@@ -131,6 +136,8 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 
 	netw.SetConnHandler(h.newConnHandler)
 	netw.SetStreamHandler(h.newStreamHandler)
+
+	h.collectMetrics()
 
 	return h
 }
@@ -614,6 +621,8 @@ func (h *Host) Close() error {
 	h.netw.SetStreamHandler(nil)
 	h.netw.SetConnHandler(nil)
 
+	h.tick.Stop()
+
 	return errors.WithStack(h.netw.Close())
 }
 
@@ -653,6 +662,31 @@ func (h *Host) SetRouter(router func(context.Context, peer.ID) (pstore.PeerInfo,
 	}
 
 	log.Event(h.ctx, "setRouter")
+}
+
+// collectMetrics periodically reports p2p metrics.
+func (h *Host) collectMetrics() {
+	for _ = range h.tick.C {
+		ctx := context.Background()
+		connCount := len(h.Network().Conns())
+		peerCount := len(h.Network().Peers())
+
+		stats.Record(
+			ctx,
+			connections.M(int64(connCount)),
+			peers.M(int64(peerCount)),
+		)
+
+		for _, peerID := range h.Peerstore().Peers() {
+			ctx, err := tag.New(ctx, tag.Upsert(peerIDKey, peerID.Pretty()))
+			if err != nil {
+				continue
+			}
+
+			peerLatency := 1000000 * h.Peerstore().LatencyEWMA(peerID).Nanoseconds()
+			stats.Record(ctx, latency.M(peerLatency))
+		}
+	}
 }
 
 // protocolsToString converts protocol IDs to strings.

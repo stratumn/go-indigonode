@@ -216,7 +216,7 @@ const confZero = `
     name = "System Services"
 
     # Services started by the group.
-    services = ["signal","pruner"]
+    services = ["signal","pruner","metrics"]
 
   [[core.service_groups]]
 

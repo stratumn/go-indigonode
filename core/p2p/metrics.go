@@ -26,26 +26,6 @@ import (
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
-func init() {
-	var err error
-
-	peerIDKey, err = tag.NewKey("github.com/stratumn/go-indigonode/keys/peerid")
-	if err != nil {
-		panic(err)
-	}
-
-	protocolIDKey, err = tag.NewKey("github.com/stratumn/go-indigonode/keys/protocolid")
-	if err != nil {
-		panic(err)
-	}
-}
-
-// Tags used by the p2p layer.
-var (
-	peerIDKey     tag.Key
-	protocolIDKey tag.Key
-)
-
 // Measures exposed by the p2p layer.
 var (
 	bandwidthIn = stats.Int64(
@@ -84,6 +64,12 @@ var (
 	DefaultLatencyDistribution = view.Distribution(0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400, 500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000)
 )
 
+// Tags used by the p2p layer.
+var (
+	peerIDKey, _     = tag.NewKey("github.com/stratumn/go-indigonode/keys/peerid")
+	protocolIDKey, _ = tag.NewKey("github.com/stratumn/go-indigonode/keys/protocolid")
+)
+
 // Views exposed by the p2p layer.
 var (
 	BandwidthInView = &view.View{
@@ -119,8 +105,8 @@ var (
 	LatencyView = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/latency",
 		Description: "peer latency distribution",
-		TagKeys:     []tag.Key{peerIDKey},
 		Measure:     latency,
+		TagKeys:     []tag.Key{peerIDKey},
 		Aggregation: DefaultLatencyDistribution,
 	}
 )

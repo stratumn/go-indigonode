@@ -117,12 +117,30 @@ type MetricsReporter struct {
 
 // LogSentMessage records the bandwidth used.
 func (r *MetricsReporter) LogSentMessage(b int64) {
-	stats.Record(context.Background(), bandwidthOut.M(b))
+	ctx, err := tag.New(
+		context.Background(),
+		tag.Insert(peerIDKey, "none"),
+		tag.Insert(protocolIDKey, "none"),
+	)
+	if err != nil {
+		return
+	}
+
+	stats.Record(ctx, bandwidthOut.M(b))
 }
 
 // LogRecvMessage records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessage(b int64) {
-	stats.Record(context.Background(), bandwidthIn.M(b))
+	ctx, err := tag.New(
+		context.Background(),
+		tag.Insert(peerIDKey, "none"),
+		tag.Insert(protocolIDKey, "none"),
+	)
+	if err != nil {
+		return
+	}
+
+	stats.Record(ctx, bandwidthIn.M(b))
 }
 
 // LogSentMessageStream records the bandwidth used.

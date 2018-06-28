@@ -106,14 +106,14 @@ var (
 		Name:        "github.com/stratumn/go-indigonode/views/connections",
 		Description: "open connections",
 		Measure:     connections,
-		Aggregation: view.Count(),
+		Aggregation: view.LastValue(),
 	}
 
 	PeersView = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/peers",
 		Description: "connected peers",
 		Measure:     peers,
-		Aggregation: view.Count(),
+		Aggregation: view.LastValue(),
 	}
 
 	LatencyView = &view.View{

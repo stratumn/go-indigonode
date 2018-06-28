@@ -88,7 +88,7 @@ To view metrics you need to install Prometheus. On macOS:
 brew install prometheus
 ```
 
-Then copy `prometheus.yml` and launch Prometheus:
+Then copy `monitoring/prometheus.yml` and launch Prometheus:
 
 ```bash
 prometheus

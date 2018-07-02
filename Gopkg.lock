@@ -556,6 +556,7 @@
   branch = "master"
   name = "go.opencensus.io"
   packages = [
+    ".",
     "exporter/jaeger",
     "exporter/jaeger/internal/gen-go/jaeger",
     "exporter/prometheus",
@@ -702,6 +703,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8a1d778c815b3e316562fb537d06a36301008787a4cb275cdc9c369a7378825d"
+  inputs-digest = "b65441a0c1e32bcdc2d93a529a35887a88637d5208e8b539925c6fab1ee53327"
   solver-name = "gps-cdcl"
   solver-version = 1

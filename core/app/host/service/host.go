@@ -17,13 +17,10 @@ package service
 
 import (
 	"context"
-	"math"
 	"time"
 
-	gometrics "github.com/armon/go-metrics"
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/go-indigonode/core/app/host/grpc"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
 	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
 	"github.com/stratumn/go-indigonode/core/p2p"
 
@@ -32,7 +29,6 @@ import (
 	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	mafilter "gx/ipfs/Qmf2UAmRwDG4TvnkQpHZWPAzw7rpCYVhxmRXmYxXr5LD1g/go-maddr-filter"
 	ifconnmgr "gx/ipfs/QmfQNieWBPwmnUjXWPZbjJPzhNwFFabTb5RQ79dyVWGujQ/go-libp2p-interface-connmgr"
 )
@@ -45,10 +41,6 @@ var (
 	// connection manager.
 	ErrNotConnManager = errors.New("connected service is not a connection manager")
 
-	// ErrNotMetrics is returned when a specified service is not of type
-	// metrics.
-	ErrNotMetrics = errors.New("connected service is not of type metrics")
-
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
@@ -58,9 +50,8 @@ var (
 type Service struct {
 	config *Config
 
-	netw    inet.Network
-	cmgr    ifconnmgr.ConnManager
-	metrics *metrics.Metrics
+	netw inet.Network
+	cmgr ifconnmgr.ConnManager
 
 	negTimeout   time.Duration
 	addrsFilters *mafilter.Filters
@@ -75,9 +66,6 @@ type Config struct {
 
 	// ConnectionManager is the name of the connection manager service.
 	ConnectionManager string `toml:"connection_manager" comment:"The name of the connection manager service."`
-
-	// Metrics is the name of the metrics service.
-	Metrics string `toml:"metrics" comment:"The name of the metrics service (blank = disabled)."`
 
 	// NegotiationTimeout is the negotiation timeout.
 	NegotiationTimeout string `toml:"negotiation_timeout" comment:"The negotiation timeout."`
@@ -113,7 +101,6 @@ func (s *Service) Config() interface{} {
 	return Config{
 		Network:            "swarm",
 		ConnectionManager:  "connmgr",
-		Metrics:            "metrics",
 		NegotiationTimeout: "1m",
 		AddressesNetmasks:  []string{},
 	}
@@ -158,10 +145,6 @@ func (s *Service) Needs() map[string]struct{} {
 		needs[s.config.ConnectionManager] = struct{}{}
 	}
 
-	if s.config.Metrics != "" {
-		needs[s.config.Metrics] = struct{}{}
-	}
-
 	return needs
 }
 
@@ -184,13 +167,6 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		cmgr := exposed[s.config.ConnectionManager]
 		if s.cmgr, ok = cmgr.(ifconnmgr.ConnManager); !ok {
 			return errors.Wrap(ErrNotConnManager, s.config.ConnectionManager)
-		}
-	}
-
-	if s.config.Metrics != "" {
-		mtrx := exposed[s.config.Metrics]
-		if s.metrics, ok = mtrx.(*metrics.Metrics); !ok {
-			return errors.Wrap(ErrNotMetrics, s.config.Metrics)
 		}
 	}
 
@@ -218,25 +194,11 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		opts = append(opts, p2p.OptAddrsFilters(s.addrsFilters))
 	}
 
-	if s.metrics != nil {
-		opts = append(opts, p2p.OptBandwidthReporter(s.metrics))
-	}
-
 	s.host = p2p.NewHost(ctx, s.netw, opts...)
-
-	var cancelPeriodicMetrics func()
-
-	if s.metrics != nil {
-		cancelPeriodicMetrics = s.metrics.AddPeriodicHandler(s.periodicMetrics)
-	}
 
 	running()
 	<-ctx.Done()
 	stopping()
-
-	if cancelPeriodicMetrics != nil {
-		cancelPeriodicMetrics()
-	}
 
 	h := s.host
 	s.host = nil
@@ -253,60 +215,4 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterHostServer(gs, grpcServer{
 		GetHost: func() *p2p.Host { return s.host },
 	})
-}
-
-// periodicMetrics sends bandwidth usage for each protocol.
-func (s *Service) periodicMetrics(sink gometrics.MetricSink) {
-	for _, proto := range s.host.Mux().Protocols() {
-		stats := s.metrics.GetBandwidthForProtocol(protocol.ID(proto))
-		labels := []gometrics.Label{{
-			Name:  "service",
-			Value: s.ID(),
-		}, {
-			Name:  "protocol",
-			Value: proto,
-		}}
-
-		sink.SetGaugeWithLabels([]string{"protocolBandwidthTotalIn"}, float32(stats.TotalIn), labels)
-		sink.SetGaugeWithLabels([]string{"protocolBandwidthTotalOut"}, float32(stats.TotalOut), labels)
-		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateIn"}, float32(stats.RateIn), labels)
-		sink.SetGaugeWithLabels([]string{"protocolBandwidthRateOut"}, float32(stats.RateOut), labels)
-	}
-
-	peers := s.host.Network().Peers()
-
-	if l := len(peers); l > 0 {
-		peerstore := s.host.Peerstore()
-
-		minLat, maxLat, sum := float32(math.Inf(1)), float32(math.Inf(-1)), float32(0)
-
-		for _, pid := range peers {
-			latency := float32(peerstore.LatencyEWMA(pid).Nanoseconds())
-			if latency == 0 {
-				continue
-			}
-			if latency < minLat {
-				minLat = latency
-			}
-			if latency > maxLat {
-				maxLat = latency
-			}
-			sum += latency
-		}
-
-		if sum == 0 {
-			return
-		}
-
-		avgLat := sum / float32(l)
-
-		labels := []gometrics.Label{{
-			Name:  "service",
-			Value: s.ID(),
-		}}
-
-		sink.SetGaugeWithLabels([]string{"minLatencyMs"}, minLat/1000000, labels)
-		sink.SetGaugeWithLabels([]string{"maxLatencyMs"}, maxLat/1000000, labels)
-		sink.SetGaugeWithLabels([]string{"avgLatencyMs"}, avgLat/1000000, labels)
-	}
 }

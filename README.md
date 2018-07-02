@@ -88,7 +88,7 @@ To view metrics you need to install Prometheus. On macOS:
 brew install prometheus
 ```
 
-Then copy `prometheus.yml` and launch Prometheus:
+Then copy `monitoring/prometheus/prometheus.yml` and launch Prometheus:
 
 ```bash
 prometheus
@@ -96,7 +96,24 @@ prometheus
 
 By default, Prometheus is available at `http://localhost:9090`.
 
+## Dashboards and Graphs
+
 To create dashboards, check out [grafana](https://grafana.com).
+
+To install on macOS:
+
+```bash
+brew install grafana
+```
+
+We provide some useful graph definitions in `monitoring/grafana`.
+
+Copy the `monitoring/grafana` folder and launch Grafana:
+
+```bash
+export GF_PATHS_PROVISIONING=./grafana/provisioning
+grafana-server
+```
 
 ## Documentation
 

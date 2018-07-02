@@ -39,9 +39,6 @@ type Config struct {
 	// StreamMuxer is the name of the stream muxer service.
 	StreamMuxer string `toml:"stream_muxer" comment:"The name of the stream muxer service."`
 
-	// Metrics is the name of the metrics service.
-	Metrics string `toml:"metrics" comment:"The name of the metrics service (blank = disabled)."`
-
 	// ProtectionMode describes the network protection mode.
 	ProtectionMode string `toml:"protection_mode" comment:"Protection mode for private network (blank = disabled)."`
 

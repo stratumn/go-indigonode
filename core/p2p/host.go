@@ -27,6 +27,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"go.opencensus.io/stats"
+	"go.opencensus.io/tag"
+
 	madns "gx/ipfs/QmQMRYmPn77CKRFf4YFjX3M5e6uw6DFAgsQffCX6mwZ4mA/go-multiaddr-dns"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	msmux "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
@@ -69,7 +72,8 @@ type Host struct {
 	ids    *identify.IDService
 	router func(context.Context, peer.ID) (pstore.PeerInfo, error)
 
-	bwc metrics.Reporter
+	bwc  metrics.Reporter
+	tick *time.Ticker
 }
 
 // HostOption configures a host.
@@ -103,13 +107,6 @@ func OptAddrsFilters(filter *mafilter.Filters) HostOption {
 	}
 }
 
-// OptBandwidthReporter adds a bandwidth reporter to a host.
-func OptBandwidthReporter(bwc metrics.Reporter) HostOption {
-	return func(h *Host) {
-		h.bwc = bwc
-	}
-}
-
 // DefHostOpts are the default options for a host.
 //
 // These options are set before the options passed to NewHost are processed.
@@ -125,6 +122,8 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 		ctx:  ctx,
 		netw: netw,
 		mux:  msmux.NewMultistreamMuxer(),
+		bwc:  &MetricsReporter{},
+		tick: time.NewTicker(time.Second),
 	}
 
 	for _, o := range DefHostOpts {
@@ -137,6 +136,9 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 
 	netw.SetConnHandler(h.newConnHandler)
 	netw.SetStreamHandler(h.newStreamHandler)
+
+	// This go-routine will be stopped when Host.Close() is called.
+	go h.collectMetrics()
 
 	return h
 }
@@ -620,6 +622,8 @@ func (h *Host) Close() error {
 	h.netw.SetStreamHandler(nil)
 	h.netw.SetConnHandler(nil)
 
+	h.tick.Stop()
+
 	return errors.WithStack(h.netw.Close())
 }
 
@@ -659,6 +663,35 @@ func (h *Host) SetRouter(router func(context.Context, peer.ID) (pstore.PeerInfo,
 	}
 
 	log.Event(h.ctx, "setRouter")
+}
+
+// collectMetrics periodically reports p2p metrics.
+func (h *Host) collectMetrics() {
+	for range h.tick.C {
+		ctx := context.Background()
+		connCount := len(h.Network().Conns())
+		peerCount := len(h.Network().Peers())
+
+		stats.Record(
+			ctx,
+			connections.M(int64(connCount)),
+			peers.M(int64(peerCount)),
+		)
+
+		for _, peerID := range h.Peerstore().Peers() {
+			if peerID == h.ID() {
+				continue
+			}
+
+			ctx, err := tag.New(ctx, tag.Upsert(peerIDKey, peerID.Pretty()))
+			if err != nil {
+				continue
+			}
+
+			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1000000
+			stats.Record(ctx, latency.M(peerLatency))
+		}
+	}
 }
 
 // protocolsToString converts protocol IDs to strings.

@@ -22,4 +22,7 @@
 //go:generate mockgen -package mocks -destination mocks/mockstreammuxer.go gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer Transport
 //go:generate mockgen -package mocks -destination mocks/mocktransport.go -mock_names Conn=MockTransportConn gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport Conn
 
+// Mocks for opencensus components:
+//go:generate mockgen -package mocks -destination mocks/mockexporter.go go.opencensus.io/stats/view Exporter
+
 package test

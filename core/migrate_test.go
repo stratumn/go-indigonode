@@ -187,9 +187,6 @@ const confZero = `
   # Name of the host service used by the boot screen to display metrics and host addresses.
   boot_screen_host = "host"
 
-  # Name of the metrics service used by the boot screen to display metrics.
-  boot_screen_metrics = "metrics"
-
   # The version of Indigo Node that generated this file.
   generated_by_version = "v0.0.1"
 
@@ -219,7 +216,7 @@ const confZero = `
     name = "System Services"
 
     # Services started by the group.
-    services = ["signal","pruner"]
+    services = ["signal","pruner","metrics"]
 
   [[core.service_groups]]
 
@@ -332,9 +329,6 @@ const confZero = `
 
   # The name of the connection manager service.
   connection_manager = "connmgr"
-
-  # The name of the metrics service (blank = disabled).
-  metrics = "metrics"
 
   # The negotiation timeout.
   negotiation_timeout = "1m"
@@ -546,9 +540,6 @@ const confZero = `
 
   # List of addresses to bind to.
   addresses = ["/ip4/0.0.0.0/tcp/8903","/ip6/::/tcp/8903"]
-
-  # The name of the metrics service (blank = disabled).
-  metrics = "metrics"
 
   # The peer ID of the host.
   peer_id = "` + cfg.ConfZeroPID + `"

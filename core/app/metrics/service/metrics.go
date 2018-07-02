@@ -21,21 +21,17 @@ package service
 
 import (
 	"context"
-	"net/http"
-	"sync"
-	"sync/atomic"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
 	"github.com/stratumn/go-indigonode/core/httputil"
+	"github.com/stratumn/go-indigonode/core/p2p"
+
+	"go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	p2pmetrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
@@ -45,28 +41,19 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// log is the logger for the service.
-var log = logging.Logger("metrics")
-
-// sink is the global Prometheus sink. If not global, it crashes when gauges
-// with the same name are recreated after service restart.
-var promSink metrics.MetricSink
-
-// Creates the global sink.
-func init() {
-	sink, err := prometheus.NewPrometheusSink()
-	if err != nil {
-		panic(err)
-	}
-
-	promSink = sink
+// views registered for metrics collection.
+var views = []*view.View{
+	p2p.BandwidthIn,
+	p2p.BandwidthOut,
+	p2p.Connections,
+	p2p.Peers,
+	p2p.Latency,
 }
 
 // Service is the Metrics service.
 type Service struct {
 	config   *Config
 	interval time.Duration
-	metrics  *Metrics
 }
 
 // Config contains configuration options for the Metrics service.
@@ -91,7 +78,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "Collects metrics."
+	return "Collects metrics and traces."
 }
 
 // Config returns the current service configuration or creates one with
@@ -129,28 +116,21 @@ func (s *Service) SetConfig(config interface{}) error {
 	return nil
 }
 
-// Expose exposes the bandwidth reporter to other services.
-//
-// It exposes the type:
-//	github.com/stratumn/go-indigonode/core/service/*metrics.Metrics
+// Expose doesn't need to expose anything.
+// It's a pull model instead of a push one: every component should expose
+// custom metric views, and we choose here which metrics we want to record.
 func (s *Service) Expose() interface{} {
-	return s.metrics
+	return nil
 }
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	bwc := p2pmetrics.NewBandwidthCounter()
+	exporter, err := prometheus.NewExporter(prometheus.Options{})
+	if err != nil {
+		return err
+	}
 
-	s.metrics = newMetrics(bwc, promSink)
-
-	metricsCtx, cancelMetrics := context.WithCancel(ctx)
-	defer cancelMetrics()
-
-	metricsDone := make(chan struct{})
-	go func() {
-		s.metrics.start(metricsCtx, s.interval)
-		close(metricsDone)
-	}()
+	view.RegisterExporter(exporter)
 
 	promCtx, cancelProm := context.WithCancel(ctx)
 	defer cancelProm()
@@ -158,13 +138,18 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	promDone := make(chan error, 1)
 	if s.config.PrometheusEndpoint != "" {
 		go func() {
-			promDone <- httputil.StartServer(promCtx, s.config.PrometheusEndpoint, promHandler{ctx: ctx})
+			promDone <- httputil.StartServer(
+				promCtx,
+				s.config.PrometheusEndpoint,
+				exporter)
 		}()
 	}
 
-	running()
+	if err := view.Register(views...); err != nil {
+		return err
+	}
 
-	var err error
+	running()
 
 	select {
 	case err = <-promDone:
@@ -178,10 +163,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}
 
-	cancelMetrics()
-	<-metricsDone
-
-	s.metrics = nil
+	view.Unregister(views...)
+	view.UnregisterExporter(exporter)
 
 	if err == nil {
 		return errors.WithStack(ctx.Err())
@@ -192,90 +175,5 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterMetricsServer(gs, grpcServer{
-		GetMetrics: func() *Metrics { return s.metrics },
-	})
-}
-
-// Metrics embeds a libp2p reporter and a metrics sink.
-//
-// It can also be used to add handles for periodic metrics.
-type Metrics struct {
-	p2pmetrics.Reporter
-	metrics.MetricSink
-
-	handlersMu sync.Mutex
-	handlers   map[uint64]func(metrics.MetricSink)
-}
-
-// newMetrics creates a new metrics struct.
-func newMetrics(bwc p2pmetrics.Reporter, sink metrics.MetricSink) *Metrics {
-	return &Metrics{
-		Reporter:   bwc,
-		MetricSink: sink,
-		handlers:   map[uint64]func(metrics.MetricSink){},
-	}
-}
-
-var metricsHandlerID = uint64(0)
-
-// AddPeriodicHandler adds a periodic metrics handler.
-//
-// It returns a function that removes the handler.
-func (m *Metrics) AddPeriodicHandler(handler func(metrics.MetricSink)) func() {
-	m.handlersMu.Lock()
-	defer m.handlersMu.Unlock()
-
-	id := atomic.AddUint64(&metricsHandlerID, 1)
-	m.handlers[id] = handler
-
-	return func() {
-		m.handlersMu.Lock()
-		delete(m.handlers, id)
-		m.handlersMu.Unlock()
-	}
-}
-
-// start starts the periodic ticker.
-func (m *Metrics) start(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	m.tick(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			m.tick(ctx)
-		}
-	}
-}
-
-// tick executes all the registered periodic handlers.
-func (m *Metrics) tick(ctx context.Context) {
-	defer log.EventBegin(ctx, "tick").Done()
-
-	m.handlersMu.Lock()
-	defer m.handlersMu.Unlock()
-
-	for _, handler := range m.handlers {
-		handler(m)
-	}
-}
-
-// promHandler is an HTTP handler for the Prometheus endpoint.
-//
-// It logs Prometheus requests.
-type promHandler struct {
-	ctx context.Context
-}
-
-// ServeHTTP serves an HTTP request for Prometheus.
-func (h promHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	event := log.EventBegin(h.ctx, "prometheusServe")
-	defer event.Done()
-
-	promhttp.Handler().ServeHTTP(res, req)
+	pb.RegisterMetricsServer(gs, grpcServer{})
 }

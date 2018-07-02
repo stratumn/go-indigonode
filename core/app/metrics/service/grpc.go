@@ -14,47 +14,8 @@
 
 package service
 
-import (
-	"context"
-
-	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
-
-	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-)
-
 // grpcServer is a gRPC server for the metrics service.
 type grpcServer struct {
-	GetMetrics func() *Metrics
 }
 
-// Bandwidth reports bandwith usage.
-func (s grpcServer) Bandwidth(ctx context.Context, req *pb.BandwidthReq) (*pb.BandwidthStats, error) {
-	mtrx := s.GetMetrics()
-	if mtrx == nil {
-		return nil, errors.WithStack(ErrUnavailable)
-	}
-
-	var stats metrics.Stats
-
-	if req.PeerId != nil {
-		pid, err := peer.IDFromBytes(req.PeerId)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		stats = mtrx.GetBandwidthForPeer(pid)
-	} else if req.ProtocolId != "" {
-		stats = mtrx.GetBandwidthForProtocol(protocol.ID(req.ProtocolId))
-	} else {
-		stats = mtrx.GetBandwidthTotals()
-	}
-
-	return &pb.BandwidthStats{
-		TotalIn:  uint64(stats.TotalIn),
-		TotalOut: uint64(stats.TotalOut),
-		RateIn:   uint64(stats.RateIn),
-		RateOut:  uint64(stats.RateOut),
-	}, nil
-}
+// TODO: RPC to set trace sampling ratio

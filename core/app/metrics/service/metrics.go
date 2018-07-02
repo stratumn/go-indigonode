@@ -32,7 +32,6 @@ import (
 	"go.opencensus.io/stats/view"
 	"google.golang.org/grpc"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
@@ -44,15 +43,12 @@ var (
 
 // views registered for metrics collection.
 var views = []*view.View{
-	p2p.BandwidthInView,
-	p2p.BandwidthOutView,
-	p2p.ConnectionsView,
-	p2p.PeersView,
-	p2p.LatencyView,
+	p2p.BandwidthIn,
+	p2p.BandwidthOut,
+	p2p.Connections,
+	p2p.Peers,
+	p2p.Latency,
 }
-
-// log is the logger for the service.
-var log = logging.Logger("metrics")
 
 // Service is the Metrics service.
 type Service struct {

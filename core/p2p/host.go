@@ -667,7 +667,7 @@ func (h *Host) SetRouter(router func(context.Context, peer.ID) (pstore.PeerInfo,
 
 // collectMetrics periodically reports p2p metrics.
 func (h *Host) collectMetrics() {
-	for _ = range h.tick.C {
+	for range h.tick.C {
 		ctx := context.Background()
 		connCount := len(h.Network().Conns())
 		peerCount := len(h.Network().Peers())

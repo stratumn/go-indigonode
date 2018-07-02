@@ -72,7 +72,7 @@ var (
 
 // Views exposed by the p2p layer.
 var (
-	BandwidthInView = &view.View{
+	BandwidthIn = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-in",
 		Description: "incoming messages bandwidth",
 		Measure:     bandwidthIn,
@@ -80,7 +80,7 @@ var (
 		Aggregation: view.Count(),
 	}
 
-	BandwidthOutView = &view.View{
+	BandwidthOut = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-out",
 		Description: "outgoing messages bandwidth",
 		Measure:     bandwidthOut,
@@ -88,21 +88,21 @@ var (
 		Aggregation: view.Count(),
 	}
 
-	ConnectionsView = &view.View{
+	Connections = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/connections",
 		Description: "open connections",
 		Measure:     connections,
 		Aggregation: view.LastValue(),
 	}
 
-	PeersView = &view.View{
+	Peers = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/peers",
 		Description: "connected peers",
 		Measure:     peers,
 		Aggregation: view.LastValue(),
 	}
 
-	LatencyView = &view.View{
+	Latency = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/latency",
 		Description: "peer latency distribution",
 		Measure:     latency,

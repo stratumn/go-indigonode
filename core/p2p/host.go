@@ -679,12 +679,16 @@ func (h *Host) collectMetrics() {
 		)
 
 		for _, peerID := range h.Peerstore().Peers() {
+			if peerID == h.ID() {
+				continue
+			}
+
 			ctx, err := tag.New(ctx, tag.Upsert(peerIDKey, peerID.Pretty()))
 			if err != nil {
 				continue
 			}
 
-			peerLatency := 1000000 * h.Peerstore().LatencyEWMA(peerID).Nanoseconds()
+			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1000000
 			stats.Record(ctx, latency.M(peerLatency))
 		}
 	}

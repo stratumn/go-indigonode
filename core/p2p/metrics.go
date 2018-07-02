@@ -52,7 +52,7 @@ var (
 		stats.UnitNone,
 	)
 
-	latency = stats.Int64(
+	latency = stats.Float64(
 		"github.com/stratumn/go-indigonode/measure/latency",
 		"peer latency",
 		stats.UnitMilliseconds,
@@ -119,8 +119,8 @@ type MetricsReporter struct {
 func (r *MetricsReporter) LogSentMessage(b int64) {
 	ctx, err := tag.New(
 		context.Background(),
-		tag.Insert(peerIDKey, "none"),
-		tag.Insert(protocolIDKey, "none"),
+		tag.Insert(peerIDKey, "unknown"),
+		tag.Insert(protocolIDKey, "unknown"),
 	)
 	if err != nil {
 		return
@@ -133,8 +133,8 @@ func (r *MetricsReporter) LogSentMessage(b int64) {
 func (r *MetricsReporter) LogRecvMessage(b int64) {
 	ctx, err := tag.New(
 		context.Background(),
-		tag.Insert(peerIDKey, "none"),
-		tag.Insert(protocolIDKey, "none"),
+		tag.Insert(peerIDKey, "unknown"),
+		tag.Insert(protocolIDKey, "unknown"),
 	)
 	if err != nil {
 		return

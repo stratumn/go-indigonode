@@ -18,6 +18,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 
@@ -32,6 +34,9 @@ func logRequest(
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler,
 ) (interface{}, error) {
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(methodTag, info.FullMethod).Build()
+	requestReceived.Record(ctx, 1)
+
 	event := log.EventBegin(ctx, "request", logging.Metadata{
 		"request": req,
 		"method":  info.FullMethod,
@@ -42,6 +47,7 @@ func logRequest(
 	pr, ok := peer.FromContext(ctx)
 	if !ok {
 		event.SetError(ErrPeerNotFound)
+		requestErr.Record(ctx, 1)
 		return nil, errors.WithStack(ErrPeerNotFound)
 	}
 
@@ -59,6 +65,7 @@ func logRequest(
 	res, err := handler(ctx, req)
 	if err != nil {
 		event.SetError(err)
+		requestErr.Record(ctx, 1)
 		return nil, errors.WithStack(err)
 	}
 
@@ -74,7 +81,10 @@ func logStream(
 	info *grpc.StreamServerInfo,
 	handler grpc.StreamHandler,
 ) error {
-	event := log.EventBegin(ss.Context(), "request", logging.Metadata{
+	ctx, _ := monitoring.NewTaggedContext(ss.Context()).Tag(methodTag, info.FullMethod).Build()
+	requestReceived.Record(ctx, 1)
+
+	event := log.EventBegin(ctx, "request", logging.Metadata{
 		"method":       info.FullMethod,
 		"serverStream": info.IsServerStream,
 		"clientStream": info.IsClientStream,
@@ -82,9 +92,10 @@ func logStream(
 	defer event.Done()
 
 	// Get the gRPC peer from the stream's context.
-	pr, ok := peer.FromContext(ss.Context())
+	pr, ok := peer.FromContext(ctx)
 	if !ok {
 		event.SetError(ErrPeerNotFound)
+		requestErr.Record(ctx, 1)
 		return errors.WithStack(ErrPeerNotFound)
 	}
 
@@ -102,6 +113,7 @@ func logStream(
 	err = handler(srv, ss)
 	if err != nil {
 		event.SetError(err)
+		requestErr.Record(ctx, 1)
 		return errors.WithStack(err)
 	}
 

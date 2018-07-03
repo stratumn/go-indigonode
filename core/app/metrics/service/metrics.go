@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	chat "github.com/stratumn/go-indigonode/app/chat/protocol"
+	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
 	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
 	"github.com/stratumn/go-indigonode/core/httputil"
 	"github.com/stratumn/go-indigonode/core/p2p"
@@ -52,6 +53,8 @@ var views = []*view.View{
 	chat.MessageReceived,
 	chat.MessageSent,
 	chat.MessageError,
+	grpcapi.RequestReceived,
+	grpcapi.RequestError,
 }
 
 // Service is the Metrics service.

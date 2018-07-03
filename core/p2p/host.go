@@ -678,7 +678,7 @@ func (h *Host) collectMetrics() {
 				continue
 			}
 
-			ctx, err := monitoring.NewTaggedContext(ctx).Tag(peerIDTag, peerID.Pretty()).Build()
+			ctx, err := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
 			if err != nil {
 				continue
 			}

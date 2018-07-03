@@ -20,6 +20,12 @@ import (
 	"go.opencensus.io/tag"
 )
 
+// Common tags that can be used by all apps.
+var (
+	PeerIDTag     = NewTag("github.com/stratumn/go-indigonode/keys/peerid")
+	ProtocolIDTag = NewTag("github.com/stratumn/go-indigonode/keys/protocolid")
+)
+
 // Tag can be associated to metrics.
 type Tag struct {
 	OCTag tag.Key

@@ -66,19 +66,13 @@ var (
 	DefaultLatencyDistribution = view.Distribution(0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400, 500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000)
 )
 
-// Tags used by the p2p layer.
-var (
-	peerIDTag     = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/peerid")
-	protocolIDTag = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/protocolid")
-)
-
 // Views exposed by the p2p layer.
 var (
 	BandwidthIn = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-in",
 		Description: "incoming messages bandwidth",
 		Measure:     bandwidthIn.Measure,
-		TagKeys:     []tag.Key{peerIDTag.OCTag, protocolIDTag.OCTag},
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
 		Aggregation: view.Count(),
 	}
 
@@ -86,7 +80,7 @@ var (
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-out",
 		Description: "outgoing messages bandwidth",
 		Measure:     bandwidthOut.Measure,
-		TagKeys:     []tag.Key{peerIDTag.OCTag, protocolIDTag.OCTag},
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
 		Aggregation: view.Count(),
 	}
 
@@ -108,7 +102,7 @@ var (
 		Name:        "github.com/stratumn/go-indigonode/views/latency",
 		Description: "peer latency distribution",
 		Measure:     latency.Measure,
-		TagKeys:     []tag.Key{peerIDTag.OCTag},
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},
 		Aggregation: DefaultLatencyDistribution,
 	}
 )
@@ -119,8 +113,8 @@ type MetricsReporter struct{}
 // LogSentMessage records the bandwidth used.
 func (r *MetricsReporter) LogSentMessage(b int64) {
 	ctx, err := monitoring.NewTaggedContext(context.Background()).
-		Tag(peerIDTag, "unknown").
-		Tag(protocolIDTag, "unknown").
+		Tag(monitoring.PeerIDTag, "unknown").
+		Tag(monitoring.ProtocolIDTag, "unknown").
 		Build()
 	if err != nil {
 		return
@@ -132,8 +126,8 @@ func (r *MetricsReporter) LogSentMessage(b int64) {
 // LogRecvMessage records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessage(b int64) {
 	ctx, err := monitoring.NewTaggedContext(context.Background()).
-		Tag(peerIDTag, "unknown").
-		Tag(protocolIDTag, "unknown").
+		Tag(monitoring.PeerIDTag, "unknown").
+		Tag(monitoring.ProtocolIDTag, "unknown").
 		Build()
 	if err != nil {
 		return
@@ -145,8 +139,8 @@ func (r *MetricsReporter) LogRecvMessage(b int64) {
 // LogSentMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogSentMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
 	ctx, err := monitoring.NewTaggedContext(context.Background()).
-		Tag(peerIDTag, peerID.Pretty()).
-		Tag(protocolIDTag, string(pid)).
+		Tag(monitoring.PeerIDTag, peerID.Pretty()).
+		Tag(monitoring.ProtocolIDTag, string(pid)).
 		Build()
 	if err != nil {
 		return
@@ -158,8 +152,8 @@ func (r *MetricsReporter) LogSentMessageStream(b int64, pid protocol.ID, peerID 
 // LogRecvMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
 	ctx, err := monitoring.NewTaggedContext(context.Background()).
-		Tag(peerIDTag, peerID.Pretty()).
-		Tag(protocolIDTag, string(pid)).
+		Tag(monitoring.PeerIDTag, peerID.Pretty()).
+		Tag(monitoring.ProtocolIDTag, string(pid)).
 		Build()
 	if err != nil {
 		return

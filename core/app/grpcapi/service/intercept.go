@@ -16,6 +16,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/monitoring"
@@ -36,6 +37,9 @@ func logRequest(
 ) (interface{}, error) {
 	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(methodTag, info.FullMethod).Build()
 	requestReceived.Record(ctx, 1)
+
+	start := time.Now()
+	defer requestDuration.Record(ctx, float64(time.Since(start))/float64(time.Millisecond))
 
 	event := log.EventBegin(ctx, "request", logging.Metadata{
 		"request": req,
@@ -83,6 +87,9 @@ func logStream(
 ) error {
 	ctx, _ := monitoring.NewTaggedContext(ss.Context()).Tag(methodTag, info.FullMethod).Build()
 	requestReceived.Record(ctx, 1)
+
+	start := time.Now()
+	defer requestDuration.Record(ctx, float64(time.Since(start).Nanoseconds())/1e6)
 
 	event := log.EventBegin(ctx, "request", logging.Metadata{
 		"method":       info.FullMethod,

@@ -35,6 +35,12 @@ var (
 		stats.UnitNone,
 	))
 
+	requestDuration = monitoring.NewFloat64(stats.Float64(
+		"github.com/stratumn/go-indigonode/measure/grpcapi/request-duration",
+		"grpc request duration",
+		stats.UnitMilliseconds,
+	))
+
 	requestErr = monitoring.NewInt64(stats.Int64(
 		"github.com/stratumn/go-indigonode/measure/grpcapi/request-error",
 		"grpc request error",
@@ -50,6 +56,14 @@ var (
 		Measure:     requestReceived.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},
 		Aggregation: view.Count(),
+	}
+
+	RequestDuration = &view.View{
+		Name:        "github.com/stratumn/go-indigonode/views/grpcapi/request-duration",
+		Description: "grpc request duration",
+		Measure:     requestDuration.Measure,
+		TagKeys:     []tag.Key{methodTag.OCTag},
+		Aggregation: monitoring.DefaultLatencyDistribution,
 	}
 
 	RequestError = &view.View{

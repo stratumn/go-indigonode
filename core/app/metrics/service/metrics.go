@@ -55,6 +55,7 @@ var views = []*view.View{
 	chat.MessageError,
 	grpcapi.RequestReceived,
 	grpcapi.RequestError,
+	grpcapi.RequestDuration,
 }
 
 // Service is the Metrics service.

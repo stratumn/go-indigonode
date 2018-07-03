@@ -683,7 +683,7 @@ func (h *Host) collectMetrics() {
 				continue
 			}
 
-			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1000000
+			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
 			latency.Record(ctx, peerLatency)
 		}
 	}

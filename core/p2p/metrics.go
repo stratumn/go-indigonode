@@ -61,11 +61,6 @@ var (
 	))
 )
 
-// Distributions used by p2p views.
-var (
-	DefaultLatencyDistribution = view.Distribution(0, 1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30, 40, 50, 65, 80, 100, 130, 160, 200, 250, 300, 400, 500, 650, 800, 1000, 2000, 5000, 10000, 20000, 50000, 100000)
-)
-
 // Views exposed by the p2p layer.
 var (
 	BandwidthIn = &view.View{
@@ -103,7 +98,7 @@ var (
 		Description: "peer latency distribution",
 		Measure:     latency.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},
-		Aggregation: DefaultLatencyDistribution,
+		Aggregation: monitoring.DefaultLatencyDistribution,
 	}
 )
 

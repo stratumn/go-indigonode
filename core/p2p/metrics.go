@@ -21,6 +21,8 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 
+	"github.com/stratumn/go-indigonode/core/monitoring"
+
 	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -28,35 +30,35 @@ import (
 
 // Measures exposed by the p2p layer.
 var (
-	bandwidthIn = stats.Int64(
+	bandwidthIn = monitoring.NewInt64(stats.Int64(
 		"github.com/stratumn/go-indigonode/measure/bandwidth-in",
 		"incoming messages bandwidth",
 		stats.UnitBytes,
-	)
+	))
 
-	bandwidthOut = stats.Int64(
+	bandwidthOut = monitoring.NewInt64(stats.Int64(
 		"github.com/stratumn/go-indigonode/measure/bandwidth-out",
 		"outgoing messages bandwidth",
 		stats.UnitBytes,
-	)
+	))
 
-	connections = stats.Int64(
+	connections = monitoring.NewInt64(stats.Int64(
 		"github.com/stratumn/go-indigonode/measure/connections",
 		"open connections",
 		stats.UnitNone,
-	)
+	))
 
-	peers = stats.Int64(
+	peers = monitoring.NewInt64(stats.Int64(
 		"github.com/stratumn/go-indigonode/measure/peers",
 		"connected peers",
 		stats.UnitNone,
-	)
+	))
 
-	latency = stats.Float64(
+	latency = monitoring.NewFloat64(stats.Float64(
 		"github.com/stratumn/go-indigonode/measure/latency",
 		"peer latency",
 		stats.UnitMilliseconds,
-	)
+	))
 )
 
 // Distributions used by p2p views.
@@ -66,8 +68,8 @@ var (
 
 // Tags used by the p2p layer.
 var (
-	peerIDKey, _     = tag.NewKey("github.com/stratumn/go-indigonode/keys/peerid")
-	protocolIDKey, _ = tag.NewKey("github.com/stratumn/go-indigonode/keys/protocolid")
+	peerIDTag     = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/peerid")
+	protocolIDTag = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/protocolid")
 )
 
 // Views exposed by the p2p layer.
@@ -75,100 +77,95 @@ var (
 	BandwidthIn = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-in",
 		Description: "incoming messages bandwidth",
-		Measure:     bandwidthIn,
-		TagKeys:     []tag.Key{peerIDKey, protocolIDKey},
+		Measure:     bandwidthIn.Measure,
+		TagKeys:     []tag.Key{peerIDTag.OCTag, protocolIDTag.OCTag},
 		Aggregation: view.Count(),
 	}
 
 	BandwidthOut = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/bandwidth-out",
 		Description: "outgoing messages bandwidth",
-		Measure:     bandwidthOut,
-		TagKeys:     []tag.Key{peerIDKey, protocolIDKey},
+		Measure:     bandwidthOut.Measure,
+		TagKeys:     []tag.Key{peerIDTag.OCTag, protocolIDTag.OCTag},
 		Aggregation: view.Count(),
 	}
 
 	Connections = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/connections",
 		Description: "open connections",
-		Measure:     connections,
+		Measure:     connections.Measure,
 		Aggregation: view.LastValue(),
 	}
 
 	Peers = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/peers",
 		Description: "connected peers",
-		Measure:     peers,
+		Measure:     peers.Measure,
 		Aggregation: view.LastValue(),
 	}
 
 	Latency = &view.View{
 		Name:        "github.com/stratumn/go-indigonode/views/latency",
 		Description: "peer latency distribution",
-		Measure:     latency,
-		TagKeys:     []tag.Key{peerIDKey},
+		Measure:     latency.Measure,
+		TagKeys:     []tag.Key{peerIDTag.OCTag},
 		Aggregation: DefaultLatencyDistribution,
 	}
 )
 
 // MetricsReporter collects stream and connection metrics.
-type MetricsReporter struct {
-}
+type MetricsReporter struct{}
 
 // LogSentMessage records the bandwidth used.
 func (r *MetricsReporter) LogSentMessage(b int64) {
-	ctx, err := tag.New(
-		context.Background(),
-		tag.Insert(peerIDKey, "unknown"),
-		tag.Insert(protocolIDKey, "unknown"),
-	)
+	ctx, err := monitoring.NewTaggedContext(context.Background()).
+		Tag(peerIDTag, "unknown").
+		Tag(protocolIDTag, "unknown").
+		Build()
 	if err != nil {
 		return
 	}
 
-	stats.Record(ctx, bandwidthOut.M(b))
+	bandwidthOut.Record(ctx, b)
 }
 
 // LogRecvMessage records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessage(b int64) {
-	ctx, err := tag.New(
-		context.Background(),
-		tag.Insert(peerIDKey, "unknown"),
-		tag.Insert(protocolIDKey, "unknown"),
-	)
+	ctx, err := monitoring.NewTaggedContext(context.Background()).
+		Tag(peerIDTag, "unknown").
+		Tag(protocolIDTag, "unknown").
+		Build()
 	if err != nil {
 		return
 	}
 
-	stats.Record(ctx, bandwidthIn.M(b))
+	bandwidthIn.Record(ctx, b)
 }
 
 // LogSentMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogSentMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
-	ctx, err := tag.New(
-		context.Background(),
-		tag.Insert(peerIDKey, peerID.Pretty()),
-		tag.Insert(protocolIDKey, string(pid)),
-	)
+	ctx, err := monitoring.NewTaggedContext(context.Background()).
+		Tag(peerIDTag, peerID.Pretty()).
+		Tag(protocolIDTag, string(pid)).
+		Build()
 	if err != nil {
 		return
 	}
 
-	stats.Record(ctx, bandwidthOut.M(b))
+	bandwidthOut.Record(ctx, b)
 }
 
 // LogRecvMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
-	ctx, err := tag.New(
-		context.Background(),
-		tag.Insert(peerIDKey, peerID.Pretty()),
-		tag.Insert(protocolIDKey, string(pid)),
-	)
+	ctx, err := monitoring.NewTaggedContext(context.Background()).
+		Tag(peerIDTag, peerID.Pretty()).
+		Tag(protocolIDTag, string(pid)).
+		Build()
 	if err != nil {
 		return
 	}
 
-	stats.Record(ctx, bandwidthIn.M(b))
+	bandwidthIn.Record(ctx, b)
 }
 
 // GetBandwidthForPeer shouldn't be used.

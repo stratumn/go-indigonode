@@ -42,7 +42,6 @@
       }
     ]
   },
-  "description": "P2P metrics",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -86,24 +85,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "github_com_stratumn_go_indigonode_views_connections",
+          "expr":
+            "sum(github_com_stratumn_go_indigonode_views_grpcapi_request_received) by (github_com_stratumn_go_indigonode_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "connections",
+          "legendFormat":
+            "{{github_com_stratumn_go_indigonode_keys_grpc_method}}",
           "refId": "A"
-        },
-        {
-          "expr": "github_com_stratumn_go_indigonode_views_peers",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "connected peers",
-          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Connections",
+      "title": "Requests",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -153,7 +147,7 @@
         "x": 12,
         "y": 0
       },
-      "id": 6,
+      "id": 4,
       "legend": {
         "avg": false,
         "current": false,
@@ -178,17 +172,18 @@
       "targets": [
         {
           "expr":
-            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_in[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le)",
+            "sum(github_com_stratumn_go_indigonode_views_grpcapi_request_error) by (github_com_stratumn_go_indigonode_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat":
+            "{{github_com_stratumn_go_indigonode_keys_grpc_method}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Bytes received",
+      "title": "Errors",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -238,7 +233,7 @@
         "x": 0,
         "y": 9
       },
-      "id": 4,
+      "id": 6,
       "legend": {
         "avg": false,
         "current": false,
@@ -263,17 +258,18 @@
       "targets": [
         {
           "expr":
-            "histogram_quantile(0.5, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le))",
+            "histogram_quantile(0.5, sum(rate(github_com_stratumn_go_indigonode_views_grpcapi_request_duration_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat":
+            "{{github_com_stratumn_go_indigonode_keys_grpc_method}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Latency (AVG)",
+      "title": "Requests Duration (AVG)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -348,102 +344,18 @@
       "targets": [
         {
           "expr":
-            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_out[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le)",
+            "histogram_quantile(0.95, sum(rate(github_com_stratumn_go_indigonode_views_grpcapi_request_duration_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat":
+            "{{github_com_stratumn_go_indigonode_keys_grpc_method}}",
           "refId": "A"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Bytes sent",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
-      "fill": 1,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 0,
-        "y": 18
-      },
-      "id": 10,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr":
-            "histogram_quantile(0.95, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le))",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Latency (95th)",
+      "title": "Requests Duration (95th)",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -481,15 +393,14 @@
       }
     }
   ],
-  "refresh": false,
   "schemaVersion": 16,
   "style": "dark",
-  "tags": ["p2p"],
+  "tags": ["grpc", "api", "cli"],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {
@@ -508,6 +419,6 @@
     "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "",
-  "title": "P2P",
+  "title": "gRPC API",
   "version": 1
 }

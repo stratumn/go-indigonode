@@ -26,9 +26,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"go.opencensus.io/stats"
-	"go.opencensus.io/tag"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	madns "gx/ipfs/QmQMRYmPn77CKRFf4YFjX3M5e6uw6DFAgsQffCX6mwZ4mA/go-multiaddr-dns"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -672,24 +670,21 @@ func (h *Host) collectMetrics() {
 		connCount := len(h.Network().Conns())
 		peerCount := len(h.Network().Peers())
 
-		stats.Record(
-			ctx,
-			connections.M(int64(connCount)),
-			peers.M(int64(peerCount)),
-		)
+		connections.Record(ctx, int64(connCount))
+		peers.Record(ctx, int64(peerCount))
 
 		for _, peerID := range h.Peerstore().Peers() {
 			if peerID == h.ID() {
 				continue
 			}
 
-			ctx, err := tag.New(ctx, tag.Upsert(peerIDKey, peerID.Pretty()))
+			ctx, err := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
 			if err != nil {
 				continue
 			}
 
-			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1000000
-			stats.Record(ctx, latency.M(peerLatency))
+			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
+			latency.Record(ctx, peerLatency)
 		}
 	}
 }

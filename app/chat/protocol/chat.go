@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/go-indigonode/app/chat/pb"
 	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
 	event "github.com/stratumn/go-indigonode/core/app/event/service"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -84,11 +85,15 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	})
 	defer event.Done()
 
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, from).Build()
+	msgReceived.Record(ctx, 1)
+
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var message pb.Message
 	err := dec.Decode(&message)
 	if err != nil {
 		event.SetError(err)
+		msgError.Record(ctx, 1)
 		return
 	}
 
@@ -115,6 +120,9 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 		"peerID": pid.Pretty(),
 	})
 	defer event.Done()
+
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, pid.Pretty()).Build()
+	msgSent.Record(ctx, 1)
 
 	successCh := make(chan struct{}, 1)
 	errCh := make(chan error, 1)
@@ -144,6 +152,7 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	case <-successCh:
 		return nil
 	case err := <-errCh:
+		msgError.Record(ctx, 1)
 		return err
 	}
 }

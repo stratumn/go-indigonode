@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -58,7 +59,10 @@ func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
 		store: store,
 	}
 
-	engine.host.SetStreamHandler(MultiNodeProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(
+		MultiNodeProtocolID,
+		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+	)
 
 	return engine
 }
@@ -185,27 +189,14 @@ func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *
 	return link.ToLink()
 }
 
-func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
-	ctx := context.Background()
-	var err error
-	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
-		"from": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer func() {
-		if err != nil {
-			event.SetError(err)
-		}
-
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"stream_close_err": err})
-		}
-
-		event.Done()
-	}()
-
-	dec := protobuf.Multicodec(nil).Decoder(stream)
+func (s *MultiNodeEngine) handleSync(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) (err error) {
 	var linkHash pb.LinkHash
-	err = dec.Decode(&linkHash)
+	err = codec.Decode(&linkHash)
 	if err != nil {
 		return
 	}
@@ -219,7 +210,7 @@ func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
 
 	seg, err := s.store.GetSegment(ctx, lh)
 	if err != nil {
-		return
+		return err
 	}
 	if seg == nil {
 		return
@@ -230,9 +221,5 @@ func (s *MultiNodeEngine) syncHandler(stream inet.Stream) {
 		return
 	}
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(link)
-	if err != nil {
-		return
-	}
+	return codec.Encode(link)
 }

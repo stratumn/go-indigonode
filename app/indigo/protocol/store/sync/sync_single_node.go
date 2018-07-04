@@ -16,13 +16,13 @@ package sync
 
 import (
 	"context"
-	"io"
 
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -55,7 +55,10 @@ func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
 		store: store,
 	}
 
-	engine.host.SetStreamHandler(SingleNodeProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(
+		SingleNodeProtocolID,
+		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+	)
 
 	return engine
 }
@@ -220,24 +223,17 @@ func (s *SingleNodeEngine) syncWithPeer(
 
 // syncHandler accepts sync requests from peers and sends them
 // all the links they need to be up-to-date.
-func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
-		"from": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer event.Done()
-
-	var err error
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	dec := protobuf.Multicodec(nil).Decoder(stream)
-
-	// In success cases, it's the client's responsibility to close the stream.
-	// In case of error, we'll close the stream here.
-	for err == nil {
+func (s *SingleNodeEngine) handleSync(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) (err error) {
+	for {
 		var msg pb.LinkHashes
-		err = dec.Decode(&msg)
+		err = codec.Decode(&msg)
 		if err != nil {
-			break
+			return
 		}
 
 		segFilter := &store.SegmentFilter{
@@ -245,28 +241,24 @@ func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
 		}
 		segFilter.LinkHashes, err = msg.ToLinkHashes()
 		if err != nil {
-			break
+			return
 		}
 
 		var segments cs.SegmentSlice
 		segments, err = s.store.FindSegments(ctx, segFilter)
 		if err != nil {
-			break
+			return
 		}
 
 		var segMsg *pb.Segments
 		segMsg, err = pb.FromSegments(segments)
 		if err != nil {
-			break
+			return
 		}
 
-		err = enc.Encode(segMsg)
-	}
-
-	if err != io.EOF {
-		event.SetError(err)
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"stream_close_err": err.Error()})
+		err = codec.Encode(segMsg)
+		if err != nil {
+			return
 		}
 	}
 }

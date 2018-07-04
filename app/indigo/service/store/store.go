@@ -27,6 +27,7 @@ import (
 	protocol "github.com/stratumn/go-indigonode/app/indigo/protocol/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
 	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	"google.golang.org/grpc"
 
@@ -82,6 +83,7 @@ func (s *Service) Config() interface{} {
 		Host:        "host",
 		Swarm:       "swarm",
 		Version:     "0.1.0",
+		NetworkID:   "indigo",
 		StorageType: InMemoryStorage,
 		PostgresConfig: &PostgresConfig{
 			StorageDBURL: postgresstore.DefaultURL,
@@ -160,8 +162,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		return err
 	}
 
-	syncEngine := sync.NewSingleNodeEngine(s.host, indigoStore)
-
+	syncEngine := sync.NewSingleNodeEngine(s.host, indigoStore, streamutil.NewStreamProvider())
 	s.store = protocol.New(ctx, networkMgr, syncEngine, indigoStore, auditStore, governanceManager)
 
 	errChan := make(chan error)

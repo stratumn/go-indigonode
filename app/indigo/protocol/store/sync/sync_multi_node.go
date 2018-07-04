@@ -26,7 +26,6 @@ import (
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -47,16 +46,18 @@ var (
 // so this sync engine will not work if you aren't connected to
 // at least one peer having the link.
 type MultiNodeEngine struct {
-	host  ihost.Host
-	store store.SegmentReader
+	host           ihost.Host
+	store          store.SegmentReader
+	streamProvider streamutil.Provider
 }
 
 // NewMultiNodeEngine creates a new MultiNodeEngine
 // and registers its handlers.
-func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
+func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader, provider streamutil.Provider) Engine {
 	engine := &MultiNodeEngine{
-		host:  host,
-		store: store,
+		host:           host,
+		store:          store,
+		streamProvider: provider,
 	}
 
 	engine.host.SetStreamHandler(
@@ -163,25 +164,23 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, re
 
 // getLinkFromPeer requests a link from a chosen peer.
 func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *types.Bytes32) (*cs.Link, error) {
-	stream, err := s.host.NewStream(ctx, pid, MultiNodeProtocolID)
+	stream, err := s.streamProvider.NewStream(ctx,
+		s.host,
+		streamutil.OptPeerID(pid),
+		streamutil.OptProtocolIDs(MultiNodeProtocolID))
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't start peer stream")
 	}
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Event(ctx, "StreamCloseError", logging.Metadata{"err": err})
-		}
-	}()
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	err = enc.Encode(pb.FromLinkHash(lh))
+	defer stream.Close()
+
+	err = stream.Codec().Encode(pb.FromLinkHash(lh))
 	if err != nil {
 		return nil, err
 	}
 
-	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var link pb.Link
-	err = dec.Decode(&link)
+	err = stream.Codec().Decode(&link)
 	if err != nil {
 		return nil, err
 	}

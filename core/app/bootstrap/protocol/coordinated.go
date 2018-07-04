@@ -116,6 +116,8 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 		return err
 	}
 
+	participants.Record(ctx, int64(len(h.networkConfig.AllowedPeers(ctx))))
+
 	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
 
 	return nil

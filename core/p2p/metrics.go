@@ -54,6 +54,24 @@ var (
 		stats.UnitNone,
 	))
 
+	streamsIn = monitoring.NewInt64(stats.Int64(
+		"github.com/stratumn/go-indigonode/measure/streams-in",
+		"incoming streams",
+		stats.UnitNone,
+	))
+
+	streamsOut = monitoring.NewInt64(stats.Int64(
+		"github.com/stratumn/go-indigonode/measure/streams-out",
+		"outgoing streams",
+		stats.UnitNone,
+	))
+
+	streamsErr = monitoring.NewInt64(stats.Int64(
+		"github.com/stratumn/go-indigonode/measure/streams-err",
+		"errored streams",
+		stats.UnitNone,
+	))
+
 	latency = monitoring.NewFloat64(stats.Float64(
 		"github.com/stratumn/go-indigonode/measure/latency",
 		"peer latency",
@@ -91,6 +109,30 @@ var (
 		Description: "connected peers",
 		Measure:     peers.Measure,
 		Aggregation: view.LastValue(),
+	}
+
+	StreamsIn = &view.View{
+		Name:        "github.com/stratumn/go-indigonode/views/streams-in",
+		Description: "incoming streams",
+		Measure:     streamsIn.Measure,
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
+		Aggregation: view.Count(),
+	}
+
+	StreamsOut = &view.View{
+		Name:        "github.com/stratumn/go-indigonode/views/streams-out",
+		Description: "outgoing streams",
+		Measure:     streamsOut.Measure,
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
+		Aggregation: view.Count(),
+	}
+
+	StreamsErr = &view.View{
+		Name:        "github.com/stratumn/go-indigonode/views/streams-error",
+		Description: "errored streams",
+		Measure:     streamsErr.Measure,
+		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ErrorTag.OCTag},
+		Aggregation: view.Count(),
 	}
 
 	Latency = &view.View{

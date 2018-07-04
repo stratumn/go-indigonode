@@ -504,6 +504,7 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 
 	networkConfig := h.networkConfig.Copy(ctx)
 	allowedPeers := h.networkConfig.AllowedPeers(ctx)
+	participants.Record(ctx, int64(len(allowedPeers)))
 
 	wg := &sync.WaitGroup{}
 

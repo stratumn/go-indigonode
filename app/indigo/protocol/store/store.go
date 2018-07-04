@@ -18,14 +18,15 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 	"github.com/stratumn/go-indigocore/validator"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
@@ -84,7 +85,9 @@ func (s *Store) listenNetwork() {
 			return
 		}
 
-		s.storeNetworkSegment(ctx, segment)
+		if err := s.storeNetworkSegment(ctx, segment); err != nil {
+			continue
+		}
 	}
 }
 
@@ -92,71 +95,75 @@ func (s *Store) addAuditTrail(ctx context.Context, segment *cs.Segment) {
 	event := log.EventBegin(ctx, "AddAuditTrail")
 	defer event.Done()
 
+	invalidSegments.Record(ctx, 1)
+
 	if err := s.auditStore.AddSegment(ctx, segment); err != nil {
 		event.SetError(err)
 	}
 }
 
-func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) {
+func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) (err error) {
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
 	event := log.EventBegin(ctx, "NetworkNewSegment")
-	defer event.Done()
+	defer func() {
+		if err != nil {
+			event.SetError(err)
+			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+		}
+
+		segmentsReceived.Record(ctx, 1)
+		event.Done()
+	}()
 
 	if segment == nil {
-		event.SetError(errors.New("nil segment"))
-		return
+		return errors.New("nil segment")
 	}
 
 	if err := s.verifySegmentEvidence(ctx, segment); err != nil {
-		event.SetError(err)
-		return
+		return err
 	}
 
 	seg, _ := s.store.GetSegment(ctx, segment.GetLinkHash())
 	if seg != nil {
 		event.Append(logging.Metadata{"already_stored": true})
-		return
+		return nil
 	}
 
 	if err := s.syncMissingLinks(ctx, segment); err != nil {
-		event.SetError(errors.Wrap(err, "could not sync missing links"))
-		return
+		return errors.Wrap(err, "could not sync missing links")
 	}
 
 	if err := segment.Link.Validate(ctx, s.GetSegment); err != nil {
-		event.SetError(errors.Wrap(err, "invalid link"))
 		s.addAuditTrail(ctx, segment)
-		return
+		return errors.Wrap(err, "invalid link")
 	}
 
 	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
 		incomingValidatorHash, err := constants.GetValidatorHash(&segment.Link)
 		if err != nil {
-			event.SetError(errors.Wrap(err, "missing validator hash"))
 			s.addAuditTrail(ctx, segment)
-			return
+			return errors.Wrap(err, "missing validator hash")
 		}
 		validatorHash, err := rulesValidator.Hash()
 		if err != nil {
-			event.SetError(errors.Wrap(err, "could not get current validator hash"))
-			return
+			return errors.Wrap(err, "could not get current validator hash")
 		}
 		if !validatorHash.Equals(incomingValidatorHash) {
-			event.SetError(errors.New("validator hash does not match"))
 			s.addAuditTrail(ctx, segment)
-			return
+			return errors.New("validator hash does not match")
 		}
 		if err := rulesValidator.Validate(ctx, s.store, &segment.Link); err != nil {
-			event.SetError(errors.Wrap(err, "link validation failed"))
 			s.addAuditTrail(ctx, segment)
-			return
+			return errors.Wrap(err, "link validation failed")
 		}
 	}
 
-	_, err := s.store.CreateLink(ctx, &segment.Link)
+	_, err = s.store.CreateLink(ctx, &segment.Link)
 	if err != nil {
-		event.SetError(errors.Wrap(err, "could not add to store"))
-		return
+		return errors.Wrap(err, "could not add to store")
 	}
+
+	return nil
 }
 
 func (s *Store) verifySegmentEvidence(ctx context.Context, segment *cs.Segment) (err error) {
@@ -279,14 +286,17 @@ func (s *Store) GetInfo(ctx context.Context) (interface{}, error) {
 
 // CreateLink forwards the request to the underlying store.
 func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes32, err error) {
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
 	event := log.EventBegin(ctx, "CreateLink")
 	defer func() {
 		if err != nil {
 			event.SetError(err)
+			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		} else {
 			event.Append(logging.Metadata{"link_hash": lh.String()})
 		}
 
+		segmentsCreated.Record(ctx, 1)
 		event.Done()
 	}()
 

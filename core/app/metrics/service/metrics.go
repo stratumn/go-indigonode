@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	chat "github.com/stratumn/go-indigonode/app/chat/protocol"
+	indigofossilizer "github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer"
 	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
 	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
 	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
@@ -61,6 +62,7 @@ var views = []*view.View{
 	grpcapi.RequestError,
 	grpcapi.RequestDuration,
 	bootstrap.Participants,
+	indigofossilizer.Fossils,
 }
 
 // Service is the Metrics service.

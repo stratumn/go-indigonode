@@ -464,6 +464,13 @@ func (h *Host) SetStreamHandler(proto protocol.ID, handler inet.StreamHandler) {
 	h.mux.AddHandler(string(proto), func(protoStr string, rwc io.ReadWriteCloser) error {
 		stream := rwc.(inet.Stream)
 		stream.SetProtocol(protocol.ID(protoStr))
+
+		ctx, _ := monitoring.NewTaggedContext(context.Background()).
+			Tag(monitoring.PeerIDTag, stream.Conn().RemotePeer().Pretty()).
+			Tag(monitoring.ProtocolIDTag, protoStr).
+			Build()
+		streamsIn.Record(ctx, 1)
+
 		handler(stream)
 
 		return nil
@@ -498,17 +505,30 @@ func (h *Host) RemoveStreamHandler(proto protocol.ID) {
 }
 
 // NewStream opens a new stream to the given peer for the given protocols.
-func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol.ID) (inet.Stream, error) {
+func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol.ID) (s inet.Stream, err error) {
+	ctx, _ = monitoring.NewTaggedContext(ctx).
+		Tag(monitoring.PeerIDTag, pid.Pretty()).
+		Build()
 	event := log.EventBegin(ctx, "NewStream", logging.Metadata{
 		"peerID":    pid.Pretty(),
 		"protocols": protocols,
 	})
-	defer event.Done()
+
+	defer func() {
+		if err != nil {
+			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+			streamsErr.Record(ctx, 1)
+			event.SetError(err)
+		} else {
+			streamsOut.Record(ctx, 1)
+		}
+
+		event.Done()
+	}()
 
 	if h.router != nil {
 		err := h.Connect(ctx, pstore.PeerInfo{ID: pid})
 		if err != nil {
-			event.SetError(err)
 			return nil, err
 		}
 	}
@@ -516,11 +536,11 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 	// Try to find a supported protocol.
 	pref, err := h.preferredProtocol(pid, protocols)
 	if err != nil {
-		event.SetError(err)
 		return nil, err
 	}
 
 	if pref != "" {
+		ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, string(pref)).Build()
 		return h.newStream(ctx, pid, pref)
 	}
 
@@ -531,7 +551,6 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 
 	stream, err := h.Network().NewStream(ctx, pid)
 	if err != nil {
-		event.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -544,12 +563,12 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 			})
 		}
 
-		event.SetError(err)
 		return nil, errors.WithStack(err)
 	}
 
 	selfpid := protocol.ID(selected)
 	stream.SetProtocol(selfpid)
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, selected).Build()
 
 	if err := h.Peerstore().AddProtocols(pid, selected); err != nil {
 		err = errors.WithStack(err)
@@ -560,7 +579,6 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 			})
 		}
 
-		event.SetError(err)
 		return nil, err
 	}
 

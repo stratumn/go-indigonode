@@ -21,6 +21,7 @@ import (
 
 	"github.com/stratumn/go-indigocore/batchfossilizer"
 	"github.com/stratumn/go-indigocore/fossilizer"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 )
 
 var log = logging.Logger("indigo.fossilizer")
@@ -51,13 +52,18 @@ func (f *Fossilizer) AddFossilizerEventChan(ctx context.Context, eventChan chan 
 
 // Fossilize requests data to be fossilized.
 func (f *Fossilizer) Fossilize(ctx context.Context, data, meta []byte) error {
+	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
 	event := log.EventBegin(ctx, "Fossilize")
 	defer event.Done()
 
 	err := f.fossilizer.Fossilize(ctx, data, meta)
 	if err != nil {
+		ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		event.SetError(err)
 	}
+
+	fossils.Record(ctx, 1)
+
 	return err
 }
 

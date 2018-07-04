@@ -373,6 +373,9 @@ const confZero = `
   # The name of the swarm service.
   swarm = "swarm"
 
+  # The ID of your Indigo PoP network.
+  network_id = "indigo"
+
   # The version of the indigo service.
   version = "0.1.0"
 

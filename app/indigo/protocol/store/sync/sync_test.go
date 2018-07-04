@@ -19,14 +19,15 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
-	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
 	indigostore "github.com/stratumn/go-indigocore/store"
+	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
+	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -264,13 +265,13 @@ func TestSyncEngine_New(t *testing.T) {
 		"multi-node-sync",
 		sync.MultiNodeProtocolID,
 		func(h ihost.Host) sync.Engine {
-			return sync.NewMultiNodeEngine(h, nil)
+			return sync.NewMultiNodeEngine(h, nil, nil)
 		},
 	}, {
 		"single-node-sync",
 		sync.SingleNodeProtocolID,
 		func(h ihost.Host) sync.Engine {
-			return sync.NewSingleNodeEngine(h, nil)
+			return sync.NewSingleNodeEngine(h, nil, nil)
 		},
 	}}
 
@@ -298,7 +299,7 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		defer h.Close()
 
 		indigoStore := dummystore.New(&dummystore.Config{})
-		engine := sync.NewMultiNodeEngine(h, indigoStore)
+		engine := sync.NewMultiNodeEngine(h, indigoStore, streamutil.NewStreamProvider())
 		defer engine.Close(ctx)
 
 		_, err := engine.GetMissingLinks(
@@ -339,8 +340,8 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, prevLink)
 		store2.CreateLink(ctx, refLink1)
 
-		engine1 := sync.NewMultiNodeEngine(h1, store1)
-		engine2 := sync.NewMultiNodeEngine(h2, store2)
+		engine1 := sync.NewMultiNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewMultiNodeEngine(h2, store2, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -376,8 +377,8 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		store2 := dummystore.New(&dummystore.Config{})
 		store2.CreateLink(ctx, prevLink)
 
-		engine1 := sync.NewMultiNodeEngine(h1, store1)
-		engine2 := sync.NewMultiNodeEngine(h2, store2)
+		engine1 := sync.NewMultiNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewMultiNodeEngine(h2, store2, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -423,9 +424,9 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 		store3.CreateLink(ctx, refLink)
 		store3.CreateLink(ctx, prevPrevLink)
 
-		engine1 := sync.NewMultiNodeEngine(h1, store1)
-		engine2 := sync.NewMultiNodeEngine(h2, store2)
-		engine3 := sync.NewMultiNodeEngine(h3, store3)
+		engine1 := sync.NewMultiNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewMultiNodeEngine(h2, store2, streamutil.NewStreamProvider())
+		engine3 := sync.NewMultiNodeEngine(h3, store3, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 		defer engine3.Close(ctx)
@@ -456,7 +457,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		testStore := dummystore.New(&dummystore.Config{})
 		testStore.CreateLink(ctx, prevLink)
 
-		engine := sync.NewSingleNodeEngine(h, nil)
+		engine := sync.NewSingleNodeEngine(h, nil, streamutil.NewStreamProvider())
 		defer engine.Close(ctx)
 
 		links, err := engine.GetMissingLinks(ctx, link, testStore)
@@ -470,7 +471,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		engine := sync.NewSingleNodeEngine(h, nil)
+		engine := sync.NewSingleNodeEngine(h, nil, streamutil.NewStreamProvider())
 		defer engine.Close(ctx)
 
 		_, err := engine.GetMissingLinks(
@@ -523,7 +524,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		})
 
 		testStore := dummystore.New(&dummystore.Config{})
-		engine := sync.NewSingleNodeEngine(h1, testStore)
+		engine := sync.NewSingleNodeEngine(h1, testStore, streamutil.NewStreamProvider())
 		defer engine.Close(ctx)
 
 		_, err := engine.GetMissingLinks(ctx, link, testStore)
@@ -554,8 +555,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, prevLink)
 		store2.CreateLink(ctx, link)
 
-		engine1 := sync.NewSingleNodeEngine(h1, store1)
-		engine2 := sync.NewSingleNodeEngine(h2, store2)
+		engine1 := sync.NewSingleNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewSingleNodeEngine(h2, store2, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -589,8 +590,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, prevLink)
 		store2.CreateLink(ctx, link)
 
-		engine1 := sync.NewSingleNodeEngine(h1, store1)
-		engine2 := sync.NewSingleNodeEngine(h2, store2)
+		engine1 := sync.NewSingleNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewSingleNodeEngine(h2, store2, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 
@@ -644,8 +645,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 		store2.CreateLink(ctx, refLink)
 		store2.CreateLink(ctx, link)
 
-		engine1 := sync.NewSingleNodeEngine(h1, store1)
-		engine2 := sync.NewSingleNodeEngine(h2, store2)
+		engine1 := sync.NewSingleNodeEngine(h1, store1, streamutil.NewStreamProvider())
+		engine2 := sync.NewSingleNodeEngine(h2, store2, streamutil.NewStreamProvider())
 		defer engine1.Close(ctx)
 		defer engine2.Close(ctx)
 

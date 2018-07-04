@@ -16,19 +16,16 @@ package sync
 
 import (
 	"context"
-	"io"
 
-	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
@@ -43,19 +40,24 @@ var (
 // link. That node is expected to have all the previous links in the graph
 // because otherwise it couldn't prove the validity of the newly created link.
 type SingleNodeEngine struct {
-	host  ihost.Host
-	store store.SegmentReader
+	host           ihost.Host
+	store          store.SegmentReader
+	streamProvider streamutil.Provider
 }
 
 // NewSingleNodeEngine creates a new SingleNodeEngine
 // and registers its handlers.
-func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader) Engine {
+func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader, provider streamutil.Provider) Engine {
 	engine := &SingleNodeEngine{
-		host:  host,
-		store: store,
+		host:           host,
+		store:          store,
+		streamProvider: provider,
 	}
 
-	engine.host.SetStreamHandler(SingleNodeProtocolID, engine.syncHandler)
+	engine.host.SetStreamHandler(
+		SingleNodeProtocolID,
+		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+	)
 
 	return engine
 }
@@ -85,17 +87,24 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 	// We expect the sender to have been validated upstream,
 	// so no need to check the error.
 	sender, _ := constants.GetLinkNodeID(link)
-	stream, err := s.startStream(ctx, sender)
+
+	err = s.host.Connect(ctx, s.host.Peerstore().PeerInfo(sender))
 	if err != nil {
 		event.SetError(err)
+		return nil, ErrNoConnectedPeers
+	}
+
+	stream, err := s.streamProvider.NewStream(ctx,
+		s.host,
+		streamutil.OptPeerID(sender),
+		streamutil.OptProtocolIDs(SingleNodeProtocolID),
+		streamutil.OptLog(event),
+	)
+	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"stream_close_err": err.Error()})
-		}
-	}()
+	defer stream.Close()
 
 	linksMap, err := s.syncWithPeer(ctx, stream, toFetch, reader)
 	if err != nil {
@@ -114,31 +123,11 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 	return links, nil
 }
 
-// startStream starts a stream with the peer that created the link.
-func (s *SingleNodeEngine) startStream(ctx context.Context, sender peer.ID) (inet.Stream, error) {
-	event := log.EventBegin(ctx, "startStream", logging.Metadata{"peer": sender.Pretty()})
-	defer event.Done()
-
-	err := s.host.Connect(ctx, s.host.Peerstore().PeerInfo(sender))
-	if err != nil {
-		event.SetError(err)
-		return nil, ErrNoConnectedPeers
-	}
-
-	stream, err := s.host.NewStream(ctx, sender, SingleNodeProtocolID)
-	if err != nil {
-		event.SetError(err)
-		return nil, errors.Wrap(err, "could not start stream")
-	}
-
-	return stream, nil
-}
-
 // syncWithPeer syncs with the connected peer
 // until all links have been fetched.
 func (s *SingleNodeEngine) syncWithPeer(
 	ctx context.Context,
-	stream inet.Stream,
+	stream streamutil.Stream,
 	toFetch []string,
 	reader store.SegmentReader,
 ) (map[string]*cs.Link, error) {
@@ -147,19 +136,16 @@ func (s *SingleNodeEngine) syncWithPeer(
 	})
 	defer event.Done()
 
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	dec := protobuf.Multicodec(nil).Decoder(stream)
-
 	receivedLinks := make(map[string]*cs.Link)
 
 	for len(toFetch) > 0 {
-		if err := enc.Encode(pb.FromLinkHashes(toFetch)); err != nil {
+		if err := stream.Codec().Encode(pb.FromLinkHashes(toFetch)); err != nil {
 			event.SetError(err)
 			return nil, err
 		}
 
 		var segments pb.Segments
-		if err := dec.Decode(&segments); err != nil {
+		if err := stream.Codec().Decode(&segments); err != nil {
 			event.SetError(err)
 			return nil, err
 		}
@@ -220,24 +206,17 @@ func (s *SingleNodeEngine) syncWithPeer(
 
 // syncHandler accepts sync requests from peers and sends them
 // all the links they need to be up-to-date.
-func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "SyncRequest", logging.Metadata{
-		"from": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer event.Done()
-
-	var err error
-	enc := protobuf.Multicodec(nil).Encoder(stream)
-	dec := protobuf.Multicodec(nil).Decoder(stream)
-
-	// In success cases, it's the client's responsibility to close the stream.
-	// In case of error, we'll close the stream here.
-	for err == nil {
+func (s *SingleNodeEngine) handleSync(
+	ctx context.Context,
+	event *logging.EventInProgress,
+	stream inet.Stream,
+	codec streamutil.Codec,
+) (err error) {
+	for {
 		var msg pb.LinkHashes
-		err = dec.Decode(&msg)
+		err = codec.Decode(&msg)
 		if err != nil {
-			break
+			return
 		}
 
 		segFilter := &store.SegmentFilter{
@@ -245,28 +224,24 @@ func (s *SingleNodeEngine) syncHandler(stream inet.Stream) {
 		}
 		segFilter.LinkHashes, err = msg.ToLinkHashes()
 		if err != nil {
-			break
+			return
 		}
 
 		var segments cs.SegmentSlice
 		segments, err = s.store.FindSegments(ctx, segFilter)
 		if err != nil {
-			break
+			return
 		}
 
 		var segMsg *pb.Segments
 		segMsg, err = pb.FromSegments(segments)
 		if err != nil {
-			break
+			return
 		}
 
-		err = enc.Encode(segMsg)
-	}
-
-	if err != io.EOF {
-		event.SetError(err)
-		if err := stream.Close(); err != nil {
-			event.Append(logging.Metadata{"stream_close_err": err.Error()})
+		err = codec.Encode(segMsg)
+		if err != nil {
+			return
 		}
 	}
 }

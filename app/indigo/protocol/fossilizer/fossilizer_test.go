@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	indigofossilizer "github.com/stratumn/go-indigocore/fossilizer"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer/mockbatchfossilizer"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer/mockfossilizer"
-	indigofossilizer "github.com/stratumn/go-indigocore/fossilizer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,13 +86,13 @@ func TestFossilize(t *testing.T) {
 
 	f := fossilizer.New(indigoFossilizer)
 	t.Run("returns nil on success", func(t *testing.T) {
-		indigoFossilizer.EXPECT().Fossilize(ctx, nil, nil).Times(1).Return(nil)
+		indigoFossilizer.EXPECT().Fossilize(gomock.Any(), nil, nil).Return(nil)
 		assert.NoError(t, f.Fossilize(ctx, nil, nil))
 	})
 
 	t.Run("returns an error on failure", func(t *testing.T) {
 		testErr := errors.New("test")
-		indigoFossilizer.EXPECT().Fossilize(ctx, nil, nil).Times(1).Return(testErr)
+		indigoFossilizer.EXPECT().Fossilize(gomock.Any(), nil, nil).Return(testErr)
 		assert.EqualError(t, f.Fossilize(ctx, nil, nil), testErr.Error())
 	})
 }

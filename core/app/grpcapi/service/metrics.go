@@ -24,7 +24,7 @@ import (
 
 // Tags used by the grpcapi app.
 var (
-	methodTag = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/grpc-method")
+	methodTag = monitoring.NewTag("indigo-node/keys/grpc-method")
 )
 
 // Measures exposed by the grpcapi app.

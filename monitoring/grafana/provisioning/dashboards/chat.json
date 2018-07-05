@@ -87,10 +87,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_chat_message_sent) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_chat_message_sent) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -172,10 +172,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_chat_message_received) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_chat_message_received) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -257,10 +257,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_chat_message_error) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_chat_message_error) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid]}",
+          "legendFormat": "{{indigo_node_keys_peerid]}",
           "refId": "A"
         }
       ],

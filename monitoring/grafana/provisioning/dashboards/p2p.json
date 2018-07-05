@@ -191,20 +191,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_in) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "{{github_com_stratumn_go_indigonode_keys_peerid}} (in)",
+          "legendFormat": "{{indigo_node_keys_peerid}} (in)",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_out) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "{{github_com_stratumn_go_indigonode_keys_peerid}} (out)",
+          "legendFormat": "{{indigo_node_keys_peerid}} (out)",
           "refId": "B"
         }
       ],
@@ -286,20 +284,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in) by (github_com_stratumn_go_indigonode_keys_protocolid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_in) by (indigo_node_keys_protocolid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "{{github_com_stratumn_go_indigonode_keys_protocolid}} (in)",
+          "legendFormat": "{{indigo_node_keys_protocolid}} (in)",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out) by (github_com_stratumn_go_indigonode_keys_protocolid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_out) by (indigo_node_keys_protocolid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "{{github_com_stratumn_go_indigonode_keys_protocolid}} (out)",
+          "legendFormat": "{{indigo_node_keys_protocolid}} (out)",
           "refId": "B"
         }
       ],
@@ -394,10 +390,10 @@
       "targets": [
         {
           "expr":
-            "histogram_quantile(0.5, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le))",
+            "histogram_quantile(0.5, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (indigo_node_keys_peerid, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -479,10 +475,10 @@
       "targets": [
         {
           "expr":
-            "histogram_quantile(0.95, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le))",
+            "histogram_quantile(0.95, sum(rate(github_com_stratumn_go_indigonode_views_latency_bucket[5m])) by (indigo_node_keys_peerid, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -577,10 +573,10 @@
       "targets": [
         {
           "expr":
-            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_out[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le)",
+            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_out[5m])) by (indigo_node_keys_peerid, le)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -662,10 +658,10 @@
       "targets": [
         {
           "expr":
-            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_in[5m])) by (github_com_stratumn_go_indigonode_keys_peerid, le)",
+            "sum(rate(github_com_stratumn_go_indigonode_views_bandwidth_in[5m])) by (indigo_node_keys_peerid, le)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],

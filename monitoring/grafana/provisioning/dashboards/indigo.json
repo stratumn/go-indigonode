@@ -86,20 +86,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_created) by (github_com_stratumn_go_indigonode_keys_error)",
+            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_created) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "create={{github_com_stratumn_go_indigonode_keys_error}}",
+          "legendFormat": "create={{indigo_node_keys_error}}",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_received) by (github_com_stratumn_go_indigonode_keys_error)",
+            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_received) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat":
-            "receive={{github_com_stratumn_go_indigonode_keys_error}}",
+          "legendFormat": "receive={{indigo_node_keys_error}}",
           "refId": "B"
         }
       ],
@@ -181,10 +179,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_fossilizer_fossils) by (github_com_stratumn_go_indigonode_keys_error)",
+            "sum(github_com_stratumn_go_indigonode_views_indigo_fossilizer_fossils) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_error}}",
+          "legendFormat": "{{indigo_node_keys_error}}",
           "refId": "A"
         }
       ],
@@ -266,10 +264,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -351,10 +349,10 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(github_com_stratumn_go_indigonode_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         }
       ],

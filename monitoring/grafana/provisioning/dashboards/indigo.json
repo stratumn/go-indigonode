@@ -86,7 +86,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_created) by (indigo_node_keys_error)",
+            "sum(indigo_node_views_indigo_store_segments_created) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "create={{indigo_node_keys_error}}",
@@ -94,7 +94,7 @@
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_store_segments_received) by (indigo_node_keys_error)",
+            "sum(indigo_node_views_indigo_store_segments_received) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "receive={{indigo_node_keys_error}}",
@@ -179,7 +179,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_indigo_fossilizer_fossils) by (indigo_node_keys_error)",
+            "sum(indigo_node_views_indigo_fossilizer_fossils) by (indigo_node_keys_error)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_error}}",
@@ -264,7 +264,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -349,7 +349,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/store/sync/(single|multi)node/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",

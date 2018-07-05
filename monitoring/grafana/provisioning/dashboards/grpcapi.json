@@ -86,7 +86,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_grpcapi_request_received) by (indigo_node_keys_grpc_method)",
+            "sum(indigo_node_views_grpcapi_request_received) by (indigo_node_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_grpc_method}}",
@@ -171,7 +171,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_grpcapi_request_error) by (indigo_node_keys_grpc_method)",
+            "sum(indigo_node_views_grpcapi_request_error) by (indigo_node_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_grpc_method}}",
@@ -256,7 +256,7 @@
       "targets": [
         {
           "expr":
-            "histogram_quantile(0.5, sum(rate(github_com_stratumn_go_indigonode_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
+            "histogram_quantile(0.5, sum(rate(indigo_node_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_grpc_method}}",
@@ -341,7 +341,7 @@
       "targets": [
         {
           "expr":
-            "histogram_quantile(0.95, sum(rate(github_com_stratumn_go_indigonode_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
+            "histogram_quantile(0.95, sum(rate(indigo_node_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_grpc_method}}",

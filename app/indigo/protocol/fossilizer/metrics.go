@@ -25,7 +25,7 @@ import (
 // Measures exposed by the indigo fossilizer app.
 var (
 	fossils = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/indigo/fossilizer/fossils",
+		"indigo-node/measure/indigo/fossilizer/fossils",
 		"number of fossilized segments",
 		stats.UnitNone,
 	))
@@ -34,7 +34,7 @@ var (
 // Views exposed by the indigo fossilizer app.
 var (
 	Fossils = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/indigo/fossilizer/fossils",
+		Name:        "indigo-node/views/indigo/fossilizer/fossils",
 		Description: "number of fossilized segments",
 		Measure:     fossils.Measure,
 		TagKeys:     []tag.Key{monitoring.ErrorTag.OCTag},

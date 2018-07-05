@@ -16,29 +16,21 @@ package store_test
 
 import (
 	"context"
-	"crypto/rand"
 	"testing"
 	"time"
 
 	"github.com/satori/go.uuid"
+	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigonode/core/p2p"
-	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
-
-func genPeerPrivateKey() ic.PrivKey {
-	sk, _, _ := ic.GenerateEd25519Key(rand.Reader)
-	return sk
-}
 
 func genNetworkID() string {
 	return uuid.NewV4().String()
@@ -52,7 +44,7 @@ func TestNodeID(t *testing.T) {
 	defer h.Close()
 
 	networkID := genNetworkID()
-	networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+	networkMgr := store.NewPubSubNetworkManager()
 
 	// The NodeID is only available after joining the network.
 	assert.NoError(t, networkMgr.Join(ctx, networkID, h))
@@ -67,7 +59,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 
 		assert.EqualError(t, networkMgr.Join(ctx, "", h), store.ErrInvalidNetworkID.Error())
 	})
@@ -82,7 +74,7 @@ func TestJoinLeave(t *testing.T) {
 		defer h2.Close()
 
 		networkID := genNetworkID()
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 
 		assert.NoError(t, networkMgr.Join(ctx, networkID, h1))
 		// Subsequent joins should be no-ops.
@@ -98,7 +90,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 		networkID1 := genNetworkID()
 		networkID2 := genNetworkID()
 
@@ -113,7 +105,7 @@ func TestJoinLeave(t *testing.T) {
 		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
 		defer h.Close()
 
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 		networkID := genNetworkID()
 
 		assert.NoError(t, networkMgr.Join(ctx, networkID, h))
@@ -136,13 +128,10 @@ func TestPublishListen(t *testing.T) {
 	networkID := genNetworkID()
 
 	networkMgrs := make([]store.NetworkManager, nodeCount)
-	networkNodeIDs := make([]peer.ID, nodeCount)
 	listenChans := make([]chan error, nodeCount)
 	listeners := make([]<-chan *cs.Segment, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		sk := genPeerPrivateKey()
-		networkNodeIDs[i], _ = peer.IDFromPrivateKey(sk)
-		networkMgrs[i] = store.NewNetworkManager(sk)
+		networkMgrs[i] = store.NewPubSubNetworkManager()
 		listeners[i] = networkMgrs[i].AddListener()
 
 		listenChans[i] = make(chan error)
@@ -172,7 +161,7 @@ func TestPublishListen(t *testing.T) {
 
 	t.Run("publish-valid-message", func(t *testing.T) {
 		link := cstesting.NewLinkBuilder().Build()
-		constants.SetLinkNodeID(link, networkNodeIDs[0])
+		constants.SetLinkNodeID(link, hosts[0].ID())
 		require.NoError(t, networkMgrs[0].Publish(context.Background(), link))
 
 		for i := 1; i < nodeCount; i++ {
@@ -197,7 +186,7 @@ func TestPublishListen(t *testing.T) {
 
 func TestAddRemoveListeners(t *testing.T) {
 	t.Run("remove-closes-channel", func(t *testing.T) {
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 		testChan := networkMgr.AddListener()
 		networkMgr.RemoveListener(testChan)
 
@@ -206,7 +195,7 @@ func TestAddRemoveListeners(t *testing.T) {
 	})
 
 	t.Run("remove-unknown-channel", func(t *testing.T) {
-		networkMgr := store.NewNetworkManager(genPeerPrivateKey())
+		networkMgr := store.NewPubSubNetworkManager()
 		privateChan := make(chan *cs.Segment)
 		networkMgr.RemoveListener(privateChan)
 

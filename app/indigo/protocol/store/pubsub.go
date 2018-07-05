@@ -27,7 +27,6 @@ import (
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
 
 var (
@@ -37,8 +36,6 @@ var (
 
 // PubSubNetworkManager implements the NetworkManager interface.
 type PubSubNetworkManager struct {
-	peerKey ic.PrivKey
-
 	networkMutex sync.Mutex
 	networkID    string
 	host         Host
@@ -49,9 +46,11 @@ type PubSubNetworkManager struct {
 	listeners      []chan *cs.Segment
 }
 
-// NewNetworkManager creates a new NetworkManager.
-func NewNetworkManager(peerKey ic.PrivKey) NetworkManager {
-	return &PubSubNetworkManager{peerKey: peerKey}
+// NewPubSubNetworkManager creates a new NetworkManager that uses a PubSub
+// mechanism to exchange messages with the network.
+// This is particularly suited for public networks.
+func NewPubSubNetworkManager() NetworkManager {
+	return &PubSubNetworkManager{}
 }
 
 // NodeID returns the base58 peerID.
@@ -164,7 +163,8 @@ func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err 
 	}
 	event.Append(logging.Metadata{"peers": strings.Join(pubsubPeers, ",")})
 
-	signedSegment, err := audit.SignLink(ctx, m.peerKey, link)
+	key := m.host.Peerstore().PrivKey(m.host.ID())
+	signedSegment, err := audit.SignLink(ctx, key, link)
 	if err != nil {
 		return err
 	}

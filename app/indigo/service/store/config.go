@@ -19,13 +19,17 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/validator"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
+	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
@@ -164,4 +168,24 @@ func (c *Config) CreateValidator(ctx context.Context, store indigostore.Adapter)
 		RulesPath:   c.ValidationConfig.RulesPath,
 		PluginsPath: c.ValidationConfig.PluginsPath,
 	})
+}
+
+// JoinIndigoNetwork joins the Indigo network and configures its manager.
+// It will use different mechanisms if we are in a public or private network.
+func (c *Config) JoinIndigoNetwork(ctx context.Context, host Host, swarm *swarmSvc.Swarm) (store.NetworkManager, error) {
+	var networkMgr store.NetworkManager
+	if swarm.NetworkMode != nil && swarm.NetworkMode.ProtectionMode == protector.PrivateWithCoordinatorMode {
+		networkMgr = store.NewPrivateNetworkManager(
+			streamutil.NewStreamProvider(),
+			swarm.NetworkConfig,
+		)
+	} else {
+		networkMgr = store.NewPubSubNetworkManager()
+	}
+
+	if err := networkMgr.Join(ctx, c.NetworkID, host); err != nil {
+		return nil, err
+	}
+
+	return networkMgr, nil
 }

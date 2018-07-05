@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	bootstrappb "github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/bootstraptest"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal/mocks"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposaltest"
@@ -102,7 +101,7 @@ func (ht *CoordinatedHandleTestCase) Run(
 
 		mode := &protector.NetworkMode{CoordinatorID: ht.coordinatorID}
 		handler := protocol.NewCoordinatedHandler(host, nil, mode, cfg, s).(*protocol.CoordinatedHandler)
-		err := h(handler)(ctx, bootstraptest.NewEvent(), stream, codec)
+		err := h(handler)(ctx, test.NewEvent(), stream, codec)
 
 		if ht.err != nil {
 			assert.EqualError(t, err, ht.err.Error())

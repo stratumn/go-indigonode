@@ -18,19 +18,27 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/app/indigo/service/store"
-	"github.com/stratumn/go-indigonode/test/containers"
+	"github.com/golang/mock/gomock"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigocore/dummystore"
 	"github.com/stratumn/go-indigocore/postgresstore"
 	"github.com/stratumn/go-indigocore/utils"
+	storeprotocol "github.com/stratumn/go-indigonode/app/indigo/protocol/store"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/dummyauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/postgresauditstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/app/indigo/service/store"
+	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-indigonode/test/containers"
+	"github.com/stratumn/go-indigonode/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
 
 func TestConfig_CreateStores(t *testing.T) {
@@ -160,5 +168,48 @@ func TestConfig_CreateValidator(t *testing.T) {
 		govMgr, err := config.CreateValidator(ctx, dummystore.New(nil))
 		assert.NoError(t, err)
 		assert.NotNil(t, govMgr)
+	})
+}
+
+func TestConfig_JoinIndigoNetwork(t *testing.T) {
+	t.Run("public-network", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		host := mocks.NewMockHost(ctrl)
+		privKey := test.GeneratePrivateKey(t)
+		peerID := test.GetPeerIDFromKey(t, privKey)
+
+		net := mocks.NewMockNetwork(ctrl)
+		net.EXPECT().Notify(gomock.Any())
+
+		peerStore := mocks.NewMockPeerstore(ctrl)
+		peerStore.EXPECT().PrivKey(peerID).Return(privKey).AnyTimes()
+
+		host.EXPECT().ID().Return(peerID).AnyTimes()
+		host.EXPECT().Network().Return(net)
+		host.EXPECT().Peerstore().Return(peerStore).AnyTimes()
+		host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
+
+		swarm := &swarmSvc.Swarm{}
+		config := &store.Config{NetworkID: "indigo"}
+
+		networkMgr, err := config.JoinIndigoNetwork(context.Background(), host, swarm)
+		require.NoError(t, err)
+		assert.IsType(t, &storeprotocol.PubSubNetworkManager{}, networkMgr)
+	})
+
+	t.Run("private-network", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		host := mocks.NewMockHost(ctrl)
+
+		swarm := &swarmSvc.Swarm{NetworkMode: protector.NewCoordinatorNetworkMode()}
+		config := &store.Config{NetworkID: "indigo"}
+
+		networkMgr, err := config.JoinIndigoNetwork(context.Background(), host, swarm)
+		require.NoError(t, err)
+		assert.IsType(t, &storeprotocol.PrivateNetworkManager{}, networkMgr)
 	})
 }

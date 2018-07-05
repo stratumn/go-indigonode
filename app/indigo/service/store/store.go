@@ -53,6 +53,7 @@ type Host = ihost.Host
 type Service struct {
 	config *Config
 	host   Host
+	swarm  *swarmSvc.Swarm
 	store  *protocol.Store
 }
 
@@ -120,8 +121,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		return errors.Wrap(ErrMissingPrivateKey, s.config.Host)
 	}
 
-	_, ok = exposed[s.config.Swarm].(*swarmSvc.Swarm)
-	if !ok {
+	if s.swarm, ok = exposed[s.config.Swarm].(*swarmSvc.Swarm); !ok {
 		return errors.Wrap(ErrNotSwarm, s.config.Swarm)
 	}
 
@@ -152,13 +152,12 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 	// We can't use the input context as a parent because it is cancelled
 	// before we do the cleanup (see the <-ctx.Done() line).
-	// For part of the floodsub cleanup, we need an active context.
+	// For part of the PoP network cleanup, we need an active context.
 	networkCtx, cancelNetwork := context.WithCancel(context.Background())
 	defer cancelNetwork()
 
-	privKey := s.host.Peerstore().PrivKey(s.host.ID())
-	networkMgr := protocol.NewNetworkManager(privKey)
-	if err := networkMgr.Join(networkCtx, s.config.NetworkID, s.host); err != nil {
+	networkMgr, err := s.config.JoinIndigoNetwork(networkCtx, s.host, s.swarm)
+	if err != nil {
 		return err
 	}
 

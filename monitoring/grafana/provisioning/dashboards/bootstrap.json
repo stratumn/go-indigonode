@@ -92,7 +92,7 @@
       "targets": [
         {
           "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -100,7 +100,7 @@
         },
         {
           "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -281,7 +281,7 @@
       "targets": [
         {
           "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -358,7 +358,7 @@
       "targets": [
         {
           "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -415,7 +415,7 @@
       "targets": [
         {
           "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -423,7 +423,7 @@
         },
         {
           "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -508,7 +508,7 @@
       "targets": [
         {
           "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",
@@ -516,7 +516,7 @@
         },
         {
           "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{indigo_node_keys_peerid}}",

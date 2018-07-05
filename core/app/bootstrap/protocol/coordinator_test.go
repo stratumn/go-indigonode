@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/bootstraptest"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal/mocks"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposaltest"
@@ -130,7 +129,7 @@ func (ht *CoordinatorHandleTestCase) Run(
 			propStore,
 		).(*protocol.CoordinatorHandler)
 
-		err := h(handler)(ctx, bootstraptest.NewEvent(), stream, codec)
+		err := h(handler)(ctx, test.NewEvent(), stream, codec)
 		if ht.err != nil {
 			assert.EqualError(t, err, ht.err.Error())
 		} else {

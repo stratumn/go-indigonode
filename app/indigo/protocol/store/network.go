@@ -17,6 +17,7 @@ package store
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -25,6 +26,11 @@ import (
 
 // Host represents an Indigo Node host.
 type Host = ihost.Host
+
+// Errors used by the NetworkManager.
+var (
+	ErrNetworkNotReady = errors.New("network not ready to receive messages")
+)
 
 // NetworkManager provides methods to manage and join PoP networks.
 type NetworkManager interface {

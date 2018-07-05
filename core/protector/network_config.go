@@ -56,6 +56,18 @@ type NetworkPeersWriter interface {
 	RemovePeer(context.Context, peer.ID) error
 }
 
+// NetworkConfigReader provides read access to the network configuration.
+type NetworkConfigReader interface {
+	NetworkStateReader
+	NetworkPeersReader
+}
+
+// NetworkConfigWriter provides write access to the network configuration.
+type NetworkConfigWriter interface {
+	NetworkStateWriter
+	NetworkPeersWriter
+}
+
 // NetworkConfig manages the private network's configuration.
 type NetworkConfig interface {
 	NetworkPeersReader

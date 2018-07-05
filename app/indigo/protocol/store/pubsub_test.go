@@ -36,7 +36,7 @@ func genNetworkID() string {
 	return uuid.NewV4().String()
 }
 
-func TestNodeID(t *testing.T) {
+func TestPubSub_NodeID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -51,7 +51,7 @@ func TestNodeID(t *testing.T) {
 	assert.Equal(t, h.ID(), networkMgr.NodeID())
 }
 
-func TestJoinLeave(t *testing.T) {
+func TestPubSub_JoinLeave(t *testing.T) {
 	t.Run("missing-network-id", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
@@ -113,7 +113,7 @@ func TestJoinLeave(t *testing.T) {
 	})
 }
 
-func TestPublishListen(t *testing.T) {
+func TestPubSub_PublishListen(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -184,7 +184,7 @@ func TestPublishListen(t *testing.T) {
 	}
 }
 
-func TestAddRemoveListeners(t *testing.T) {
+func TestPubSub_AddRemoveListeners(t *testing.T) {
 	t.Run("remove-closes-channel", func(t *testing.T) {
 		networkMgr := store.NewPubSubNetworkManager()
 		testChan := networkMgr.AddListener()

@@ -92,18 +92,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "B"
         }
       ],
@@ -204,8 +204,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr":
-            "github_com_stratumn_go_indigonode_views_bootstrap_participants",
+          "expr": "indigo_node_views_bootstrap_participants",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -282,7 +281,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -359,7 +358,7 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -416,18 +415,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "B"
         }
       ],
@@ -509,18 +508,18 @@
       "targets": [
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_in{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "A"
         },
         {
           "expr":
-            "sum(github_com_stratumn_go_indigonode_views_streams_out{github_com_stratumn_go_indigonode_keys_protocolid=~\"/indigo/node/indigo/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (github_com_stratumn_go_indigonode_keys_peerid)",
+            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{github_com_stratumn_go_indigonode_keys_peerid}}",
+          "legendFormat": "{{indigo_node_keys_peerid}}",
           "refId": "B"
         }
       ],

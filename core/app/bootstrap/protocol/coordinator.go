@@ -39,17 +39,17 @@ var (
 	// PrivateCoordinatorHandshakePID is the protocol for handling handshake
 	// messages and sending the network participants list.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorHandshakePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/handshake/v1.0.0")
+	PrivateCoordinatorHandshakePID = protocol.ID("/indigo/node/bootstrap/private/coordinator/handshake/v1.0.0")
 
 	// PrivateCoordinatorProposePID is the protocol for receiving network update
 	// proposals from peers.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorProposePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/propose/v1.0.0")
+	PrivateCoordinatorProposePID = protocol.ID("/indigo/node/bootstrap/private/coordinator/propose/v1.0.0")
 
 	// PrivateCoordinatorVotePID is the protocol for receiving votes
 	// from network participants.
 	// Only the network coordinator should implement this protocol.
-	PrivateCoordinatorVotePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinator/vote/v1.0.0")
+	PrivateCoordinatorVotePID = protocol.ID("/indigo/node/bootstrap/private/coordinator/vote/v1.0.0")
 )
 
 // Errors used by the coordinator.

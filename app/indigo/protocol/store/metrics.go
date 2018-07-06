@@ -25,19 +25,19 @@ import (
 // Measures exposed by the indigo store app.
 var (
 	segmentsCreated = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/indigo/store/segments-created",
+		"indigo-node/measure/indigo/store/segments-created",
 		"number of segments created",
 		stats.UnitNone,
 	))
 
 	segmentsReceived = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/indigo/store/segments-received",
+		"indigo-node/measure/indigo/store/segments-received",
 		"number of segments received",
 		stats.UnitNone,
 	))
 
 	invalidSegments = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/indigo/store/segments-invalid",
+		"indigo-node/measure/indigo/store/segments-invalid",
 		"number of invalid segments received",
 		stats.UnitNone,
 	))
@@ -46,7 +46,7 @@ var (
 // Views exposed by the indigo store app.
 var (
 	SegmentsCreated = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/indigo/store/segments-created",
+		Name:        "indigo-node/views/indigo/store/segments-created",
 		Description: "number of segments created",
 		Measure:     segmentsCreated.Measure,
 		TagKeys:     []tag.Key{monitoring.ErrorTag.OCTag},
@@ -54,7 +54,7 @@ var (
 	}
 
 	SegmentsReceived = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/indigo/store/segments-received",
+		Name:        "indigo-node/views/indigo/store/segments-received",
 		Description: "number of segments received",
 		Measure:     segmentsReceived.Measure,
 		TagKeys:     []tag.Key{monitoring.ErrorTag.OCTag},
@@ -62,7 +62,7 @@ var (
 	}
 
 	InvalidSegments = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/indigo/store/segments-invalid",
+		Name:        "indigo-node/views/indigo/store/segments-invalid",
 		Description: "number of invalid segments received",
 		Measure:     invalidSegments.Measure,
 		Aggregation: view.Count(),

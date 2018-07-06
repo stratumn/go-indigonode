@@ -24,25 +24,25 @@ import (
 
 // Tags used by the grpcapi app.
 var (
-	methodTag = monitoring.NewTag("github.com/stratumn/go-indigonode/keys/grpc-method")
+	methodTag = monitoring.NewTag("indigo-node/keys/grpc-method")
 )
 
 // Measures exposed by the grpcapi app.
 var (
 	requestReceived = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/grpcapi/request-received",
+		"indigo-node/measure/grpcapi/request-received",
 		"grpc request received",
 		stats.UnitNone,
 	))
 
 	requestDuration = monitoring.NewFloat64(stats.Float64(
-		"github.com/stratumn/go-indigonode/measure/grpcapi/request-duration",
+		"indigo-node/measure/grpcapi/request-duration",
 		"grpc request duration",
 		stats.UnitMilliseconds,
 	))
 
 	requestErr = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/grpcapi/request-error",
+		"indigo-node/measure/grpcapi/request-error",
 		"grpc request error",
 		stats.UnitNone,
 	))
@@ -51,7 +51,7 @@ var (
 // Views exposed by the grpcapi app.
 var (
 	RequestReceived = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/grpcapi/request-received",
+		Name:        "indigo-node/views/grpcapi/request-received",
 		Description: "grpc request received",
 		Measure:     requestReceived.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},
@@ -59,7 +59,7 @@ var (
 	}
 
 	RequestDuration = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/grpcapi/request-duration",
+		Name:        "indigo-node/views/grpcapi/request-duration",
 		Description: "grpc request duration",
 		Measure:     requestDuration.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},
@@ -67,7 +67,7 @@ var (
 	}
 
 	RequestError = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/grpcapi/request-error",
+		Name:        "indigo-node/views/grpcapi/request-error",
 		Description: "grpc request error",
 		Measure:     requestErr.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},

@@ -24,7 +24,7 @@ import (
 // Measures exposed by the bootstrap app.
 var (
 	participants = monitoring.NewInt64(stats.Int64(
-		"github.com/stratumn/go-indigonode/measure/bootstrap/participants",
+		"indigo-node/measure/bootstrap/participants",
 		"number of network participants",
 		stats.UnitNone,
 	))
@@ -33,7 +33,7 @@ var (
 // Views exposed by the bootstrap app.
 var (
 	Participants = &view.View{
-		Name:        "github.com/stratumn/go-indigonode/views/bootstrap/participants",
+		Name:        "indigo-node/views/bootstrap/participants",
 		Description: "number of network participants",
 		Measure:     participants.Measure,
 		Aggregation: view.LastValue(),

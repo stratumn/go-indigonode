@@ -36,12 +36,12 @@ var (
 	// PrivateCoordinatedConfigPID is the protocol for receiving network
 	// configuration updates in a private network.
 	// Network participants should implement this protocol.
-	PrivateCoordinatedConfigPID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinated/config/v1.0.0")
+	PrivateCoordinatedConfigPID = protocol.ID("/indigo/node/bootstrap/private/coordinated/config/v1.0.0")
 
 	// PrivateCoordinatedProposePID is the protocol for receiving network update
 	// proposals from peers.
 	// Network participants should implement this protocol.
-	PrivateCoordinatedProposePID = protocol.ID("/indigo/node/indigo/bootstrap/private/coordinated/propose/v1.0.0")
+	PrivateCoordinatedProposePID = protocol.ID("/indigo/node/bootstrap/private/coordinated/propose/v1.0.0")
 )
 
 // CoordinatedHandler is the handler for a non-coordinator node

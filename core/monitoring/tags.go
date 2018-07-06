@@ -22,9 +22,9 @@ import (
 
 // Common tags that can be used by all apps.
 var (
-	ErrorTag      = NewTag("github.com/stratumn/go-indigonode/keys/error")
-	PeerIDTag     = NewTag("github.com/stratumn/go-indigonode/keys/peerid")
-	ProtocolIDTag = NewTag("github.com/stratumn/go-indigonode/keys/protocolid")
+	ErrorTag      = NewTag("indigo-node/keys/error")
+	PeerIDTag     = NewTag("indigo-node/keys/peerid")
+	ProtocolIDTag = NewTag("indigo-node/keys/protocolid")
 )
 
 // Tag can be associated to metrics.

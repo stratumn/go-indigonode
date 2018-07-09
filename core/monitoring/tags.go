@@ -17,6 +17,8 @@ package monitoring
 import (
 	"context"
 
+	log "github.com/sirupsen/logrus"
+
 	"go.opencensus.io/tag"
 )
 
@@ -47,7 +49,6 @@ func NewTag(name string) Tag {
 // TaggedContext is a builder to add tags to a context.
 type TaggedContext struct {
 	ctx context.Context
-	err error
 }
 
 // NewTaggedContext adds the given tags to the context.
@@ -57,17 +58,18 @@ func NewTaggedContext(ctx context.Context) *TaggedContext {
 
 // Tag tags the context with the given value.
 func (c *TaggedContext) Tag(t Tag, val string) *TaggedContext {
-	newCtx, err := tag.New(c.ctx, tag.Upsert(t.OCTag, val))
+	var err error
+	c.ctx, err = tag.New(c.ctx, tag.Upsert(t.OCTag, val))
 	if err != nil {
-		c.err = err
-	} else {
-		c.ctx = newCtx
+		// The only failure reason is that the value is too long or contains
+		// non-ASCII characters, so it's safe to simply skip and log.
+		log.Warnf("could not add tag %s: %s", t.OCTag.Name(), err.Error())
 	}
 
 	return c
 }
 
 // Build returns the tagged context or an error.
-func (c *TaggedContext) Build() (context.Context, error) {
-	return c.ctx, c.err
+func (c *TaggedContext) Build() context.Context {
+	return c.ctx
 }

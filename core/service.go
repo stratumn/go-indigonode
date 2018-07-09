@@ -31,7 +31,7 @@ import (
 	host "github.com/stratumn/go-indigonode/core/app/host/service"
 	identify "github.com/stratumn/go-indigonode/core/app/identify/service"
 	kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
 	mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
 	natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
 	ping "github.com/stratumn/go-indigonode/core/app/ping/service"
@@ -61,7 +61,7 @@ func BuiltinServices() []manager.Service {
 		&indigostore.Service{},
 		&indigofossilizer.Service{},
 		&kaddht.Service{},
-		&metrics.Service{},
+		&monitoring.Service{},
 		&mssmux.Service{},
 		&natmgr.Service{},
 		&ping.Service{},

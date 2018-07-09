@@ -61,8 +61,16 @@ func TestService_SetConfig(t *testing.T) {
 		func(c *Config) { c.Interval = "1" },
 		errAny,
 	}, {
+		"invalid sampling ratio",
+		func(c *Config) { c.TraceSamplingRatio = 1.5 },
+		errAny,
+	}, {
 		"invalid Prometheus endpoint",
 		func(c *Config) { c.PrometheusEndpoint = "http://example.com" },
+		errAny,
+	}, {
+		"invalid jaeger endpoint",
+		func(c *Config) { c.JaegerEndpoint = "http://example.com" },
 		errAny,
 	}}
 

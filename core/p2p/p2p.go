@@ -13,9 +13,5 @@
 // limitations under the License.
 
 // Package p2p defines types for P2P networking.
+// It implements the host interface.
 package p2p
-
-import logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-
-// log is the logger for the service.
-var log = logging.Logger("p2p")

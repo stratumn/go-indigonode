@@ -37,7 +37,7 @@ var DefaultConfig = Config{
 		ID:       "system",
 		Name:     "System Services",
 		Desc:     "Starts system services.",
-		Services: []string{"signal", "pruner", "metrics"},
+		Services: []string{"signal", "pruner", "monitoring"},
 	}, {
 		ID:       "p2p",
 		Name:     "P2P Services",

@@ -29,7 +29,6 @@ import (
 	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	madns "gx/ipfs/QmQMRYmPn77CKRFf4YFjX3M5e6uw6DFAgsQffCX6mwZ4mA/go-multiaddr-dns"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	msmux "gx/ipfs/QmTnsezaB1wWNRHeHnYrm8K4d5i9wtyj3GsqjC3Rt5b5v5/go-multistream"
 	metrics "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics"
 	mstream "gx/ipfs/QmVvu4bS5QLfS19ePkp5Wgzn2ZUma5oXTT9BgDFyQLxUZF/go-libp2p-metrics/stream"
@@ -143,20 +142,16 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 
 // newConnHandler is the remote-opened conn handler for network.
 func (h *Host) newConnHandler(conn inet.Conn) {
-	ctx := logging.ContextWithLoggable(h.ctx, logging.Metadata{
-		"conn": conn,
-	})
-	defer log.EventBegin(ctx, "newConnHandler").Done()
+	_, span := monitoring.StartSpan(context.Background(), "p2p", "newConnHandler")
+	defer span.End()
 
 	pid := conn.RemotePeer()
+	span.SetPeerID(pid)
 
 	// Clear protocols on connecting to new peer to avoid issues caused
 	// by misremembering protocols between reconnects.
 	if err := h.Peerstore().SetProtocols(pid); err != nil {
-		log.Event(ctx, "clearProtocolsError", logging.Metadata{
-			"peerID": pid.Pretty(),
-			"error":  err.Error(),
-		})
+		span.SetUnknownError(err)
 	}
 
 	if h.ids != nil {
@@ -167,22 +162,20 @@ func (h *Host) newConnHandler(conn inet.Conn) {
 // newStreamHandler is the remote-opened stream handler for inet.Network.
 // TODO: this feels a bit wonky
 func (h *Host) newStreamHandler(stream inet.Stream) {
-	ctx := logging.ContextWithLoggable(h.ctx, logging.Metadata{
-		"stream": stream,
-	})
-	event := log.EventBegin(ctx, "newStreamHandler")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(context.Background(), "p2p", "newStreamHandler")
+	defer span.End()
+
+	span.SetPeerID(stream.Conn().RemotePeer())
 
 	if h.negTimeout > 0 {
 		err := stream.SetDeadline(time.Now().Add(h.negTimeout))
 		if err != nil {
-			event.SetError(err)
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
 
 			if err := stream.Reset(); err != nil {
-				log.Event(ctx, "streamResetError", logging.Metadata{
-					"error": err.Error(),
-				})
+				span.Annotate(ctx, "streamResetError", err.Error())
 			}
+
 			return
 		}
 	}
@@ -190,18 +183,15 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 	lzc, protoID, handle, err := h.Mux().NegotiateLazy(stream)
 	if err != nil {
 		if err != io.EOF {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
 		if err := stream.Reset(); err != nil {
-			log.Event(ctx, "streamResetError", logging.Metadata{
-				"error": err.Error(),
-			})
+			span.Annotate(ctx, "streamResetError", err.Error())
 		}
+
 		return
 	}
-
-	event.Append(logging.Metadata{"protocol": protoID})
 
 	stream = &streamWrapper{
 		Stream: stream,
@@ -210,18 +200,18 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 
 	if h.negTimeout > 0 {
 		if err := stream.SetDeadline(time.Time{}); err != nil {
-			event.SetError(err)
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
 
 			if err := stream.Reset(); err != nil {
-				log.Event(ctx, "streamResetError", logging.Metadata{
-					"error": err.Error(),
-				})
+				span.Annotate(ctx, "streamResetError", err.Error())
 			}
+
 			return
 		}
 	}
 
 	stream.SetProtocol(protocol.ID(protoID))
+	span.SetProtocolID(protocol.ID(protoID))
 
 	if h.bwc != nil {
 		stream = mstream.WrapStream(stream, h.bwc)
@@ -231,7 +221,7 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 	go func() {
 		err := handle(protoID, stream)
 		if err != nil && errors.Cause(err) != context.Canceled {
-			log.Event(ctx, "handleFailed")
+			span.Annotate(ctx, "handleFailed", err.Error())
 		}
 	}()
 }
@@ -275,11 +265,12 @@ func (h *Host) Addrs() []ma.Multiaddr {
 //
 // It's ok to not include addresses if they're not available to be used now.
 func (h *Host) AllAddrs() []ma.Multiaddr {
+	ctx, span := monitoring.StartSpan(context.Background(), "p2p", "AllAddrs")
+	defer span.End()
+
 	addrs, err := h.netw.InterfaceListenAddresses()
 	if err != nil {
-		log.Event(h.ctx, "addrsError", logging.Metadata{
-			"error": err.Error(),
-		})
+		span.Annotate(ctx, "addrsError", err.Error())
 	}
 
 	if h.ids != nil {
@@ -309,15 +300,18 @@ func (h *Host) Mux() *msmux.MultistreamMuxer {
 
 // Connect ensures there is a connection between the host and the given peer.
 func (h *Host) Connect(ctx context.Context, pi pstore.PeerInfo) error {
-	ctx = logging.ContextWithLoggable(ctx, logging.Metadata(pi.Loggable()))
-	event := log.EventBegin(ctx, "Connect")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "Connect")
+	defer span.End()
+
+	span.SetPeerID(pi.ID)
+	span.SetAddrs(pi.Addrs)
 
 	ps := h.Peerstore()
 
 	// Check if already connected.
 	conns := h.Network().ConnsToPeer(pi.ID)
 	if len(conns) > 0 {
+		span.AddIntAttribute("connections", int64(len(conns)))
 		return nil
 	}
 
@@ -333,26 +327,31 @@ func (h *Host) Connect(ctx context.Context, pi pstore.PeerInfo) error {
 		var err error
 		addrs, err = h.findPeerAddrs(ctx, pi.ID)
 		if err != nil {
-			event.SetError(err)
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
 			return err
 		}
 
 		// Absorb addresses into peerstore.
 		ps.AddAddrs(pi.ID, addrs, pstore.TempAddrTTL)
-
 	}
 
 	pi.Addrs = addrs
 
 	resolved, err := h.resolveAddrs(ctx, ps.PeerInfo(pi.ID))
 	if err != nil {
-		event.SetError(err)
-		return errors.WithStack(err)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
+		return err
 	}
 
 	ps.AddAddrs(pi.ID, resolved, pstore.TempAddrTTL)
 
-	return h.dialPeer(ctx, pi.ID)
+	err = h.dialPeer(ctx, pi.ID)
+	if err != nil {
+		span.SetUnknownError(err)
+		return err
+	}
+
+	return nil
 }
 
 // findPeerAddrs finds addresses for a peer ID using the router.
@@ -372,14 +371,17 @@ func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multiaddr, e
 // resolveAddrs resolves the multiaddresses of a peer using the DNS if
 // necessary.
 func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multiaddr, error) {
-	event := log.EventBegin(ctx, "resolveAddrs", logging.Metadata(pi.Loggable()))
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "resolveAddrs")
+	defer span.End()
+
+	span.SetPeerID(pi.ID)
+	span.SetAddrs(pi.Addrs)
 
 	// Create the IPFS P2P address of the peer.
 	protocol := ma.ProtocolWithCode(ma.P_IPFS).Name
 	p2pAddr, err := ma.NewMultiaddr("/" + protocol + "/" + pi.ID.Pretty())
 	if err != nil {
-		event.SetError(err)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
 		return nil, errors.WithStack(err)
 	}
 
@@ -395,18 +397,14 @@ func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multi
 		reqAddr := addr.Encapsulate(p2pAddr)
 		resAddrs, err := h.resolver.Resolve(ctx, reqAddr)
 		if err != nil {
-			log.Event(ctx, "resolveError", logging.Metadata{
-				"error": err.Error(),
-			})
+			span.Annotate(ctx, "resolveError", err.Error())
 			continue
 		}
 
 		for _, res := range resAddrs {
 			pi, err := pstore.InfoFromP2pAddr(res)
 			if err != nil {
-				log.Event(ctx, "p2pAddrError", logging.Metadata{
-					"error": err.Error(),
-				})
+				span.Annotate(ctx, "p2pAddrError", err.Error())
 				continue
 			}
 
@@ -420,20 +418,21 @@ func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multi
 // dialPeer opens a connection to peer, and makes sure to identify the
 // connection once it has been opened.
 func (h *Host) dialPeer(ctx context.Context, pid peer.ID) error {
-	event := log.EventBegin(ctx, "dialPeer", logging.Metadata{
-		"peerID": pid.Pretty(),
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "dialPeer")
+	defer span.End()
+
+	span.SetPeerID(pid)
 
 	conn, err := h.Network().DialPeer(ctx, pid)
 	if err != nil {
+		span.SetUnknownError(err)
 		return errors.WithStack(err)
 	}
 
 	// Clear protocols on connecting to new peer to avoid issues caused
 	// by misremembering protocols between reconnects.
 	if err := h.Peerstore().SetProtocols(pid); err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return errors.WithStack(err)
 	}
 
@@ -448,11 +447,11 @@ func (h *Host) dialPeer(ctx context.Context, pid peer.ID) error {
 		select {
 		case <-done:
 		case <-ctx.Done():
-			err := errors.WithStack(ctx.Err())
+			err := ctx.Err()
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 			}
-			return err
+			return errors.WithStack(err)
 		}
 	}
 
@@ -461,11 +460,15 @@ func (h *Host) dialPeer(ctx context.Context, pid peer.ID) error {
 
 // SetStreamHandler sets the stream handler for the given protocol.
 func (h *Host) SetStreamHandler(proto protocol.ID, handler inet.StreamHandler) {
+	_, span := monitoring.StartSpan(context.Background(), "p2p", "SetStreamHandler")
+	span.SetProtocolID(proto)
+	defer span.End()
+
 	h.mux.AddHandler(string(proto), func(protoStr string, rwc io.ReadWriteCloser) error {
 		stream := rwc.(inet.Stream)
 		stream.SetProtocol(protocol.ID(protoStr))
 
-		ctx, _ := monitoring.NewTaggedContext(context.Background()).
+		ctx := monitoring.NewTaggedContext(context.Background()).
 			Tag(monitoring.PeerIDTag, stream.Conn().RemotePeer().Pretty()).
 			Tag(monitoring.ProtocolIDTag, protoStr).
 			Build()
@@ -475,15 +478,15 @@ func (h *Host) SetStreamHandler(proto protocol.ID, handler inet.StreamHandler) {
 
 		return nil
 	})
-
-	log.Event(h.ctx, "setStreamHandler", logging.Metadata{
-		"protocol": proto,
-	})
 }
 
 // SetStreamHandlerMatch sets the protocol handler for protocols that match the
 // given function.
 func (h *Host) SetStreamHandlerMatch(proto protocol.ID, match func(string) bool, handler inet.StreamHandler) {
+	_, span := monitoring.StartSpan(context.Background(), "p2p", "SetStreamHandlerMatch")
+	span.SetProtocolID(proto)
+	defer span.End()
+
 	h.mux.AddHandlerWithFunc(string(proto), match, func(protoStr string, rwc io.ReadWriteCloser) error {
 		stream := rwc.(inet.Stream)
 		stream.SetProtocol(protocol.ID(protoStr))
@@ -491,39 +494,30 @@ func (h *Host) SetStreamHandlerMatch(proto protocol.ID, match func(string) bool,
 
 		return nil
 	})
-
-	log.Event(h.ctx, "setStreamHandlerMatch")
 }
 
 // RemoveStreamHandler removes the stream handler of the given protocol.
 func (h *Host) RemoveStreamHandler(proto protocol.ID) {
-	h.mux.RemoveHandler(string(proto))
+	_, span := monitoring.StartSpan(context.Background(), "p2p", "RemoveStreamHandler")
+	span.SetProtocolID(proto)
+	defer span.End()
 
-	log.Event(h.ctx, "removeStreamHandler", logging.Metadata{
-		"protocol": proto,
-	})
+	h.mux.RemoveHandler(string(proto))
 }
 
 // NewStream opens a new stream to the given peer for the given protocols.
 func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol.ID) (s inet.Stream, err error) {
-	ctx, _ = monitoring.NewTaggedContext(ctx).
-		Tag(monitoring.PeerIDTag, pid.Pretty()).
-		Build()
-	event := log.EventBegin(ctx, "NewStream", logging.Metadata{
-		"peerID":    pid.Pretty(),
-		"protocols": protocols,
-	})
-
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "NewStream", monitoring.SpanOptionPeerID(pid))
 	defer func() {
 		if err != nil {
-			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 			streamsErr.Record(ctx, 1)
-			event.SetError(err)
+			span.SetUnknownError(err)
 		} else {
 			streamsOut.Record(ctx, 1)
 		}
 
-		event.Done()
+		span.End()
 	}()
 
 	if h.router != nil {
@@ -540,7 +534,7 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 	}
 
 	if pref != "" {
-		ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, string(pref)).Build()
+		ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, string(pref)).Build()
 		return h.newStream(ctx, pid, pref)
 	}
 
@@ -557,10 +551,7 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 	selected, err := msmux.SelectOneOf(protoStrs, stream)
 	if err != nil {
 		if err := stream.Reset(); err != nil {
-			log.Event(ctx, "streamResetError", logging.Metadata{
-				"error":  err.Error(),
-				"stream": stream,
-			})
+			span.Annotate(ctx, "streamResetError", err.Error())
 		}
 
 		return nil, errors.WithStack(err)
@@ -568,18 +559,16 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 
 	selfpid := protocol.ID(selected)
 	stream.SetProtocol(selfpid)
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, selected).Build()
+	span.SetProtocolID(selfpid)
+
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, selected).Build()
 
 	if err := h.Peerstore().AddProtocols(pid, selected); err != nil {
-		err = errors.WithStack(err)
 		if err := stream.Reset(); err != nil {
-			log.Event(ctx, "streamResetError", logging.Metadata{
-				"error":  err.Error(),
-				"stream": stream,
-			})
+			span.Annotate(ctx, "streamResetError", err.Error())
 		}
 
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if h.bwc != nil {
@@ -607,15 +596,15 @@ func (h *Host) preferredProtocol(pid peer.ID, protocols []protocol.ID) (protocol
 
 // newStream opens a stream to a peer for the given protocol.
 func (h *Host) newStream(ctx context.Context, pid peer.ID, proto protocol.ID) (inet.Stream, error) {
-	event := log.EventBegin(ctx, "newStream", logging.Metadata{
-		"peerID":   pid.Pretty(),
-		"protocol": proto,
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "newStream",
+		monitoring.SpanOptionPeerID(pid),
+		monitoring.SpanOptionProtocolID(proto),
+	)
+	defer span.End()
 
 	stream, err := h.Network().NewStream(ctx, pid)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -652,33 +641,39 @@ func (h *Host) ConnManager() ifconnmgr.ConnManager {
 func (h *Host) SetNATManager(natmgr bhost.NATManager) {
 	h.natmgr = natmgr
 
+	eventName := "SetNATManager"
 	if natmgr == nil {
-		log.Event(h.ctx, "removeNATManager")
+		eventName = "RemoveNATManager"
 	}
 
-	log.Event(h.ctx, "setNATManager")
+	_, span := monitoring.StartSpan(h.ctx, "p2p", eventName)
+	span.End()
 }
 
 // SetIDService sets the identity service.
 func (h *Host) SetIDService(service *identify.IDService) {
 	h.ids = service
 
+	eventName := "SetIDService"
 	if service == nil {
-		log.Event(h.ctx, "removeIDService")
+		eventName = "RemoveIDService"
 	}
 
-	log.Event(h.ctx, "setIDService")
+	_, span := monitoring.StartSpan(h.ctx, "p2p", eventName)
+	span.End()
 }
 
 // SetRouter sets the router.
 func (h *Host) SetRouter(router func(context.Context, peer.ID) (pstore.PeerInfo, error)) {
 	h.router = router
 
+	eventName := "SetRouter"
 	if router == nil {
-		log.Event(h.ctx, "removeRouter")
+		eventName = "RemoveRouter"
 	}
 
-	log.Event(h.ctx, "setRouter")
+	_, span := monitoring.StartSpan(h.ctx, "p2p", eventName)
+	span.End()
 }
 
 // collectMetrics periodically reports p2p metrics.
@@ -696,11 +691,7 @@ func (h *Host) collectMetrics() {
 				continue
 			}
 
-			ctx, err := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
-			if err != nil {
-				continue
-			}
-
+			ctx := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
 			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
 			latency.Record(ctx, peerLatency)
 		}

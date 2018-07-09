@@ -115,6 +115,27 @@ export GF_PATHS_PROVISIONING=./grafana/provisioning
 grafana-server
 ```
 
+## Traces
+
+Distributed tracing is available in Indigo Node but disabled by default.
+
+You can configure it in the `monitoring` section in `indigo_node.core.config`.
+
+We recommend using [Jaeger](https://www.jaegertracing.io) to collect traces
+locally (during development).
+
+We recommend using [Stackdriver](https://cloud.google.com/stackdriver/)
+on [AWS](https://aws.amazon.com/) or [GCP](https://cloud.google.com/).
+
+To view traces locally, set `monitoring.jaeger_endpoint = "/ip4/127.0.0.1/tcp/14268"`
+in `indigo_node.core.config` and run:
+
+```bash
+docker run -p 14268:14268 -p 16686:16686 jaegertracing/all-in-one:latest
+```
+
+Then visit `http://localhost:16686/` to view your traces.
+
 ## Documentation
 
 For more information, read the [documentation](doc/README.md).

@@ -12,16 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto3";
+package service
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import (
+	"context"
 
-package stratumn.indigonode.core.app.metrics.grpc;
+	pb "github.com/stratumn/go-indigonode/core/app/monitoring/grpc"
 
-option go_package = "github.com/stratumn/go-indigonode/core/app/metrics/grpc;grpc";
+	"go.opencensus.io/trace"
+)
 
-// The metrics service definition.
-service Metrics {
-  // TODO: once we start using spans/tracing,
-  // allow configuring the sampling ratio via RPC.
+// grpcServer is a gRPC server for the monitoring service.
+type grpcServer struct{}
+
+// SetSamplingRatio sets the sampling ratio for traces.
+func (s grpcServer) SetSamplingRatio(ctx context.Context, r *pb.SamplingRatio) (*pb.Ack, error) {
+	if r == nil || r.Value < 0 || r.Value > 1.0 {
+		return nil, ErrInvalidRatio
+	}
+
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.ProbabilitySampler(float64(r.Value)),
+	})
+
+	return &pb.Ack{}, nil
 }

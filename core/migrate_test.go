@@ -216,7 +216,7 @@ const confZero = `
     name = "System Services"
 
     # Services started by the group.
-    services = ["signal","pruner","metrics"]
+    services = ["signal","pruner","monitoring"]
 
   [[core.service_groups]]
 
@@ -450,8 +450,14 @@ const confZero = `
     # Whether to use local time instead of UTC for backups.
     use_local_time = false
 
-# Settings for the metrics module.
-[metrics]
+# Settings for the monitoring module.
+[monitoring]
+
+  # Fraction of traces to record.
+  trace_sampling_ratio = 1.0
+
+  # Address of the endpoint of the Jaeger agent to collect traces (blank = disabled).
+  jaeger_endpoint = ""
 
   # Interval between updates of periodic stats.
   interval = "10s"

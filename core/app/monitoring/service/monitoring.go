@@ -179,7 +179,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 
 		jaegerExporter, err = jaeger.NewExporter(jaeger.Options{
-			Endpoint:    jaegerEndpoint.String(),
+			Endpoint:    "http://" + jaegerEndpoint.String(),
 			ServiceName: "indigo-node",
 		})
 		if err != nil {

@@ -122,7 +122,7 @@ func (s *Service) Config() interface{} {
 	return Config{
 		PrometheusEndpoint: "/ip4/127.0.0.1/tcp/8905",
 		Interval:           "10s",
-		JaegerEndpoint:     "/ip4/127.0.0.1/tcp/14268",
+		JaegerEndpoint:     "",
 		TraceSamplingRatio: 1.0,
 	}
 }

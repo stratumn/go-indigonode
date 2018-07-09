@@ -457,7 +457,7 @@ const confZero = `
   trace_sampling_ratio = 1.0
 
   # Address of the endpoint of the Jaeger agent to collect traces (blank = disabled).
-  jaeger_endpoint = "/ip4/127.0.0.1/tcp/14268"
+  jaeger_endpoint = ""
 
   # Interval between updates of periodic stats.
   interval = "10s"

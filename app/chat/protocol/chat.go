@@ -85,7 +85,7 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 	})
 	defer event.Done()
 
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, from).Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, from).Build()
 	msgReceived.Record(ctx, 1)
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
@@ -121,7 +121,7 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	})
 	defer event.Done()
 
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, pid.Pretty()).Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, pid.Pretty()).Build()
 	msgSent.Record(ctx, 1)
 
 	successCh := make(chan struct{}, 1)

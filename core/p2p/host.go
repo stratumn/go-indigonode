@@ -465,7 +465,7 @@ func (h *Host) SetStreamHandler(proto protocol.ID, handler inet.StreamHandler) {
 		stream := rwc.(inet.Stream)
 		stream.SetProtocol(protocol.ID(protoStr))
 
-		ctx, _ := monitoring.NewTaggedContext(context.Background()).
+		ctx := monitoring.NewTaggedContext(context.Background()).
 			Tag(monitoring.PeerIDTag, stream.Conn().RemotePeer().Pretty()).
 			Tag(monitoring.ProtocolIDTag, protoStr).
 			Build()
@@ -506,7 +506,7 @@ func (h *Host) RemoveStreamHandler(proto protocol.ID) {
 
 // NewStream opens a new stream to the given peer for the given protocols.
 func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol.ID) (s inet.Stream, err error) {
-	ctx, _ = monitoring.NewTaggedContext(ctx).
+	ctx = monitoring.NewTaggedContext(ctx).
 		Tag(monitoring.PeerIDTag, pid.Pretty()).
 		Build()
 	event := log.EventBegin(ctx, "NewStream", logging.Metadata{
@@ -516,7 +516,7 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 
 	defer func() {
 		if err != nil {
-			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 			streamsErr.Record(ctx, 1)
 			event.SetError(err)
 		} else {
@@ -540,7 +540,7 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 	}
 
 	if pref != "" {
-		ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, string(pref)).Build()
+		ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, string(pref)).Build()
 		return h.newStream(ctx, pid, pref)
 	}
 
@@ -568,7 +568,7 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 
 	selfpid := protocol.ID(selected)
 	stream.SetProtocol(selfpid)
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, selected).Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ProtocolIDTag, selected).Build()
 
 	if err := h.Peerstore().AddProtocols(pid, selected); err != nil {
 		err = errors.WithStack(err)
@@ -696,11 +696,7 @@ func (h *Host) collectMetrics() {
 				continue
 			}
 
-			ctx, err := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
-			if err != nil {
-				continue
-			}
-
+			ctx := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
 			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
 			latency.Record(ctx, peerLatency)
 		}

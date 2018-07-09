@@ -149,52 +149,40 @@ type MetricsReporter struct{}
 
 // LogSentMessage records the bandwidth used.
 func (r *MetricsReporter) LogSentMessage(b int64) {
-	ctx, err := monitoring.NewTaggedContext(context.Background()).
+	ctx := monitoring.NewTaggedContext(context.Background()).
 		Tag(monitoring.PeerIDTag, "unknown").
 		Tag(monitoring.ProtocolIDTag, "unknown").
 		Build()
-	if err != nil {
-		return
-	}
 
 	bandwidthOut.Record(ctx, b)
 }
 
 // LogRecvMessage records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessage(b int64) {
-	ctx, err := monitoring.NewTaggedContext(context.Background()).
+	ctx := monitoring.NewTaggedContext(context.Background()).
 		Tag(monitoring.PeerIDTag, "unknown").
 		Tag(monitoring.ProtocolIDTag, "unknown").
 		Build()
-	if err != nil {
-		return
-	}
 
 	bandwidthIn.Record(ctx, b)
 }
 
 // LogSentMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogSentMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
-	ctx, err := monitoring.NewTaggedContext(context.Background()).
+	ctx := monitoring.NewTaggedContext(context.Background()).
 		Tag(monitoring.PeerIDTag, peerID.Pretty()).
 		Tag(monitoring.ProtocolIDTag, string(pid)).
 		Build()
-	if err != nil {
-		return
-	}
 
 	bandwidthOut.Record(ctx, b)
 }
 
 // LogRecvMessageStream records the bandwidth used.
 func (r *MetricsReporter) LogRecvMessageStream(b int64, pid protocol.ID, peerID peer.ID) {
-	ctx, err := monitoring.NewTaggedContext(context.Background()).
+	ctx := monitoring.NewTaggedContext(context.Background()).
 		Tag(monitoring.PeerIDTag, peerID.Pretty()).
 		Tag(monitoring.ProtocolIDTag, string(pid)).
 		Build()
-	if err != nil {
-		return
-	}
 
 	bandwidthIn.Record(ctx, b)
 }

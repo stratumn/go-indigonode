@@ -35,7 +35,7 @@ func logRequest(
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler,
 ) (interface{}, error) {
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(methodTag, info.FullMethod).Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(methodTag, info.FullMethod).Build()
 	requestReceived.Record(ctx, 1)
 
 	start := time.Now()
@@ -85,7 +85,7 @@ func logStream(
 	info *grpc.StreamServerInfo,
 	handler grpc.StreamHandler,
 ) error {
-	ctx, _ := monitoring.NewTaggedContext(ss.Context()).Tag(methodTag, info.FullMethod).Build()
+	ctx := monitoring.NewTaggedContext(ss.Context()).Tag(methodTag, info.FullMethod).Build()
 	requestReceived.Record(ctx, 1)
 
 	start := time.Now()

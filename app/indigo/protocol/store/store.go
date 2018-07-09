@@ -103,12 +103,12 @@ func (s *Store) addAuditTrail(ctx context.Context, segment *cs.Segment) {
 }
 
 func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) (err error) {
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
 	event := log.EventBegin(ctx, "NetworkNewSegment")
 	defer func() {
 		if err != nil {
 			event.SetError(err)
-			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		}
 
 		segmentsReceived.Record(ctx, 1)
@@ -286,12 +286,12 @@ func (s *Store) GetInfo(ctx context.Context) (interface{}, error) {
 
 // CreateLink forwards the request to the underlying store.
 func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes32, err error) {
-	ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
+	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
 	event := log.EventBegin(ctx, "CreateLink")
 	defer func() {
 		if err != nil {
 			event.SetError(err)
-			ctx, _ = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
+			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		} else {
 			event.Append(logging.Metadata{"link_hash": lh.String()})
 		}

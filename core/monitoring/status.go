@@ -40,3 +40,11 @@ type Status struct {
 	Code    int32
 	Message string
 }
+
+// NewStatus creates a new status object.
+func NewStatus(code int32, message string) Status {
+	return Status{
+		Code:    code,
+		Message: message,
+	}
+}

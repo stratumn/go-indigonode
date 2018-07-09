@@ -37,7 +37,7 @@ import (
 	"github.com/stratumn/go-indigonode/core"
 	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
 	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-	metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+	monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
 	"github.com/stratumn/go-indigonode/core/cfg"
 	logging "github.com/stratumn/go-indigonode/core/log"
 	"google.golang.org/grpc"
@@ -71,9 +71,11 @@ func SystemCfg() cfg.ConfigSet {
 	bsConf.ConnectionTimeout = "3s"
 	conf["bootstrap"] = bsConf
 
-	metricsConf := conf["metrics"].(metrics.Config)
-	metricsConf.PrometheusEndpoint = ""
-	conf["metrics"] = metricsConf
+	monitoringConf := conf["monitoring"].(monitoring.Config)
+	monitoringConf.PrometheusEndpoint = ""
+	monitoringConf.JaegerEndpoint = ""
+
+	conf["monitoring"] = monitoringConf
 
 	return conf
 }
@@ -103,9 +105,11 @@ func BenchmarkCfg() cfg.ConfigSet {
 	bsConf.ConnectionTimeout = "3s"
 	conf["bootstrap"] = bsConf
 
-	metricsConf := conf["metrics"].(metrics.Config)
-	metricsConf.PrometheusEndpoint = ""
-	conf["metrics"] = metricsConf
+	monitoringConf := conf["monitoring"].(monitoring.Config)
+	monitoringConf.PrometheusEndpoint = ""
+	monitoringConf.JaegerEndpoint = ""
+
+	conf["monitoring"] = monitoringConf
 
 	return conf
 }

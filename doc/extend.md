@@ -163,7 +163,7 @@ import (
     host "github.com/stratumn/go-indigonode/core/app/host/service"
     identify "github.com/stratumn/go-indigonode/core/app/identify/service"
     kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
-    metrics "github.com/stratumn/go-indigonode/core/app/metrics/service"
+    monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
     mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
     natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
     ping "github.com/stratumn/go-indigonode/core/app/ping/service"
@@ -184,7 +184,7 @@ func BuiltinServices() []manager.Service {
         &host.Service{},
         &identify.Service{},
         &kaddht.Service{},
-        &metrics.Service{},
+        &monitoring.Service{},
         &mssmux.Service{},
         &natmgr.Service{},
         &ping.Service{},
@@ -338,26 +338,26 @@ type Runner interface {
 
 ## Core Services
 
-| ID        | NAME                | DESC                                       | EXPOSES                                                          |
-| --------- | ------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| api       | API Services        | Starts API services.                       |                                                                  |
-| boot      | Boot Services       | Starts boot services.                      |                                                                  |
-| bootstrap | Bootstrap           | Bootstraps network connections.            | struct{}{}                                                       |
-| connmgr   | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr               |
-| grpcapi   | gRPC API            | Starts a gRPC API server.                  |                                                                  |
-| host      | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host                |
-| identify  | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService   |
-| kaddht    | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                    |
-| manager   | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager         |
-| metrics   | Metrics             | Collects metrics.                          | github.com/stratumn/go-indigonode/core/service/\*metrics.Metrics |
-| mssmux    | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                      |
-| natmgr    | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager            |
-| network   | Network Services    | Starts network services.                   |                                                                  |
-| p2p       | P2P Services        | Starts P2P services.                       |                                                                  |
-| ping      | Ping                | Handles ping requests and responses.       | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService     |
-| pruner    | Service Pruner      | Prunes unused services.                    |                                                                  |
-| relay     | Relay               | Enables the P2P circuit relay transport.   |                                                                  |
-| signal    | Signal Handler      | Handles exit signals.                      |                                                                  |
-| swarm     | Swarm               | Connects to peers.                         | github.com/libp2p/\*go-libp2p-swarm.Swarm                        |
-| system    | System Services     | Starts system services.                    |                                                                  |
-| yamux     | Yamux               | Multiplexes streams using Yamux.           | github.com/libp2p/go-stream-muxer.Transport                      |
+| ID         | NAME                | DESC                                       | EXPOSES                                                        |
+| ---------- | ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| api        | API Services        | Starts API services.                       |                                                                |
+| boot       | Boot Services       | Starts boot services.                      |                                                                |
+| bootstrap  | Bootstrap           | Bootstraps network connections.            | struct{}{}                                                     |
+| connmgr    | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
+| grpcapi    | gRPC API            | Starts a gRPC API server.                  |                                                                |
+| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host              |
+| identify   | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
+| kaddht     | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
+| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager       |
+| monitoring | Monitoring          | Collects metrics and traces.               |                                                                |
+| mssmux     | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
+| natmgr     | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |
+| network    | Network Services    | Starts network services.                   |                                                                |
+| p2p        | P2P Services        | Starts P2P services.                       |                                                                |
+| ping       | Ping                | Handles ping requests and responses.       | github.com/libp2p/go-libp2p/p2p/protocols/\*ping.PingService   |
+| pruner     | Service Pruner      | Prunes unused services.                    |                                                                |
+| relay      | Relay               | Enables the P2P circuit relay transport.   |                                                                |
+| signal     | Signal Handler      | Handles exit signals.                      |                                                                |
+| swarm      | Swarm               | Connects to peers.                         | github.com/libp2p/\*go-libp2p-swarm.Swarm                      |
+| system     | System Services     | Starts system services.                    |                                                                |
+| yamux      | Yamux               | Multiplexes streams using Yamux.           | github.com/libp2p/go-stream-muxer.Transport                    |

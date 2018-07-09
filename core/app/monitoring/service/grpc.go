@@ -17,12 +17,12 @@ package service
 import (
 	"context"
 
-	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
+	pb "github.com/stratumn/go-indigonode/core/app/monitoring/grpc"
 
 	"go.opencensus.io/trace"
 )
 
-// grpcServer is a gRPC server for the metrics service.
+// grpcServer is a gRPC server for the monitoring service.
 type grpcServer struct{}
 
 // SetSamplingRatio sets the sampling ratio for traces.

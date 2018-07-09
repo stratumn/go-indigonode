@@ -450,8 +450,8 @@ const confZero = `
     # Whether to use local time instead of UTC for backups.
     use_local_time = false
 
-# Settings for the metrics module.
-[metrics]
+# Settings for the monitoring module.
+[monitoring]
 
   # Fraction of traces to record.
   trace_sampling_ratio = 1.0

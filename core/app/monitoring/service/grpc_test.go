@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
+	pb "github.com/stratumn/go-indigonode/core/app/monitoring/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

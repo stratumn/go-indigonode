@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package service defines a service that collects metrics and can expose them
-// to a Prometheus server.
-//
-// It exposes the type Metrics which can be used by other services to send
-// metrics.
+// Package service defines a service to configure monitoring for your Indigo
+// Node.
+// Metrics are collected and can be exposed to a Prometheus server.
+// Traces are collected and can be exported to a tracing agent
+// (Jaeger or Stackdriver).
 package service
 
 import (
@@ -29,7 +29,7 @@ import (
 	indigostore "github.com/stratumn/go-indigonode/app/indigo/protocol/store"
 	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
 	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
+	pb "github.com/stratumn/go-indigonode/core/app/monitoring/grpc"
 	"github.com/stratumn/go-indigonode/core/httputil"
 	"github.com/stratumn/go-indigonode/core/p2p"
 
@@ -75,13 +75,13 @@ var views = []*view.View{
 	indigostore.InvalidSegments,
 }
 
-// Service is the Metrics service.
+// Service is the Monitoring service.
 type Service struct {
 	config   *Config
 	interval time.Duration
 }
 
-// Config contains configuration options for the Metrics service.
+// Config contains configuration options for the Monitoring service.
 type Config struct {
 	// TraceSamplingRatio is the fraction of traces to record.
 	TraceSamplingRatio float64 `toml:"trace_sampling_ratio" comment:"Fraction of traces to record."`
@@ -99,12 +99,12 @@ type Config struct {
 
 // ID returns the unique identifier of the service.
 func (s *Service) ID() string {
-	return "metrics"
+	return "monitoring"
 }
 
 // Name returns the human friendly name of the service.
 func (s *Service) Name() string {
-	return "Metrics"
+	return "Monitoring"
 }
 
 // Desc returns a description of what the service does.
@@ -248,5 +248,5 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 
 // AddToGRPCServer adds the service to a gRPC server.
 func (s *Service) AddToGRPCServer(gs *grpc.Server) {
-	pb.RegisterMetricsServer(gs, grpcServer{})
+	pb.RegisterMonitoringServer(gs, grpcServer{})
 }

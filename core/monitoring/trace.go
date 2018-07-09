@@ -49,6 +49,10 @@ func SpanOptionProtocolID(pid protocol.ID) SpanOption {
 	}
 }
 
+// loggersLock is used to synchronize access to libp2p's logging.Logger method
+// which is not thread-safe.
+var loggersLock = sync.Mutex{}
+
 // Span represents a span of a trace. It wraps an OpenCensus span.
 // It will also log to the configured libp2p logger.
 type Span struct {
@@ -62,7 +66,10 @@ type Span struct {
 
 // StartSpan starts a new span.
 func StartSpan(ctx context.Context, service string, method string, opts ...SpanOption) (context.Context, *Span) {
+	loggersLock.Lock()
 	log := logging.Logger(service)
+	loggersLock.Unlock()
+
 	event := log.EventBegin(ctx, method)
 	ctx, s := trace.StartSpan(ctx, fmt.Sprintf("indigo-node/%s/%s", service, method))
 	span := &Span{event: event, log: log, span: s}

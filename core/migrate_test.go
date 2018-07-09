@@ -453,6 +453,12 @@ const confZero = `
 # Settings for the metrics module.
 [metrics]
 
+  # Fraction of traces to record.
+  trace_sampling_ratio = 1.0
+
+  # Address of the endpoint of the Jaeger agent to collect traces (blank = disabled).
+  jaeger_endpoint = "/ip4/127.0.0.1/tcp/14268"
+
   # Interval between updates of periodic stats.
   interval = "10s"
 

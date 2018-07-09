@@ -22,6 +22,16 @@ option go_package = "github.com/stratumn/go-indigonode/core/app/metrics/grpc;grp
 
 // The metrics service definition.
 service Metrics {
-  // TODO: once we start using spans/tracing,
-  // allow configuring the sampling ratio via RPC.
+  rpc SetSamplingRatio (SamplingRatio) returns (Ack) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Set tracing sampling ratio";
+  }
 }
+
+message SamplingRatio {
+  float value = 1 [
+    (stratumn.indigonode.cli.ext.field_desc) = "Trace sampling ratio. Use 0.0 to never sample, 1.0 to always sample.",
+    (stratumn.indigonode.cli.ext.field_required) = true
+  ];
+}
+
+message Ack {}

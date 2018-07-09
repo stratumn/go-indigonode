@@ -16,24 +16,24 @@ package service
 
 import (
 	"context"
+	"testing"
 
 	pb "github.com/stratumn/go-indigonode/core/app/metrics/grpc"
-
-	"go.opencensus.io/trace"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// grpcServer is a gRPC server for the metrics service.
-type grpcServer struct{}
+func TestGRPCServer_SetSamplingRatio(t *testing.T) {
+	ctx := context.Background()
+	server := grpcServer{}
 
-// SetSamplingRatio sets the sampling ratio for traces.
-func (s grpcServer) SetSamplingRatio(ctx context.Context, r *pb.SamplingRatio) (*pb.Ack, error) {
-	if r == nil || r.Value < 0 || r.Value > 1.0 {
-		return nil, ErrInvalidRatio
-	}
-
-	trace.ApplyConfig(trace.Config{
-		DefaultSampler: trace.ProbabilitySampler(float64(r.Value)),
+	t.Run("reject-invalid-ratio", func(t *testing.T) {
+		_, err := server.SetSamplingRatio(ctx, &pb.SamplingRatio{Value: 4.2})
+		assert.EqualError(t, err, ErrInvalidRatio.Error())
 	})
 
-	return &pb.Ack{}, nil
+	t.Run("set-trace-sampler", func(t *testing.T) {
+		_, err := server.SetSamplingRatio(ctx, &pb.SamplingRatio{Value: 0.42})
+		require.NoError(t, err)
+	})
 }

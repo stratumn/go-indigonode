@@ -33,10 +33,13 @@ import (
 	"github.com/stratumn/go-indigonode/core/httputil"
 	"github.com/stratumn/go-indigonode/core/p2p"
 
+	"go.opencensus.io/exporter/jaeger"
 	"go.opencensus.io/exporter/prometheus"
 	"go.opencensus.io/stats/view"
+	"go.opencensus.io/trace"
 	"google.golang.org/grpc"
 
+	manet "gx/ipfs/QmRK2LxanhK2gZq6k6R7vk5ZoYZk8ULSSTB7FzDsMUX6CB/go-multiaddr-net"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 )
 
@@ -44,6 +47,9 @@ var (
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
+
+	// ErrInvalidRatio when an invalid ratio is provided.
+	ErrInvalidRatio = errors.New("invalid ratio (must be in [0;1])")
 )
 
 // views registered for metrics collection.
@@ -77,6 +83,12 @@ type Service struct {
 
 // Config contains configuration options for the Metrics service.
 type Config struct {
+	// TraceSamplingRatio is the fraction of traces to record.
+	TraceSamplingRatio float64 `toml:"trace_sampling_ratio" comment:"Fraction of traces to record."`
+
+	// JaegerEndpoint is the address of the endpoint of the Jaeger agent to collect traces.
+	JaegerEndpoint string `toml:"jaeger_endpoint" comment:"Address of the endpoint of the Jaeger agent to collect traces (blank = disabled)."`
+
 	// Interval is the interval between updates of periodic stats.
 	Interval string `toml:"interval" comment:"Interval between updates of periodic stats."`
 
@@ -110,12 +122,18 @@ func (s *Service) Config() interface{} {
 	return Config{
 		PrometheusEndpoint: "/ip4/127.0.0.1/tcp/8905",
 		Interval:           "10s",
+		JaegerEndpoint:     "/ip4/127.0.0.1/tcp/14268",
+		TraceSamplingRatio: 1.0,
 	}
 }
 
 // SetConfig configures the service.
 func (s *Service) SetConfig(config interface{}) error {
 	conf := config.(Config)
+
+	if conf.TraceSamplingRatio < 0 || conf.TraceSamplingRatio > 1.0 {
+		return ErrInvalidRatio
+	}
 
 	interval, err := time.ParseDuration(conf.Interval)
 	if err != nil {
@@ -124,6 +142,13 @@ func (s *Service) SetConfig(config interface{}) error {
 
 	if conf.PrometheusEndpoint != "" {
 		_, err = ma.NewMultiaddr(conf.PrometheusEndpoint)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	if conf.JaegerEndpoint != "" {
+		_, err = ma.NewMultiaddr(conf.JaegerEndpoint)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -144,28 +169,51 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
-	exporter, err := prometheus.NewExporter(prometheus.Options{})
-	if err != nil {
-		return err
+	var err error
+	var jaegerExporter trace.Exporter
+	if s.config.JaegerEndpoint != "" {
+		jaegerMultiaddr, _ := ma.NewMultiaddr(s.config.JaegerEndpoint)
+		jaegerEndpoint, err := manet.ToNetAddr(jaegerMultiaddr)
+		if err != nil {
+			return err
+		}
+
+		jaegerExporter, err = jaeger.NewExporter(jaeger.Options{
+			Endpoint:    jaegerEndpoint.String(),
+			ServiceName: "indigo-node",
+		})
+		if err != nil {
+			return err
+		}
+
+		trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(s.config.TraceSamplingRatio)})
+		trace.RegisterExporter(jaegerExporter)
 	}
 
-	view.RegisterExporter(exporter)
-
-	promCtx, cancelProm := context.WithCancel(ctx)
-	defer cancelProm()
-
+	var promExporter *prometheus.Exporter
 	promDone := make(chan error, 1)
+	var cancelProm context.CancelFunc
 	if s.config.PrometheusEndpoint != "" {
+		promExporter, err = prometheus.NewExporter(prometheus.Options{})
+		if err != nil {
+			return err
+		}
+
+		view.RegisterExporter(promExporter)
+		if err := view.Register(views...); err != nil {
+			return err
+		}
+
+		promCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		cancelProm = cancel
+
 		go func() {
 			promDone <- httputil.StartServer(
 				promCtx,
 				s.config.PrometheusEndpoint,
-				exporter)
+				promExporter)
 		}()
-	}
-
-	if err := view.Register(views...); err != nil {
-		return err
 	}
 
 	running()
@@ -182,8 +230,14 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		}
 	}
 
-	view.Unregister(views...)
-	view.UnregisterExporter(exporter)
+	if promExporter != nil {
+		view.Unregister(views...)
+		view.UnregisterExporter(promExporter)
+	}
+
+	if jaegerExporter != nil {
+		trace.UnregisterExporter(jaegerExporter)
+	}
 
 	if err == nil {
 		return errors.WithStack(ctx.Err())

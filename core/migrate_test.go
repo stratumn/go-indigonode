@@ -453,17 +453,35 @@ const confZero = `
 # Settings for the monitoring module.
 [monitoring]
 
-  # Fraction of traces to record.
-  trace_sampling_ratio = 1.0
-
-  # Address of the endpoint of the Jaeger agent to collect traces (blank = disabled).
-  jaeger_endpoint = ""
-
   # Interval between updates of periodic stats.
   interval = "10s"
 
-  # Address of the endpoint to expose Prometheus metrics (blank = disabled).
-  prometheus_endpoint = "/ip4/127.0.0.1/tcp/8905"
+  # Name of the metrics exporter (prometheus or stackdriver). Leave empty to disable metrics.
+  metrics_exporter = "prometheus"
+
+  # Name of the trace exporter (jaeger or stackdriver). Leave empty to disable tracing.
+  trace_exporter = ""
+  
+  # Fraction of traces to record.
+  trace_sampling_ratio = 1.0
+
+  # Jaeger configuration options (if enabled).
+  [monitoring.jaeger]
+
+    # Address of the Jaeger agent to collect traces.
+    endpoint = "/ip4/127.0.0.1/tcp/14268"
+
+  # Prometheus configuration options (if enabled).
+  [monitoring.prometheus]
+
+    # Address of the endpoint to expose Prometheus metrics.
+    endpoint = "/ip4/127.0.0.1/tcp/8905"
+
+  # Stackdriver configuration options (if enabled).
+  [monitoring.stackdriver]
+
+    # Identifier of the Stackdriver project.
+    project_id = "your-stackdriver-project-id"
 
 # Settings for the mssmux module.
 [mssmux]

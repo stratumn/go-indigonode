@@ -2,10 +2,27 @@
 
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = [
+    "compute/metadata",
+    "internal/version",
+    "monitoring/apiv3",
+    "trace/apiv2"
+  ]
+  revision = "777200caa7fb8936aed0f12b1fd79af64cc83ec9"
+  version = "v0.24.0"
+
+[[projects]]
   branch = "master"
   name = "code.cloudfoundry.org/bytefmt"
   packages = ["."]
   revision = "f4415fafc5619dd75599a54a7c91fb3948ad58bd"
+
+[[projects]]
+  name = "contrib.go.opencensus.io/exporter/stackdriver"
+  packages = ["."]
+  revision = "37aa2801fbf0205003e15636096ebf0373510288"
+  version = "v0.5.0"
 
 [[projects]]
   name = "docker.io/go-docker"
@@ -36,21 +53,13 @@
   name = "git.apache.org/thrift.git"
   packages = ["lib/go/thrift"]
   revision = "606f1ef31447526b908244933d5b716397a6bad8"
+  source = "github.com/apache/thrift"
 
 [[projects]]
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   revision = "7da180ee92d8bd8bb8c37fc560e673e6557c392f"
   version = "v0.4.7"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/armon/go-metrics"
-  packages = [
-    ".",
-    "prometheus"
-  ]
-  revision = "7aa49fde808223f8dadfdbfd3a20ff6c19e5f9ec"
 
 [[projects]]
   branch = "master"
@@ -189,7 +198,6 @@
   revision = "b3e60bcdc577185fce3cf625fc96b62857ce5574"
 
 [[projects]]
-  branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
@@ -198,10 +206,13 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/empty",
     "ptypes/struct",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
+    "ptypes/wrappers"
   ]
-  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -210,16 +221,10 @@
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/go-immutable-radix"
+  name = "github.com/googleapis/gax-go"
   packages = ["."]
-  revision = "8aac2701530899b64bdea735a1de8da899815220"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/golang-lru"
-  packages = ["simplelru"]
-  revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
+  revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
+  version = "v2.0.0"
 
 [[projects]]
   branch = "master"
@@ -553,23 +558,28 @@
   revision = "2c8e4be869c17540b336bab0ea18b8d73e6a28b7"
 
 [[projects]]
-  branch = "master"
   name = "go.opencensus.io"
   packages = [
     ".",
     "exporter/jaeger",
     "exporter/jaeger/internal/gen-go/jaeger",
     "exporter/prometheus",
+    "exporter/stackdriver/propagation",
     "internal",
     "internal/tagencoding",
+    "plugin/ocgrpc",
+    "plugin/ochttp",
+    "plugin/ochttp/propagation/b3",
     "stats",
     "stats/internal",
     "stats/view",
     "tag",
     "trace",
-    "trace/internal"
+    "trace/internal",
+    "trace/propagation"
   ]
-  revision = "5710257e78ab540a7c6f0e203009abea60eb97b7"
+  revision = "e262766cd0d230a1bb7c37281e345e465f19b41b"
+  version = "v0.14.0"
 
 [[projects]]
   branch = "master"
@@ -597,6 +607,18 @@
     "trace"
   ]
   revision = "d866cfc389cec985d6fda2859936a575a55a3ab6"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
+  revision = "ef147856a6ddbb60760db74283d2424e98c87bff"
 
 [[projects]]
   branch = "master"
@@ -637,28 +659,71 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/api"
-  packages = ["support/bundler"]
+  packages = [
+    "googleapi/transport",
+    "internal",
+    "iterator",
+    "option",
+    "support/bundler",
+    "transport",
+    "transport/grpc",
+    "transport/http"
+  ]
   revision = "9f7560f3b05bd90f33f9d56a449e5afd4dab15b3"
+
+[[projects]]
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/socket",
+    "internal/urlfetch",
+    "socket",
+    "urlfetch"
+  ]
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  revision = "a8101f21cf983e773d0c1133ebc5424792003214"
+  packages = [
+    "googleapis/api/annotations",
+    "googleapis/api/distribution",
+    "googleapis/api/label",
+    "googleapis/api/metric",
+    "googleapis/api/monitoredres",
+    "googleapis/devtools/cloudtrace/v2",
+    "googleapis/monitoring/v3",
+    "googleapis/rpc/status",
+    "protobuf/field_mask"
+  ]
+  revision = "e92b116572682a5b432ddd840aeaba2a559eeff1"
 
 [[projects]]
   name = "google.golang.org/grpc"
   packages = [
     ".",
     "balancer",
+    "balancer/base",
     "balancer/roundrobin",
     "codes",
     "connectivity",
     "credentials",
+    "credentials/oauth",
     "encoding",
-    "grpclb/grpc_lb_v1/messages",
+    "encoding/proto",
     "grpclog",
     "internal",
+    "internal/backoff",
+    "internal/channelz",
+    "internal/grpcrand",
     "keepalive",
     "metadata",
     "naming",
@@ -673,8 +738,8 @@
     "tap",
     "transport"
   ]
-  revision = "e687fa4e6424368ece6e4fe727cea2c806a0fcb4"
-  version = "v1.8.2"
+  revision = "168a6198bcb0ef175f7dacec0b8691fc141dc9b8"
+  version = "v1.13.0"
 
 [[projects]]
   name = "gopkg.in/fsnotify/fsnotify.v1"
@@ -703,6 +768,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b65441a0c1e32bcdc2d93a529a35887a88637d5208e8b539925c6fab1ee53327"
+  inputs-digest = "a3dd92ad3716bc4864e4bc659c25f004b14b074dd9961fb706a62557192de521"
   solver-name = "gps-cdcl"
   solver-version = 1

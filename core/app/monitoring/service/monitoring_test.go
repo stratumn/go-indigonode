@@ -30,7 +30,10 @@ import (
 func testService(ctx context.Context, t *testing.T) *Service {
 	serv := &Service{}
 	config := serv.Config().(Config)
-	config.PrometheusEndpoint = fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort())
+	config.MetricsExporter = PrometheusExporter
+	config.PrometheusConfig = &PrometheusConfig{
+		Endpoint: fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", netutil.RandomPort()),
+	}
 
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
@@ -47,6 +50,18 @@ func TestService_Run(t *testing.T) {
 
 	serv := testService(ctx, t)
 	testservice.TestRun(ctx, t, serv, time.Second)
+}
+
+func TestService_Expose(t *testing.T) {
+	serv := Service{}
+
+	err := serv.SetConfig(Config{Interval: "42s"})
+	require.NoError(t, err)
+
+	exposed := serv.Expose()
+	interval, ok := exposed.(time.Duration)
+	require.True(t, ok)
+	assert.Equal(t, float64(42), interval.Seconds())
 }
 
 func TestService_SetConfig(t *testing.T) {
@@ -66,11 +81,32 @@ func TestService_SetConfig(t *testing.T) {
 		errAny,
 	}, {
 		"invalid Prometheus endpoint",
-		func(c *Config) { c.PrometheusEndpoint = "http://example.com" },
+		func(c *Config) {
+			c.MetricsExporter = PrometheusExporter
+			c.PrometheusConfig = &PrometheusConfig{Endpoint: "http://example.com"}
+		},
 		errAny,
 	}, {
 		"invalid jaeger endpoint",
-		func(c *Config) { c.JaegerEndpoint = "http://example.com" },
+		func(c *Config) {
+			c.TraceExporter = JaegerExporter
+			c.JaegerConfig = &JaegerConfig{Endpoint: "http://example.com"}
+		},
+		errAny,
+	}, {
+		"missing stackdriver project id",
+		func(c *Config) {
+			c.MetricsExporter = StackdriverExporter
+			c.StackdriverConfig = &StackdriverConfig{}
+		},
+		errAny,
+	}, {
+		"invalid metrics exporter",
+		func(c *Config) { c.MetricsExporter = "zipkin" },
+		errAny,
+	}, {
+		"invalid trace exporter",
+		func(c *Config) { c.TraceExporter = "zipkin" },
 		errAny,
 	}}
 
@@ -78,6 +114,11 @@ func TestService_SetConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			serv := Service{}
 			config := serv.Config().(Config)
+			// Disable default prometheus exporter - no need to setup
+			// an http server for each test
+			config.MetricsExporter = ""
+			config.PrometheusConfig = nil
+
 			tt.set(&config)
 
 			err := errors.Cause(serv.SetConfig(config))

@@ -23,7 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/stratumn/go-indigonode/cli"
-	"google.golang.org/grpc"
+
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -61,8 +62,8 @@ var cliCmd = &cobra.Command{
 				cause := errors.Cause(err)
 				stack := cli.StackTrace(err)
 
-				if desc := grpc.ErrorDesc(cause); desc != "" {
-					fmt.Fprintf(os.Stderr, "Error: %s.\n", desc)
+				if s, ok := status.FromError(err); ok {
+					fmt.Fprintf(os.Stderr, "Error: %s.\n", s.Message())
 				} else {
 					fmt.Fprintf(os.Stderr, "Error: %s.\n", cause)
 				}

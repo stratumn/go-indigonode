@@ -127,7 +127,7 @@ locally (during development).
 We recommend using [Stackdriver](https://cloud.google.com/stackdriver/)
 on [AWS](https://aws.amazon.com/) or [GCP](https://cloud.google.com/).
 
-To view traces locally, set `monitoring.jaeger_endpoint = "/ip4/127.0.0.1/tcp/14268"`
+To view traces locally, set `monitoring.jaeger.endpoint = "/ip4/127.0.0.1/tcp/14268"`
 in `indigo_node.core.config` and run:
 
 ```bash
@@ -135,6 +135,10 @@ docker run -p 14268:14268 -p 16686:16686 jaegertracing/all-in-one:latest
 ```
 
 Then visit `http://localhost:16686/` to view your traces.
+
+To use Stackdriver in a Cloud deployment, set `monitoring.stackdriver.project_id`
+to your Stackdriver project ID, and traces and metrics should be collected
+automatically.
 
 ## Documentation
 

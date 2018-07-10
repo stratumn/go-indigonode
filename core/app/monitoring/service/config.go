@@ -249,9 +249,9 @@ func (c *Config) CreateTraceExporter() (trace.Exporter, error) {
 	switch c.TraceExporter {
 	case JaegerExporter:
 		jaegerMultiaddr, _ := ma.NewMultiaddr(c.JaegerConfig.Endpoint)
-		jaegerEndpoint, err := manet.ToNetAddr(jaegerMultiaddr)
-		if err != nil {
-			return nil, err
+		jaegerEndpoint, addrErr := manet.ToNetAddr(jaegerMultiaddr)
+		if addrErr != nil {
+			return nil, addrErr
 		}
 
 		exporter, err = jaeger.NewExporter(jaeger.Options{

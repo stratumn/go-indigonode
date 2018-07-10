@@ -72,8 +72,8 @@ func SystemCfg() cfg.ConfigSet {
 	conf["bootstrap"] = bsConf
 
 	monitoringConf := conf["monitoring"].(monitoring.Config)
-	monitoringConf.PrometheusEndpoint = ""
-	monitoringConf.JaegerEndpoint = ""
+	monitoringConf.MetricsExporter = ""
+	monitoringConf.TraceExporter = ""
 
 	conf["monitoring"] = monitoringConf
 
@@ -106,8 +106,8 @@ func BenchmarkCfg() cfg.ConfigSet {
 	conf["bootstrap"] = bsConf
 
 	monitoringConf := conf["monitoring"].(monitoring.Config)
-	monitoringConf.PrometheusEndpoint = ""
-	monitoringConf.JaegerEndpoint = ""
+	monitoringConf.MetricsExporter = ""
+	monitoringConf.TraceExporter = ""
 
 	conf["monitoring"] = monitoringConf
 

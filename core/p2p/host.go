@@ -104,6 +104,13 @@ func OptAddrsFilters(filter *mafilter.Filters) HostOption {
 	}
 }
 
+// OptMetricsInterval sets the interval at which metrics are collected.
+func OptMetricsInterval(interval time.Duration) HostOption {
+	return func(h *Host) {
+		h.tick = time.NewTicker(interval)
+	}
+}
+
 // DefHostOpts are the default options for a host.
 //
 // These options are set before the options passed to NewHost are processed.
@@ -111,6 +118,7 @@ var DefHostOpts = []HostOption{
 	OptConnManager(ifconnmgr.NullConnMgr{}),
 	OptResolver(madns.DefaultResolver),
 	OptNegTimeout(time.Minute),
+	OptMetricsInterval(time.Second),
 }
 
 // NewHost creates a new host.
@@ -120,7 +128,6 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 		netw: netw,
 		mux:  msmux.NewMultistreamMuxer(),
 		bwc:  &MetricsReporter{},
-		tick: time.NewTicker(time.Second),
 	}
 
 	for _, o := range DefHostOpts {

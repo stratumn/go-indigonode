@@ -88,11 +88,12 @@ func (s *Service) Desc() string {
 	return "Collects metrics and traces."
 }
 
-// Expose doesn't need to expose anything.
-// It's a pull model instead of a push one: every component should expose
-// custom metric views, and we choose here which metrics we want to record.
+// Expose returns the interval at which periodic metrics should be retrieved.
+// The monitoring service uses pull model instead of push: every component
+// should expose custom metric views and collect them at the interval specified
+// by the monitoring service, and we choose here which views we export.
 func (s *Service) Expose() interface{} {
-	return nil
+	return s.interval
 }
 
 // Run starts the service.

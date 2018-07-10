@@ -330,6 +330,9 @@ const confZero = `
   # The name of the connection manager service.
   connection_manager = "connmgr"
 
+  # The name of the monitoring service.
+  monitoring = "monitoring"
+
   # The negotiation timeout.
   negotiation_timeout = "1m"
 

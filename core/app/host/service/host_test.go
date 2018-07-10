@@ -39,7 +39,8 @@ func testService(ctx context.Context, t *testing.T) *Service {
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"swarm": testutil.GenSwarmNetwork(t, ctx),
+		"monitoring": 42 * time.Second,
+		"swarm":      testutil.GenSwarmNetwork(t, ctx),
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -110,11 +111,15 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"network",
 		func(c *Config) { c.Network = "myswarm" },
-		[]string{"connmgr", "myswarm"},
+		[]string{"connmgr", "monitoring", "myswarm"},
 	}, {
 		"connmgr",
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
-		[]string{"myconnmgr", "swarm"},
+		[]string{"monitoring", "myconnmgr", "swarm"},
+	}, {
+		"monitoring",
+		func(c *Config) { c.Monitoring = "mymonitoring" },
+		[]string{"connmgr", "mymonitoring", "swarm"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -153,39 +158,53 @@ func TestService_Plug(t *testing.T) {
 		"valid network",
 		func(c *Config) { c.Network = "myswarm" },
 		map[string]interface{}{
-			"myswarm": testutil.GenSwarmNetwork(t, context.Background()),
+			"myswarm":    testutil.GenSwarmNetwork(t, context.Background()),
+			"monitoring": time.Second,
 		},
 		nil,
 	}, {
 		"valid swarm",
 		func(c *Config) { c.Network = "myswarm" },
 		map[string]interface{}{
-			"myswarm": &swarm.Swarm{},
+			"myswarm":    &swarm.Swarm{},
+			"monitoring": time.Second,
 		},
 		nil,
 	}, {
 		"invalid network",
 		func(c *Config) { c.Network = "myswarm" },
 		map[string]interface{}{
-			"myswarm": struct{}{},
+			"myswarm":    struct{}{},
+			"monitoring": time.Second,
 		},
 		ErrNotNetwork,
 	}, {
 		"valid connmgr",
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
 		map[string]interface{}{
-			"myconnmgr": ifconnmgr.NullConnMgr{},
-			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+			"myconnmgr":  ifconnmgr.NullConnMgr{},
+			"swarm":      testutil.GenSwarmNetwork(t, context.Background()),
+			"monitoring": time.Second,
 		},
 		nil,
 	}, {
 		"invalid connmgr",
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
 		map[string]interface{}{
-			"myconnmgr": struct{}{},
-			"swarm":     testutil.GenSwarmNetwork(t, context.Background()),
+			"myconnmgr":  struct{}{},
+			"swarm":      testutil.GenSwarmNetwork(t, context.Background()),
+			"monitoring": time.Second,
 		},
 		ErrNotConnManager,
+	}, {
+		"invalid monitoring",
+		func(c *Config) { c.Monitoring = "mymonitoring" },
+		map[string]interface{}{
+			"connmgr":      ifconnmgr.NullConnMgr{},
+			"swarm":        testutil.GenSwarmNetwork(t, context.Background()),
+			"mymonitoring": struct{}{},
+		},
+		ErrNotMonitoring,
 	}}
 
 	for _, tt := range tests {

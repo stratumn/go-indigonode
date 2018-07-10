@@ -52,6 +52,18 @@ func TestService_Run(t *testing.T) {
 	testservice.TestRun(ctx, t, serv, time.Second)
 }
 
+func TestService_Expose(t *testing.T) {
+	serv := Service{}
+
+	err := serv.SetConfig(Config{Interval: "42s"})
+	require.NoError(t, err)
+
+	exposed := serv.Expose()
+	interval, ok := exposed.(time.Duration)
+	require.True(t, ok)
+	assert.Equal(t, float64(42), interval.Seconds())
+}
+
 func TestService_SetConfig(t *testing.T) {
 	errAny := errors.New("any error")
 

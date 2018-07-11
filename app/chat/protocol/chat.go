@@ -27,7 +27,6 @@ import (
 	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -39,9 +38,6 @@ type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the service.
 var ProtocolID = protocol.ID("/indigo/node/chat/v1.0.0")
-
-// log is the logger for the service.
-var log = logging.Logger("chat")
 
 // Chat implements the chat protocol.
 type Chat struct {
@@ -61,48 +57,34 @@ func NewChat(host Host, eventEmitter event.Emitter, msgReceivedCh chan *pbchat.D
 
 // StreamHandler handles incoming messages from peers.
 func (c *Chat) StreamHandler(ctx context.Context, stream inet.Stream) {
-	log.Event(ctx, "beginStream", logging.Metadata{
-		"stream": stream,
-	})
-	defer log.Event(ctx, "endStream", logging.Metadata{
-		"stream": stream,
-	})
+	ctx, span := monitoring.StartSpan(ctx, "chat", "StreamHandler", monitoring.SpanOptionPeerID(stream.Conn().RemotePeer()))
+	defer span.End()
 
 	c.receive(ctx, stream)
 	if err := stream.Close(); err != nil {
-		log.Event(ctx, "streamCloseError", logging.Metadata{
-			"error":  err.Error(),
-			"stream": stream,
-		})
+		span.Annotate(ctx, "close_err", err.Error())
 	}
 }
 
 // receive reads a message from an incoming stream.
 func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
-	from := stream.Conn().RemotePeer().Pretty()
-	event := log.EventBegin(ctx, "Receive", logging.Metadata{
-		"peerID": from,
-	})
-	defer event.Done()
+	from := stream.Conn().RemotePeer()
+	ctx, span := monitoring.StartSpan(ctx, "chat", "receive", monitoring.SpanOptionPeerID(from))
+	defer span.End()
 
-	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, from).Build()
 	msgReceived.Record(ctx, 1)
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	var message pb.Message
 	err := dec.Decode(&message)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		msgError.Record(ctx, 1)
 		return
 	}
 
-	event.Append(logging.Metadata{
-		"message": message.Message,
-	})
-
 	go func() {
-		c.msgReceivedCh <- pbchat.NewDatedMessageReceived(stream.Conn().RemotePeer(), message.Message)
+		c.msgReceivedCh <- pbchat.NewDatedMessageReceived(from, message.Message)
 	}()
 
 	chatEvent := &pbevent.Event{
@@ -116,12 +98,9 @@ func (c *Chat) receive(ctx context.Context, stream inet.Stream) {
 
 // Send sends a message to a peer.
 func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
-	event := log.EventBegin(ctx, "Send", logging.Metadata{
-		"peerID": pid.Pretty(),
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "chat", "Send", monitoring.SpanOptionPeerID(pid))
+	defer span.End()
 
-	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, pid.Pretty()).Build()
 	msgSent.Record(ctx, 1)
 
 	successCh := make(chan struct{}, 1)
@@ -130,7 +109,6 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	go func() {
 		stream, err := c.host.NewStream(ctx, pid, ProtocolID)
 		if err != nil {
-			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
@@ -138,7 +116,6 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		err = enc.Encode(&pb.Message{Message: message})
 		if err != nil {
-			event.SetError(err)
 			errCh <- errors.WithStack(err)
 			return
 		}
@@ -152,6 +129,7 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 	case <-successCh:
 		return nil
 	case err := <-errCh:
+		span.SetUnknownError(err)
 		msgError.Record(ctx, 1)
 		return err
 	}

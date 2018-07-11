@@ -19,9 +19,9 @@ import (
 	"sync"
 
 	"github.com/mohae/deepcopy"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -41,12 +41,12 @@ type InMemoryConfig struct {
 // It's the source of truth for the network configuration and
 // should be the only object mutating the underlying data.
 func NewInMemoryConfig(ctx context.Context, networkConfig *pb.NetworkConfig) (NetworkConfig, error) {
-	event := log.EventBegin(ctx, "NewInMemoryConfig")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "NewInMemoryConfig")
+	defer span.End()
 
 	err := networkConfig.ValidateContent(ctx)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, err
 	}
 
@@ -57,9 +57,8 @@ func NewInMemoryConfig(ctx context.Context, networkConfig *pb.NetworkConfig) (Ne
 
 // AddPeer adds a peer to the network configuration.
 func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
-	defer log.EventBegin(ctx, "InMemoryConfig.AddPeer", logging.Metadata{
-		"peer": peerID.Pretty(),
-	}).Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "AddPeer", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	var marshalledAddrs []string
 	for _, addr := range addrs {
@@ -75,9 +74,8 @@ func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 
 // RemovePeer removes a peer from the network configuration.
 func (c *InMemoryConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
-	defer log.EventBegin(ctx, "InMemoryConfig.RemovePeer", logging.Metadata{
-		"peer": peerID.Pretty(),
-	}).Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "RemovePeer", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
@@ -88,9 +86,8 @@ func (c *InMemoryConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 
 // IsAllowed returns true if the given peer is allowed in the network.
 func (c *InMemoryConfig) IsAllowed(ctx context.Context, peerID peer.ID) bool {
-	defer log.EventBegin(ctx, "InMemoryConfig.IsAllowed", logging.Metadata{
-		"peer_id": peerID.Pretty(),
-	}).Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "IsAllowed", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	c.dataLock.RLock()
 	defer c.dataLock.RUnlock()
@@ -101,7 +98,8 @@ func (c *InMemoryConfig) IsAllowed(ctx context.Context, peerID peer.ID) bool {
 
 // AllowedPeers returns the IDs of the peers in the network.
 func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
-	defer log.EventBegin(ctx, "InMemoryConfig.AllowedPeers").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "AllowedPeers")
+	defer span.End()
 
 	c.dataLock.RLock()
 	defer c.dataLock.RUnlock()
@@ -117,22 +115,22 @@ func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
 
 // NetworkState returns the current state of the network protection.
 func (c *InMemoryConfig) NetworkState(ctx context.Context) pb.NetworkState {
-	event := log.EventBegin(ctx, "InMemoryConfig.NetworkState")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "NetworkState")
+	defer span.End()
 
 	c.dataLock.RLock()
 	defer c.dataLock.RUnlock()
 
-	event.Append(logging.Metadata{"state": c.data.NetworkState})
+	span.AddStringAttribute("state", c.data.NetworkState.String())
 	return pb.NetworkState(c.data.NetworkState)
 }
 
 // SetNetworkState sets the current state of the network protection.
 func (c *InMemoryConfig) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
-	event := log.EventBegin(ctx, "InMemoryConfig.SetNetworkState", logging.Metadata{
-		"state": networkState,
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "SetNetworkState")
+	defer span.End()
+
+	span.AddStringAttribute("state", networkState.String())
 
 	switch networkState {
 	case pb.NetworkState_BOOTSTRAP, pb.NetworkState_PROTECTED:
@@ -142,22 +140,22 @@ func (c *InMemoryConfig) SetNetworkState(ctx context.Context, networkState pb.Ne
 		c.data.NetworkState = networkState
 		return nil
 	default:
-		event.SetError(pb.ErrInvalidNetworkState)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, pb.ErrInvalidNetworkState.Error()))
 		return pb.ErrInvalidNetworkState
 	}
 }
 
 // Sign signs the underlying configuration.
 func (c *InMemoryConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error {
-	event := log.EventBegin(ctx, "InMemoryConfig.Sign")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "Sign")
+	defer span.End()
 
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
 	err := c.data.Sign(ctx, privKey)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 	}
 
 	return err
@@ -165,7 +163,8 @@ func (c *InMemoryConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error
 
 // Copy returns a copy of the underlying configuration.
 func (c *InMemoryConfig) Copy(ctx context.Context) pb.NetworkConfig {
-	defer log.EventBegin(ctx, "InMemoryConfig.Copy").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "Copy")
+	defer span.End()
 
 	c.dataLock.RLock()
 	defer c.dataLock.RUnlock()
@@ -176,12 +175,12 @@ func (c *InMemoryConfig) Copy(ctx context.Context) pb.NetworkConfig {
 // Reset clears the current configuration and applies the given one.
 // It assumes that the incoming configuration signature has been validated.
 func (c *InMemoryConfig) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
-	event := log.EventBegin(ctx, "InMemoryConfig.Reset")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "Reset")
+	defer span.End()
 
 	err := networkConfig.ValidateContent(ctx)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return err
 	}
 

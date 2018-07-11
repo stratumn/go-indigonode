@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
@@ -96,25 +96,26 @@ func LoadOrInitNetworkConfig(
 	protect Protector,
 	peerStore peerstore.Peerstore,
 ) (NetworkConfig, error) {
-	event := log.EventBegin(ctx, "LoadOrInitNetworkConfig", logging.Metadata{"path": configPath})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector", "LoadOrInitNetworkConfig")
+	span.AddStringAttribute("path", configPath)
+	defer span.End()
 
 	conf, err := NewInMemoryConfig(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, err
 	}
 
 	// Create the directory if it doesn't exist.
 	configDir, _ := filepath.Split(configPath)
 	if err := os.MkdirAll(configDir, 0744); err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, errors.WithStack(err)
 	}
 
 	_, err = os.Stat(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, pb.ErrInvalidConfig
 	}
 
@@ -131,20 +132,20 @@ func LoadOrInitNetworkConfig(
 	if err == nil {
 		peerID, err := peer.IDFromPrivateKey(privKey)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return nil, errors.WithStack(err)
 		}
 
 		previousConf := &pb.NetworkConfig{}
 		err = previousConf.LoadFromFile(ctx, configPath, peerID)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return nil, err
 		}
 
 		err = wrappedConf.SetNetworkState(ctx, previousConf.NetworkState)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return nil, err
 		}
 
@@ -160,7 +161,7 @@ func LoadOrInitNetworkConfig(
 
 			err = wrappedConf.AddPeer(ctx, decodedPeerID, peerMultiAddrs)
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 				return nil, err
 			}
 		}

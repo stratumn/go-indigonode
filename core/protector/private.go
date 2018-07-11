@@ -19,10 +19,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	"gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -78,8 +77,8 @@ func (p *PrivateNetwork) ListenForUpdates(updateChan <-chan NetworkUpdate) {
 
 // Fingerprint returns a hash of the participants list.
 func (p *PrivateNetwork) Fingerprint() []byte {
-	event := log.EventBegin(context.Background(), "Fingerprint")
-	defer event.Done()
+	_, span := monitoring.StartSpan(context.Background(), "protector", "Fingerprint")
+	defer span.End()
 
 	p.allowedPeersLock.RLock()
 	allowed := make([]string, 0, len(p.allowedPeers))
@@ -98,23 +97,20 @@ func (p *PrivateNetwork) Fingerprint() []byte {
 
 	mh, _ := multihash.Sum(allowedBytes, multihash.SHA2_256, -1)
 	b58 := mh.B58String()
-	event.Append(logging.Metadata{"fingerprint": b58})
+	span.AddStringAttribute("fingerpint", b58)
 
 	return []byte(b58)
 }
 
 // Protect drops any connection attempt from or to a nonwhitelisted peer.
 func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
-	ctx := context.Background()
-	event := log.EventBegin(ctx, "Protect")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(context.Background(), "protector", "Protect")
+	defer span.End()
 
-	remoteAddr := conn.RemoteMultiaddr()
 	localAddr := conn.LocalMultiaddr()
-	event.Append(logging.Metadata{
-		"local":  localAddr.String(),
-		"remote": remoteAddr.String(),
-	})
+	span.AddStringAttribute("local", localAddr.String())
+	remoteAddr := conn.RemoteMultiaddr()
+	span.AddStringAttribute("remote", remoteAddr.String())
 
 	for _, addr := range p.AllowedAddrs(ctx) {
 		if remoteAddr.Equal(addr) {
@@ -122,17 +118,18 @@ func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
 		}
 	}
 
-	event.SetError(ErrConnectionRefused)
 	if err := conn.Close(); err != nil {
-		event.SetError(errors.WithStack(err))
+		span.AddStringAttribute("close_err", err.Error())
 	}
 
+	span.SetStatus(monitoring.NewStatus(monitoring.StatusCodePermissionDenied, ErrConnectionRefused.Error()))
 	return conn, ErrConnectionRefused
 }
 
 // AllowedAddrs returns all addresses we allow connections to and from.
 func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr {
-	defer log.EventBegin(ctx, "AllowedAddrs").Done()
+	ctx, span := monitoring.StartSpan(context.Background(), "protector", "AllowedAddrs")
+	defer span.End()
 
 	p.allowedPeersLock.RLock()
 	defer p.allowedPeersLock.RUnlock()
@@ -141,9 +138,7 @@ func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr
 	for peer := range p.allowedPeers {
 		addrs := p.peerStore.Addrs(peer)
 		if len(addrs) == 0 {
-			log.Event(ctx, "PeerAddressMissing", logging.Metadata{
-				"peerID": peer.Pretty(),
-			})
+			span.Annotate(ctx, peer.Pretty(), "peer address missing")
 		} else {
 			allAddrs = append(allAddrs, addrs...)
 		}
@@ -154,13 +149,13 @@ func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr
 
 // AllowedPeers returns the list of whitelisted peers.
 func (p *PrivateNetwork) AllowedPeers(ctx context.Context) []peer.ID {
-	event := log.EventBegin(ctx, "AllowedPeers")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(context.Background(), "protector", "AllowedPeers")
+	defer span.End()
 
 	p.allowedPeersLock.RLock()
 	defer p.allowedPeersLock.RUnlock()
 
-	event.Append(logging.Metadata{"peers_count": len(p.allowedPeers)})
+	span.AddIntAttribute("peers_count", int64(len(p.allowedPeers)))
 
 	allowed := make([]peer.ID, 0, len(p.allowedPeers))
 	for peer := range p.allowedPeers {

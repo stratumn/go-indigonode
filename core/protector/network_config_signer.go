@@ -17,6 +17,7 @@ package protector
 import (
 	"context"
 
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -43,7 +44,8 @@ func WrapWithSignature(networkConfig NetworkConfig, privKey crypto.PrivKey) Netw
 // AddPeer adds a peer to the network configuration
 // and updates the signature.
 func (c *ConfigSigner) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
-	defer log.EventBegin(ctx, "ConfigSigner.AddPeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_signer", "AddPeer")
+	defer span.End()
 
 	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
@@ -56,7 +58,8 @@ func (c *ConfigSigner) AddPeer(ctx context.Context, peerID peer.ID, addrs []mult
 // RemovePeer removes a peer from the network configuration
 // and updates the signature.
 func (c *ConfigSigner) RemovePeer(ctx context.Context, peerID peer.ID) error {
-	defer log.EventBegin(ctx, "ConfigSigner.RemovePeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_signer", "RemovePeer")
+	defer span.End()
 
 	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
@@ -69,7 +72,8 @@ func (c *ConfigSigner) RemovePeer(ctx context.Context, peerID peer.ID) error {
 // SetNetworkState sets the current state of the network protection
 // and updates the signature.
 func (c *ConfigSigner) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
-	defer log.EventBegin(ctx, "ConfigSigner.SetNetworkState").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_signer", "SetNetworkState")
+	defer span.End()
 
 	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
@@ -83,7 +87,8 @@ func (c *ConfigSigner) SetNetworkState(ctx context.Context, networkState pb.Netw
 // It assumes that the incoming configuration signature has been validated.
 // It updates the local signature.
 func (c *ConfigSigner) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
-	defer log.EventBegin(ctx, "ConfigSigner.Reset").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_signer", "Reset")
+	defer span.End()
 
 	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {

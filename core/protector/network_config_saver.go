@@ -20,9 +20,9 @@ import (
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
@@ -45,19 +45,20 @@ func WrapWithSaver(networkConfig NetworkConfig, configPath string) NetworkConfig
 
 // Save saves the network configuration to disk.
 func (c *ConfigSaver) Save(ctx context.Context) error {
-	event := log.EventBegin(ctx, "ConfigSaver.Save", logging.Metadata{"path": c.configPath})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_saver", "Save")
+	span.AddStringAttribute("path", c.configPath)
+	defer span.End()
 
 	networkConfig := c.NetworkConfig.Copy(ctx)
 	configBytes, err := json.Marshal(networkConfig)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return errors.WithStack(err)
 	}
 
 	err = ioutil.WriteFile(c.configPath, configBytes, 0644)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return errors.WithStack(err)
 	}
 
@@ -67,7 +68,8 @@ func (c *ConfigSaver) Save(ctx context.Context) error {
 // AddPeer adds a peer to the network configuration
 // and saves it to disk.
 func (c *ConfigSaver) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
-	defer log.EventBegin(ctx, "ConfigSaver.AddPeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_saver", "AddPeer")
+	defer span.End()
 
 	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
@@ -80,7 +82,8 @@ func (c *ConfigSaver) AddPeer(ctx context.Context, peerID peer.ID, addrs []multi
 // RemovePeer removes a peer from the network configuration
 // and saves it to disk.
 func (c *ConfigSaver) RemovePeer(ctx context.Context, peerID peer.ID) error {
-	defer log.EventBegin(ctx, "ConfigSaver.RemovePeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_saver", "RemovePeer")
+	defer span.End()
 
 	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
@@ -93,7 +96,8 @@ func (c *ConfigSaver) RemovePeer(ctx context.Context, peerID peer.ID) error {
 // SetNetworkState sets the current state of the network protection
 // and saves it to disk.
 func (c *ConfigSaver) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
-	defer log.EventBegin(ctx, "ConfigSaver.SetNetworkState").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_saver", "SetNetworkState")
+	defer span.End()
 
 	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
@@ -107,7 +111,8 @@ func (c *ConfigSaver) SetNetworkState(ctx context.Context, networkState pb.Netwo
 // It assumes that the incoming configuration signature has been validated.
 // It saves it to disk.
 func (c *ConfigSaver) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
-	defer log.EventBegin(ctx, "ConfigSaver.Reset").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_saver", "Reset")
+	defer span.End()
 
 	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {

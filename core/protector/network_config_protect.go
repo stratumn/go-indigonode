@@ -17,6 +17,7 @@ package protector
 import (
 	"context"
 
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -59,7 +60,8 @@ func WrapWithProtectUpdater(
 // AddPeer adds a peer to the network configuration
 // and updates the protector and peer store.
 func (c *ProtectUpdater) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
-	defer log.EventBegin(ctx, "ProtectUpdater.AddPeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_protect", "AddPeer")
+	defer span.End()
 
 	err := c.NetworkConfig.AddPeer(ctx, peerID, addrs)
 	if err != nil {
@@ -75,7 +77,8 @@ func (c *ProtectUpdater) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 // RemovePeer removes a peer from the network configuration
 // and updates the protector.
 func (c *ProtectUpdater) RemovePeer(ctx context.Context, peerID peer.ID) error {
-	defer log.EventBegin(ctx, "ProtectUpdater.RemovePeer").Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_protect", "RemovePeer")
+	defer span.End()
 
 	err := c.NetworkConfig.RemovePeer(ctx, peerID)
 	if err != nil {
@@ -90,8 +93,8 @@ func (c *ProtectUpdater) RemovePeer(ctx context.Context, peerID peer.ID) error {
 // SetNetworkState sets the current state of the network protection
 // and updates the protector if it's interested in state changes.
 func (c *ProtectUpdater) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
-	event := log.EventBegin(ctx, "ProtectUpdater.SetNetworkState")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_protect", "SetNetworkState")
+	defer span.End()
 
 	err := c.NetworkConfig.SetNetworkState(ctx, networkState)
 	if err != nil {
@@ -102,7 +105,7 @@ func (c *ProtectUpdater) SetNetworkState(ctx context.Context, networkState pb.Ne
 	if ok {
 		err := stateAwareProtector.SetNetworkState(ctx, networkState)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return err
 		}
 	}
@@ -114,8 +117,8 @@ func (c *ProtectUpdater) SetNetworkState(ctx context.Context, networkState pb.Ne
 // It assumes that the incoming configuration signature has been validated.
 // It updates the protector accordingly.
 func (c *ProtectUpdater) Reset(ctx context.Context, networkConfig *pb.NetworkConfig) error {
-	event := log.EventBegin(ctx, "ProtectUpdater.Reset")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "protector.config_protect", "Reset")
+	defer span.End()
 
 	err := c.NetworkConfig.Reset(ctx, networkConfig)
 	if err != nil {
@@ -126,7 +129,7 @@ func (c *ProtectUpdater) Reset(ctx context.Context, networkConfig *pb.NetworkCon
 	if ok {
 		err := stateAwareProtector.SetNetworkState(ctx, networkConfig.NetworkState)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return err
 		}
 	}

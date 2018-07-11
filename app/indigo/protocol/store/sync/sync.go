@@ -21,8 +21,7 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
-
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 )
 
 var (
@@ -40,8 +39,6 @@ var (
 	// the expected number of links.
 	ErrInvalidLinkCount = errors.New("invalid number of links found")
 )
-
-var log = logging.Logger("indigo.store.sync")
 
 // Engine lets a node sync with other nodes to fetch
 // missed content (links).
@@ -119,10 +116,10 @@ func OrderLinks(
 	// are included in the hash computation, it's impossible to create a cycle.
 	// Another option would be to do a BFS, reverse the results and
 	// remove the duplicates.
-	event := log.EventBegin(ctx, "OrderLinks", logging.Metadata{
-		"links_count": len(linksMap),
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.sync", "OrderLinks")
+	defer span.End()
+
+	span.AddIntAttribute("links_count", int64(len(linksMap)))
 
 	added := make(map[string]struct{})
 	var links []*cs.Link
@@ -184,7 +181,7 @@ func OrderLinks(
 	}
 
 	if err := dfs(start); err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, ErrLinkNotFound
 	}
 

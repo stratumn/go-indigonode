@@ -128,7 +128,7 @@ func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
 
 // AllowedAddrs returns all addresses we allow connections to and from.
 func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr {
-	ctx, span := monitoring.StartSpan(context.Background(), "protector", "AllowedAddrs")
+	ctx, span := monitoring.StartSpan(ctx, "protector", "AllowedAddrs")
 	defer span.End()
 
 	p.allowedPeersLock.RLock()
@@ -149,7 +149,7 @@ func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr
 
 // AllowedPeers returns the list of whitelisted peers.
 func (p *PrivateNetwork) AllowedPeers(ctx context.Context) []peer.ID {
-	ctx, span := monitoring.StartSpan(context.Background(), "protector", "AllowedPeers")
+	ctx, span := monitoring.StartSpan(ctx, "protector", "AllowedPeers")
 	defer span.End()
 
 	p.allowedPeersLock.RLock()

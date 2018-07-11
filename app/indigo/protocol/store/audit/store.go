@@ -21,12 +21,7 @@ import (
 	// Blank import to register fossilizer concrete evidence types.
 	_ "github.com/stratumn/go-indigocore/fossilizer/evidences"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-)
-
-var (
-	log = logging.Logger("indigo.store.audit")
 )
 
 const (

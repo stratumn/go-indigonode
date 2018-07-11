@@ -27,11 +27,7 @@ import (
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
 	"github.com/stratumn/go-indigonode/core/monitoring"
-
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
-
-var log = logging.Logger("indigo.store")
 
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.
 type Store struct {
@@ -65,12 +61,14 @@ func New(
 
 	go store.listenNetwork()
 	go func() {
+		ctx, span := monitoring.StartSpan(ctx, "indigo.store", "GovernanceManager")
+		defer span.End()
+
 		if err := store.govMgr.ListenAndUpdate(ctx); err != nil {
-			log.Event(ctx, "GovernanceManagerError", logging.Metadata{
-				"error": err.Error(),
-			})
+			span.SetUnknownError(err)
 		}
 	}()
+
 	return store
 }
 
@@ -81,7 +79,6 @@ func (s *Store) listenNetwork() {
 		ctx := context.Background()
 		segment, ok := <-s.segmentsChan
 		if !ok {
-			log.Event(ctx, "ListenChanClosed")
 			return
 		}
 
@@ -92,27 +89,27 @@ func (s *Store) listenNetwork() {
 }
 
 func (s *Store) addAuditTrail(ctx context.Context, segment *cs.Segment) {
-	event := log.EventBegin(ctx, "AddAuditTrail")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "addAuditTrail")
+	defer span.End()
 
 	invalidSegments.Record(ctx, 1)
 
 	if err := s.auditStore.AddSegment(ctx, segment); err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 	}
 }
 
 func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) (err error) {
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "storeNetworkSegment")
 	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
-	event := log.EventBegin(ctx, "NetworkNewSegment")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		}
 
 		segmentsReceived.Record(ctx, 1)
-		event.Done()
+		span.End()
 	}()
 
 	if segment == nil {
@@ -125,7 +122,7 @@ func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) (e
 
 	seg, _ := s.store.GetSegment(ctx, segment.GetLinkHash())
 	if seg != nil {
-		event.Append(logging.Metadata{"already_stored": true})
+		span.AddBoolAttribute("already_stored", true)
 		return nil
 	}
 
@@ -167,17 +164,17 @@ func (s *Store) storeNetworkSegment(ctx context.Context, segment *cs.Segment) (e
 }
 
 func (s *Store) verifySegmentEvidence(ctx context.Context, segment *cs.Segment) (err error) {
-	event := log.EventBegin(ctx, "verifySegmentEvidence")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "verifySegmentEvidence")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
 
 	networkEvidences := segment.Meta.FindEvidences(audit.PeerSignatureBackend)
-	event.Append(logging.Metadata{"evidence_count": len(networkEvidences)})
+	span.AddIntAttribute("evidence_count", int64(len(networkEvidences)))
 
 	if len(networkEvidences) == 0 {
 		return audit.ErrMissingPeerSignature
@@ -206,7 +203,7 @@ func (s *Store) verifySegmentEvidence(ctx context.Context, segment *cs.Segment) 
 		return err
 	}
 
-	event.Append(logging.Metadata{"sender": peerID.Pretty()})
+	span.SetPeerID(peerID)
 
 	networkEvidence := segment.Meta.GetEvidence(peerID.Pretty())
 	if networkEvidence == nil || networkEvidence.Backend != audit.PeerSignatureBackend {
@@ -223,13 +220,13 @@ func (s *Store) verifySegmentEvidence(ctx context.Context, segment *cs.Segment) 
 // syncMissingLinks assumes that the incoming segment's evidence
 // has been validated.
 func (s *Store) syncMissingLinks(ctx context.Context, segment *cs.Segment) (err error) {
-	event := log.EventBegin(ctx, "SyncMissingLinks")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "syncMissingLinks")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
 
 	missedLinks, err := s.sync.GetMissingLinks(ctx, &segment.Link, s.store)
@@ -267,11 +264,15 @@ func (s *Store) syncMissingLinks(ctx context.Context, segment *cs.Segment) (err 
 
 // Close cleans up the store and stops it.
 func (s *Store) Close(ctx context.Context) (err error) {
-	log.Event(ctx, "Close")
+	_, span := monitoring.StartSpan(ctx, "indigo.store", "Close")
+	defer span.End()
 
 	switch a := s.store.(type) {
 	case *postgresstore.Store:
 		err = a.Close()
+		if err != nil {
+			span.SetUnknownError(err)
+		}
 	}
 
 	s.networkMgr.RemoveListener(s.segmentsChan)
@@ -280,24 +281,26 @@ func (s *Store) Close(ctx context.Context) (err error) {
 
 // GetInfo returns information about the underlying store.
 func (s *Store) GetInfo(ctx context.Context) (interface{}, error) {
-	log.Event(ctx, "GetInfo")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "GetInfo")
+	defer span.End()
+
 	return s.store.GetInfo(ctx)
 }
 
 // CreateLink forwards the request to the underlying store.
 func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes32, err error) {
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "CreateLink")
 	ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, "success").Build()
-	event := log.EventBegin(ctx, "CreateLink")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			ctx = monitoring.NewTaggedContext(ctx).Tag(monitoring.ErrorTag, err.Error()).Build()
 		} else {
-			event.Append(logging.Metadata{"link_hash": lh.String()})
+			span.AddStringAttribute("link_hash", lh.String())
 		}
 
 		segmentsCreated.Record(ctx, 1)
-		event.Done()
+		span.End()
 	}()
 
 	err = link.Validate(ctx, s.GetSegment)
@@ -307,7 +310,6 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 
 	if rulesValidator := s.govMgr.Current(); rulesValidator != nil {
 		if err = rulesValidator.Validate(ctx, s.store, link); err != nil {
-			event.SetError(errors.Wrap(err, "link validation failed"))
 			return nil, err
 		}
 		rulesHash, err := rulesValidator.Hash()
@@ -333,55 +335,59 @@ func (s *Store) CreateLink(ctx context.Context, link *cs.Link) (lh *types.Bytes3
 
 // GetSegment forwards the request to the underlying store.
 func (s *Store) GetSegment(ctx context.Context, linkHash *types.Bytes32) (*cs.Segment, error) {
-	log.Event(ctx, "GetSegment", logging.Metadata{
-		"link_hash": linkHash.String(),
-	})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "GetSegment")
+	defer span.End()
+
+	span.AddStringAttribute("link_hash", linkHash.String())
 
 	return s.store.GetSegment(ctx, linkHash)
 }
 
 // FindSegments forwards the request to the underlying store.
 func (s *Store) FindSegments(ctx context.Context, filter *store.SegmentFilter) (cs.SegmentSlice, error) {
-	log.Event(ctx, "FindSegments", logging.Metadata{
-		"filter": filter,
-	})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "FindSegments")
+	defer span.End()
+
 	return s.store.FindSegments(ctx, filter)
 }
 
 // GetMapIDs forwards the request to the underlying store.
 func (s *Store) GetMapIDs(ctx context.Context, filter *store.MapFilter) ([]string, error) {
-	log.Event(ctx, "GetMapIDs", logging.Metadata{
-		"filter": filter,
-	})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "GetMapIDs")
+	defer span.End()
+
 	return s.store.GetMapIDs(ctx, filter)
 }
 
 // AddEvidence forwards the request to the underlying store.
 func (s *Store) AddEvidence(ctx context.Context, linkHash *types.Bytes32, evidence *cs.Evidence) error {
-	log.Event(ctx, "AddEvidence", logging.Metadata{
-		"link_hash": linkHash.String(),
-	})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "AddEvidence")
+	defer span.End()
+
+	span.AddStringAttribute("link_hash", linkHash.String())
 
 	return s.store.AddEvidence(ctx, linkHash, evidence)
 }
 
 // GetEvidences forwards the request to the underlying store.
 func (s *Store) GetEvidences(ctx context.Context, linkHash *types.Bytes32) (*cs.Evidences, error) {
-	log.Event(ctx, "GetEvidences", logging.Metadata{
-		"link_hash": linkHash.String(),
-	})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "GetEvidences")
+	defer span.End()
+
+	span.AddStringAttribute("link_hash", linkHash.String())
 
 	return s.store.GetEvidences(ctx, linkHash)
 }
 
 // AddStoreEventChannel forwards the request to the underlying store.
 func (s *Store) AddStoreEventChannel(c chan *store.Event) {
-	log.Event(context.Background(), "AddStoreEventChannel")
 	s.store.AddStoreEventChannel(c)
 }
 
 // NewBatch forwards the request to the underlying store.
 func (s *Store) NewBatch(ctx context.Context) (store.Batch, error) {
-	log.Event(ctx, "NewBatch")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "NewBatch")
+	defer span.End()
+
 	return s.store.NewBatch(ctx)
 }

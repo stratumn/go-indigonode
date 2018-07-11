@@ -68,7 +68,8 @@ func (m PrivateNetworkManager) NodeID() peer.ID {
 // Join assumes that the whole private network is part of the PoP network.
 // It configures the host to accept Indigo message protocols.
 func (m *PrivateNetworkManager) Join(ctx context.Context, _ string, host Host) error {
-	defer log.EventBegin(ctx, "Join").Done()
+	_, span := monitoring.StartSpan(ctx, "indigo.store", "Join")
+	defer span.End()
 
 	m.host = host
 	return nil
@@ -77,7 +78,8 @@ func (m *PrivateNetworkManager) Join(ctx context.Context, _ string, host Host) e
 // Leave assumes that the whole private network is part of the PoP network.
 // It removes Indigo-specific configuration from the host.
 func (m *PrivateNetworkManager) Leave(ctx context.Context, _ string) error {
-	defer log.EventBegin(ctx, "Leave").Done()
+	_, span := monitoring.StartSpan(ctx, "indigo.store", "Leave")
+	defer span.End()
 
 	m.host = nil
 	return nil
@@ -85,18 +87,18 @@ func (m *PrivateNetworkManager) Leave(ctx context.Context, _ string) error {
 
 // Publish sends a message to all the network.
 func (m *PrivateNetworkManager) Publish(ctx context.Context, link *cs.Link) error {
-	event := log.EventBegin(ctx, "Publish")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "Publish")
+	defer span.End()
 
 	if m.networkCfg.NetworkState(ctx) != protectorpb.NetworkState_PROTECTED {
-		event.SetError(ErrNetworkNotReady)
+		span.SetUnknownError(ErrNetworkNotReady)
 		return ErrNetworkNotReady
 	}
 
 	key := m.host.Peerstore().PrivKey(m.host.ID())
 	signedSegment, err := audit.SignLink(ctx, key, link)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return err
 	}
 
@@ -109,9 +111,10 @@ func (m *PrivateNetworkManager) Publish(ctx context.Context, link *cs.Link) erro
 		}
 
 		wg.Add(1)
+
 		go func(peerID peer.ID) {
-			event := log.EventBegin(ctx, "PublishToPeer", peerID)
-			defer event.Done()
+			ctx, span := monitoring.StartSpan(ctx, "indigo.store", "PublishToPeer", monitoring.SpanOptionPeerID(peerID))
+			defer span.End()
 			defer wg.Done()
 
 			stream, err := m.streamProvider.NewStream(ctx,
@@ -126,7 +129,7 @@ func (m *PrivateNetworkManager) Publish(ctx context.Context, link *cs.Link) erro
 
 			err = stream.Codec().Encode(encodedSegment)
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 			}
 		}(peerID)
 	}
@@ -138,8 +141,8 @@ func (m *PrivateNetworkManager) Publish(ctx context.Context, link *cs.Link) erro
 // Listen to messages from the network.
 // Cancel the context to stop listening.
 func (m *PrivateNetworkManager) Listen(ctx context.Context) error {
-	event := log.EventBegin(ctx, "Listen")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "Listen")
+	defer span.End()
 
 	defer func() {
 		m.listenersMutex.Lock()
@@ -187,9 +190,7 @@ func (m *PrivateNetworkManager) HandleNewLink(
 
 	for _, listener := range m.listeners {
 		go func(listener chan *cs.Segment) {
-			event := log.EventBegin(ctx, "ForwardingToListener")
 			listener <- signedSegment
-			event.Done()
 		}(listener)
 	}
 

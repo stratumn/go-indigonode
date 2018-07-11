@@ -24,7 +24,6 @@ import (
 	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
@@ -65,23 +64,30 @@ func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader, provider st
 
 // Close cleans up resources and protocol handlers.
 func (s *SingleNodeEngine) Close(ctx context.Context) {
+	_, span := monitoring.StartSpan(ctx, "indigo.store.sync", "Close")
+	defer span.End()
+
 	s.host.RemoveStreamHandler(SingleNodeProtocolID)
 }
 
 // GetMissingLinks connects to the node that published the link to get all
 // missing links in the subgraph ending in this new link.
 func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
-	event := log.EventBegin(ctx, "GetMissingLinks")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.sync", "GetMissingLinks")
+	defer span.End()
+
+	linkHash, _ := link.HashString()
+	span.AddStringAttribute("link_hash", linkHash)
 
 	toFetch, err := ListMissingLinkHashes(ctx, link, reader)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, err
 	}
 
+	span.AddIntAttribute("links_to_fetch", int64(len(toFetch)))
+
 	if len(toFetch) == 0 {
-		event.Append(logging.Metadata{"links_count": 0})
 		return nil, nil
 	}
 
@@ -91,7 +97,7 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 
 	err = s.host.Connect(ctx, s.host.Peerstore().PeerInfo(sender))
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, ErrNoConnectedPeers
 	}
 
@@ -108,17 +114,17 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 
 	linksMap, err := s.syncWithPeer(ctx, stream, toFetch, reader)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, err
 	}
 
 	links, err := OrderLinks(ctx, link, linksMap, reader)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, err
 	}
 
-	event.Append(logging.Metadata{"links_count": len(links)})
+	span.AddIntAttribute("links_fetched", int64(len(links)))
 
 	return links, nil
 }
@@ -131,22 +137,21 @@ func (s *SingleNodeEngine) syncWithPeer(
 	toFetch []string,
 	reader store.SegmentReader,
 ) (map[string]*cs.Link, error) {
-	event := log.EventBegin(ctx, "syncWithPeer", logging.Metadata{
-		"peer": stream.Conn().RemotePeer().Pretty(),
-	})
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.sync", "syncWithPeer",
+		monitoring.SpanOptionPeerID(stream.Conn().RemotePeer()))
+	defer span.End()
 
 	receivedLinks := make(map[string]*cs.Link)
 
 	for len(toFetch) > 0 {
 		if err := stream.Codec().Encode(pb.FromLinkHashes(toFetch)); err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return nil, err
 		}
 
 		var segments pb.Segments
 		if err := stream.Codec().Decode(&segments); err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return nil, err
 		}
 
@@ -154,7 +159,7 @@ func (s *SingleNodeEngine) syncWithPeer(
 		// we can fail fast because we're sure we'll be missing
 		// some links.
 		if len(segments.Segments) != len(toFetch) {
-			event.SetError(ErrInvalidLinkCount)
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, ErrInvalidLinkCount.Error()))
 			return nil, ErrInvalidLinkCount
 		}
 
@@ -163,7 +168,7 @@ func (s *SingleNodeEngine) syncWithPeer(
 		for _, segment := range segments.Segments {
 			s, err := segment.ToSegment()
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 				return nil, err
 			}
 
@@ -174,12 +179,12 @@ func (s *SingleNodeEngine) syncWithPeer(
 				continue
 			}
 
-			event.Append(logging.Metadata{linkHash: "fetched"})
+			span.AddBoolAttribute(linkHash, true)
 			receivedLinks[linkHash] = &s.Link
 
 			linkDeps, err := ListMissingLinkHashes(ctx, &s.Link, reader)
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 				return nil, err
 			}
 
@@ -194,7 +199,7 @@ func (s *SingleNodeEngine) syncWithPeer(
 					continue
 				}
 
-				event.Append(logging.Metadata{lh: "fetching"})
+				span.AddStringAttribute(lh, "fetching")
 				toFetchMap[lh] = struct{}{}
 				toFetch = append(toFetch, lh)
 			}

@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigonode/core/crypto"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -45,13 +46,13 @@ const (
 
 // SignLink signs a link before publishing it to the network.
 func SignLink(ctx context.Context, sk ic.PrivKey, link *cs.Link) (segment *cs.Segment, err error) {
-	event := log.EventBegin(ctx, "SignLink")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.audit", "SignLink")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
 
 	if sk == nil || link == nil {

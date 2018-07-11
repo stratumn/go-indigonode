@@ -22,6 +22,14 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/cs/cstesting"
+	"github.com/stratumn/go-indigocore/dummystore"
+	indigostore "github.com/stratumn/go-indigocore/store"
+	"github.com/stratumn/go-indigocore/store/storetestcases"
+	"github.com/stratumn/go-indigocore/testutil"
+	"github.com/stratumn/go-indigocore/types"
+	"github.com/stratumn/go-indigocore/validator"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit/mockaudit"
@@ -31,14 +39,6 @@ import (
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/mockvalidator"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync/mocksync"
 	"github.com/stratumn/go-indigonode/test"
-	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/cs/cstesting"
-	"github.com/stratumn/go-indigocore/dummystore"
-	indigostore "github.com/stratumn/go-indigocore/store"
-	"github.com/stratumn/go-indigocore/store/storetestcases"
-	"github.com/stratumn/go-indigocore/testutil"
-	"github.com/stratumn/go-indigocore/types"
-	"github.com/stratumn/go-indigocore/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -304,7 +304,7 @@ func TestReceiveLinks(t *testing.T) {
 				Build().
 				Segmentify()
 
-			proof, _ := audit.NewPeerSignature(sk, signedSegment)
+			proof, _ := audit.NewPeerSignature(context.Background(), sk, signedSegment)
 			signedSegment.Meta.AddEvidence(cs.Evidence{
 				Backend:  audit.PeerSignatureBackend,
 				Provider: peerID.Pretty(),

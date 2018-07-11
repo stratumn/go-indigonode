@@ -63,7 +63,7 @@ func (c *NetworkConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error 
 		return errors.WithStack(err)
 	}
 
-	c.Signature, err = cryptopb.Sign(privKey, b)
+	c.Signature, err = cryptopb.Sign(ctx, privKey, b)
 	if err != nil {
 		event.SetError(err)
 		return errors.WithStack(err)
@@ -101,7 +101,7 @@ func (c *NetworkConfig) ValidateSignature(ctx context.Context, peerID peer.ID) b
 		return false
 	}
 
-	return c.Signature.Verify(payload)
+	return c.Signature.Verify(ctx, payload)
 }
 
 // ValidateContent validates that the contents of the configuration

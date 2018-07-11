@@ -71,7 +71,7 @@ func TestSaver(t *testing.T) {
 		_, err = os.Stat(filePath)
 		require.True(t, os.IsNotExist(err))
 
-		v, err := proposal.NewVote(test.GeneratePrivateKey(t), req)
+		v, err := proposal.NewVote(context.Background(), test.GeneratePrivateKey(t), req)
 		require.NoError(t, err)
 
 		err = s.AddVote(ctx, v)
@@ -138,7 +138,7 @@ func TestSaver(t *testing.T) {
 		err = s.AddRequest(ctx, testReq)
 		require.NoError(t, err)
 
-		v, err := proposal.NewVote(test.GeneratePrivateKey(t), testReq)
+		v, err := proposal.NewVote(context.Background(), test.GeneratePrivateKey(t), testReq)
 		require.NoError(t, err)
 
 		err = s.AddVote(ctx, v)
@@ -165,6 +165,6 @@ func TestSaver(t *testing.T) {
 		assert.Equal(t, proposal.AddNode, vv[0].Type)
 		assert.Equal(t, peer1, vv[0].PeerID)
 		assert.Equal(t, testReq.Challenge, vv[0].Challenge)
-		assert.NoError(t, vv[0].Verify(testReq))
+		assert.NoError(t, vv[0].Verify(context.Background(), testReq))
 	})
 }

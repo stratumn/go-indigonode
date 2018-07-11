@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigonode/core/crypto"
-	"github.com/stratumn/go-indigocore/cs"
 
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
@@ -78,7 +78,7 @@ func SignLink(ctx context.Context, sk ic.PrivKey, link *cs.Link) (segment *cs.Se
 		return nil, errors.WithStack(err)
 	}
 
-	proof, err := NewPeerSignature(sk, segment)
+	proof, err := NewPeerSignature(ctx, sk, segment)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +106,8 @@ type PeerSignature struct {
 
 // NewPeerSignature creates a signed proof that the peer
 // approves this segment.
-func NewPeerSignature(sk ic.PrivKey, segment *cs.Segment) (cs.Proof, error) {
-	sig, err := crypto.Sign(sk, segment.GetLinkHash()[:])
+func NewPeerSignature(ctx context.Context, sk ic.PrivKey, segment *cs.Segment) (cs.Proof, error) {
+	sig, err := crypto.Sign(ctx, sk, segment.GetLinkHash()[:])
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (p *PeerSignature) Verify(data interface{}) bool {
 		return false
 	}
 
-	return p.Signature.Verify(linkHash)
+	return p.Signature.Verify(context.TODO(), linkHash)
 }
 
 // init needs to define a way to deserialize a PeerSignature proof.

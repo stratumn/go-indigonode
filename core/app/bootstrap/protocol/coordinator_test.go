@@ -429,12 +429,13 @@ func TestCoordinator_HandleVote(t *testing.T) {
 			"invalid-vote",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
-				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+				ctx := context.Background()
+				cfg.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
 
-				ps.AddRequest(context.Background(), removePeer1Req)
+				ps.AddRequest(ctx, removePeer1Req)
 
-				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+				v, _ := proposal.NewVote(ctx, peer1Key, removePeer1Req)
 				v.Signature.Signature = v.Signature.Signature[:10]
 
 				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
@@ -450,10 +451,11 @@ func TestCoordinator_HandleVote(t *testing.T) {
 			"missing-request",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
-				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+				ctx := context.Background()
+				cfg.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
 
-				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+				v, _ := proposal.NewVote(ctx, peer1Key, removePeer1Req)
 
 				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
 				streamtest.ExpectEncodeAck(t, codec, proposal.ErrMissingRequest)
@@ -468,15 +470,16 @@ func TestCoordinator_HandleVote(t *testing.T) {
 			"vote-threshold-not-reached",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
-				cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
-				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+				ctx := context.Background()
+				cfg.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.AddPeer(ctx, peer2, test.GeneratePeerMultiaddrs(t, peer2))
+				cfg.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
 
-				ps.AddRequest(context.Background(), removePeer1Req)
+				ps.AddRequest(ctx, removePeer1Req)
 
 				h.EXPECT().ID().Return(hostID).AnyTimes()
 
-				v, _ := proposal.NewVote(peer1Key, removePeer1Req)
+				v, _ := proposal.NewVote(ctx, peer1Key, removePeer1Req)
 				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
 				streamtest.ExpectEncodeAck(t, codec, nil)
 			},
@@ -493,11 +496,12 @@ func TestCoordinator_HandleVote(t *testing.T) {
 			"vote-threshold-reached",
 			peer1,
 			func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				cfg.AddPeer(context.Background(), peer1, test.GeneratePeerMultiaddrs(t, peer1))
-				cfg.AddPeer(context.Background(), peer2, test.GeneratePeerMultiaddrs(t, peer2))
-				cfg.SetNetworkState(context.Background(), protectorpb.NetworkState_PROTECTED)
+				ctx := context.Background()
+				cfg.AddPeer(ctx, peer1, test.GeneratePeerMultiaddrs(t, peer1))
+				cfg.AddPeer(ctx, peer2, test.GeneratePeerMultiaddrs(t, peer2))
+				cfg.SetNetworkState(ctx, protectorpb.NetworkState_PROTECTED)
 
-				ps.AddRequest(context.Background(), removePeer1Req)
+				ps.AddRequest(ctx, removePeer1Req)
 
 				network := mocks.NewMockNetwork(ctrl)
 				network.EXPECT().Conns().Return(nil)
@@ -506,7 +510,7 @@ func TestCoordinator_HandleVote(t *testing.T) {
 				h.EXPECT().Network().Return(network)
 				h.EXPECT().NewStream(gomock.Any(), peer2, protocol.PrivateCoordinatedConfigPID).Return(nil, errors.New("no stream"))
 
-				v, _ := proposal.NewVote(peer2Key, removePeer1Req)
+				v, _ := proposal.NewVote(ctx, peer2Key, removePeer1Req)
 				streamtest.ExpectDecodeVote(t, codec, v.ToProtoVote())
 				streamtest.ExpectEncodeAck(t, codec, nil)
 			},

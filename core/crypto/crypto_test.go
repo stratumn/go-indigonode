@@ -15,6 +15,7 @@
 package crypto_test
 
 import (
+	"context"
 	"crypto/rand"
 	"testing"
 
@@ -26,6 +27,8 @@ import (
 )
 
 func TestSignVerify(t *testing.T) {
+	ctx := context.Background()
+
 	tests := []struct {
 		name            string
 		generateKey     func() ic.PrivKey
@@ -56,17 +59,19 @@ func TestSignVerify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sk := tt.generateKey()
-			sig, err := crypto.Sign(sk, []byte("h3ll0_42"))
+			sig, err := crypto.Sign(ctx, sk, []byte("h3ll0_42"))
 			require.NoError(t, err, "crypto.Sign()")
 			assert.Equal(t, tt.expectedKeyType, sig.KeyType)
 
-			valid := sig.Verify([]byte("h3ll0_42"))
+			valid := sig.Verify(ctx, []byte("h3ll0_42"))
 			assert.True(t, valid, "sig.Verify()")
 		})
 	}
 }
 
 func TestVerify(t *testing.T) {
+	ctx := context.Background()
+
 	tests := []struct {
 		name      string
 		signature func() *crypto.Signature
@@ -85,7 +90,7 @@ func TestVerify(t *testing.T) {
 			sk1, _, _ := ic.GenerateEd25519Key(rand.Reader)
 			_, pk2, _ := ic.GenerateEd25519Key(rand.Reader)
 
-			sig, _ := crypto.Sign(sk1, []byte("h3ll0"))
+			sig, _ := crypto.Sign(ctx, sk1, []byte("h3ll0"))
 			sig.PublicKey, _ = pk2.Bytes()
 
 			return sig
@@ -96,7 +101,7 @@ func TestVerify(t *testing.T) {
 		"payload-mismatch",
 		func() *crypto.Signature {
 			sk1, _, _ := ic.GenerateEd25519Key(rand.Reader)
-			sig, _ := crypto.Sign(sk1, []byte("g00dby3"))
+			sig, _ := crypto.Sign(ctx, sk1, []byte("g00dby3"))
 			return sig
 		},
 		[]byte("h3ll0"),
@@ -105,7 +110,7 @@ func TestVerify(t *testing.T) {
 		"invalid-signature",
 		func() *crypto.Signature {
 			sk1, _, _ := ic.GenerateEd25519Key(rand.Reader)
-			sig, _ := crypto.Sign(sk1, []byte("h3ll0"))
+			sig, _ := crypto.Sign(ctx, sk1, []byte("h3ll0"))
 			swap := sig.Signature[3]
 			for i := 4; i < len(sig.Signature); i++ {
 				if sig.Signature[3] != sig.Signature[i] {
@@ -123,7 +128,7 @@ func TestVerify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sig := tt.signature()
-			valid := sig.Verify(tt.payload)
+			valid := sig.Verify(ctx, tt.payload)
 			assert.Equal(t, tt.expected, valid)
 		})
 	}

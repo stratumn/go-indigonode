@@ -16,6 +16,7 @@ package proposal
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 
 	"github.com/pkg/errors"
@@ -45,7 +46,7 @@ type Vote struct {
 }
 
 // NewVote votes for a given request.
-func NewVote(sk ic.PrivKey, r *Request) (*Vote, error) {
+func NewVote(ctx context.Context, sk ic.PrivKey, r *Request) (*Vote, error) {
 	if sk == nil {
 		return nil, ErrMissingPrivateKey
 	}
@@ -69,7 +70,7 @@ func NewVote(sk ic.PrivKey, r *Request) (*Vote, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	v.Signature, err = crypto.Sign(sk, payload)
+	v.Signature, err = crypto.Sign(ctx, sk, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func NewVote(sk ic.PrivKey, r *Request) (*Vote, error) {
 }
 
 // Verify that vote is valid for the given request.
-func (v *Vote) Verify(r *Request) error {
+func (v *Vote) Verify(ctx context.Context, r *Request) error {
 	if v.Type != r.Type {
 		return ErrInvalidRequestType
 	}
@@ -100,7 +101,7 @@ func (v *Vote) Verify(r *Request) error {
 		return errors.WithStack(err)
 	}
 
-	valid := v.Signature.Verify(payload)
+	valid := v.Signature.Verify(ctx, payload)
 	if !valid {
 		return ErrInvalidSignature
 	}

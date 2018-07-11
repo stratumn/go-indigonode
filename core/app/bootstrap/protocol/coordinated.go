@@ -287,7 +287,7 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		return ErrInvalidOperation
 	}
 
-	v, err := proposal.NewVote(h.host.Peerstore().PrivKey(h.host.ID()), r)
+	v, err := proposal.NewVote(ctx, h.host.Peerstore().PrivKey(h.host.ID()), r)
 	if err != nil {
 		event.SetError(err)
 		return err

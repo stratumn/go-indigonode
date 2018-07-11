@@ -25,7 +25,6 @@ import (
 	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -73,12 +72,12 @@ func NewCoordinatedHandler(
 
 	host.SetStreamHandler(
 		PrivateCoordinatedConfigPID,
-		streamutil.WithAutoClose("bootstrap.coordinated", "HandleConfigUpdate", handler.HandleConfigUpdate),
+		streamutil.WithAutoClose("bootstrap", "HandleConfigUpdate", handler.HandleConfigUpdate),
 	)
 
 	host.SetStreamHandler(
 		PrivateCoordinatedProposePID,
-		streamutil.WithAutoClose("bootstrap.coordinated", "HandlePropose", handler.HandlePropose),
+		streamutil.WithAutoClose("bootstrap", "HandlePropose", handler.HandlePropose),
 	)
 
 	return &handler
@@ -86,7 +85,8 @@ func NewCoordinatedHandler(
 
 // Close removes the protocol handlers.
 func (h *CoordinatedHandler) Close(ctx context.Context) {
-	log.Event(ctx, "Coordinated.Close")
+	_, span := monitoring.StartSpan(ctx, "bootstrap", "Close")
+	defer span.End()
 
 	h.host.RemoveStreamHandler(PrivateCoordinatedConfigPID)
 	h.host.RemoveStreamHandler(PrivateCoordinatedProposePID)
@@ -153,12 +153,12 @@ func (h *CoordinatedHandler) HandlePropose(
 // The node is expected to receive the network configuration during
 // that handshake.
 func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
-	event := log.EventBegin(ctx, "Coordinated.handshake")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "Handshake")
+	defer span.End()
 
 	err := h.host.Connect(ctx, h.host.Peerstore().PeerInfo(h.coordinatorID))
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return protector.ErrConnectionRefused
 	}
 
@@ -175,24 +175,25 @@ func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 	defer stream.Close()
 
 	if err := stream.Codec().Encode(&pb.Hello{}); err != nil {
-		event.SetError(errors.WithStack(err))
+		span.SetUnknownError(err)
 		return protector.ErrConnectionRefused
 	}
 
 	var networkConfig protectorpb.NetworkConfig
 	if err := stream.Codec().Decode(&networkConfig); err != nil {
-		event.SetError(errors.WithStack(err))
+		span.SetUnknownError(err)
 		return protector.ErrConnectionRefused
 	}
 
+	span.AddIntAttribute("participants_count", int64(len(networkConfig.Participants)))
+
 	// The network is still bootstrapping and we're not whitelisted yet.
 	if len(networkConfig.Participants) == 0 {
-		event.Append(logging.Metadata{"participants_count": 0})
 		return h.AddNode(ctx, h.host.ID(), h.host.Addrs()[0], nil)
 	}
 
 	if !networkConfig.ValidateSignature(ctx, h.coordinatorID) {
-		event.SetError(protectorpb.ErrInvalidSignature)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, protectorpb.ErrInvalidSignature.Error()))
 		return protectorpb.ErrInvalidSignature
 	}
 
@@ -202,8 +203,8 @@ func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 // AddNode sends a proposal to add the node to the coordinator.
 // Only the coordinator is allowed to make changes to the network config.
 func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr multiaddr.Multiaddr, info []byte) error {
-	event := log.EventBegin(ctx, "Coordinated.AddNode", peerID)
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "AddNode", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	stream, err := h.streamProvider.NewStream(
 		ctx,
@@ -227,7 +228,7 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 
 	err = stream.Codec().Encode(req)
 	if err != nil {
-		event.SetError(errors.WithStack(err))
+		span.SetUnknownError(err)
 		return err
 	}
 
@@ -238,8 +239,8 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 // The coordinator will notify each node that needs to sign their agreement.
 // The node will then eventually be removed if enough participants agree.
 func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) error {
-	event := log.EventBegin(ctx, "Coordinated.RemoveNode", peerID)
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "RemoveNode", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	stream, err := h.streamProvider.NewStream(
 		ctx,
@@ -256,7 +257,7 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 	req := &pb.NodeIdentity{PeerId: []byte(peerID)}
 	err = stream.Codec().Encode(req)
 	if err != nil {
-		event.SetError(errors.WithStack(err))
+		span.SetUnknownError(err)
 		return err
 	}
 
@@ -266,28 +267,32 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 // Accept broadcasts a signed message to accept a proposal to add
 // or remove a node.
 func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
-	event := log.EventBegin(ctx, "Coordinated.Accept", peerID)
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "Accept", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	r, err := h.proposalStore.Get(ctx, peerID)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return err
 	}
 
 	if r == nil {
-		event.SetError(proposal.ErrMissingRequest)
+		span.SetStatus(monitoring.NewStatus(
+			monitoring.StatusCodeFailedPrecondition,
+			proposal.ErrMissingRequest.Error()))
 		return proposal.ErrMissingRequest
 	}
 
 	if r.Type != proposal.RemoveNode {
-		event.SetError(ErrInvalidOperation)
+		span.SetStatus(monitoring.NewStatus(
+			monitoring.StatusCodeInvalidArgument,
+			ErrInvalidOperation.Error()))
 		return ErrInvalidOperation
 	}
 
 	v, err := proposal.NewVote(ctx, h.host.Peerstore().PrivKey(h.host.ID()), r)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return err
 	}
 
@@ -305,17 +310,31 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 
 	err = stream.Codec().Encode(v.ToProtoVote())
 	if err != nil {
-		event.SetError(errors.WithStack(err))
+		span.SetUnknownError(err)
 		return err
 	}
 
-	return h.proposalStore.Remove(ctx, peerID)
+	err = h.proposalStore.Remove(ctx, peerID)
+	if err != nil {
+		span.SetUnknownError(err)
+		return err
+	}
+
+	return nil
 }
 
 // Reject ignores a proposal to add or remove a node.
 func (h *CoordinatedHandler) Reject(ctx context.Context, peerID peer.ID) error {
-	defer log.EventBegin(ctx, "Coordinated.Reject", peerID).Done()
-	return h.proposalStore.Remove(ctx, peerID)
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "Reject", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
+
+	err := h.proposalStore.Remove(ctx, peerID)
+	if err != nil {
+		span.SetUnknownError(err)
+		return err
+	}
+
+	return nil
 }
 
 // CompleteBootstrap can't be used by a coordinated node.

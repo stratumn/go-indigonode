@@ -20,28 +20,24 @@ import (
 	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
 )
 
 // Disconnect disconnects from the given peer.
 func Disconnect(
+	ctx context.Context,
 	host ihost.Host,
 	peerID peer.ID,
-	event *logging.EventInProgress,
 ) {
+	_, span := monitoring.StartSpan(ctx, "bootstrap", "Disconnect", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
+
 	for _, c := range host.Network().Conns() {
 		if c.RemotePeer() == peerID {
 			err := c.Close()
 			if err != nil {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): err.Error(),
-				})
-			} else {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): "disconnected",
-				})
+				span.SetUnknownError(err)
 			}
 		}
 	}

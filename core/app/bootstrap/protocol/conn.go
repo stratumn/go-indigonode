@@ -17,6 +17,7 @@ package protocol
 import (
 	"context"
 
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -51,20 +52,18 @@ func DisconnectUnauthorized(
 	ctx context.Context,
 	host ihost.Host,
 	networkConfig protector.NetworkConfig,
-	event *logging.EventInProgress,
 ) {
+	ctx, span := monitoring.StartSpan(ctx, "bootstrap", "DisconnectUnauthorized")
+	defer span.End()
+
 	for _, c := range host.Network().Conns() {
 		peerID := c.RemotePeer()
 		if !networkConfig.IsAllowed(ctx, peerID) {
 			err := c.Close()
 			if err != nil {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): err.Error(),
-				})
+				span.Annotate(ctx, peerID.Pretty(), err.Error())
 			} else {
-				event.Append(logging.Metadata{
-					peerID.Pretty(): "disconnected",
-				})
+				span.Annotate(ctx, peerID.Pretty(), "disconnected")
 			}
 		}
 	}

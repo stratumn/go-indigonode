@@ -101,7 +101,7 @@ func (ht *CoordinatedHandleTestCase) Run(
 
 		mode := &protector.NetworkMode{CoordinatorID: ht.coordinatorID}
 		handler := protocol.NewCoordinatedHandler(host, nil, mode, cfg, s).(*protocol.CoordinatedHandler)
-		err := h(handler)(ctx, test.NewEvent(), stream, codec)
+		err := h(handler)(ctx, test.NewSpan(), stream, codec)
 
 		if ht.err != nil {
 			assert.EqualError(t, err, ht.err.Error())

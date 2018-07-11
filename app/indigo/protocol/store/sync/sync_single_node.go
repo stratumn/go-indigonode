@@ -21,6 +21,7 @@ import (
 	"github.com/stratumn/go-indigocore/store"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -56,7 +57,7 @@ func NewSingleNodeEngine(host ihost.Host, store store.SegmentReader, provider st
 
 	engine.host.SetStreamHandler(
 		SingleNodeProtocolID,
-		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+		streamutil.WithAutoClose("indigo.store.sync", "SyncRequest", engine.handleSync),
 	)
 
 	return engine
@@ -98,7 +99,6 @@ func (s *SingleNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, r
 		s.host,
 		streamutil.OptPeerID(sender),
 		streamutil.OptProtocolIDs(SingleNodeProtocolID),
-		streamutil.OptLog(event),
 	)
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func (s *SingleNodeEngine) syncWithPeer(
 // all the links they need to be up-to-date.
 func (s *SingleNodeEngine) handleSync(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) (err error) {

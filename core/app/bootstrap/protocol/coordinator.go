@@ -21,11 +21,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector"
 	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -82,17 +82,17 @@ func NewCoordinatorHandler(
 
 	host.SetStreamHandler(
 		PrivateCoordinatorHandshakePID,
-		streamutil.WithAutoClose(log, "Coordinator.HandleHandshake", handler.HandleHandshake),
+		streamutil.WithAutoClose("bootstrap.coordinator", "HandleHandshake", handler.HandleHandshake),
 	)
 
 	host.SetStreamHandler(
 		PrivateCoordinatorProposePID,
-		streamutil.WithAutoClose(log, "Coordinator.HandlePropose", handler.HandlePropose),
+		streamutil.WithAutoClose("bootstrap.coordinator", "HandlePropose", handler.HandlePropose),
 	)
 
 	host.SetStreamHandler(
 		PrivateCoordinatorVotePID,
-		streamutil.WithAutoClose(log, "Coordinator.HandleVote", handler.HandleVote),
+		streamutil.WithAutoClose("bootstrap.coordinator", "HandleVote", handler.HandleVote),
 	)
 
 	return &handler
@@ -130,7 +130,7 @@ func (h *CoordinatorHandler) ValidateSender(ctx context.Context, peerID peer.ID)
 // configuration if handshake succeeds.
 func (h *CoordinatorHandler) HandleHandshake(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
@@ -159,7 +159,7 @@ func (h *CoordinatorHandler) HandleHandshake(
 // HandlePropose handles an incoming network update proposal.
 func (h *CoordinatorHandler) HandlePropose(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
@@ -230,7 +230,7 @@ func (h *CoordinatorHandler) HandlePropose(
 // HandleVote handles an incoming vote.
 func (h *CoordinatorHandler) HandleVote(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
@@ -442,7 +442,7 @@ func (h *CoordinatorHandler) CompleteBootstrap(ctx context.Context) error {
 		return err
 	}
 
-	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig)
 
 	h.SendNetworkConfig(ctx)
 
@@ -478,7 +478,6 @@ func (h *CoordinatorHandler) SendProposal(ctx context.Context, req *proposal.Req
 				h.host,
 				streamutil.OptPeerID(peerID),
 				streamutil.OptProtocolIDs(PrivateCoordinatedProposePID),
-				streamutil.OptLog(event),
 			)
 			if err != nil {
 				return
@@ -526,7 +525,6 @@ func (h *CoordinatorHandler) SendNetworkConfig(ctx context.Context) {
 				h.host,
 				streamutil.OptPeerID(peerID),
 				streamutil.OptProtocolIDs(PrivateCoordinatedConfigPID),
-				streamutil.OptLog(event),
 			)
 			if err != nil {
 				return

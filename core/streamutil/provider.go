@@ -18,8 +18,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -42,17 +42,17 @@ type Stream interface {
 type wrappedStream struct {
 	codec  Codec
 	stream inet.Stream
-	event  *logging.EventInProgress
+	span   *monitoring.Span
 }
 
 // WrapStream wraps a stream to our simplified abstraction.
-func wrapStream(stream inet.Stream, event *logging.EventInProgress) Stream {
+func wrapStream(stream inet.Stream, span *monitoring.Span) Stream {
 	codec := NewProtobufCodec(stream)
 
 	return &wrappedStream{
 		stream: stream,
 		codec:  codec,
-		event:  event,
+		span:   span,
 	}
 }
 
@@ -66,11 +66,11 @@ func (s *wrappedStream) Codec() Codec {
 
 func (s *wrappedStream) Close() {
 	err := s.stream.Close()
-	if err != nil && s.event != nil {
-		s.event.Append(logging.Metadata{
-			"close_err": err.Error(),
-		})
+	if err != nil {
+		s.span.Annotate(context.TODO(), "close_err", err.Error())
 	}
+
+	s.span.End()
 }
 
 // Provider lets you configure streams with added features.
@@ -90,7 +90,6 @@ func NewStreamProvider() Provider {
 type StreamOptions struct {
 	PeerID peer.ID
 	PIDs   []protocol.ID
-	Event  *logging.EventInProgress
 }
 
 // StreamOption configures a single stream option.
@@ -110,15 +109,12 @@ var OptProtocolIDs = func(pids ...protocol.ID) StreamOption {
 	}
 }
 
-// OptLog configures logging.
-var OptLog = func(event *logging.EventInProgress) StreamOption {
-	return func(opts *StreamOptions) {
-		opts.Event = event
-	}
-}
-
 // NewStream creates a new stream.
 func (p *StreamProvider) NewStream(ctx context.Context, host ihost.Host, opts ...StreamOption) (Stream, error) {
+	ctx, span := monitoring.StartSpan(ctx, "streamutil", "NewStream")
+	// We don't end the span here, it will end when Close() is called on the
+	// stream we create.
+
 	streamOpts := &StreamOptions{}
 	for _, opt := range opts {
 		opt(streamOpts)
@@ -132,14 +128,16 @@ func (p *StreamProvider) NewStream(ctx context.Context, host ihost.Host, opts ..
 		return nil, ErrMissingProtocolIDs
 	}
 
+	span.SetPeerID(streamOpts.PeerID)
+	span.SetProtocolID(streamOpts.PIDs[0])
+
 	s, err := host.NewStream(ctx, streamOpts.PeerID, streamOpts.PIDs...)
 	if err != nil {
-		if streamOpts.Event != nil {
-			streamOpts.Event.SetError(err)
-		}
+		span.SetUnknownError(err)
+		span.End()
 
 		return nil, err
 	}
 
-	return wrapStream(s, streamOpts.Event), nil
+	return wrapStream(s, span), nil
 }

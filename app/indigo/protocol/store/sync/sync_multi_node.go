@@ -24,6 +24,7 @@ import (
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -62,7 +63,7 @@ func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader, provider str
 
 	engine.host.SetStreamHandler(
 		MultiNodeProtocolID,
-		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+		streamutil.WithAutoClose("indigo.store.sync", "SyncRequest", engine.handleSync),
 	)
 
 	return engine
@@ -190,7 +191,7 @@ func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *
 
 func (s *MultiNodeEngine) handleSync(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) (err error) {
@@ -205,7 +206,7 @@ func (s *MultiNodeEngine) handleSync(
 		return
 	}
 
-	event.Append(logging.Metadata{"link_hash": lh.String()})
+	span.AddStringAttribute("link_hash", lh.String())
 
 	seg, err := s.store.GetSegment(ctx, lh)
 	if err != nil {

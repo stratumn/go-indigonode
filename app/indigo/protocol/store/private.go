@@ -22,11 +22,11 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector"
 	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -116,7 +116,6 @@ func (m *PrivateNetworkManager) Publish(ctx context.Context, link *cs.Link) erro
 
 			stream, err := m.streamProvider.NewStream(ctx,
 				m.host,
-				streamutil.OptLog(event),
 				streamutil.OptPeerID(peerID),
 				streamutil.OptProtocolIDs(IndigoLinkProtocolID))
 			if err != nil {
@@ -155,7 +154,7 @@ func (m *PrivateNetworkManager) Listen(ctx context.Context) error {
 
 	m.host.SetStreamHandler(
 		IndigoLinkProtocolID,
-		streamutil.WithAutoClose(log, "ListenLink", m.HandleNewLink),
+		streamutil.WithAutoClose("indigo.store", "Listen", m.HandleNewLink),
 	)
 
 	<-ctx.Done()
@@ -168,7 +167,7 @@ func (m *PrivateNetworkManager) Listen(ctx context.Context) error {
 // If the message can be decoded correctly, it's forwarded to listeners.
 func (m *PrivateNetworkManager) HandleNewLink(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {

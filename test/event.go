@@ -17,6 +17,8 @@ package test
 import (
 	"context"
 
+	"github.com/stratumn/go-indigonode/core/monitoring"
+
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
 
@@ -26,4 +28,10 @@ var TestLogger = logging.Logger("test")
 // NewEvent creates a new empty event.
 func NewEvent() *logging.EventInProgress {
 	return TestLogger.EventBegin(context.Background(), "test")
+}
+
+// NewSpan creates a new empty span.
+func NewSpan() *monitoring.Span {
+	_, span := monitoring.StartSpan(context.Background(), "test", "test")
+	return span
 }

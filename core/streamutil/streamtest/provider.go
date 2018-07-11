@@ -49,7 +49,6 @@ func ExpectStreamPeerAndProtocol(
 			assert.Equal(t, peerID, streamOpts.PeerID)
 			assert.Len(t, streamOpts.PIDs, 1)
 			assert.Equal(t, pid, streamOpts.PIDs[0])
-			assert.NotNil(t, streamOpts.Event)
 
 			return stream, err
 		},

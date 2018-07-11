@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
 	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/protector"
 	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
 	"github.com/stratumn/go-indigonode/core/streamutil"
@@ -72,12 +73,12 @@ func NewCoordinatedHandler(
 
 	host.SetStreamHandler(
 		PrivateCoordinatedConfigPID,
-		streamutil.WithAutoClose(log, "Coordinated.HandleConfigUpdate", handler.HandleConfigUpdate),
+		streamutil.WithAutoClose("bootstrap.coordinated", "HandleConfigUpdate", handler.HandleConfigUpdate),
 	)
 
 	host.SetStreamHandler(
 		PrivateCoordinatedProposePID,
-		streamutil.WithAutoClose(log, "Coordinated.HandlePropose", handler.HandlePropose),
+		streamutil.WithAutoClose("bootstrap.coordinated", "HandlePropose", handler.HandlePropose),
 	)
 
 	return &handler
@@ -94,7 +95,7 @@ func (h *CoordinatedHandler) Close(ctx context.Context) {
 // HandleConfigUpdate receives updates to the network configuration.
 func (h *CoordinatedHandler) HandleConfigUpdate(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
@@ -118,7 +119,7 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 
 	participants.Record(ctx, int64(len(h.networkConfig.AllowedPeers(ctx))))
 
-	DisconnectUnauthorized(ctx, h.host, h.networkConfig, event)
+	DisconnectUnauthorized(ctx, h.host, h.networkConfig)
 
 	return nil
 }
@@ -126,7 +127,7 @@ func (h *CoordinatedHandler) HandleConfigUpdate(
 // HandlePropose handles an incoming network update proposal.
 func (h *CoordinatedHandler) HandlePropose(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) error {
@@ -166,7 +167,6 @@ func (h *CoordinatedHandler) Handshake(ctx context.Context) error {
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
 		streamutil.OptProtocolIDs(PrivateCoordinatorHandshakePID),
-		streamutil.OptLog(event),
 	)
 	if err != nil {
 		return protector.ErrConnectionRefused
@@ -210,7 +210,6 @@ func (h *CoordinatedHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
 		streamutil.OptProtocolIDs(PrivateCoordinatorProposePID),
-		streamutil.OptLog(event),
 	)
 	if err != nil {
 		return err
@@ -247,7 +246,6 @@ func (h *CoordinatedHandler) RemoveNode(ctx context.Context, peerID peer.ID) err
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
 		streamutil.OptProtocolIDs(PrivateCoordinatorProposePID),
-		streamutil.OptLog(event),
 	)
 	if err != nil {
 		return err
@@ -298,7 +296,6 @@ func (h *CoordinatedHandler) Accept(ctx context.Context, peerID peer.ID) error {
 		h.host,
 		streamutil.OptPeerID(h.coordinatorID),
 		streamutil.OptProtocolIDs(PrivateCoordinatorVotePID),
-		streamutil.OptLog(event),
 	)
 	if err != nil {
 		return err

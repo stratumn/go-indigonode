@@ -129,7 +129,7 @@ func (ht *CoordinatorHandleTestCase) Run(
 			propStore,
 		).(*protocol.CoordinatorHandler)
 
-		err := h(handler)(ctx, test.NewEvent(), stream, codec)
+		err := h(handler)(ctx, test.NewSpan(), stream, codec)
 		if ht.err != nil {
 			assert.EqualError(t, err, ht.err.Error())
 		} else {

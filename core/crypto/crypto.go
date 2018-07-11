@@ -30,7 +30,7 @@ var (
 
 // Sign signs the given payload with the given private key.
 func Sign(ctx context.Context, sk ic.PrivKey, payload []byte) (*Signature, error) {
-	ctx, span := monitoring.StartSpan(ctx, "crypto", "Sign")
+	_, span := monitoring.StartSpan(ctx, "crypto", "Sign")
 	defer span.End()
 
 	pkBytes, err := sk.GetPublic().Bytes()
@@ -67,7 +67,7 @@ func Sign(ctx context.Context, sk ic.PrivKey, payload []byte) (*Signature, error
 
 // Verify verifies a signature.
 func (s *Signature) Verify(ctx context.Context, payload []byte) (ok bool) {
-	ctx, span := monitoring.StartSpan(ctx, "crypto", "Verify")
+	_, span := monitoring.StartSpan(ctx, "crypto", "Verify")
 	defer func() {
 		span.AddBoolAttribute("signature_ok", ok)
 		span.End()

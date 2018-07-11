@@ -57,7 +57,7 @@ func NewInMemoryConfig(ctx context.Context, networkConfig *pb.NetworkConfig) (Ne
 
 // AddPeer adds a peer to the network configuration.
 func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []multiaddr.Multiaddr) error {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "AddPeer", monitoring.SpanOptionPeerID(peerID))
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AddPeer", monitoring.SpanOptionPeerID(peerID))
 	defer span.End()
 
 	var marshalledAddrs []string
@@ -74,7 +74,7 @@ func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 
 // RemovePeer removes a peer from the network configuration.
 func (c *InMemoryConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "RemovePeer", monitoring.SpanOptionPeerID(peerID))
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "RemovePeer", monitoring.SpanOptionPeerID(peerID))
 	defer span.End()
 
 	c.dataLock.Lock()
@@ -86,7 +86,7 @@ func (c *InMemoryConfig) RemovePeer(ctx context.Context, peerID peer.ID) error {
 
 // IsAllowed returns true if the given peer is allowed in the network.
 func (c *InMemoryConfig) IsAllowed(ctx context.Context, peerID peer.ID) bool {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "IsAllowed", monitoring.SpanOptionPeerID(peerID))
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "IsAllowed", monitoring.SpanOptionPeerID(peerID))
 	defer span.End()
 
 	c.dataLock.RLock()
@@ -98,7 +98,7 @@ func (c *InMemoryConfig) IsAllowed(ctx context.Context, peerID peer.ID) bool {
 
 // AllowedPeers returns the IDs of the peers in the network.
 func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "AllowedPeers")
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AllowedPeers")
 	defer span.End()
 
 	c.dataLock.RLock()
@@ -115,7 +115,7 @@ func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
 
 // NetworkState returns the current state of the network protection.
 func (c *InMemoryConfig) NetworkState(ctx context.Context) pb.NetworkState {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "NetworkState")
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "NetworkState")
 	defer span.End()
 
 	c.dataLock.RLock()
@@ -127,7 +127,7 @@ func (c *InMemoryConfig) NetworkState(ctx context.Context) pb.NetworkState {
 
 // SetNetworkState sets the current state of the network protection.
 func (c *InMemoryConfig) SetNetworkState(ctx context.Context, networkState pb.NetworkState) error {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "SetNetworkState")
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "SetNetworkState")
 	defer span.End()
 
 	span.AddStringAttribute("state", networkState.String())
@@ -163,7 +163,7 @@ func (c *InMemoryConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error
 
 // Copy returns a copy of the underlying configuration.
 func (c *InMemoryConfig) Copy(ctx context.Context) pb.NetworkConfig {
-	ctx, span := monitoring.StartSpan(ctx, "protector.memory_config", "Copy")
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "Copy")
 	defer span.End()
 
 	c.dataLock.RLock()

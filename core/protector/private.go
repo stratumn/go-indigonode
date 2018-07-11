@@ -149,7 +149,7 @@ func (p *PrivateNetwork) AllowedAddrs(ctx context.Context) []multiaddr.Multiaddr
 
 // AllowedPeers returns the list of whitelisted peers.
 func (p *PrivateNetwork) AllowedPeers(ctx context.Context) []peer.ID {
-	ctx, span := monitoring.StartSpan(ctx, "protector", "AllowedPeers")
+	_, span := monitoring.StartSpan(ctx, "protector", "AllowedPeers")
 	defer span.End()
 
 	p.allowedPeersLock.RLock()

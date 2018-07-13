@@ -17,39 +17,41 @@ package streamutil
 import (
 	"context"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"github.com/stratumn/go-indigonode/core/monitoring"
+
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 )
 
 // AutoCloseHandler is a specialized stream handler that closes the stream
 // when exiting.
 // It automatically logs the handler error.
-type AutoCloseHandler func(context.Context, *logging.EventInProgress, inet.Stream, Codec) error
+type AutoCloseHandler func(context.Context, *monitoring.Span, inet.Stream, Codec) error
 
 // WithAutoClose transforms an AutoCloseHandler to a StreamHandler.
-func WithAutoClose(log logging.EventLogger, name string, h AutoCloseHandler) inet.StreamHandler {
+func WithAutoClose(service string, method string, h AutoCloseHandler) inet.StreamHandler {
 	return func(stream inet.Stream) {
-		ctx := context.Background()
-
 		var err error
-
-		event := log.EventBegin(ctx, name, logging.Metadata{
-			"remote": stream.Conn().RemotePeer().Pretty(),
-		})
+		ctx, span := monitoring.StartSpan(
+			context.Background(),
+			service,
+			method,
+			monitoring.SpanOptionPeerID(stream.Conn().RemotePeer()),
+			monitoring.SpanOptionProtocolID(stream.Protocol()),
+		)
 
 		defer func() {
 			if err != nil {
-				event.SetError(err)
+				span.SetUnknownError(err)
 			}
 
 			if closeErr := stream.Close(); closeErr != nil {
-				event.Append(logging.Metadata{"close_err": closeErr.Error()})
+				span.Annotate(ctx, "close_err", closeErr.Error())
 			}
 
-			event.Done()
+			span.End()
 		}()
 
 		codec := NewProtobufCodec(stream)
-		err = h(ctx, event, stream, codec)
+		err = h(ctx, span, stream, codec)
 	}
 }

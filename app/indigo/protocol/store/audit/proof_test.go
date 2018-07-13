@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigonode/core/crypto"
-	"github.com/stratumn/go-indigocore/cs"
-	"github.com/stratumn/go-indigocore/cs/cstesting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -145,7 +145,7 @@ func TestPeerSignature_New(t *testing.T) {
 		Build()
 	linkHash, _ := link.Hash()
 
-	proof, err := audit.NewPeerSignature(sk1, link.Segmentify())
+	proof, err := audit.NewPeerSignature(context.Background(), sk1, link.Segmentify())
 	assert.NoError(t, err)
 
 	sigProof := proof.(*audit.PeerSignature)
@@ -155,7 +155,7 @@ func TestPeerSignature_New(t *testing.T) {
 	sig := sigProof.Signature
 	assert.NotNil(t, sig, "proof.Signature")
 	assert.Equal(t, crypto.KeyType_Ed25519, sig.KeyType, "sig.KeyType")
-	assert.True(t, sig.Verify(linkHash[:]), "sig.Verify()")
+	assert.True(t, sig.Verify(context.Background(), linkHash[:]), "sig.Verify()")
 	assert.True(t, proof.Verify(linkHash[:]), "proof.Verify()")
 }
 
@@ -165,7 +165,7 @@ func TestPeerSignature_Verify(t *testing.T) {
 			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
 			Build().
 			Segmentify()
-		proof, _ := audit.NewPeerSignature(sk1, segment)
+		proof, _ := audit.NewPeerSignature(context.Background(), sk1, segment)
 		proof.(*audit.PeerSignature).PeerID = []byte(peerID2)
 
 		assert.False(t, proof.Verify(segment.GetLinkHash()[:]))
@@ -176,7 +176,7 @@ func TestPeerSignature_Verify(t *testing.T) {
 			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
 			Build().
 			Segmentify()
-		proof, _ := audit.NewPeerSignature(sk1, segment)
+		proof, _ := audit.NewPeerSignature(context.Background(), sk1, segment)
 
 		assert.False(t, proof.Verify([]byte("hello")))
 	})
@@ -191,8 +191,8 @@ func TestPeerSignature_Verify(t *testing.T) {
 			Build().
 			Segmentify()
 
-		proof1, _ := audit.NewPeerSignature(sk1, s1)
-		proof2, _ := audit.NewPeerSignature(sk1, s2)
+		proof1, _ := audit.NewPeerSignature(context.Background(), sk1, s1)
+		proof2, _ := audit.NewPeerSignature(context.Background(), sk1, s2)
 
 		// Swap the signatures. The signature will be valid, but won't
 		// sign the right link hash.
@@ -206,7 +206,7 @@ func TestPeerSignature_Verify(t *testing.T) {
 			WithMetadata(constants.NodeIDKey, peerID1.Pretty()).
 			Build().
 			Segmentify()
-		proof, _ := audit.NewPeerSignature(sk1, segment)
+		proof, _ := audit.NewPeerSignature(context.Background(), sk1, segment)
 
 		assert.True(t, proof.Verify(segment.GetLinkHash()[:]))
 	})

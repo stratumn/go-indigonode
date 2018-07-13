@@ -100,7 +100,7 @@ func TestStore_AddVote(t *testing.T) {
 		err := s.AddRequest(ctx, req)
 		require.NoError(t, err, "s.AddRequest()")
 
-		v, err := proposal.NewVote(key, req)
+		v, err := proposal.NewVote(ctx, key, req)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		err = s.AddVote(ctx, v)
@@ -112,10 +112,10 @@ func TestStore_AddVote(t *testing.T) {
 		err := s.AddRequest(ctx, req)
 		require.NoError(t, err, "s.AddRequest()")
 
-		v1, err := proposal.NewVote(key, req)
+		v1, err := proposal.NewVote(ctx, key, req)
 		require.NoError(t, err, "proposal.NewVote()")
 
-		v2, err := proposal.NewVote(key, req)
+		v2, err := proposal.NewVote(ctx, key, req)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		err = s.AddVote(ctx, v1)
@@ -132,7 +132,7 @@ func TestStore_AddVote(t *testing.T) {
 	t.Run("missing-request", func(t *testing.T) {
 		s := proposal.NewInMemoryStore()
 
-		v, err := proposal.NewVote(key, req)
+		v, err := proposal.NewVote(ctx, key, req)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		err = s.AddVote(ctx, v)
@@ -144,7 +144,7 @@ func TestStore_AddVote(t *testing.T) {
 		err := s.AddRequest(ctx, req)
 		require.NoError(t, err, "s.AddRequest()")
 
-		v, err := proposal.NewVote(key, req)
+		v, err := proposal.NewVote(ctx, key, req)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		v.Challenge = []byte("challenge mismatch")
@@ -192,7 +192,7 @@ func TestStore_Remove(t *testing.T) {
 		err := s.AddRequest(ctx, req)
 		require.NoError(t, err)
 
-		v, err := proposal.NewVote(test.GeneratePrivateKey(t), req)
+		v, err := proposal.NewVote(ctx, test.GeneratePrivateKey(t), req)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		err = s.AddVote(ctx, v)
@@ -281,10 +281,10 @@ func TestStore_GetVotes(t *testing.T) {
 		Challenge: []byte("much secure"),
 	}
 
-	v1, err := proposal.NewVote(key1, req)
+	v1, err := proposal.NewVote(ctx, key1, req)
 	require.NoError(t, err, "proposal.NewVote()")
 
-	v2, err := proposal.NewVote(key2, req)
+	v2, err := proposal.NewVote(ctx, key2, req)
 	require.NoError(t, err, "proposal.NewVote()")
 
 	t.Run("request-not-voted", func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestStore_GetVotes(t *testing.T) {
 		err := s.AddRequest(ctx, expiredReq)
 		require.NoError(t, err, "s.AddRequest()")
 
-		v, err := proposal.NewVote(key1, expiredReq)
+		v, err := proposal.NewVote(ctx, key1, expiredReq)
 		require.NoError(t, err, "proposal.NewVote()")
 
 		err = s.AddVote(ctx, v)
@@ -435,8 +435,8 @@ func TestStore_MarshalJSON(t *testing.T) {
 		Expires:   time.Now().UTC().Add(15 * time.Minute),
 	}
 
-	v1, _ := proposal.NewVote(test.GeneratePrivateKey(t), r2)
-	v2, _ := proposal.NewVote(test.GeneratePrivateKey(t), r2)
+	v1, _ := proposal.NewVote(ctx, test.GeneratePrivateKey(t), r2)
+	v2, _ := proposal.NewVote(ctx, test.GeneratePrivateKey(t), r2)
 
 	s := proposal.NewInMemoryStore()
 

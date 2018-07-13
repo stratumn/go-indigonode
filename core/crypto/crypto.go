@@ -15,7 +15,10 @@
 package crypto
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
 	ic "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 )
@@ -26,14 +29,19 @@ var (
 )
 
 // Sign signs the given payload with the given private key.
-func Sign(sk ic.PrivKey, payload []byte) (*Signature, error) {
+func Sign(ctx context.Context, sk ic.PrivKey, payload []byte) (*Signature, error) {
+	_, span := monitoring.StartSpan(ctx, "crypto", "Sign")
+	defer span.End()
+
 	pkBytes, err := sk.GetPublic().Bytes()
 	if err != nil {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, err.Error()))
 		return nil, errors.WithStack(err)
 	}
 
 	signatureBytes, err := sk.Sign(payload)
 	if err != nil {
+		span.SetUnknownError(err)
 		return nil, errors.WithStack(err)
 	}
 
@@ -46,6 +54,7 @@ func Sign(sk ic.PrivKey, payload []byte) (*Signature, error) {
 	case *ic.RsaPrivateKey:
 		keyType = KeyType_RSA
 	default:
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, ErrInvalidKeyType.Error()))
 		return nil, ErrInvalidKeyType
 	}
 
@@ -57,7 +66,13 @@ func Sign(sk ic.PrivKey, payload []byte) (*Signature, error) {
 }
 
 // Verify verifies a signature.
-func (s *Signature) Verify(payload []byte) bool {
+func (s *Signature) Verify(ctx context.Context, payload []byte) (ok bool) {
+	_, span := monitoring.StartSpan(ctx, "crypto", "Verify")
+	defer func() {
+		span.AddBoolAttribute("signature_ok", ok)
+		span.End()
+	}()
+
 	if s == nil {
 		return false
 	}
@@ -67,10 +82,10 @@ func (s *Signature) Verify(payload []byte) bool {
 		return false
 	}
 
-	valid, err := pubKey.Verify(payload, s.Signature)
+	ok, err = pubKey.Verify(payload, s.Signature)
 	if err != nil {
 		return false
 	}
 
-	return valid
+	return ok
 }

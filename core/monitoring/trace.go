@@ -140,6 +140,24 @@ func (s *Span) AddIntAttribute(name string, value int64) {
 	s.span.AddAttributes(trace.Int64Attribute(name, value))
 }
 
+// AddBoolAttribute sets a boolean attribute in the span.
+func (s *Span) AddBoolAttribute(name string, value bool) {
+	s.eventLock.Lock()
+	s.event.Append(logging.Metadata{name: value})
+	s.eventLock.Unlock()
+
+	s.span.AddAttributes(trace.BoolAttribute(name, value))
+}
+
+// AddStringAttribute sets a string attribute in the span.
+func (s *Span) AddStringAttribute(name string, value string) {
+	s.eventLock.Lock()
+	s.event.Append(logging.Metadata{name: value})
+	s.eventLock.Unlock()
+
+	s.span.AddAttributes(trace.StringAttribute(name, value))
+}
+
 // Annotate adds a log message to a span.
 func (s *Span) Annotate(ctx context.Context, name, message string) {
 	s.span.Annotate(nil, fmt.Sprintf("%s: %s", name, message))

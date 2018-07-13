@@ -240,7 +240,7 @@ func TestPrivate_Listen(t *testing.T) {
 		networkMgr := store.NewPrivateNetworkManager(nil, nil).(*store.PrivateNetworkManager)
 		linksChan := networkMgr.AddListener()
 
-		err := networkMgr.HandleNewLink(context.Background(), test.NewEvent(), stream, codec)
+		err := networkMgr.HandleNewLink(context.Background(), test.NewSpan(), stream, codec)
 		assert.EqualError(t, err, "invalid message")
 
 		select {
@@ -265,7 +265,7 @@ func TestPrivate_Listen(t *testing.T) {
 		networkMgr := store.NewPrivateNetworkManager(nil, nil).(*store.PrivateNetworkManager)
 		linksChan := networkMgr.AddListener()
 
-		err := networkMgr.HandleNewLink(context.Background(), test.NewEvent(), stream, codec)
+		err := networkMgr.HandleNewLink(context.Background(), test.NewSpan(), stream, codec)
 		require.NoError(t, err)
 
 		seg := <-linksChan

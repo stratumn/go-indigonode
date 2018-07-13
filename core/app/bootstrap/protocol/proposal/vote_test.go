@@ -15,6 +15,7 @@
 package proposal_test
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -81,7 +82,7 @@ func TestVote_New(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.request(t)
-			v, err := proposal.NewVote(tt.key(t), r)
+			v, err := proposal.NewVote(context.Background(), tt.key(t), r)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -90,7 +91,7 @@ func TestVote_New(t *testing.T) {
 				assert.Equal(t, r.Type, v.Type)
 				assert.Equal(t, r.PeerID, v.PeerID)
 				assert.Equal(t, r.Challenge, v.Challenge)
-				assert.NoError(t, v.Verify(r))
+				assert.NoError(t, v.Verify(context.Background(), r))
 			}
 		})
 	}
@@ -116,6 +117,7 @@ func TestVote_Verify(t *testing.T) {
 		},
 		func(t *testing.T) *proposal.Vote {
 			v, err := proposal.NewVote(
+				context.Background(),
 				test.GeneratePrivateKey(t),
 				&proposal.Request{
 					Type:      proposal.RemoveNode,
@@ -138,6 +140,7 @@ func TestVote_Verify(t *testing.T) {
 		},
 		func(t *testing.T) *proposal.Vote {
 			v, err := proposal.NewVote(
+				context.Background(),
 				test.GeneratePrivateKey(t),
 				&proposal.Request{
 					Type:      proposal.AddNode,
@@ -160,6 +163,7 @@ func TestVote_Verify(t *testing.T) {
 		},
 		func(t *testing.T) *proposal.Vote {
 			v, err := proposal.NewVote(
+				context.Background(),
 				test.GeneratePrivateKey(t),
 				&proposal.Request{
 					Type:      proposal.RemoveNode,
@@ -182,6 +186,7 @@ func TestVote_Verify(t *testing.T) {
 		},
 		func(t *testing.T) *proposal.Vote {
 			v, err := proposal.NewVote(
+				context.Background(),
 				test.GeneratePrivateKey(t),
 				&proposal.Request{
 					Type:      proposal.RemoveNode,
@@ -211,6 +216,7 @@ func TestVote_Verify(t *testing.T) {
 		},
 		func(t *testing.T) *proposal.Vote {
 			v, err := proposal.NewVote(
+				context.Background(),
 				test.GeneratePrivateKey(t),
 				&proposal.Request{
 					Type:      proposal.RemoveNode,
@@ -228,7 +234,7 @@ func TestVote_Verify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.request(t)
 			v := tt.vote(t)
-			err := v.Verify(r)
+			err := v.Verify(context.Background(), r)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -247,7 +253,7 @@ func TestVote_ToProtoVote(t *testing.T) {
 		Challenge: []byte("such challenge"),
 	}
 
-	vote, err := proposal.NewVote(sk, req)
+	vote, err := proposal.NewVote(context.Background(), sk, req)
 	require.NoError(t, err)
 
 	proto := vote.ToProtoVote()
@@ -266,7 +272,7 @@ func TestVote_ToProtoVote(t *testing.T) {
 	assert.Equal(t, vote.Type, vote2.Type)
 	assert.Equal(t, vote.PeerID, vote2.PeerID)
 	assert.Equal(t, vote.Challenge, vote2.Challenge)
-	assert.NoError(t, vote2.Verify(req))
+	assert.NoError(t, vote2.Verify(context.Background(), req))
 }
 
 func TestVote_MarshalJSON(t *testing.T) {
@@ -276,7 +282,7 @@ func TestVote_MarshalJSON(t *testing.T) {
 		Challenge: []byte("much ch4ll3ng3"),
 	}
 
-	vote, err := proposal.NewVote(test.GeneratePrivateKey(t), req)
+	vote, err := proposal.NewVote(context.Background(), test.GeneratePrivateKey(t), req)
 	require.NoError(t, err)
 
 	b, err := json.Marshal(vote)
@@ -289,5 +295,5 @@ func TestVote_MarshalJSON(t *testing.T) {
 	assert.Equal(t, vote.Type, deserialized.Type)
 	assert.Equal(t, vote.PeerID, deserialized.PeerID)
 	assert.Equal(t, vote.Challenge, deserialized.Challenge)
-	assert.NoError(t, deserialized.Verify(req))
+	assert.NoError(t, deserialized.Verify(context.Background(), req))
 }

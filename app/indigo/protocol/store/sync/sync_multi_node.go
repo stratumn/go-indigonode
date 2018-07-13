@@ -16,7 +16,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -24,9 +23,9 @@ import (
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 	"github.com/stratumn/go-indigonode/core/streamutil"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
@@ -62,7 +61,7 @@ func NewMultiNodeEngine(host ihost.Host, store store.SegmentReader, provider str
 
 	engine.host.SetStreamHandler(
 		MultiNodeProtocolID,
-		streamutil.WithAutoClose(log, "SyncRequest", engine.handleSync),
+		streamutil.WithAutoClose("indigo.store.sync", "SyncRequest", engine.handleSync),
 	)
 
 	return engine
@@ -76,20 +75,20 @@ func (s *MultiNodeEngine) Close(ctx context.Context) {
 // GetMissingLinks will recursively walk the link graph and get all the missing
 // links in one pass. This might be a long operation.
 func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, reader store.SegmentReader) ([]*cs.Link, error) {
-	event := log.EventBegin(ctx, "GetMissingLinks")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.sync", "GetMissingLinks")
+	defer span.End()
 
 	lh, err := link.Hash()
 	if err != nil {
-		event.SetError(err)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, ErrInvalidLink.Error()))
 		return nil, ErrInvalidLink
 	}
 
-	event.Append(logging.Metadata{"link_hash": lh.String()})
+	span.AddStringAttribute("link_hash", lh.String())
 
 	connectedPeers := s.host.Network().Peers()
 	if len(connectedPeers) == 0 {
-		event.SetError(ErrNoConnectedPeers)
+		span.SetUnknownError(ErrNoConnectedPeers)
 		return nil, ErrNoConnectedPeers
 	}
 
@@ -113,7 +112,7 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, re
 		linkHash, _ := types.NewBytes32FromString(linkHashStr)
 
 		linksCount++
-		event.Append(logging.Metadata{fmt.Sprintf("fetching_%d", linksCount): linkHashStr})
+		span.AddStringAttribute(linkHashStr, "fetching")
 
 		found := false
 
@@ -126,10 +125,7 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, re
 			l, err := s.getLinkFromPeer(ctx, pid, linkHash)
 			if err != nil {
 				if err != io.EOF {
-					event.Append(logging.Metadata{
-						"peer":         pid.Pretty(),
-						"stream_error": err,
-					})
+					span.Annotate(ctx, pid.Pretty(), err.Error())
 				}
 				continue
 			}
@@ -148,14 +144,14 @@ func (s *MultiNodeEngine) GetMissingLinks(ctx context.Context, link *cs.Link, re
 		}
 
 		if !found {
-			event.SetError(errors.Wrap(ErrLinkNotFound, linkHashStr))
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeNotFound, ErrLinkNotFound.Error()))
 			return nil, ErrLinkNotFound
 		}
 	}
 
 	links, err := OrderLinks(ctx, link, fetchedLinks, reader)
 	if err != nil {
-		event.SetError(err)
+		span.SetUnknownError(err)
 		return nil, ErrLinkNotFound
 	}
 
@@ -190,7 +186,7 @@ func (s *MultiNodeEngine) getLinkFromPeer(ctx context.Context, pid peer.ID, lh *
 
 func (s *MultiNodeEngine) handleSync(
 	ctx context.Context,
-	event *logging.EventInProgress,
+	span *monitoring.Span,
 	stream inet.Stream,
 	codec streamutil.Codec,
 ) (err error) {
@@ -205,7 +201,7 @@ func (s *MultiNodeEngine) handleSync(
 		return
 	}
 
-	event.Append(logging.Metadata{"link_hash": lh.String()})
+	span.AddStringAttribute("link_hash", lh.String())
 
 	seg, err := s.store.GetSegment(ctx, lh)
 	if err != nil {

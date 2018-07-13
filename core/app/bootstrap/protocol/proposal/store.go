@@ -77,7 +77,7 @@ func (s *InMemoryStore) AddVote(ctx context.Context, v *Vote) error {
 		return ErrMissingRequest
 	}
 
-	err = v.Verify(r)
+	err = v.Verify(ctx, r)
 	if err != nil {
 		event.SetError(err)
 		return err

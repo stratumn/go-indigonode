@@ -15,6 +15,7 @@
 package streamtest
 
 import (
+	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -126,7 +127,7 @@ func ExpectEncodeVote(t *testing.T, codec *mockstream.MockCodec, r *proposal.Req
 		v := &proposal.Vote{}
 		err := v.FromProtoVote(vote)
 		require.NoError(t, err)
-		require.NoError(t, v.Verify(r))
+		require.NoError(t, v.Verify(context.Background(), r))
 
 		return nil
 	})

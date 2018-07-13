@@ -21,17 +21,13 @@ import (
 	"database/sql"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/postgresstore"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-)
-
-var (
-	log = logging.Logger("indigo.store.audit.postgres")
 )
 
 // PostgresAuditStore implements the audit.Store interface.
@@ -58,23 +54,28 @@ func New(config *postgresstore.Config) (*PostgresAuditStore, error) {
 
 // AddSegment stores a segment and its signature in the DB.
 func (s *PostgresAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) error {
-	e := log.EventBegin(ctx, "AddSegment", logging.Metadata{
-		"linkHash": segment.GetLinkHashString(),
-	})
-	defer e.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.audit", "AddSegment")
+	defer span.End()
+
+	span.AddStringAttribute("link_hash", segment.GetLinkHashString())
 
 	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
+		span.SetUnknownError(err)
 		return err
 	}
 
+	span.SetPeerID(peerID)
+
 	lh, err := s.createLink(ctx, &segment.Link, peerID)
 	if err != nil {
+		span.SetUnknownError(err)
 		return errors.WithStack(err)
 	}
 
 	for _, evidence := range segment.Meta.Evidences {
 		if err := s.addEvidence(ctx, lh, evidence); err != nil {
+			span.SetUnknownError(err)
 			return err
 		}
 	}
@@ -84,15 +85,20 @@ func (s *PostgresAuditStore) AddSegment(ctx context.Context, segment *cs.Segment
 
 // GetByPeer returns segments saved in the database.
 func (s *PostgresAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p audit.Pagination) (cs.SegmentSlice, error) {
-	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{"peerID": peerID})
-	defer e.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.audit", "GetByPeer", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	p.InitIfInvalid()
 
-	return s.FindSegments(ctx, &audit.SegmentFilter{
+	res, err := s.FindSegments(ctx, &audit.SegmentFilter{
 		PeerID:     peerID,
 		Pagination: p,
 	})
+	if err != nil {
+		span.SetUnknownError(err)
+	}
+
+	return res, err
 }
 
 // Create creates the database tables and indexes.

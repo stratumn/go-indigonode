@@ -20,16 +20,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigocore/cs"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-)
-
-var (
-	log = logging.Logger("indigo.store.audit.dummy")
 )
 
 // DummyAuditStore implements the audit.Store interface.
@@ -47,30 +43,33 @@ func New() audit.Store {
 }
 
 func (s *DummyAuditStore) addEvidence(ctx context.Context, segment *cs.Segment, evidences cs.Evidences) {
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.audit", "addEvidence")
+	defer span.End()
+
 	for _, e := range evidences {
 		if err := segment.Meta.AddEvidence(*e); err != nil {
-			log.Event(ctx, "AddEvidenceError", logging.Metadata{
-				"linkHash": segment.GetLinkHashString(),
-				"err":      err.Error(),
-			})
+			span.Annotate(ctx, "add_evidence_error", err.Error())
 		}
 	}
 }
 
 // AddSegment stores a segment in memory.
 func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) error {
-	e := log.EventBegin(ctx, "AddSegment", logging.Metadata{
-		"linkHash": segment.GetLinkHashString(),
-	})
-	defer e.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store.audit", "AddSegment")
+	defer span.End()
+
+	span.AddStringAttribute("link_hash", segment.GetLinkHashString())
 
 	s.auditMapLock.Lock()
 	defer s.auditMapLock.Unlock()
 
 	peerID, err := constants.GetLinkNodeID(&segment.Link)
 	if err != nil {
+		span.SetUnknownError(err)
 		return err
 	}
+
+	span.SetPeerID(peerID)
 
 	peerSegments, ok := s.auditMap[peerID]
 	if !ok {
@@ -93,8 +92,8 @@ func (s *DummyAuditStore) AddSegment(ctx context.Context, segment *cs.Segment) e
 
 // GetByPeer returns links saved in memory.
 func (s *DummyAuditStore) GetByPeer(ctx context.Context, peerID peer.ID, p audit.Pagination) (cs.SegmentSlice, error) {
-	e := log.EventBegin(ctx, "GetByPeer", logging.Metadata{"peerID": peerID})
-	defer e.Done()
+	_, span := monitoring.StartSpan(ctx, "indigo.store.audit", "GetByPeer", monitoring.SpanOptionPeerID(peerID))
+	defer span.End()
 
 	s.auditMapLock.RLock()
 	defer s.auditMapLock.RUnlock()

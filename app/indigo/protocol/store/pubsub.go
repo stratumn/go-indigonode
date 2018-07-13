@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	floodsub "gx/ipfs/QmVKrsEgixRtMWcMd6WQzuwqCUC3jfLf7Q7xcjnKoMMikS/go-libp2p-floodsub"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 )
@@ -64,14 +64,16 @@ func (m *PubSubNetworkManager) NodeID() peer.ID {
 // and encryption modes (see in TopicDescriptor).
 // It isn't implemented yet but once it is, this is what we should use.
 func (m *PubSubNetworkManager) Join(ctx context.Context, networkID string, host Host) (err error) {
-	event := log.EventBegin(ctx, "Join", logging.Metadata{"network_id": networkID})
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "Join")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
+
+	span.AddStringAttribute("network_id", networkID)
 
 	m.networkMutex.Lock()
 	defer m.networkMutex.Unlock()
@@ -116,14 +118,16 @@ func (m *PubSubNetworkManager) Join(ctx context.Context, networkID string, host 
 
 // Leave unregisters from the underlying pubsub.
 func (m *PubSubNetworkManager) Leave(ctx context.Context, networkID string) (err error) {
-	event := log.EventBegin(ctx, "Leave", logging.Metadata{"network_id": networkID})
+	_, span := monitoring.StartSpan(ctx, "indigo.store", "Leave")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
+
+	span.AddStringAttribute("network_id", networkID)
 
 	m.networkMutex.Lock()
 	defer m.networkMutex.Unlock()
@@ -148,20 +152,21 @@ func (m *PubSubNetworkManager) Leave(ctx context.Context, networkID string) (err
 
 // Publish shares a message with the network.
 func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err error) {
-	event := log.EventBegin(ctx, "Publish")
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "Publish")
 	defer func() {
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 		}
 
-		event.Done()
+		span.End()
 	}()
 
 	var pubsubPeers []string
 	for _, peer := range m.pubsub.ListPeers(m.networkID) {
 		pubsubPeers = append(pubsubPeers, peer.Pretty())
 	}
-	event.Append(logging.Metadata{"peers": strings.Join(pubsubPeers, ",")})
+
+	span.AddStringAttribute("peers", strings.Join(pubsubPeers, ","))
 
 	key := m.host.Peerstore().PrivKey(m.host.ID())
 	signedSegment, err := audit.SignLink(ctx, key, link)
@@ -184,8 +189,8 @@ func (m *PubSubNetworkManager) Publish(ctx context.Context, link *cs.Link) (err 
 
 // Listen to network messages and forwards them to listeners.
 func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
-	event := log.EventBegin(ctx, "Listen")
-	defer event.Done()
+	ctx, span := monitoring.StartSpan(ctx, "indigo.store", "Listen")
+	defer span.End()
 
 	defer func() {
 		m.listenersMutex.Lock()
@@ -201,7 +206,7 @@ func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
 	for {
 		message, err := m.sub.Next(ctx)
 		if err != nil {
-			event.SetError(err)
+			span.SetUnknownError(err)
 			return errors.WithStack(err)
 		}
 		if m.host.ID() == message.GetFrom() {
@@ -211,7 +216,7 @@ func (m *PubSubNetworkManager) Listen(ctx context.Context) error {
 		signedSegment := cs.Segment{}
 		err = json.Unmarshal(message.GetData(), &signedSegment)
 		if err != nil {
-			log.Event(ctx, "ListenMessageError", logging.Metadata{"err": err.Error()})
+			span.Annotate(ctx, "listen_message_err", err.Error())
 			continue
 		}
 
@@ -225,10 +230,7 @@ func (m *PubSubNetworkManager) forwardToListeners(segment *cs.Segment) {
 
 	for _, listener := range m.listeners {
 		go func(listener chan *cs.Segment) {
-			ctx := context.Background()
-			event := log.EventBegin(ctx, "ForwardingToListener")
 			listener <- segment
-			event.Done()
 		}(listener)
 	}
 }

@@ -83,7 +83,7 @@ func TestService_Expose(t *testing.T) {
 				configDir, _ := ioutil.TempDir("", "indigo-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
 					CoordinatorID:        peerID.Pretty(),
-					CoordinatorAddresses: []string{"/ip4/127.0.0.1/tcp/8903"},
+					CoordinatorAddresses: []string{"/ip4/42.42.42.42/tcp/8903"},
 					ConfigPath:           path.Join(configDir, "config.json"),
 				}
 			},
@@ -95,7 +95,7 @@ func TestService_Expose(t *testing.T) {
 			assert.Equal(t, protector.PrivateWithCoordinatorMode, swm.NetworkMode.ProtectionMode)
 			assert.False(t, swm.NetworkMode.IsCoordinator)
 			assert.Equal(t, peerID, swm.NetworkMode.CoordinatorID)
-			assert.Equal(t, "/ip4/127.0.0.1/tcp/8903", swm.NetworkMode.CoordinatorAddrs[0].String())
+			assert.Equal(t, "/ip4/42.42.42.42/tcp/8903", swm.NetworkMode.CoordinatorAddrs[0].String())
 
 			require.NotNil(t, swm.NetworkConfig, "NetworkConfig")
 			assert.ElementsMatch(t, []peer.ID{peerID}, swm.NetworkConfig.AllowedPeers(ctx))
@@ -103,7 +103,10 @@ func TestService_Expose(t *testing.T) {
 	}, {
 		"private-network-coordinator",
 		[]OptConfig{
-			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
+			func(cfg *Config) {
+				cfg.Addresses = []string{"/ip4/0.0.0.0/tcp/8903", "/ip4/42.42.42.42/tcp/8903"}
+				cfg.ProtectionMode = protector.PrivateWithCoordinatorMode
+			},
 			func(cfg *Config) {
 				configDir, _ := ioutil.TempDir("", "indigo-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{

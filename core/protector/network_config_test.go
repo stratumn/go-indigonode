@@ -16,6 +16,7 @@ package protector_test
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -83,18 +84,63 @@ func TestInMemoryConfig(t *testing.T) {
 	})
 
 	t.Run("AddPeer()", func(t *testing.T) {
-		networkConfig, _ := protector.NewInMemoryConfig(
-			ctx,
-			pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
-		)
+		t.Run("overrides-addresses", func(t *testing.T) {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
+			)
 
-		err := networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peerAddr1})
-		require.NoError(t, err, "networkConfig.AddPeer()")
+			err := networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peerAddr1})
+			require.NoError(t, err, "networkConfig.AddPeer()")
 
-		assert.True(t, networkConfig.IsAllowed(ctx, peer1))
+			assert.True(t, networkConfig.IsAllowed(ctx, peer1))
 
-		err = networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peerAddr1})
-		require.NoError(t, err, "networkConfig.AddPeer()")
+			newAddr := test.GeneratePeerMultiaddr(t, peer1)
+			err = networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{newAddr})
+			require.NoError(t, err, "networkConfig.AddPeer()")
+
+			assert.True(t, networkConfig.IsAllowed(ctx, peer1))
+
+			netCfg := networkConfig.Copy(ctx)
+			assert.Len(t, netCfg.Participants[peer1.Pretty()].Addresses, 1)
+			assert.Equal(t, newAddr.String(), netCfg.Participants[peer1.Pretty()].Addresses[0])
+		})
+
+		t.Run("filters-local-addresses", func(t *testing.T) {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
+			)
+
+			localAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/8903/ipfs/%s", peer1.Pretty()))
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peerAddr1, localAddr})
+			require.NoError(t, err, "networkConfig.AddPeer()")
+
+			assert.True(t, networkConfig.IsAllowed(ctx, peer1))
+
+			netCfg := networkConfig.Copy(ctx)
+			assert.Len(t, netCfg.Participants[peer1.Pretty()].Addresses, 1)
+			assert.Equal(t, peerAddr1.String(), netCfg.Participants[peer1.Pretty()].Addresses[0])
+		})
+
+		t.Run("rejects-only-local-addresses", func(t *testing.T) {
+			networkConfig, _ := protector.NewInMemoryConfig(
+				ctx,
+				pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
+			)
+
+			localAddr1, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip6/::1/tcp/8903/ipfs/%s", peer1.Pretty()))
+			require.NoError(t, err)
+
+			localAddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/8903/ipfs/%s", peer1.Pretty()))
+			require.NoError(t, err)
+
+			err = networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{localAddr1, localAddr2})
+			assert.EqualError(t, err, protector.ErrMissingNonLocalAddr.Error())
+			assert.False(t, networkConfig.IsAllowed(ctx, peer1))
+		})
 	})
 
 	t.Run("RemovePeer()", func(t *testing.T) {

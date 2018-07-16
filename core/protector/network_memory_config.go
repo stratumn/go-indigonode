@@ -60,9 +60,38 @@ func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AddPeer", monitoring.SpanOptionPeerID(peerID))
 	defer span.End()
 
+	// We don't want to put localhost addresses in the network configuration.
+	// It wouldn't make any sense for external nodes.
+	localAddrs := map[string]struct{}{}
+	localAddrs["127.0.0.1"] = struct{}{}
+	localAddrs["0.0.0.0"] = struct{}{}
+	localAddrs["+"] = struct{}{}
+	localAddrs["::1"] = struct{}{}
+	localAddrs["::"] = struct{}{}
+
 	var marshalledAddrs []string
 	for _, addr := range addrs {
+		ip4, err := addr.ValueForProtocol(multiaddr.P_IP4)
+		if err == nil {
+			_, ok := localAddrs[ip4]
+			if ok {
+				continue
+			}
+		}
+
+		ip6, err := addr.ValueForProtocol(multiaddr.P_IP6)
+		if err == nil {
+			_, ok := localAddrs[ip6]
+			if ok {
+				continue
+			}
+		}
+
 		marshalledAddrs = append(marshalledAddrs, addr.String())
+	}
+
+	if len(marshalledAddrs) == 0 {
+		return ErrMissingNonLocalAddr
 	}
 
 	c.dataLock.Lock()

@@ -82,12 +82,6 @@ func (c *withCoordinatorConfig) Configure(ctx context.Context, s *Service, pstor
 		return nil, nil, err
 	}
 
-	pstore.AddAddrs(
-		s.networkMode.CoordinatorID,
-		s.networkMode.CoordinatorAddrs,
-		peerstore.PermanentAddrTTL,
-	)
-
 	if err = networkConfig.AddPeer(
 		ctx,
 		s.networkMode.CoordinatorID,

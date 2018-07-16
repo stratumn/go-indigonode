@@ -25,12 +25,21 @@ import (
 	"github.com/stratumn/go-indigonode/core/streamutil"
 	"github.com/stretchr/testify/require"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
 	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
 	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
 	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+)
+
+var (
+	// DummyNonLocalAddr is used to work-around the fact that this test will
+	// run locally, but local-only addresses aren't accepted in network
+	// configurations.
+	// So we'll assign this dummy external address to all nodes.
+	DummyNonLocalAddr = multiaddr.StringCast("/ip4/42.42.42.42/tcp/8903")
 )
 
 // TestNetwork lets you configure a test network.
@@ -63,6 +72,7 @@ func (n *TestNetwork) AddCoordinatorNode() protocol.Handler {
 	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
 	coordinatorID := h.ID()
 	coordinatorKey := h.Peerstore().PrivKey(coordinatorID)
+	h.Peerstore().AddAddr(h.ID(), DummyNonLocalAddr, peerstore.PermanentAddrTTL)
 
 	cfg, err := protector.NewInMemoryConfig(
 		context.Background(),
@@ -70,7 +80,8 @@ func (n *TestNetwork) AddCoordinatorNode() protocol.Handler {
 	)
 	require.NoError(n.t, err, "protector.NewInMemoryConfig()")
 
-	err = cfg.AddPeer(context.Background(), h.ID(), h.Addrs())
+	addrs := append(h.Addrs(), DummyNonLocalAddr)
+	err = cfg.AddPeer(context.Background(), h.ID(), addrs)
 	require.NoError(n.t, err)
 
 	n.coordinator = h
@@ -91,11 +102,22 @@ func (n *TestNetwork) AddCoordinatorNode() protocol.Handler {
 // AddCoordinatedNode adds a coordinated node to the test network.
 func (n *TestNetwork) AddCoordinatedNode() (protocol.Handler, peer.ID) {
 	require.NotNil(n.t, n.coordinator, "n.coordinator")
+	coordinatorAddrs := append(n.CoordinatorHost().Addrs(), DummyNonLocalAddr)
 
 	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+
 	h.Peerstore().AddAddrs(
 		n.CoordinatorID(),
-		n.CoordinatorHost().Addrs(),
+		coordinatorAddrs,
+		peerstore.PermanentAddrTTL,
+	)
+
+	h.Peerstore().AddAddr(h.ID(), DummyNonLocalAddr, peerstore.PermanentAddrTTL)
+
+	// The coordinator also needs to know about this new peer.
+	n.CoordinatorHost().Peerstore().AddAddrs(
+		h.ID(),
+		append(h.Addrs(), DummyNonLocalAddr),
 		peerstore.PermanentAddrTTL,
 	)
 
@@ -105,7 +127,7 @@ func (n *TestNetwork) AddCoordinatedNode() (protocol.Handler, peer.ID) {
 	)
 	require.NoError(n.t, err, "protector.NewInMemoryConfig()")
 
-	err = cfg.AddPeer(context.Background(), n.coordinator.ID(), n.coordinator.Addrs())
+	err = cfg.AddPeer(context.Background(), n.coordinator.ID(), coordinatorAddrs)
 	require.NoError(n.t, err)
 
 	propStore := proposal.NewInMemoryStore()

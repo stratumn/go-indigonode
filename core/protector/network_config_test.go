@@ -174,6 +174,21 @@ func TestInMemoryConfig(t *testing.T) {
 		assert.True(t, networkConfig.IsAllowed(ctx, peer2))
 	})
 
+	t.Run("AllowedAddrs()", func(t *testing.T) {
+		networkConfig, _ := protector.NewInMemoryConfig(
+			ctx,
+			pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP),
+		)
+
+		assert.Nil(t, networkConfig.AllowedAddrs(ctx, peer1))
+
+		networkConfig.AddPeer(ctx, peer1, []multiaddr.Multiaddr{peerAddr1})
+		networkConfig.AddPeer(ctx, peer2, []multiaddr.Multiaddr{peerAddr2})
+
+		require.Len(t, networkConfig.AllowedAddrs(ctx, peer1), 1)
+		assert.Equal(t, peerAddr1, networkConfig.AllowedAddrs(ctx, peer1)[0])
+	})
+
 	t.Run("SetNetworkState()", func(t *testing.T) {
 		t.Run("rejects-invalid-state", func(t *testing.T) {
 			networkConfig, _ := protector.NewInMemoryConfig(

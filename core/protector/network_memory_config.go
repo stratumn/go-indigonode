@@ -142,6 +142,30 @@ func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
 	return allowed
 }
 
+// AllowedAddrs returns the whitelisted addresses of the given peer.
+func (c *InMemoryConfig) AllowedAddrs(ctx context.Context, peerID peer.ID) []multiaddr.Multiaddr {
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AllowedAddrs")
+	defer span.End()
+
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	var allowed []multiaddr.Multiaddr
+	for peerStr, peerAddrs := range c.data.Participants {
+		allowedPeerID, _ := peer.IDB58Decode(peerStr)
+		if allowedPeerID == peerID {
+			for _, addrStr := range peerAddrs.Addresses {
+				addr, _ := multiaddr.NewMultiaddr(addrStr)
+				allowed = append(allowed, addr)
+			}
+
+			break
+		}
+	}
+
+	return allowed
+}
+
 // NetworkState returns the current state of the network protection.
 func (c *InMemoryConfig) NetworkState(ctx context.Context) pb.NetworkState {
 	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "NetworkState")

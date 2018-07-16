@@ -302,7 +302,18 @@ func (s *Service) privateRound(ctx context.Context) error {
 
 		if s.host.Network().Connectedness(peerID) != inet.Connected {
 			wg.Add(1)
-			pi := s.host.Peerstore().PeerInfo(peerID)
+
+			peerStore := s.host.Peerstore()
+			// If addresses have been evicted from the peer store, we need to
+			// re-add them.
+			// This can happen when a node has been down too long, libp2p will
+			// erase its entry from the peer store.
+			if len(peerStore.Addrs(peerID)) == 0 {
+				addrs := s.swarm.NetworkConfig.AllowedAddrs(ctx, peerID)
+				peerStore.AddAddrs(peerID, addrs, pstore.PermanentAddrTTL)
+			}
+
+			pi := peerStore.PeerInfo(peerID)
 
 			go func(pi pstore.PeerInfo) {
 				defer wg.Done()

@@ -49,6 +49,18 @@ func (mr *MockNetworkConfigMockRecorder) AddPeer(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddPeer", reflect.TypeOf((*MockNetworkConfig)(nil).AddPeer), arg0, arg1, arg2)
 }
 
+// AllowedAddrs mocks base method
+func (m *MockNetworkConfig) AllowedAddrs(arg0 context.Context, arg1 go_libp2p_peer.ID) []go_multiaddr.Multiaddr {
+	ret := m.ctrl.Call(m, "AllowedAddrs", arg0, arg1)
+	ret0, _ := ret[0].([]go_multiaddr.Multiaddr)
+	return ret0
+}
+
+// AllowedAddrs indicates an expected call of AllowedAddrs
+func (mr *MockNetworkConfigMockRecorder) AllowedAddrs(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllowedAddrs", reflect.TypeOf((*MockNetworkConfig)(nil).AllowedAddrs), arg0, arg1)
+}
+
 // AllowedPeers mocks base method
 func (m *MockNetworkConfig) AllowedPeers(arg0 context.Context) []go_libp2p_peer.ID {
 	ret := m.ctrl.Call(m, "AllowedPeers", arg0)

@@ -237,8 +237,18 @@ func (c *InMemoryConfig) Reset(ctx context.Context, networkConfig *pb.NetworkCon
 		return err
 	}
 
+	if networkConfig.LastUpdated == nil {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, pb.ErrMissingLastUpdated.Error()))
+		return pb.ErrMissingLastUpdated
+	}
+
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
+
+	if c.data.LastUpdated != nil && networkConfig.LastUpdated.Seconds < c.data.LastUpdated.Seconds {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, pb.ErrInvalidLastUpdated.Error()))
+		return pb.ErrInvalidLastUpdated
+	}
 
 	c.data = deepcopy.Copy(networkConfig).(*pb.NetworkConfig)
 	return nil

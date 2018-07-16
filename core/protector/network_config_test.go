@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gogo/protobuf/types"
 	"github.com/golang/mock/gomock"
 	"github.com/stratumn/go-indigonode/core/protector"
 	"github.com/stratumn/go-indigonode/core/protector/mocks"
@@ -242,7 +243,9 @@ func TestInMemoryConfig(t *testing.T) {
 	})
 
 	t.Run("Reset()", func(t *testing.T) {
-		conf, err := protector.NewInMemoryConfig(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
+		confPb := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+		confPb.LastUpdated = types.TimestampNow()
+		conf, err := protector.NewInMemoryConfig(ctx, confPb)
 		require.NoError(t, err, "protector.NewInMemoryConfig()")
 
 		t.Run("rejects-invalid-network-state", func(t *testing.T) {
@@ -276,12 +279,30 @@ func TestInMemoryConfig(t *testing.T) {
 			)
 		})
 
+		t.Run("rejects-older-config", func(t *testing.T) {
+			peer1 := test.GeneratePeerID(t)
+			peer2 := test.GeneratePeerID(t)
+
+			err := conf.Reset(ctx, &pb.NetworkConfig{
+				NetworkState: pb.NetworkState_PROTECTED,
+				LastUpdated: &types.Timestamp{
+					Seconds: time.Now().Add(-24 * time.Hour).Unix(),
+				},
+				Participants: map[string]*pb.PeerAddrs{
+					peer1.Pretty(): generateValidPeerAddrs(t, peer1),
+					peer2.Pretty(): generateValidPeerAddrs(t, peer2),
+				},
+			})
+			assert.EqualError(t, err, pb.ErrInvalidLastUpdated.Error())
+		})
+
 		t.Run("accepts-valid-config", func(t *testing.T) {
 			peer1 := test.GeneratePeerID(t)
 			peer2 := test.GeneratePeerID(t)
 
 			err := conf.Reset(ctx, &pb.NetworkConfig{
 				NetworkState: pb.NetworkState_PROTECTED,
+				LastUpdated:  types.TimestampNow(),
 				Participants: map[string]*pb.PeerAddrs{
 					peer1.Pretty(): generateValidPeerAddrs(t, peer1),
 					peer2.Pretty(): generateValidPeerAddrs(t, peer2),
@@ -360,7 +381,10 @@ func TestConfigSigner(t *testing.T) {
 	})
 
 	t.Run("Reset()", func(t *testing.T) {
-		err := networkConfig.Reset(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
+		newConf := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+		newConf.LastUpdated = types.TimestampNow()
+
+		err := networkConfig.Reset(ctx, newConf)
 		require.NoError(t, err, "networkConfig.Reset()")
 
 		copy := networkConfig.Copy(ctx)
@@ -444,7 +468,10 @@ func TestConfigSaver(t *testing.T) {
 		err := networkConfig.AddPeer(ctx, peer1, peer1Addrs)
 		require.NoError(t, err, "networkConfig.AddPeer()")
 
-		err = networkConfig.Reset(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
+		newConf := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
+		newConf.LastUpdated = types.TimestampNow()
+
+		err = networkConfig.Reset(ctx, newConf)
 		require.NoError(t, err, "networkConfig.Reset()")
 
 		err = saved.LoadFromFile(ctx, configPath, signerID)
@@ -452,6 +479,7 @@ func TestConfigSaver(t *testing.T) {
 
 		assert.Equal(t, pb.NetworkState_BOOTSTRAP, saved.NetworkState)
 		assert.Nil(t, saved.Participants)
+		assert.InDelta(t, newConf.LastUpdated.Seconds, saved.LastUpdated.Seconds, 2.0)
 	})
 }
 
@@ -560,6 +588,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 
 		err = networkConfig.Reset(ctx, &pb.NetworkConfig{
 			NetworkState: pb.NetworkState_PROTECTED,
+			LastUpdated:  types.TimestampNow(),
 			Participants: map[string]*pb.PeerAddrs{
 				peer1.Pretty(): generateValidPeerAddrs(t, peer1),
 				peer3.Pretty(): generateValidPeerAddrs(t, peer3),

@@ -237,19 +237,42 @@ func (c *InMemoryConfig) Reset(ctx context.Context, networkConfig *pb.NetworkCon
 		return err
 	}
 
-	if networkConfig.LastUpdated == nil {
-		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeInvalidArgument, pb.ErrMissingLastUpdated.Error()))
-		return pb.ErrMissingLastUpdated
-	}
-
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
-	if c.data.LastUpdated != nil && networkConfig.LastUpdated.Seconds < c.data.LastUpdated.Seconds {
+	if err := c.validateLastUpdated(networkConfig); err != nil {
 		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, pb.ErrInvalidLastUpdated.Error()))
 		return pb.ErrInvalidLastUpdated
 	}
 
 	c.data = deepcopy.Copy(networkConfig).(*pb.NetworkConfig)
+	return nil
+}
+
+// validateLastUpdated validates the timestamp of an incoming signed network
+// configuration.
+// It expects that the data lock is held by the caller.
+func (c *InMemoryConfig) validateLastUpdated(networkConfig *pb.NetworkConfig) error {
+	if networkConfig.LastUpdated == nil {
+		return pb.ErrMissingLastUpdated
+	}
+
+	// If we don't have a timespamped configuration, we accept the incoming
+	// configuration.
+	if c.data.LastUpdated == nil {
+		return nil
+	}
+
+	// If we don't have network participants yet, we accept the incoming
+	// configuration.
+	if len(c.data.Participants) < 2 {
+		return nil
+	}
+
+	// Otherwise we check that we don't have a more recent one.
+	if networkConfig.LastUpdated.Seconds < c.data.LastUpdated.Seconds {
+		return pb.ErrInvalidLastUpdated
+	}
+
 	return nil
 }

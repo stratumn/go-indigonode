@@ -243,9 +243,7 @@ func TestInMemoryConfig(t *testing.T) {
 	})
 
 	t.Run("Reset()", func(t *testing.T) {
-		confPb := pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP)
-		confPb.LastUpdated = types.TimestampNow()
-		conf, err := protector.NewInMemoryConfig(ctx, confPb)
+		conf, err := protector.NewInMemoryConfig(ctx, pb.NewNetworkConfig(pb.NetworkState_BOOTSTRAP))
 		require.NoError(t, err, "protector.NewInMemoryConfig()")
 
 		t.Run("rejects-invalid-network-state", func(t *testing.T) {
@@ -280,10 +278,17 @@ func TestInMemoryConfig(t *testing.T) {
 		})
 
 		t.Run("rejects-older-config", func(t *testing.T) {
-			peer1 := test.GeneratePeerID(t)
-			peer2 := test.GeneratePeerID(t)
+			conf, err := protector.NewInMemoryConfig(ctx, &pb.NetworkConfig{
+				NetworkState: pb.NetworkState_PROTECTED,
+				LastUpdated:  types.TimestampNow(),
+				Participants: map[string]*pb.PeerAddrs{
+					peer1.Pretty(): generateValidPeerAddrs(t, peer1),
+					peer2.Pretty(): generateValidPeerAddrs(t, peer2),
+				},
+			})
+			require.NoError(t, err, "protector.NewInMemoryConfig()")
 
-			err := conf.Reset(ctx, &pb.NetworkConfig{
+			err = conf.Reset(ctx, &pb.NetworkConfig{
 				NetworkState: pb.NetworkState_PROTECTED,
 				LastUpdated: &types.Timestamp{
 					Seconds: time.Now().Add(-24 * time.Hour).Unix(),
@@ -297,9 +302,6 @@ func TestInMemoryConfig(t *testing.T) {
 		})
 
 		t.Run("accepts-valid-config", func(t *testing.T) {
-			peer1 := test.GeneratePeerID(t)
-			peer2 := test.GeneratePeerID(t)
-
 			err := conf.Reset(ctx, &pb.NetworkConfig{
 				NetworkState: pb.NetworkState_PROTECTED,
 				LastUpdated:  types.TimestampNow(),

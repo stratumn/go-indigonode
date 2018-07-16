@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/go-indigonode/core/app/swarm/grpc"
 	mockpb "github.com/stratumn/go-indigonode/core/app/swarm/grpc/mockgrpc"
-	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,15 +38,13 @@ func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
 	swm := (*swarm.Swarm)(testutil.GenSwarmNetwork(t, ctx))
 
 	return grpcServer{
-		GetSwarm:     func() *swarm.Swarm { return swm },
-		GetPeerStore: func() pstore.Peerstore { return pstore.NewPeerstore() },
+		GetSwarm: func() *swarm.Swarm { return swm },
 	}
 }
 
 func testGRPCServerUnavailable() grpcServer {
 	return grpcServer{
-		GetSwarm:     func() *swarm.Swarm { return nil },
-		GetPeerStore: func() pstore.Peerstore { return nil },
+		GetSwarm: func() *swarm.Swarm { return nil },
 	}
 }
 
@@ -223,29 +220,4 @@ func TestGRPCServer_Connections_unavailable(t *testing.T) {
 	req, ss := &pb.ConnectionsReq{}, mockpb.NewMockSwarm_ConnectionsServer(ctrl)
 
 	assert.Equal(t, ErrUnavailable, errors.Cause(srv.Connections(req, ss)))
-}
-
-func TestGRPCServer_Addresses(t *testing.T) {
-	peerID := test.GeneratePeerID(t)
-	peerAddr1 := test.GeneratePeerMultiaddr(t, peerID)
-	peerAddr2 := test.GeneratePeerMultiaddr(t, peerID)
-
-	peerStore := pstore.NewPeerstore()
-	peerStore.AddAddr(peerID, peerAddr1, pstore.PermanentAddrTTL)
-	peerStore.AddAddr(peerID, peerAddr2, pstore.PermanentAddrTTL)
-
-	srv := grpcServer{
-		GetSwarm:     func() *swarm.Swarm { return nil },
-		GetPeerStore: func() pstore.Peerstore { return peerStore },
-	}
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ss := mockpb.NewMockSwarm_AddressesServer(ctrl)
-	ss.EXPECT().Send(&pb.PeerAddr{Address: peerAddr1.Bytes()})
-	ss.EXPECT().Send(&pb.PeerAddr{Address: peerAddr2.Bytes()})
-
-	err := srv.Addresses(&pb.PeerAddrsReq{PeerId: []byte(peerID)}, ss)
-	require.NoError(t, err)
 }

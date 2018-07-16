@@ -12,7 +12,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "github.com/stratumn/go-indigonode/cli/grpc/ext"
 
-	"google.golang.org/grpc"
+	google_golang_org_grpc "google.golang.org/grpc"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -37,7 +37,7 @@ func (m *LocalPeerReq) Reset()         { *m = LocalPeerReq{} }
 func (m *LocalPeerReq) String() string { return proto.CompactTextString(m) }
 func (*LocalPeerReq) ProtoMessage()    {}
 func (*LocalPeerReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{0}
+	return fileDescriptor_swarm_02a9d2aa1756b24b, []int{0}
 }
 func (m *LocalPeerReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -77,7 +77,7 @@ func (m *PeersReq) Reset()         { *m = PeersReq{} }
 func (m *PeersReq) String() string { return proto.CompactTextString(m) }
 func (*PeersReq) ProtoMessage()    {}
 func (*PeersReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{1}
+	return fileDescriptor_swarm_02a9d2aa1756b24b, []int{1}
 }
 func (m *PeersReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -118,7 +118,7 @@ func (m *ConnectionsReq) Reset()         { *m = ConnectionsReq{} }
 func (m *ConnectionsReq) String() string { return proto.CompactTextString(m) }
 func (*ConnectionsReq) ProtoMessage()    {}
 func (*ConnectionsReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{2}
+	return fileDescriptor_swarm_02a9d2aa1756b24b, []int{2}
 }
 func (m *ConnectionsReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -154,54 +154,6 @@ func (m *ConnectionsReq) GetPeerId() []byte {
 	return nil
 }
 
-// The peer addresses request message.
-type PeerAddrsReq struct {
-	PeerId               []byte   `protobuf:"bytes,1,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *PeerAddrsReq) Reset()         { *m = PeerAddrsReq{} }
-func (m *PeerAddrsReq) String() string { return proto.CompactTextString(m) }
-func (*PeerAddrsReq) ProtoMessage()    {}
-func (*PeerAddrsReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{3}
-}
-func (m *PeerAddrsReq) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *PeerAddrsReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_PeerAddrsReq.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (dst *PeerAddrsReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PeerAddrsReq.Merge(dst, src)
-}
-func (m *PeerAddrsReq) XXX_Size() int {
-	return m.Size()
-}
-func (m *PeerAddrsReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_PeerAddrsReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_PeerAddrsReq proto.InternalMessageInfo
-
-func (m *PeerAddrsReq) GetPeerId() []byte {
-	if m != nil {
-		return m.PeerId
-	}
-	return nil
-}
-
 // The peer message containing the ID of the peer.
 type Peer struct {
 	Id                   []byte   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -214,7 +166,7 @@ func (m *Peer) Reset()         { *m = Peer{} }
 func (m *Peer) String() string { return proto.CompactTextString(m) }
 func (*Peer) ProtoMessage()    {}
 func (*Peer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{4}
+	return fileDescriptor_swarm_02a9d2aa1756b24b, []int{3}
 }
 func (m *Peer) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -264,7 +216,7 @@ func (m *Connection) Reset()         { *m = Connection{} }
 func (m *Connection) String() string { return proto.CompactTextString(m) }
 func (*Connection) ProtoMessage()    {}
 func (*Connection) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{5}
+	return fileDescriptor_swarm_02a9d2aa1756b24b, []int{4}
 }
 func (m *Connection) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -314,94 +266,42 @@ func (m *Connection) GetRemoteAddress() []byte {
 	return nil
 }
 
-// The peer address message containing a peer's known address.
-type PeerAddr struct {
-	Address              []byte   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *PeerAddr) Reset()         { *m = PeerAddr{} }
-func (m *PeerAddr) String() string { return proto.CompactTextString(m) }
-func (*PeerAddr) ProtoMessage()    {}
-func (*PeerAddr) Descriptor() ([]byte, []int) {
-	return fileDescriptor_swarm_b5b6553bbd93ea97, []int{6}
-}
-func (m *PeerAddr) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *PeerAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_PeerAddr.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (dst *PeerAddr) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PeerAddr.Merge(dst, src)
-}
-func (m *PeerAddr) XXX_Size() int {
-	return m.Size()
-}
-func (m *PeerAddr) XXX_DiscardUnknown() {
-	xxx_messageInfo_PeerAddr.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_PeerAddr proto.InternalMessageInfo
-
-func (m *PeerAddr) GetAddress() []byte {
-	if m != nil {
-		return m.Address
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*LocalPeerReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.LocalPeerReq")
 	proto.RegisterType((*PeersReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.PeersReq")
 	proto.RegisterType((*ConnectionsReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.ConnectionsReq")
-	proto.RegisterType((*PeerAddrsReq)(nil), "stratumn.indigonode.core.app.swarm.grpc.PeerAddrsReq")
 	proto.RegisterType((*Peer)(nil), "stratumn.indigonode.core.app.swarm.grpc.Peer")
 	proto.RegisterType((*Connection)(nil), "stratumn.indigonode.core.app.swarm.grpc.Connection")
-	proto.RegisterType((*PeerAddr)(nil), "stratumn.indigonode.core.app.swarm.grpc.PeerAddr")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ google_golang_org_grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = google_golang_org_grpc.SupportPackageIsVersion4
 
 // Client API for Swarm service
 
 type SwarmClient interface {
 	// Returns the local peer.
-	LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...grpc.CallOption) (*Peer, error)
+	LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...google_golang_org_grpc.CallOption) (*Peer, error)
 	// Streams the connected peers.
-	Peers(ctx context.Context, in *PeersReq, opts ...grpc.CallOption) (Swarm_PeersClient, error)
+	Peers(ctx context.Context, in *PeersReq, opts ...google_golang_org_grpc.CallOption) (Swarm_PeersClient, error)
 	// Streams connections.
-	Connections(ctx context.Context, in *ConnectionsReq, opts ...grpc.CallOption) (Swarm_ConnectionsClient, error)
-	// Streams a peer's known addresses.
-	Addresses(ctx context.Context, in *PeerAddrsReq, opts ...grpc.CallOption) (Swarm_AddressesClient, error)
+	Connections(ctx context.Context, in *ConnectionsReq, opts ...google_golang_org_grpc.CallOption) (Swarm_ConnectionsClient, error)
 }
 
 type swarmClient struct {
-	cc *grpc.ClientConn
+	cc *google_golang_org_grpc.ClientConn
 }
 
-func NewSwarmClient(cc *grpc.ClientConn) SwarmClient {
+func NewSwarmClient(cc *google_golang_org_grpc.ClientConn) SwarmClient {
 	return &swarmClient{cc}
 }
 
-func (c *swarmClient) LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...grpc.CallOption) (*Peer, error) {
+func (c *swarmClient) LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...google_golang_org_grpc.CallOption) (*Peer, error) {
 	out := new(Peer)
 	err := c.cc.Invoke(ctx, "/stratumn.indigonode.core.app.swarm.grpc.Swarm/LocalPeer", in, out, opts...)
 	if err != nil {
@@ -410,7 +310,7 @@ func (c *swarmClient) LocalPeer(ctx context.Context, in *LocalPeerReq, opts ...g
 	return out, nil
 }
 
-func (c *swarmClient) Peers(ctx context.Context, in *PeersReq, opts ...grpc.CallOption) (Swarm_PeersClient, error) {
+func (c *swarmClient) Peers(ctx context.Context, in *PeersReq, opts ...google_golang_org_grpc.CallOption) (Swarm_PeersClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_Swarm_serviceDesc.Streams[0], "/stratumn.indigonode.core.app.swarm.grpc.Swarm/Peers", opts...)
 	if err != nil {
 		return nil, err
@@ -427,11 +327,11 @@ func (c *swarmClient) Peers(ctx context.Context, in *PeersReq, opts ...grpc.Call
 
 type Swarm_PeersClient interface {
 	Recv() (*Peer, error)
-	grpc.ClientStream
+	google_golang_org_grpc.ClientStream
 }
 
 type swarmPeersClient struct {
-	grpc.ClientStream
+	google_golang_org_grpc.ClientStream
 }
 
 func (x *swarmPeersClient) Recv() (*Peer, error) {
@@ -442,7 +342,7 @@ func (x *swarmPeersClient) Recv() (*Peer, error) {
 	return m, nil
 }
 
-func (c *swarmClient) Connections(ctx context.Context, in *ConnectionsReq, opts ...grpc.CallOption) (Swarm_ConnectionsClient, error) {
+func (c *swarmClient) Connections(ctx context.Context, in *ConnectionsReq, opts ...google_golang_org_grpc.CallOption) (Swarm_ConnectionsClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_Swarm_serviceDesc.Streams[1], "/stratumn.indigonode.core.app.swarm.grpc.Swarm/Connections", opts...)
 	if err != nil {
 		return nil, err
@@ -459,47 +359,15 @@ func (c *swarmClient) Connections(ctx context.Context, in *ConnectionsReq, opts 
 
 type Swarm_ConnectionsClient interface {
 	Recv() (*Connection, error)
-	grpc.ClientStream
+	google_golang_org_grpc.ClientStream
 }
 
 type swarmConnectionsClient struct {
-	grpc.ClientStream
+	google_golang_org_grpc.ClientStream
 }
 
 func (x *swarmConnectionsClient) Recv() (*Connection, error) {
 	m := new(Connection)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *swarmClient) Addresses(ctx context.Context, in *PeerAddrsReq, opts ...grpc.CallOption) (Swarm_AddressesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Swarm_serviceDesc.Streams[2], "/stratumn.indigonode.core.app.swarm.grpc.Swarm/Addresses", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &swarmAddressesClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Swarm_AddressesClient interface {
-	Recv() (*PeerAddr, error)
-	grpc.ClientStream
-}
-
-type swarmAddressesClient struct {
-	grpc.ClientStream
-}
-
-func (x *swarmAddressesClient) Recv() (*PeerAddr, error) {
-	m := new(PeerAddr)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -515,15 +383,13 @@ type SwarmServer interface {
 	Peers(*PeersReq, Swarm_PeersServer) error
 	// Streams connections.
 	Connections(*ConnectionsReq, Swarm_ConnectionsServer) error
-	// Streams a peer's known addresses.
-	Addresses(*PeerAddrsReq, Swarm_AddressesServer) error
 }
 
-func RegisterSwarmServer(s *grpc.Server, srv SwarmServer) {
+func RegisterSwarmServer(s *google_golang_org_grpc.Server, srv SwarmServer) {
 	s.RegisterService(&_Swarm_serviceDesc, srv)
 }
 
-func _Swarm_LocalPeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Swarm_LocalPeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor google_golang_org_grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LocalPeerReq)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -531,7 +397,7 @@ func _Swarm_LocalPeer_Handler(srv interface{}, ctx context.Context, dec func(int
 	if interceptor == nil {
 		return srv.(SwarmServer).LocalPeer(ctx, in)
 	}
-	info := &grpc.UnaryServerInfo{
+	info := &google_golang_org_grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/stratumn.indigonode.core.app.swarm.grpc.Swarm/LocalPeer",
 	}
@@ -541,7 +407,7 @@ func _Swarm_LocalPeer_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Swarm_Peers_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Swarm_Peers_Handler(srv interface{}, stream google_golang_org_grpc.ServerStream) error {
 	m := new(PeersReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
@@ -551,18 +417,18 @@ func _Swarm_Peers_Handler(srv interface{}, stream grpc.ServerStream) error {
 
 type Swarm_PeersServer interface {
 	Send(*Peer) error
-	grpc.ServerStream
+	google_golang_org_grpc.ServerStream
 }
 
 type swarmPeersServer struct {
-	grpc.ServerStream
+	google_golang_org_grpc.ServerStream
 }
 
 func (x *swarmPeersServer) Send(m *Peer) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Swarm_Connections_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Swarm_Connections_Handler(srv interface{}, stream google_golang_org_grpc.ServerStream) error {
 	m := new(ConnectionsReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
@@ -572,48 +438,27 @@ func _Swarm_Connections_Handler(srv interface{}, stream grpc.ServerStream) error
 
 type Swarm_ConnectionsServer interface {
 	Send(*Connection) error
-	grpc.ServerStream
+	google_golang_org_grpc.ServerStream
 }
 
 type swarmConnectionsServer struct {
-	grpc.ServerStream
+	google_golang_org_grpc.ServerStream
 }
 
 func (x *swarmConnectionsServer) Send(m *Connection) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Swarm_Addresses_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(PeerAddrsReq)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(SwarmServer).Addresses(m, &swarmAddressesServer{stream})
-}
-
-type Swarm_AddressesServer interface {
-	Send(*PeerAddr) error
-	grpc.ServerStream
-}
-
-type swarmAddressesServer struct {
-	grpc.ServerStream
-}
-
-func (x *swarmAddressesServer) Send(m *PeerAddr) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-var _Swarm_serviceDesc = grpc.ServiceDesc{
+var _Swarm_serviceDesc = google_golang_org_grpc.ServiceDesc{
 	ServiceName: "stratumn.indigonode.core.app.swarm.grpc.Swarm",
 	HandlerType: (*SwarmServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods: []google_golang_org_grpc.MethodDesc{
 		{
 			MethodName: "LocalPeer",
 			Handler:    _Swarm_LocalPeer_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
+	Streams: []google_golang_org_grpc.StreamDesc{
 		{
 			StreamName:    "Peers",
 			Handler:       _Swarm_Peers_Handler,
@@ -622,11 +467,6 @@ var _Swarm_serviceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Connections",
 			Handler:       _Swarm_Connections_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "Addresses",
-			Handler:       _Swarm_Addresses_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -686,33 +526,6 @@ func (m *ConnectionsReq) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ConnectionsReq) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.PeerId) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSwarm(dAtA, i, uint64(len(m.PeerId)))
-		i += copy(dAtA[i:], m.PeerId)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
-func (m *PeerAddrsReq) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PeerAddrsReq) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -795,33 +608,6 @@ func (m *Connection) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *PeerAddr) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *PeerAddr) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Address) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintSwarm(dAtA, i, uint64(len(m.Address)))
-		i += copy(dAtA[i:], m.Address)
-	}
-	if m.XXX_unrecognized != nil {
-		i += copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	return i, nil
-}
-
 func encodeVarintSwarm(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -862,19 +648,6 @@ func (m *ConnectionsReq) Size() (n int) {
 	return n
 }
 
-func (m *PeerAddrsReq) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.PeerId)
-	if l > 0 {
-		n += 1 + l + sovSwarm(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
 func (m *Peer) Size() (n int) {
 	var l int
 	_ = l
@@ -900,19 +673,6 @@ func (m *Connection) Size() (n int) {
 		n += 1 + l + sovSwarm(uint64(l))
 	}
 	l = len(m.RemoteAddress)
-	if l > 0 {
-		n += 1 + l + sovSwarm(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *PeerAddr) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.Address)
 	if l > 0 {
 		n += 1 + l + sovSwarm(uint64(l))
 	}
@@ -1064,88 +824,6 @@ func (m *ConnectionsReq) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ConnectionsReq: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSwarm
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSwarm
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerId = append(m.PeerId[:0], dAtA[iNdEx:postIndex]...)
-			if m.PeerId == nil {
-				m.PeerId = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSwarm(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSwarm
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *PeerAddrsReq) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSwarm
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PeerAddrsReq: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PeerAddrsReq: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1427,88 +1105,6 @@ func (m *Connection) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *PeerAddr) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSwarm
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: PeerAddr: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PeerAddr: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSwarm
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSwarm
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Address = append(m.Address[:0], dAtA[iNdEx:postIndex]...)
-			if m.Address == nil {
-				m.Address = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSwarm(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthSwarm
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
 func skipSwarm(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1615,43 +1211,37 @@ var (
 )
 
 func init() {
-	proto.RegisterFile("github.com/stratumn/go-indigonode/core/app/swarm/grpc/swarm.proto", fileDescriptor_swarm_b5b6553bbd93ea97)
+	proto.RegisterFile("github.com/stratumn/go-indigonode/core/app/swarm/grpc/swarm.proto", fileDescriptor_swarm_02a9d2aa1756b24b)
 }
 
-var fileDescriptor_swarm_b5b6553bbd93ea97 = []byte{
-	// 530 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0x3f, 0x6f, 0xd3, 0x40,
-	0x14, 0xe7, 0x42, 0xda, 0xd2, 0x23, 0xcd, 0x70, 0x20, 0x30, 0x56, 0x6b, 0x9d, 0xbc, 0x00, 0x45,
-	0xb5, 0x5b, 0x2a, 0x04, 0x82, 0x29, 0x2d, 0x12, 0x42, 0xca, 0x80, 0x5a, 0x21, 0x24, 0x96, 0xca,
-	0xf5, 0x1d, 0xc9, 0x09, 0xc7, 0x67, 0xee, 0xae, 0x0a, 0x5d, 0xc3, 0x8c, 0xc4, 0xc8, 0xc0, 0xc4,
-	0xc4, 0x17, 0xc8, 0x94, 0x2f, 0xc0, 0xc8, 0xca, 0x86, 0xc2, 0x17, 0x60, 0x64, 0xac, 0xde, 0x39,
-	0x8e, 0xdd, 0x4c, 0x49, 0x86, 0x44, 0xcf, 0xbe, 0xdf, 0x3f, 0xdf, 0x7b, 0x77, 0xb8, 0xd5, 0x11,
-	0xa6, 0x7b, 0x76, 0x1a, 0xc4, 0xb2, 0x17, 0x6a, 0xa3, 0x22, 0x73, 0xd6, 0x4b, 0xc3, 0x8e, 0xdc,
-	0x11, 0x29, 0x13, 0x1d, 0x99, 0x4a, 0xc6, 0xc3, 0x58, 0x2a, 0x1e, 0x46, 0x59, 0x16, 0xea, 0x7e,
-	0xa4, 0x7a, 0x61, 0x47, 0x65, 0x71, 0x5e, 0x06, 0x99, 0x92, 0x46, 0x92, 0xbb, 0x05, 0x2f, 0x28,
-	0x49, 0x01, 0x90, 0x82, 0x28, 0xcb, 0x82, 0x1c, 0x09, 0x24, 0xf7, 0xc9, 0x1c, 0x5e, 0x89, 0xc8,
-	0x0d, 0xf8, 0x47, 0x03, 0xbf, 0xdc, 0xc2, 0x6f, 0xe2, 0x46, 0x5b, 0xc6, 0x51, 0xf2, 0x8a, 0x73,
-	0x75, 0xc4, 0x3f, 0xf8, 0x18, 0x5f, 0x83, 0x52, 0x43, 0xfd, 0x1a, 0x37, 0x0f, 0x65, 0x9a, 0xf2,
-	0xd8, 0x08, 0x99, 0xc2, 0x1b, 0x72, 0x88, 0xd7, 0x32, 0xce, 0xd5, 0x89, 0x60, 0x0e, 0xa2, 0xe8,
-	0x5e, 0xe3, 0x60, 0xfb, 0xfb, 0xc8, 0xf1, 0x8f, 0xbb, 0xb2, 0x4f, 0x65, 0x9a, 0x9c, 0xd3, 0xb8,
-	0x84, 0x53, 0x23, 0xa9, 0xe9, 0x0a, 0x4d, 0x81, 0xf0, 0x6f, 0xe4, 0xa0, 0xa3, 0x55, 0xa8, 0x5e,
-	0x32, 0xff, 0x0d, 0x6e, 0x80, 0x45, 0x8b, 0x31, 0x6b, 0x43, 0x5e, 0xcc, 0x8a, 0x06, 0x53, 0xd1,
-	0xf7, 0xa9, 0xec, 0xa7, 0x34, 0x62, 0x4c, 0x71, 0xad, 0xb9, 0xa6, 0xef, 0xa4, 0x2a, 0x45, 0x7f,
-	0x8c, 0x1c, 0x74, 0x49, 0x78, 0x13, 0xd7, 0x41, 0x98, 0xdc, 0xc4, 0xb5, 0xa9, 0x56, 0xdd, 0x22,
-	0x6a, 0x82, 0xf9, 0x9f, 0x10, 0xc6, 0xe5, 0xe7, 0x90, 0xad, 0x59, 0xd7, 0x7a, 0x55, 0x8b, 0xdc,
-	0xc7, 0x1b, 0x09, 0xec, 0xcb, 0xc9, 0xc4, 0xdc, 0xa9, 0xe5, 0xa0, 0xff, 0x00, 0x6a, 0xd8, 0xa5,
-	0x56, 0xbe, 0x42, 0x1e, 0xe0, 0xa6, 0xe2, 0x3d, 0x69, 0xf8, 0x14, 0x7b, 0xb5, 0x82, 0xdd, 0xc8,
-	0xd7, 0x26, 0x60, 0x7f, 0x3b, 0xdf, 0x5f, 0x78, 0x24, 0x1e, 0x5e, 0x2b, 0x18, 0xa8, 0xc2, 0x28,
-	0x5e, 0x3e, 0xfc, 0x5d, 0xc7, 0x2b, 0xc7, 0xd0, 0x64, 0xf2, 0x19, 0xe1, 0xf5, 0x69, 0x9b, 0xc8,
-	0xa3, 0x60, 0xce, 0xb9, 0x08, 0xaa, 0xad, 0x75, 0x77, 0xe6, 0xa6, 0x01, 0xc3, 0x77, 0x07, 0x43,
-	0xe7, 0xd6, 0x73, 0xa1, 0xb3, 0x24, 0x3a, 0xa7, 0xa6, 0xcb, 0xa9, 0xfd, 0x68, 0xbb, 0xf3, 0x90,
-	0x67, 0xc5, 0x8e, 0x09, 0xd9, 0x5b, 0x48, 0x54, 0x2f, 0x91, 0x83, 0x0e, 0x86, 0xce, 0x66, 0x5b,
-	0x68, 0x43, 0xa3, 0x24, 0xb1, 0x41, 0x26, 0x53, 0xc6, 0x99, 0x0d, 0xa3, 0x77, 0x11, 0xf9, 0x86,
-	0xf0, 0xf5, 0xca, 0xa8, 0x92, 0xc7, 0x73, 0x5b, 0x5c, 0x1e, 0x70, 0x77, 0x7f, 0x09, 0xa2, 0xbf,
-	0x35, 0x18, 0x3a, 0x77, 0x6c, 0xc2, 0x99, 0xf9, 0x2f, 0xe2, 0x7d, 0x41, 0x78, 0xbd, 0x55, 0x0c,
-	0xf1, 0x02, 0xed, 0xab, 0x1e, 0x13, 0x77, 0x6f, 0x61, 0x9a, 0x7f, 0x7b, 0x30, 0x74, 0x6e, 0xd8,
-	0x60, 0x90, 0xa4, 0x3c, 0x47, 0xbb, 0xe8, 0xa0, 0xfd, 0x73, 0xec, 0xa1, 0x5f, 0x63, 0x0f, 0xfd,
-	0x19, 0x7b, 0xe8, 0xeb, 0x5f, 0xef, 0xca, 0xdb, 0xa7, 0x4b, 0xdd, 0x57, 0xcf, 0xe0, 0xef, 0x74,
-	0xd5, 0x5e, 0x26, 0xfb, 0x17, 0x01, 0x00, 0x00, 0xff, 0xff, 0xb5, 0x32, 0x5c, 0xb6, 0xf4, 0x04,
-	0x00, 0x00,
+var fileDescriptor_swarm_02a9d2aa1756b24b = []byte{
+	// 448 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x53, 0x3d, 0x8f, 0xd3, 0x30,
+	0x18, 0xc6, 0xbd, 0xde, 0x01, 0xa6, 0xd7, 0xc1, 0x42, 0x28, 0x44, 0x77, 0x91, 0x95, 0x85, 0x2f,
+	0x9d, 0x03, 0x9c, 0x10, 0x08, 0xa6, 0xbb, 0x63, 0x41, 0xea, 0x80, 0xee, 0xc4, 0xc2, 0x72, 0x72,
+	0x63, 0x2b, 0xb1, 0x94, 0xc4, 0xc6, 0x76, 0x55, 0xba, 0x96, 0x99, 0x9d, 0x81, 0x89, 0xff, 0xd0,
+	0xa9, 0x3b, 0x62, 0xe4, 0x27, 0xa0, 0xf2, 0x07, 0x18, 0x19, 0x91, 0x9d, 0xd2, 0x86, 0x4e, 0xa1,
+	0x43, 0xa2, 0x57, 0x79, 0x9f, 0xe7, 0x7d, 0x9e, 0xbc, 0x1f, 0xf0, 0x24, 0x13, 0x36, 0x1f, 0x0d,
+	0x49, 0x2a, 0xcb, 0xc4, 0x58, 0x4d, 0xed, 0xa8, 0xac, 0x92, 0x4c, 0x1e, 0x89, 0x8a, 0x89, 0x4c,
+	0x56, 0x92, 0xf1, 0x24, 0x95, 0x9a, 0x27, 0x54, 0xa9, 0xc4, 0x8c, 0xa9, 0x2e, 0x93, 0x4c, 0xab,
+	0xb4, 0x0e, 0x89, 0xd2, 0xd2, 0x4a, 0x74, 0xe7, 0x2f, 0x8f, 0xac, 0x49, 0xc4, 0x91, 0x08, 0x55,
+	0x8a, 0xd4, 0x48, 0x47, 0x0a, 0x9f, 0xb5, 0xd0, 0x2a, 0x44, 0x2d, 0xc0, 0xdf, 0x5b, 0xf7, 0xd4,
+	0x12, 0x71, 0x1f, 0xf6, 0x06, 0x32, 0xa5, 0xc5, 0x6b, 0xce, 0xf5, 0x39, 0x7f, 0x17, 0x43, 0x78,
+	0xcd, 0x85, 0xc6, 0xc5, 0x6f, 0x60, 0xff, 0x4c, 0x56, 0x15, 0x4f, 0xad, 0x90, 0x95, 0xfb, 0x82,
+	0xce, 0xe0, 0x55, 0xc5, 0xb9, 0xbe, 0x14, 0x2c, 0x00, 0x18, 0xdc, 0xed, 0x9d, 0xde, 0xff, 0x32,
+	0x0f, 0xe2, 0x8b, 0x5c, 0x8e, 0xb1, 0xac, 0x8a, 0x09, 0x4e, 0xd7, 0x70, 0x6c, 0x25, 0xb6, 0xb9,
+	0x30, 0xd8, 0x11, 0x7e, 0xcd, 0x03, 0x70, 0xbe, 0xe7, 0xa2, 0x57, 0x2c, 0x3e, 0x80, 0x5d, 0x27,
+	0x81, 0x6e, 0xc2, 0xce, 0xaa, 0x4e, 0xd7, 0x23, 0x3a, 0x82, 0xc5, 0x1f, 0x00, 0x84, 0x6b, 0x55,
+	0x74, 0xb8, 0xa9, 0xd8, 0x6d, 0xd6, 0x42, 0xf7, 0xe0, 0x7e, 0xe1, 0xec, 0x5f, 0x52, 0xc6, 0x34,
+	0x37, 0x26, 0xe8, 0xd4, 0xa0, 0xdf, 0x0e, 0xd4, 0xf3, 0xa9, 0x93, 0x3a, 0x83, 0x1e, 0xc0, 0xbe,
+	0xe6, 0xa5, 0xb4, 0x7c, 0x85, 0xdd, 0x69, 0x60, 0xf7, 0xeb, 0xdc, 0x12, 0xfc, 0xf8, 0xeb, 0x0e,
+	0xdc, 0xbd, 0x70, 0xfd, 0x45, 0x1f, 0x01, 0xbc, 0xbe, 0xea, 0x10, 0x7a, 0x42, 0x5a, 0x8e, 0x84,
+	0x34, 0xbb, 0x1a, 0x1e, 0xb5, 0xa6, 0x39, 0x46, 0x1c, 0x4e, 0x67, 0xc1, 0xad, 0x97, 0xc2, 0xa8,
+	0x82, 0x4e, 0xb0, 0xcd, 0x39, 0xf6, 0x3f, 0xe2, 0x3b, 0xe9, 0xfc, 0xec, 0xfa, 0x09, 0xa1, 0x47,
+	0xff, 0x55, 0xd4, 0x6c, 0xe1, 0x03, 0x4f, 0x67, 0xc1, 0xc1, 0x40, 0x18, 0x8b, 0x69, 0x51, 0x78,
+	0x23, 0xcb, 0x01, 0x73, 0xe6, 0xcd, 0x98, 0x87, 0x00, 0x7d, 0x06, 0xf0, 0x46, 0x63, 0x4b, 0xd0,
+	0xd3, 0xd6, 0x12, 0xff, 0xee, 0x56, 0x78, 0xbc, 0x05, 0x31, 0x3e, 0x9c, 0xce, 0x82, 0xdb, 0xde,
+	0xe1, 0xc6, 0xea, 0x2d, 0xed, 0x9d, 0x0e, 0xbe, 0x2d, 0x22, 0xf0, 0x7d, 0x11, 0x81, 0x1f, 0x8b,
+	0x08, 0x7c, 0xfa, 0x19, 0x5d, 0x79, 0xfb, 0x7c, 0xab, 0xbb, 0x7c, 0xe1, 0x5e, 0xc3, 0x3d, 0x7f,
+	0x34, 0xc7, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x92, 0xf4, 0x3a, 0xa7, 0xdc, 0x03, 0x00, 0x00,
 }

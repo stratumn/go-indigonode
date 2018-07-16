@@ -23,13 +23,11 @@ import (
 
 	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
 // grpcServer is a gRPC server for the swarm service.
 type grpcServer struct {
-	GetSwarm     func() *swarm.Swarm
-	GetPeerStore func() peerstore.Peerstore
+	GetSwarm func() *swarm.Swarm
 }
 
 // LocalPeer returns the local peer.
@@ -83,31 +81,6 @@ func (s grpcServer) Connections(req *pb.ConnectionsReq, ss pb.Swarm_ConnectionsS
 			PeerId:        []byte(conn.RemotePeer()),
 			LocalAddress:  conn.LocalMultiaddr().Bytes(),
 			RemoteAddress: conn.RemoteMultiaddr().Bytes(),
-		})
-		if err != nil {
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
-}
-
-// Addressses lists a peer's known addresses.
-func (s grpcServer) Addresses(req *pb.PeerAddrsReq, ss pb.Swarm_AddressesServer) error {
-	peerStore := s.GetPeerStore()
-	if peerStore == nil {
-		return errors.WithStack(ErrUnavailable)
-	}
-
-	pid, err := peer.IDFromBytes(req.PeerId)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	addrs := peerStore.Addrs(pid)
-	for _, addr := range addrs {
-		err := ss.Send(&pb.PeerAddr{
-			Address: addr.Bytes(),
 		})
 		if err != nil {
 			return errors.WithStack(err)

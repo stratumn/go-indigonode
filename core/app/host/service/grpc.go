@@ -22,6 +22,7 @@ import (
 	"github.com/stratumn/go-indigonode/core/p2p"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
@@ -31,13 +32,13 @@ type grpcServer struct {
 }
 
 // ID returns the ID of the host.
-func (s grpcServer) ID(ctx context.Context, req *pb.IdReq) (*pb.HostId, error) {
+func (s grpcServer) ID(ctx context.Context, req *pb.IdReq) (*pb.PeerId, error) {
 	host := s.GetHost()
 	if host == nil {
 		return nil, errors.WithStack(ErrUnavailable)
 	}
 
-	return &pb.HostId{Id: []byte(host.ID())}, nil
+	return &pb.PeerId{Id: []byte(host.ID())}, nil
 }
 
 // Addresses lists all the host's addresses.
@@ -54,6 +55,53 @@ func (s grpcServer) Addresses(req *pb.AddressesReq, ss pb.Host_AddressesServer) 
 	}
 
 	return nil
+}
+
+// PeerAddresses lists a peer's known addresses.
+func (s grpcServer) PeerAddresses(req *pb.PeerAddressesReq, ss pb.Host_PeerAddressesServer) error {
+	host := s.GetHost()
+	if host == nil {
+		return errors.WithStack(ErrUnavailable)
+	}
+
+	pid, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	addrs := host.Peerstore().Addrs(pid)
+	for _, addr := range addrs {
+		err := ss.Send(&pb.Address{
+			Address: addr.Bytes(),
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
+}
+
+// AddPeerAddress saves a new address for the given peer.
+func (s grpcServer) AddPeerAddress(ctx context.Context, req *pb.AddPeerAddressReq) (*pb.PeerId, error) {
+	host := s.GetHost()
+	if host == nil {
+		return nil, errors.WithStack(ErrUnavailable)
+	}
+
+	pid, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	addr, err := ma.NewMultiaddrBytes(req.Address)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	host.Peerstore().AddAddr(pid, addr, pstore.PermanentAddrTTL)
+
+	return &pb.PeerId{Id: []byte(pid)}, nil
 }
 
 // Connect ensures there is a connection to the peer's address.

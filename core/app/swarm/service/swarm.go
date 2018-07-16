@@ -59,11 +59,12 @@ type Transport = smux.Transport
 type Service struct {
 	config *Config
 
-	peerID  peer.ID
-	privKey crypto.PrivKey
-	addrs   []ma.Multiaddr
-	swarm   *swarm.Swarm
-	smuxer  Transport
+	peerID    peer.ID
+	privKey   crypto.PrivKey
+	addrs     []ma.Multiaddr
+	swarm     *swarm.Swarm
+	peerStore peerstore.Peerstore
+	smuxer    Transport
 
 	networkConfig protector.NetworkConfig
 	networkMode   *protector.NetworkMode
@@ -235,6 +236,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	}
 
 	s.networkConfig = networkConfig
+	s.peerStore = pstore
 	s.swarm = swm
 
 	running()
@@ -244,6 +246,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	swmCancel()
 
 	s.swarm = nil
+	s.peerStore = nil
 	s.networkConfig = nil
 
 	if err = swm.Close(); err != nil {
@@ -258,6 +261,9 @@ func (s *Service) AddToGRPCServer(gs *grpc.Server) {
 	pb.RegisterSwarmServer(gs, grpcServer{
 		GetSwarm: func() *swarm.Swarm {
 			return s.swarm
+		},
+		GetPeerStore: func() peerstore.Peerstore {
+			return s.peerStore
 		},
 	})
 }

@@ -36,6 +36,11 @@ service Swarm {
   rpc Connections (ConnectionsReq) returns (stream Connection) {
     option (stratumn.indigonode.cli.ext.method_desc) = "List connections to peers";
   }
+
+  // Streams a peer's known addresses.
+  rpc Addresses (PeerAddrsReq) returns (stream PeerAddr) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "List peer addresses";
+  }
 }
 
 // The local peer request message.
@@ -54,6 +59,15 @@ message ConnectionsReq {
   ];
 }
 
+// The peer addresses request message.
+message PeerAddrsReq {
+  bytes peer_id = 1 [
+    (stratumn.indigonode.cli.ext.field_desc) = "Show known addresses for this peer",
+    (stratumn.indigonode.cli.ext.field_required) = true,
+    (stratumn.indigonode.cli.ext.field_base58) = true
+  ];
+}
+
 // The peer message containing the ID of the peer.
 message Peer {
   bytes id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
@@ -64,4 +78,9 @@ message Connection {
     bytes peer_id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
     bytes local_address = 2 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
     bytes remote_address = 3 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
+}
+
+// The peer address message containing a peer's known address.
+message PeerAddr {
+  bytes address = 1 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
 }

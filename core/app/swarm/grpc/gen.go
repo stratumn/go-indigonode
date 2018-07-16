@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockswarm.go github.com/stratumn/go-indigonode/core/app/swarm/grpc Swarm_PeersServer,Swarm_ConnectionsServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockswarm.go github.com/stratumn/go-indigonode/core/app/swarm/grpc Swarm_PeersServer,Swarm_ConnectionsServer,Swarm_AddressesServer
 
 package grpc

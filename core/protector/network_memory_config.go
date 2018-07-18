@@ -65,7 +65,6 @@ func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 	localAddrs := map[string]struct{}{}
 	localAddrs["127.0.0.1"] = struct{}{}
 	localAddrs["0.0.0.0"] = struct{}{}
-	localAddrs["+"] = struct{}{}
 	localAddrs["::1"] = struct{}{}
 	localAddrs["::"] = struct{}{}
 

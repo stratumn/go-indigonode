@@ -73,6 +73,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
+	config.Addresses = []string{"/ip4/42.42.42.42/tcp/8903"}
 	config.ProtectionMode = protector.PrivateWithCoordinatorMode
 	config.CoordinatorConfig = &swarm.CoordinatorConfig{
 		IsCoordinator: true,

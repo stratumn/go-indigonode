@@ -32,6 +32,12 @@ command:
 
 ```bash
 indigo-node init --private-with-coordinator --private-coordinator
+```
+
+Open `indigo_node.core.toml` and add your public IP address to the
+`swarm.addresses` list. Once that's done, you can start the node:
+
+```bash
 indigo-node up
 ```
 

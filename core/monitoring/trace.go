@@ -119,14 +119,14 @@ func (s *Span) SetProtocolID(pid protocol.ID) {
 
 // SetAddrs sets span's addresses.
 func (s *Span) SetAddrs(addrs []multiaddr.Multiaddr) {
-	s.eventLock.Lock()
-	s.event.Append(logging.Metadata{"addresses": addrs})
-	s.eventLock.Unlock()
-
 	addrsStr := make([]string, len(addrs))
 	for i, addr := range addrs {
 		addrsStr[i] = addr.String()
 	}
+
+	s.eventLock.Lock()
+	s.event.Append(logging.Metadata{"addresses": addrsStr})
+	s.eventLock.Unlock()
 
 	s.span.AddAttributes(trace.StringAttribute("addresses", strings.Join(addrsStr, ", ")))
 }

@@ -52,7 +52,7 @@ func GeneratePeerID(t *testing.T) peer.ID {
 // GeneratePeerMultiaddr generates a semantically valid multiaddr for the given peer.
 func GeneratePeerMultiaddr(t *testing.T, peerID peer.ID) multiaddr.Multiaddr {
 	peerAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf(
-		"/ip4/127.0.0.1/tcp/%d/ipfs/%s",
+		"/ip4/10.0.0.42/tcp/%d/ipfs/%s",
 		8900+rand.Intn(10000),
 		peerID.Pretty(),
 	))

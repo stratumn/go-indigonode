@@ -25,12 +25,14 @@ import (
 	pb "github.com/stratumn/go-indigonode/core/app/host/grpc"
 	mockpb "github.com/stratumn/go-indigonode/core/app/host/grpc/mockgrpc"
 	"github.com/stratumn/go-indigonode/core/p2p"
+	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
 )
 
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
@@ -181,4 +183,55 @@ func TestGRPCServer_Connect_invalidAddress(t *testing.T) {
 	req, ss := &pb.ConnectReq{}, mockpb.NewMockHost_ConnectServer(ctrl)
 
 	assert.Error(t, srv.Connect(req, ss))
+}
+
+func TestGRPCServer_AddPeerAddress(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	peerID := test.GeneratePeerID(t)
+	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
+
+	srv := testGRPCServer(ctx, t)
+
+	pid, err := srv.AddPeerAddress(ctx, &pb.AddPeerAddressReq{
+		PeerId:  []byte(peerID),
+		Address: peerAddr.Bytes(),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, pid)
+	assert.Equal(t, []byte(peerID), pid.Id)
+
+	addrs := srv.GetHost().Peerstore().Addrs(peerID)
+	require.Len(t, addrs, 1)
+	assert.Equal(t, peerAddr, addrs[0])
+}
+
+func TestGRPCServer_PeerAddresses(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	srv := testGRPCServer(ctx, t)
+
+	peerID := test.GeneratePeerID(t)
+	peerAddr1 := test.GeneratePeerMultiaddr(t, peerID)
+	peerAddr2 := test.GeneratePeerMultiaddr(t, peerID)
+
+	peerStore := srv.GetHost().Peerstore()
+	peerStore.AddAddr(peerID, peerAddr1, peerstore.PermanentAddrTTL)
+	peerStore.AddAddr(peerID, peerAddr2, peerstore.PermanentAddrTTL)
+
+	ss := mockpb.NewMockHost_PeerAddressesServer(ctrl)
+	ss.EXPECT().Send(&pb.Address{Address: peerAddr1.Bytes()})
+	ss.EXPECT().Send(&pb.Address{Address: peerAddr2.Bytes()})
+
+	err := srv.PeerAddresses(&pb.PeerAddressesReq{PeerId: []byte(peerID)}, ss)
+	require.NoError(t, err)
 }

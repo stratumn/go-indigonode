@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	json "github.com/gibson042/canonicaljson-go"
+	"github.com/gogo/protobuf/types"
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 	"github.com/stratumn/go-indigonode/test"
 	"github.com/stretchr/testify/assert"
@@ -56,6 +57,22 @@ func TestNetworkConfig_Signature(t *testing.T) {
 	}{{
 		"nil-config",
 		func(*testing.T) *pb.NetworkConfig { return nil },
+		peer1,
+		false,
+	}, {
+		"missing-timestamp",
+		func(t *testing.T) *pb.NetworkConfig {
+			networkConfig := pb.NewNetworkConfig(pb.NetworkState_PROTECTED)
+			networkConfig.Participants[peer1.Pretty()] = generatePeerAddrs(t, peer1)
+			networkConfig.Participants[peer2.Pretty()] = generatePeerAddrs(t, peer2)
+
+			require.NoError(t, networkConfig.Sign(context.Background(), sk1))
+			require.NotNil(t, networkConfig.Signature)
+
+			networkConfig.LastUpdated = nil
+
+			return networkConfig
+		},
 		peer1,
 		false,
 	}, {
@@ -96,8 +113,15 @@ func TestNetworkConfig_Signature(t *testing.T) {
 			networkConfig.Participants[peer1.Pretty()] = generatePeerAddrs(t, peer1)
 			networkConfig.Participants[peer2.Pretty()] = generatePeerAddrs(t, peer2)
 
+			// LastUpdated shouldn't be set by default.
+			// Otherwise a new node risks rejecting valid configurations
+			// that were signed before the node was created.
+			// LastUpdated should come from a signed configuration (set by Sign()).
+			require.Nil(t, networkConfig.LastUpdated)
+
 			require.NoError(t, networkConfig.Sign(context.Background(), sk1))
 			require.NotNil(t, networkConfig.Signature)
+			require.NotNil(t, networkConfig.LastUpdated)
 
 			return networkConfig
 		},
@@ -157,7 +181,15 @@ func TestNetworkConfig_ValidateContent(t *testing.T) {
 		pb.ErrInvalidPeerAddr,
 	}, {
 		"valid-config",
-		pb.NewNetworkConfig(pb.NetworkState_PROTECTED),
+		&pb.NetworkConfig{
+			NetworkState: pb.NetworkState_PROTECTED,
+			LastUpdated:  types.TimestampNow(),
+			Participants: map[string]*pb.PeerAddrs{
+				peerID.Pretty(): &pb.PeerAddrs{
+					Addresses: []string{test.GeneratePeerMultiaddr(t, peerID).String()},
+				},
+			},
+		},
 		nil,
 	}}
 

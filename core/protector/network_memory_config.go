@@ -60,9 +60,37 @@ func (c *InMemoryConfig) AddPeer(ctx context.Context, peerID peer.ID, addrs []mu
 	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AddPeer", monitoring.SpanOptionPeerID(peerID))
 	defer span.End()
 
+	// We don't want to put localhost addresses in the network configuration.
+	// It wouldn't make any sense for external nodes.
+	localAddrs := map[string]struct{}{}
+	localAddrs["127.0.0.1"] = struct{}{}
+	localAddrs["0.0.0.0"] = struct{}{}
+	localAddrs["::1"] = struct{}{}
+	localAddrs["::"] = struct{}{}
+
 	var marshalledAddrs []string
 	for _, addr := range addrs {
+		ip4, err := addr.ValueForProtocol(multiaddr.P_IP4)
+		if err == nil {
+			_, ok := localAddrs[ip4]
+			if ok {
+				continue
+			}
+		}
+
+		ip6, err := addr.ValueForProtocol(multiaddr.P_IP6)
+		if err == nil {
+			_, ok := localAddrs[ip6]
+			if ok {
+				continue
+			}
+		}
+
 		marshalledAddrs = append(marshalledAddrs, addr.String())
+	}
+
+	if len(marshalledAddrs) == 0 {
+		return ErrMissingNonLocalAddr
 	}
 
 	c.dataLock.Lock()
@@ -108,6 +136,30 @@ func (c *InMemoryConfig) AllowedPeers(ctx context.Context) []peer.ID {
 	for peerStr := range c.data.Participants {
 		peerID, _ := peer.IDB58Decode(peerStr)
 		allowed = append(allowed, peerID)
+	}
+
+	return allowed
+}
+
+// AllowedAddrs returns the whitelisted addresses of the given peer.
+func (c *InMemoryConfig) AllowedAddrs(ctx context.Context, peerID peer.ID) []multiaddr.Multiaddr {
+	_, span := monitoring.StartSpan(ctx, "protector.memory_config", "AllowedAddrs")
+	defer span.End()
+
+	c.dataLock.RLock()
+	defer c.dataLock.RUnlock()
+
+	var allowed []multiaddr.Multiaddr
+	for peerStr, peerAddrs := range c.data.Participants {
+		allowedPeerID, _ := peer.IDB58Decode(peerStr)
+		if allowedPeerID == peerID {
+			for _, addrStr := range peerAddrs.Addresses {
+				addr, _ := multiaddr.NewMultiaddr(addrStr)
+				allowed = append(allowed, addr)
+			}
+
+			break
+		}
 	}
 
 	return allowed
@@ -187,6 +239,39 @@ func (c *InMemoryConfig) Reset(ctx context.Context, networkConfig *pb.NetworkCon
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
+	if err := c.validateLastUpdated(networkConfig); err != nil {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, pb.ErrInvalidLastUpdated.Error()))
+		return pb.ErrInvalidLastUpdated
+	}
+
 	c.data = deepcopy.Copy(networkConfig).(*pb.NetworkConfig)
+	return nil
+}
+
+// validateLastUpdated validates the timestamp of an incoming signed network
+// configuration.
+// It expects that the data lock is held by the caller.
+func (c *InMemoryConfig) validateLastUpdated(networkConfig *pb.NetworkConfig) error {
+	if networkConfig.LastUpdated == nil {
+		return pb.ErrMissingLastUpdated
+	}
+
+	// If we don't have a timespamped configuration, we accept the incoming
+	// configuration.
+	if c.data.LastUpdated == nil {
+		return nil
+	}
+
+	// If we don't have network participants yet, we accept the incoming
+	// configuration.
+	if len(c.data.Participants) < 2 {
+		return nil
+	}
+
+	// Otherwise we check that we don't have a more recent one.
+	if networkConfig.LastUpdated.Seconds < c.data.LastUpdated.Seconds {
+		return pb.ErrInvalidLastUpdated
+	}
+
 	return nil
 }

@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 
 	json "github.com/gibson042/canonicaljson-go"
+	"github.com/gogo/protobuf/types"
 	"github.com/pkg/errors"
 	cryptopb "github.com/stratumn/go-indigonode/core/crypto"
 
@@ -38,6 +39,8 @@ var (
 	ErrInvalidPeerID       = errors.New("invalid peer ID")
 	ErrMissingPeerAddrs    = errors.New("missing peer addresses")
 	ErrInvalidPeerAddr     = errors.New("invalid peer address")
+	ErrMissingLastUpdated  = errors.New("missing last updated timestamp")
+	ErrInvalidLastUpdated  = errors.New("invalid last updated (maybe outdated)")
 )
 
 // NewNetworkConfig creates a NetworkConfig.
@@ -55,6 +58,7 @@ func (c *NetworkConfig) Sign(ctx context.Context, privKey crypto.PrivKey) error 
 	event := log.EventBegin(ctx, "NetworkConfig.Sign")
 	defer event.Done()
 
+	c.LastUpdated = types.TimestampNow()
 	c.Signature = nil
 
 	b, err := json.Marshal(c)
@@ -80,6 +84,11 @@ func (c *NetworkConfig) ValidateSignature(ctx context.Context, peerID peer.ID) b
 	}
 
 	if c.Signature == nil {
+		return false
+	}
+
+	// A signed configuration should always have an associated timestamp.
+	if c.LastUpdated == nil {
 		return false
 	}
 
@@ -165,6 +174,7 @@ func (c *NetworkConfig) LoadFromFile(ctx context.Context, path string, signerID 
 	}
 
 	c.NetworkState = confData.NetworkState
+	c.LastUpdated = confData.LastUpdated
 	c.Participants = confData.Participants
 	c.Signature = confData.Signature
 

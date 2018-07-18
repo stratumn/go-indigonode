@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
 	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
 	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
@@ -132,6 +133,7 @@ func TestService_Run(t *testing.T) {
 		hostID := test.GeneratePeerID(t)
 		peer1 := test.GeneratePeerID(t)
 		peer2 := test.GeneratePeerID(t)
+		peer2addr := test.GeneratePeerMultiaddr(t, peer2)
 
 		net := mocks.NewMockNetwork(ctrl)
 		net.EXPECT().Peers().Return([]peer.ID{peer1, peer2}).AnyTimes()
@@ -140,6 +142,9 @@ func TestService_Run(t *testing.T) {
 
 		peerStore := mocks.NewMockPeerstore(ctrl)
 		peerStore.EXPECT().PeerInfo(peer2).Return(pstore.PeerInfo{ID: peer2}).AnyTimes()
+		// Simulate that peer2's address expired and is re-added
+		peerStore.EXPECT().Addrs(peer2).Return(nil).AnyTimes()
+		peerStore.EXPECT().AddAddrs(peer2, []multiaddr.Multiaddr{peer2addr}, gomock.Any()).AnyTimes()
 
 		host := mocks.NewMockHost(ctrl)
 		host.EXPECT().ID().Return(hostID).AnyTimes()
@@ -156,6 +161,7 @@ func TestService_Run(t *testing.T) {
 		networkCfg := mockprotector.NewMockNetworkConfig(ctrl)
 		networkCfg.EXPECT().NetworkState(gomock.Any()).Return(protectorpb.NetworkState_PROTECTED)
 		networkCfg.EXPECT().AllowedPeers(gomock.Any()).Return([]peer.ID{hostID, peer1, peer2}).AnyTimes()
+		networkCfg.EXPECT().AllowedAddrs(gomock.Any(), peer2).Return([]multiaddr.Multiaddr{peer2addr}).AnyTimes()
 		networkCfg.EXPECT().Copy(gomock.Any())
 
 		networkMode := &protector.NetworkMode{

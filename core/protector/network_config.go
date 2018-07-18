@@ -34,6 +34,11 @@ const (
 	DefaultConfigPath = "data/network/config.json"
 )
 
+// Errors used by the network configuration.
+var (
+	ErrMissingNonLocalAddr = errors.New("need a non-local peer address")
+)
+
 // NetworkStateReader provides read access to the network state.
 type NetworkStateReader interface {
 	NetworkState(context.Context) pb.NetworkState
@@ -48,6 +53,7 @@ type NetworkStateWriter interface {
 type NetworkPeersReader interface {
 	IsAllowed(context.Context, peer.ID) bool
 	AllowedPeers(context.Context) []peer.ID
+	AllowedAddrs(context.Context, peer.ID) []multiaddr.Multiaddr
 }
 
 // NetworkPeersWriter provides write access to the network peers list.

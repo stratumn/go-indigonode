@@ -37,11 +37,15 @@ import (
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
 	swm := (*swarm.Swarm)(testutil.GenSwarmNetwork(t, ctx))
 
-	return grpcServer{func() *swarm.Swarm { return swm }}
+	return grpcServer{
+		GetSwarm: func() *swarm.Swarm { return swm },
+	}
 }
 
 func testGRPCServerUnavailable() grpcServer {
-	return grpcServer{func() *swarm.Swarm { return nil }}
+	return grpcServer{
+		GetSwarm: func() *swarm.Swarm { return nil },
+	}
 }
 
 func TestGRPCServer_LocalPeer(t *testing.T) {

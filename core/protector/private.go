@@ -97,7 +97,7 @@ func (p *PrivateNetwork) Fingerprint() []byte {
 
 	mh, _ := multihash.Sum(allowedBytes, multihash.SHA2_256, -1)
 	b58 := mh.B58String()
-	span.AddStringAttribute("fingerpint", b58)
+	span.AddStringAttribute("fingerprint", b58)
 
 	return []byte(b58)
 }

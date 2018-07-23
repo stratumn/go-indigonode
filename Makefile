@@ -12,7 +12,7 @@ DIST_DIR=dist
 RELEASE_NAME=$(GIT_TAG)
 RELEASE_NOTES_FILE=RELEASE_NOTES.md
 TEXT_FILES=LICENSE RELEASE_NOTES.md CHANGE_LOG.md
-DOCKER_USER=$(GITHUB_USER)
+DOCKER_USER=indigocore
 DOCKER_FILE=Dockerfile
 COVERAGE_FILE=coverage.txt
 COVERHTML_FILE=coverhtml.txt
@@ -301,12 +301,11 @@ github_publish:
 
 # == docker_image =============================================================
 docker_image: $(DOCKER_EXEC)
-	$(DOCKER_BUILD) -f $(DOCKER_FILE) -t $(DOCKER_USER)/$(CMD):$(VERSION) -t $(DOCKER_USER)/$(CMD):latest .
+	$(DOCKER_BUILD) -f $(DOCKER_FILE) -t $(DOCKER_USER)/$(CMD):$(VERSION) .
 
 # == docker_push ==============================================================
 docker_push:
 	$(DOCKER_PUSH) $(DOCKER_USER)/$(CMD):$(VERSION)
-	$(DOCKER_PUSH) $(DOCKER_USER)/$(CMD):latest
 
 # == license_headers ==========================================================
 license_headers:

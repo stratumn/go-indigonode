@@ -83,6 +83,23 @@ func (s grpcServer) PeerAddresses(req *pb.PeerAddressesReq, ss pb.Host_PeerAddre
 	return nil
 }
 
+// ClearPeerAddresses clears addresses for the given peer.
+func (s grpcServer) ClearPeerAddresses(req *pb.PeerAddressesReq, ss pb.Host_ClearPeerAddressesServer) error {
+	host := s.GetHost()
+	if host == nil {
+		return errors.WithStack(ErrUnavailable)
+	}
+
+	pid, err := peer.IDFromBytes(req.PeerId)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	host.Peerstore().ClearAddrs(pid)
+
+	return nil
+}
+
 // AddPeerAddress saves a new address for the given peer.
 func (s grpcServer) AddPeerAddress(ctx context.Context, req *pb.AddPeerAddressReq) (*pb.PeerId, error) {
 	host := s.GetHost()

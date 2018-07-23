@@ -342,15 +342,14 @@ func (h *CoordinatorHandler) AddNode(ctx context.Context, peerID peer.ID, addr m
 	}
 
 	pstore := h.host.Peerstore()
+	if addr != nil {
+		pstore.AddAddr(peerID, addr, peerstore.PermanentAddrTTL)
+	}
+
 	pi := pstore.PeerInfo(peerID)
 	if len(pi.Addrs) == 0 {
-		if addr == nil {
-			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeNotFound, ErrUnknownNode.Error()))
-			return ErrUnknownNode
-		}
-
-		pstore.AddAddr(peerID, addr, peerstore.PermanentAddrTTL)
-		pi = pstore.PeerInfo(peerID)
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeNotFound, ErrUnknownNode.Error()))
+		return ErrUnknownNode
 	}
 
 	err := h.networkConfig.AddPeer(ctx, peerID, pi.Addrs)

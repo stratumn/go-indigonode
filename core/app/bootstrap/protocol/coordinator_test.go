@@ -785,6 +785,30 @@ func TestCoordinator_AddNode(t *testing.T) {
 			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
 		},
 		nil,
+	}, {
+		"new-node-with-addr-and-peerstore",
+		peer1,
+		peer1Addrs[0],
+		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
+			peerStore := peerstore.NewPeerstore()
+			previousAddr := test.GeneratePeerMultiaddr(t, peer1)
+			peerStore.AddAddr(peer1, previousAddr, peerstore.PermanentAddrTTL)
+			h.EXPECT().Peerstore().Return(peerStore)
+
+			codec := mockstream.NewMockCodec(ctrl)
+			streamtest.ExpectEncodeAllowed(t, codec, peer1)
+
+			stream := mockstream.NewMockStream(ctrl)
+			stream.EXPECT().Close()
+			stream.EXPECT().Codec().Return(codec)
+
+			p.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).Return(stream, nil)
+		},
+		func(t *testing.T, cfg protector.NetworkConfig) {
+			assert.True(t, cfg.IsAllowed(context.Background(), peer1))
+			assert.Len(t, cfg.AllowedAddrs(context.Background(), peer1), 2)
+		},
+		nil,
 	}}
 
 	for _, tt := range testCases {

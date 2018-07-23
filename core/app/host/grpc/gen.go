@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockhost.go github.com/stratumn/go-indigonode/core/app/host/grpc Host_AddressesServer,Host_ConnectServer,Host_PeerAddressesServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockhost.go github.com/stratumn/go-indigonode/core/app/host/grpc Host_AddressesServer,Host_ConnectServer,Host_PeerAddressesServer,Host_ClearPeerAddressesServer
 
 package grpc

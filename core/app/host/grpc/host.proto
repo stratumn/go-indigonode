@@ -38,6 +38,11 @@ service Host {
     option (stratumn.indigonode.cli.ext.method_desc) = "List peer addresses";
   }
 
+  // Clears a peer's known addresses.
+  rpc ClearPeerAddresses (PeerAddressesReq) returns (stream Address) {
+    option (stratumn.indigonode.cli.ext.method_desc) = "Clear peer addresses from peer store";
+  }
+
   // Add a new peer address to the node's Peer Store.
   rpc AddPeerAddress (AddPeerAddressReq) returns (PeerId) {
     option (stratumn.indigonode.cli.ext.method_desc) = "Add a new peer address";

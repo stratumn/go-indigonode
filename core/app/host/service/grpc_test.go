@@ -236,3 +236,26 @@ func TestGRPCServer_PeerAddresses(t *testing.T) {
 	err := srv.PeerAddresses(&pb.PeerAddressesReq{PeerId: []byte(peerID)}, ss)
 	require.NoError(t, err)
 }
+
+func TestGRPCServer_ClearPeerAddresses(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	srv := testGRPCServer(ctx, t)
+
+	peerID := test.GeneratePeerID(t)
+	peerAddr := test.GeneratePeerMultiaddr(t, peerID)
+
+	peerStore := srv.GetHost().Peerstore()
+	peerStore.AddAddr(peerID, peerAddr, peerstore.PermanentAddrTTL)
+
+	ss := mockpb.NewMockHost_ClearPeerAddressesServer(ctrl)
+
+	err := srv.ClearPeerAddresses(&pb.PeerAddressesReq{PeerId: []byte(peerID)}, ss)
+	require.NoError(t, err)
+
+	assert.Len(t, peerStore.Addrs(peerID), 0)
+}

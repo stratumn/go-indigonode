@@ -3,17 +3,15 @@
 
 package grpc // import "github.com/stratumn/go-indigonode/core/app/host/grpc"
 
-import (
-	"context"
-	fmt "fmt"
-	io "io"
-	math "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
+import _ "github.com/stratumn/go-indigonode/cli/grpc/ext"
 
-	proto "github.com/golang/protobuf/proto"
-	_ "github.com/stratumn/go-indigonode/cli/grpc/ext"
+import context "context"
+import grpc "google.golang.org/grpc"
 
-	google_golang_org_grpc "google.golang.org/grpc"
-)
+import io "io"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -37,7 +35,7 @@ func (m *IdReq) Reset()         { *m = IdReq{} }
 func (m *IdReq) String() string { return proto.CompactTextString(m) }
 func (*IdReq) ProtoMessage()    {}
 func (*IdReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{0}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{0}
 }
 func (m *IdReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -77,7 +75,7 @@ func (m *AddressesReq) Reset()         { *m = AddressesReq{} }
 func (m *AddressesReq) String() string { return proto.CompactTextString(m) }
 func (*AddressesReq) ProtoMessage()    {}
 func (*AddressesReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{1}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{1}
 }
 func (m *AddressesReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -118,7 +116,7 @@ func (m *PeerAddressesReq) Reset()         { *m = PeerAddressesReq{} }
 func (m *PeerAddressesReq) String() string { return proto.CompactTextString(m) }
 func (*PeerAddressesReq) ProtoMessage()    {}
 func (*PeerAddressesReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{2}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{2}
 }
 func (m *PeerAddressesReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -167,7 +165,7 @@ func (m *AddPeerAddressReq) Reset()         { *m = AddPeerAddressReq{} }
 func (m *AddPeerAddressReq) String() string { return proto.CompactTextString(m) }
 func (*AddPeerAddressReq) ProtoMessage()    {}
 func (*AddPeerAddressReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{3}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{3}
 }
 func (m *AddPeerAddressReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -222,7 +220,7 @@ func (m *ConnectReq) Reset()         { *m = ConnectReq{} }
 func (m *ConnectReq) String() string { return proto.CompactTextString(m) }
 func (*ConnectReq) ProtoMessage()    {}
 func (*ConnectReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{4}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{4}
 }
 func (m *ConnectReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -270,7 +268,7 @@ func (m *PeerId) Reset()         { *m = PeerId{} }
 func (m *PeerId) String() string { return proto.CompactTextString(m) }
 func (*PeerId) ProtoMessage()    {}
 func (*PeerId) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{5}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{5}
 }
 func (m *PeerId) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -318,7 +316,7 @@ func (m *Address) Reset()         { *m = Address{} }
 func (m *Address) String() string { return proto.CompactTextString(m) }
 func (*Address) ProtoMessage()    {}
 func (*Address) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{6}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{6}
 }
 func (m *Address) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -368,7 +366,7 @@ func (m *Connection) Reset()         { *m = Connection{} }
 func (m *Connection) String() string { return proto.CompactTextString(m) }
 func (*Connection) ProtoMessage()    {}
 func (*Connection) Descriptor() ([]byte, []int) {
-	return fileDescriptor_host_2ba23b25d2e6a57c, []int{7}
+	return fileDescriptor_host_4ff9882202e73ec6, []int{7}
 }
 func (m *Connection) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -431,36 +429,38 @@ func init() {
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ google_golang_org_grpc.ClientConn
+var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = google_golang_org_grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion4
 
 // Client API for Host service
 
 type HostClient interface {
 	// Returns the host ID.
-	ID(ctx context.Context, in *IdReq, opts ...google_golang_org_grpc.CallOption) (*PeerId, error)
+	ID(ctx context.Context, in *IdReq, opts ...grpc.CallOption) (*PeerId, error)
 	// Streams the host addresses.
-	Addresses(ctx context.Context, in *AddressesReq, opts ...google_golang_org_grpc.CallOption) (Host_AddressesClient, error)
+	Addresses(ctx context.Context, in *AddressesReq, opts ...grpc.CallOption) (Host_AddressesClient, error)
 	// Streams a peer's known addresses.
-	PeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...google_golang_org_grpc.CallOption) (Host_PeerAddressesClient, error)
+	PeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...grpc.CallOption) (Host_PeerAddressesClient, error)
+	// Clears a peer's known addresses.
+	ClearPeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...grpc.CallOption) (Host_ClearPeerAddressesClient, error)
 	// Add a new peer address to the node's Peer Store.
-	AddPeerAddress(ctx context.Context, in *AddPeerAddressReq, opts ...google_golang_org_grpc.CallOption) (*PeerId, error)
+	AddPeerAddress(ctx context.Context, in *AddPeerAddressReq, opts ...grpc.CallOption) (*PeerId, error)
 	// Connects to a multiaddress.
-	Connect(ctx context.Context, in *ConnectReq, opts ...google_golang_org_grpc.CallOption) (Host_ConnectClient, error)
+	Connect(ctx context.Context, in *ConnectReq, opts ...grpc.CallOption) (Host_ConnectClient, error)
 }
 
 type hostClient struct {
-	cc *google_golang_org_grpc.ClientConn
+	cc *grpc.ClientConn
 }
 
-func NewHostClient(cc *google_golang_org_grpc.ClientConn) HostClient {
+func NewHostClient(cc *grpc.ClientConn) HostClient {
 	return &hostClient{cc}
 }
 
-func (c *hostClient) ID(ctx context.Context, in *IdReq, opts ...google_golang_org_grpc.CallOption) (*PeerId, error) {
+func (c *hostClient) ID(ctx context.Context, in *IdReq, opts ...grpc.CallOption) (*PeerId, error) {
 	out := new(PeerId)
 	err := c.cc.Invoke(ctx, "/stratumn.indigonode.core.app.host.grpc.Host/ID", in, out, opts...)
 	if err != nil {
@@ -469,7 +469,7 @@ func (c *hostClient) ID(ctx context.Context, in *IdReq, opts ...google_golang_or
 	return out, nil
 }
 
-func (c *hostClient) Addresses(ctx context.Context, in *AddressesReq, opts ...google_golang_org_grpc.CallOption) (Host_AddressesClient, error) {
+func (c *hostClient) Addresses(ctx context.Context, in *AddressesReq, opts ...grpc.CallOption) (Host_AddressesClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_Host_serviceDesc.Streams[0], "/stratumn.indigonode.core.app.host.grpc.Host/Addresses", opts...)
 	if err != nil {
 		return nil, err
@@ -486,11 +486,11 @@ func (c *hostClient) Addresses(ctx context.Context, in *AddressesReq, opts ...go
 
 type Host_AddressesClient interface {
 	Recv() (*Address, error)
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 type hostAddressesClient struct {
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 func (x *hostAddressesClient) Recv() (*Address, error) {
@@ -501,7 +501,7 @@ func (x *hostAddressesClient) Recv() (*Address, error) {
 	return m, nil
 }
 
-func (c *hostClient) PeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...google_golang_org_grpc.CallOption) (Host_PeerAddressesClient, error) {
+func (c *hostClient) PeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...grpc.CallOption) (Host_PeerAddressesClient, error) {
 	stream, err := c.cc.NewStream(ctx, &_Host_serviceDesc.Streams[1], "/stratumn.indigonode.core.app.host.grpc.Host/PeerAddresses", opts...)
 	if err != nil {
 		return nil, err
@@ -518,11 +518,11 @@ func (c *hostClient) PeerAddresses(ctx context.Context, in *PeerAddressesReq, op
 
 type Host_PeerAddressesClient interface {
 	Recv() (*Address, error)
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 type hostPeerAddressesClient struct {
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 func (x *hostPeerAddressesClient) Recv() (*Address, error) {
@@ -533,7 +533,39 @@ func (x *hostPeerAddressesClient) Recv() (*Address, error) {
 	return m, nil
 }
 
-func (c *hostClient) AddPeerAddress(ctx context.Context, in *AddPeerAddressReq, opts ...google_golang_org_grpc.CallOption) (*PeerId, error) {
+func (c *hostClient) ClearPeerAddresses(ctx context.Context, in *PeerAddressesReq, opts ...grpc.CallOption) (Host_ClearPeerAddressesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Host_serviceDesc.Streams[2], "/stratumn.indigonode.core.app.host.grpc.Host/ClearPeerAddresses", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hostClearPeerAddressesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Host_ClearPeerAddressesClient interface {
+	Recv() (*Address, error)
+	grpc.ClientStream
+}
+
+type hostClearPeerAddressesClient struct {
+	grpc.ClientStream
+}
+
+func (x *hostClearPeerAddressesClient) Recv() (*Address, error) {
+	m := new(Address)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *hostClient) AddPeerAddress(ctx context.Context, in *AddPeerAddressReq, opts ...grpc.CallOption) (*PeerId, error) {
 	out := new(PeerId)
 	err := c.cc.Invoke(ctx, "/stratumn.indigonode.core.app.host.grpc.Host/AddPeerAddress", in, out, opts...)
 	if err != nil {
@@ -542,8 +574,8 @@ func (c *hostClient) AddPeerAddress(ctx context.Context, in *AddPeerAddressReq, 
 	return out, nil
 }
 
-func (c *hostClient) Connect(ctx context.Context, in *ConnectReq, opts ...google_golang_org_grpc.CallOption) (Host_ConnectClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Host_serviceDesc.Streams[2], "/stratumn.indigonode.core.app.host.grpc.Host/Connect", opts...)
+func (c *hostClient) Connect(ctx context.Context, in *ConnectReq, opts ...grpc.CallOption) (Host_ConnectClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Host_serviceDesc.Streams[3], "/stratumn.indigonode.core.app.host.grpc.Host/Connect", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -559,11 +591,11 @@ func (c *hostClient) Connect(ctx context.Context, in *ConnectReq, opts ...google
 
 type Host_ConnectClient interface {
 	Recv() (*Connection, error)
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 type hostConnectClient struct {
-	google_golang_org_grpc.ClientStream
+	grpc.ClientStream
 }
 
 func (x *hostConnectClient) Recv() (*Connection, error) {
@@ -583,17 +615,19 @@ type HostServer interface {
 	Addresses(*AddressesReq, Host_AddressesServer) error
 	// Streams a peer's known addresses.
 	PeerAddresses(*PeerAddressesReq, Host_PeerAddressesServer) error
+	// Clears a peer's known addresses.
+	ClearPeerAddresses(*PeerAddressesReq, Host_ClearPeerAddressesServer) error
 	// Add a new peer address to the node's Peer Store.
 	AddPeerAddress(context.Context, *AddPeerAddressReq) (*PeerId, error)
 	// Connects to a multiaddress.
 	Connect(*ConnectReq, Host_ConnectServer) error
 }
 
-func RegisterHostServer(s *google_golang_org_grpc.Server, srv HostServer) {
+func RegisterHostServer(s *grpc.Server, srv HostServer) {
 	s.RegisterService(&_Host_serviceDesc, srv)
 }
 
-func _Host_ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor google_golang_org_grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Host_ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdReq)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -601,7 +635,7 @@ func _Host_ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}
 	if interceptor == nil {
 		return srv.(HostServer).ID(ctx, in)
 	}
-	info := &google_golang_org_grpc.UnaryServerInfo{
+	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/stratumn.indigonode.core.app.host.grpc.Host/ID",
 	}
@@ -611,7 +645,7 @@ func _Host_ID_Handler(srv interface{}, ctx context.Context, dec func(interface{}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Host_Addresses_Handler(srv interface{}, stream google_golang_org_grpc.ServerStream) error {
+func _Host_Addresses_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(AddressesReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
@@ -621,18 +655,18 @@ func _Host_Addresses_Handler(srv interface{}, stream google_golang_org_grpc.Serv
 
 type Host_AddressesServer interface {
 	Send(*Address) error
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 type hostAddressesServer struct {
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 func (x *hostAddressesServer) Send(m *Address) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Host_PeerAddresses_Handler(srv interface{}, stream google_golang_org_grpc.ServerStream) error {
+func _Host_PeerAddresses_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(PeerAddressesReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
@@ -642,18 +676,39 @@ func _Host_PeerAddresses_Handler(srv interface{}, stream google_golang_org_grpc.
 
 type Host_PeerAddressesServer interface {
 	Send(*Address) error
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 type hostPeerAddressesServer struct {
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 func (x *hostPeerAddressesServer) Send(m *Address) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Host_AddPeerAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor google_golang_org_grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Host_ClearPeerAddresses_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PeerAddressesReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HostServer).ClearPeerAddresses(m, &hostClearPeerAddressesServer{stream})
+}
+
+type Host_ClearPeerAddressesServer interface {
+	Send(*Address) error
+	grpc.ServerStream
+}
+
+type hostClearPeerAddressesServer struct {
+	grpc.ServerStream
+}
+
+func (x *hostClearPeerAddressesServer) Send(m *Address) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Host_AddPeerAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddPeerAddressReq)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -661,7 +716,7 @@ func _Host_AddPeerAddress_Handler(srv interface{}, ctx context.Context, dec func
 	if interceptor == nil {
 		return srv.(HostServer).AddPeerAddress(ctx, in)
 	}
-	info := &google_golang_org_grpc.UnaryServerInfo{
+	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/stratumn.indigonode.core.app.host.grpc.Host/AddPeerAddress",
 	}
@@ -671,7 +726,7 @@ func _Host_AddPeerAddress_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Host_Connect_Handler(srv interface{}, stream google_golang_org_grpc.ServerStream) error {
+func _Host_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ConnectReq)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
@@ -681,21 +736,21 @@ func _Host_Connect_Handler(srv interface{}, stream google_golang_org_grpc.Server
 
 type Host_ConnectServer interface {
 	Send(*Connection) error
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 type hostConnectServer struct {
-	google_golang_org_grpc.ServerStream
+	grpc.ServerStream
 }
 
 func (x *hostConnectServer) Send(m *Connection) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _Host_serviceDesc = google_golang_org_grpc.ServiceDesc{
+var _Host_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "stratumn.indigonode.core.app.host.grpc.Host",
 	HandlerType: (*HostServer)(nil),
-	Methods: []google_golang_org_grpc.MethodDesc{
+	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "ID",
 			Handler:    _Host_ID_Handler,
@@ -705,7 +760,7 @@ var _Host_serviceDesc = google_golang_org_grpc.ServiceDesc{
 			Handler:    _Host_AddPeerAddress_Handler,
 		},
 	},
-	Streams: []google_golang_org_grpc.StreamDesc{
+	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Addresses",
 			Handler:       _Host_Addresses_Handler,
@@ -714,6 +769,11 @@ var _Host_serviceDesc = google_golang_org_grpc.ServiceDesc{
 		{
 			StreamName:    "PeerAddresses",
 			Handler:       _Host_PeerAddresses_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClearPeerAddresses",
+			Handler:       _Host_ClearPeerAddresses_Handler,
 			ServerStreams: true,
 		},
 		{
@@ -1870,48 +1930,50 @@ var (
 )
 
 func init() {
-	proto.RegisterFile("github.com/stratumn/go-indigonode/core/app/host/grpc/host.proto", fileDescriptor_host_2ba23b25d2e6a57c)
+	proto.RegisterFile("github.com/stratumn/go-indigonode/core/app/host/grpc/host.proto", fileDescriptor_host_4ff9882202e73ec6)
 }
 
-var fileDescriptor_host_2ba23b25d2e6a57c = []byte{
-	// 609 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x54, 0xcf, 0x6e, 0xd3, 0x30,
-	0x1c, 0xc6, 0xa5, 0x5b, 0x85, 0xd5, 0x4d, 0xcc, 0xfc, 0x33, 0x95, 0x16, 0x4c, 0x0e, 0x40, 0x35,
-	0x35, 0x99, 0x0a, 0x12, 0x9b, 0x38, 0x40, 0x47, 0x11, 0x54, 0xfc, 0xd1, 0x34, 0x6e, 0x70, 0x98,
-	0xb2, 0xd8, 0xb4, 0x16, 0x69, 0x1c, 0x62, 0x97, 0xc2, 0x85, 0x43, 0x79, 0x03, 0x24, 0x34, 0xce,
-	0x3d, 0xf1, 0x02, 0x3d, 0xe5, 0x05, 0x38, 0xf2, 0x08, 0xa8, 0xbc, 0x00, 0x37, 0x38, 0x22, 0x27,
-	0x6d, 0x9a, 0x14, 0x09, 0xb5, 0x70, 0x68, 0x95, 0xc4, 0xdf, 0xf7, 0xfd, 0xbe, 0x9f, 0xfd, 0xfd,
-	0x0c, 0x6f, 0xb7, 0xb9, 0xea, 0xf4, 0x8e, 0x2c, 0x57, 0x74, 0x6d, 0xa9, 0x42, 0x47, 0xf5, 0xba,
-	0xbe, 0xdd, 0x16, 0x35, 0xee, 0x53, 0xde, 0x16, 0xbe, 0xa0, 0xcc, 0x76, 0x45, 0xc8, 0x6c, 0x27,
-	0x08, 0xec, 0x8e, 0x90, 0xca, 0x6e, 0x87, 0x81, 0x1b, 0x3f, 0x59, 0x41, 0x28, 0x94, 0x40, 0x57,
-	0xa6, 0x2c, 0x6b, 0x46, 0xb1, 0x34, 0xc5, 0x72, 0x82, 0xc0, 0x8a, 0x81, 0x9a, 0x52, 0xd9, 0x59,
-	0xa0, 0x90, 0xc7, 0x13, 0x79, 0xf6, 0x46, 0xe9, 0x5f, 0x52, 0xc1, 0x2c, 0xc1, 0x95, 0x16, 0x3d,
-	0x60, 0xaf, 0xcc, 0x75, 0x58, 0x6e, 0x50, 0x1a, 0x32, 0x29, 0x99, 0xd4, 0xef, 0xcf, 0xe1, 0xe9,
-	0x7d, 0xc6, 0xc2, 0xec, 0x37, 0x74, 0x1f, 0x96, 0x02, 0xc6, 0xc2, 0x43, 0x4e, 0x31, 0x20, 0xe0,
-	0x5a, 0x79, 0xcf, 0x1a, 0x46, 0xd8, 0x7c, 0xda, 0x11, 0x7d, 0xf2, 0xd2, 0x17, 0x7d, 0x9f, 0x38,
-	0x53, 0x34, 0x79, 0x21, 0x42, 0xa2, 0x3a, 0x5c, 0x12, 0x4d, 0xf8, 0x1c, 0x61, 0xf0, 0x23, 0xc2,
-	0xe0, 0x60, 0x55, 0xbf, 0xb5, 0xa8, 0xf9, 0x01, 0xc0, 0x8d, 0x06, 0xa5, 0x99, 0x02, 0x5a, 0xbe,
-	0x39, 0x2f, 0xbf, 0x35, 0x8c, 0xf0, 0xa5, 0x06, 0xa5, 0xc4, 0x21, 0x3e, 0xeb, 0x4f, 0xd5, 0xff,
-	0xae, 0x8d, 0x6e, 0xc2, 0xd2, 0x04, 0x88, 0x0b, 0xb1, 0xca, 0xe6, 0x30, 0xc2, 0x1b, 0x4f, 0x32,
-	0xfc, 0xd7, 0x8e, 0xd7, 0x63, 0x9a, 0xf7, 0x4b, 0xf3, 0xa6, 0x68, 0xf3, 0x0e, 0x84, 0x77, 0x85,
-	0xef, 0x33, 0x57, 0x69, 0x33, 0xf5, 0x99, 0x4c, 0x62, 0x06, 0x0f, 0x23, 0x5c, 0x7e, 0xdc, 0xf3,
-	0x14, 0x9f, 0x7c, 0xff, 0x53, 0xc1, 0x80, 0xab, 0xfb, 0x89, 0x89, 0xb3, 0xb0, 0x90, 0x76, 0x51,
-	0x8c, 0xed, 0x15, 0x38, 0x35, 0xab, 0xb0, 0x34, 0x69, 0x17, 0x19, 0xf3, 0xf2, 0xc5, 0xbc, 0xd4,
-	0x7b, 0x90, 0xba, 0xe1, 0xc2, 0x47, 0x9b, 0xf3, 0x5b, 0x53, 0xcc, 0xf5, 0x5c, 0x85, 0x6b, 0x9e,
-	0x70, 0x1d, 0xef, 0x30, 0xdf, 0x79, 0xa2, 0x59, 0x8e, 0x97, 0xa6, 0x85, 0xb7, 0xe0, 0x7a, 0xc8,
-	0xba, 0x42, 0xb1, 0x14, 0x7b, 0x32, 0x83, 0x5d, 0x4b, 0xd6, 0x26, 0xe0, 0xfa, 0xcf, 0x15, 0x58,
-	0x7c, 0x20, 0xa4, 0x42, 0xef, 0x60, 0xa1, 0xd5, 0x44, 0x35, 0x6b, 0xb1, 0x3c, 0x5a, 0x71, 0xa4,
-	0x2a, 0xd6, 0xa2, 0xf0, 0x64, 0xd3, 0xcc, 0x8b, 0x83, 0x11, 0x3e, 0xd7, 0xe4, 0x32, 0xf0, 0x9c,
-	0xb7, 0x44, 0x75, 0x18, 0xd1, 0x88, 0xab, 0x92, 0xb4, 0x9a, 0xe8, 0x18, 0xc0, 0x53, 0x69, 0x14,
-	0xd1, 0x8d, 0x45, 0x85, 0xb3, 0xe9, 0xad, 0xd8, 0x4b, 0xb2, 0xcc, 0xcb, 0x83, 0x11, 0xde, 0x7c,
-	0xc4, 0xa5, 0x22, 0x8e, 0xe7, 0x65, 0x0d, 0xa5, 0x31, 0xdf, 0x06, 0xe8, 0x23, 0x80, 0x6b, 0xb9,
-	0x41, 0x41, 0x3b, 0xcb, 0xb4, 0xfd, 0x7f, 0x0e, 0x2f, 0x0c, 0x46, 0xf8, 0x4c, 0xec, 0x50, 0x07,
-	0x21, 0xe7, 0xeb, 0x18, 0xc0, 0xf5, 0xfc, 0x88, 0xa1, 0xdd, 0x25, 0xe4, 0xf3, 0xa3, 0xb9, 0xf4,
-	0x51, 0x56, 0x06, 0x23, 0x7c, 0x7e, 0x36, 0xb9, 0x59, 0x77, 0x68, 0x08, 0x60, 0x69, 0x12, 0x6d,
-	0x54, 0x5f, 0x54, 0x77, 0x36, 0x99, 0x95, 0x65, 0x39, 0x5c, 0xf8, 0x66, 0x6d, 0x30, 0xc2, 0xd5,
-	0x7b, 0xbe, 0xec, 0x85, 0x4c, 0x1f, 0x64, 0xc8, 0x08, 0x97, 0xc4, 0x21, 0x6e, 0x8a, 0x20, 0x4a,
-	0xcc, 0xee, 0x94, 0x6d, 0xb0, 0xf7, 0xf0, 0xcb, 0xd8, 0x00, 0x5f, 0xc7, 0x06, 0xf8, 0x36, 0x36,
-	0xc0, 0xa7, 0xef, 0xc6, 0x89, 0x67, 0xbb, 0xff, 0x72, 0x99, 0xdf, 0xd2, 0x7f, 0x47, 0xab, 0xf1,
-	0x5d, 0x7b, 0xfd, 0x77, 0x00, 0x00, 0x00, 0xff, 0xff, 0x44, 0x11, 0x56, 0x29, 0x10, 0x06, 0x00,
+var fileDescriptor_host_4ff9882202e73ec6 = []byte{
+	// 641 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x55, 0x4f, 0x6b, 0x13, 0x41,
+	0x1c, 0x75, 0x62, 0x6c, 0x70, 0x48, 0x8b, 0x1d, 0xff, 0x8d, 0x81, 0xc6, 0x71, 0x11, 0x6d, 0x29,
+	0xdd, 0x2d, 0x55, 0xb0, 0xc5, 0x83, 0xb6, 0x8d, 0x68, 0xf0, 0x0f, 0xa5, 0xde, 0xf4, 0x50, 0xb6,
+	0x99, 0x69, 0x32, 0xb8, 0xd9, 0x59, 0x67, 0x26, 0x56, 0x2f, 0x1e, 0xd6, 0x6f, 0x20, 0x88, 0x9e,
+	0x03, 0x82, 0xe0, 0x79, 0x4f, 0xfb, 0x05, 0x3c, 0xfa, 0x11, 0xa4, 0x7e, 0x01, 0x8f, 0x1e, 0x65,
+	0x76, 0x93, 0xcd, 0x6e, 0x04, 0x49, 0xf4, 0xe0, 0x21, 0x21, 0x3b, 0xfb, 0xde, 0xfb, 0xbd, 0xdf,
+	0xe4, 0xcd, 0x6f, 0xe0, 0xad, 0x36, 0xd7, 0x9d, 0xde, 0xbe, 0xdd, 0x12, 0x5d, 0x47, 0x69, 0xe9,
+	0xea, 0x5e, 0xd7, 0x77, 0xda, 0x62, 0x85, 0xfb, 0x94, 0xb7, 0x85, 0x2f, 0x28, 0x73, 0x5a, 0x42,
+	0x32, 0xc7, 0x0d, 0x02, 0xa7, 0x23, 0x94, 0x76, 0xda, 0x32, 0x68, 0x25, 0xbf, 0xec, 0x40, 0x0a,
+	0x2d, 0xd0, 0x95, 0x21, 0xcb, 0x1e, 0x51, 0x6c, 0x43, 0xb1, 0xdd, 0x20, 0xb0, 0x13, 0xa0, 0xa1,
+	0xd4, 0xd6, 0x27, 0x28, 0xe4, 0xf1, 0x54, 0x9e, 0xbd, 0xd4, 0xe6, 0x93, 0x56, 0xb0, 0x2a, 0xf0,
+	0x44, 0x93, 0xee, 0xb2, 0xe7, 0xd6, 0x1c, 0xac, 0x6e, 0x52, 0x2a, 0x99, 0x52, 0x4c, 0x99, 0xe7,
+	0xa7, 0xf0, 0xd4, 0x0e, 0x63, 0x32, 0xbf, 0x86, 0xee, 0xc2, 0x4a, 0xc0, 0x98, 0xdc, 0xe3, 0x14,
+	0x03, 0x02, 0x16, 0xab, 0x5b, 0x76, 0x3f, 0xc6, 0xd6, 0xe3, 0x8e, 0x38, 0x24, 0xcf, 0x7c, 0x71,
+	0xe8, 0x13, 0x77, 0x88, 0x26, 0x07, 0x42, 0x12, 0xdd, 0xe1, 0x8a, 0x18, 0xc2, 0xa7, 0x18, 0x83,
+	0x1f, 0x31, 0x06, 0xbb, 0x33, 0xe6, 0xa9, 0x49, 0xad, 0xb7, 0x00, 0xce, 0x6f, 0x52, 0x9a, 0x2b,
+	0x60, 0xe4, 0x1b, 0xe3, 0xf2, 0xcb, 0xfd, 0x18, 0x5f, 0xdc, 0xa4, 0x94, 0xb8, 0xc4, 0x67, 0x87,
+	0x43, 0xf5, 0x3f, 0x6b, 0xa3, 0x1b, 0xb0, 0x32, 0x00, 0xe2, 0x52, 0xa2, 0xb2, 0xd0, 0x8f, 0xf1,
+	0xfc, 0xa3, 0x1c, 0xff, 0x85, 0xeb, 0xf5, 0x98, 0xe1, 0xfd, 0x34, 0xbc, 0x21, 0xda, 0xba, 0x0d,
+	0xe1, 0xb6, 0xf0, 0x7d, 0xd6, 0xd2, 0xc6, 0xcc, 0xda, 0x48, 0x26, 0x35, 0x83, 0xfb, 0x31, 0xae,
+	0x3e, 0xec, 0x79, 0x9a, 0x0f, 0xd6, 0x7f, 0x57, 0xa8, 0xc3, 0x99, 0x9d, 0xd4, 0xc4, 0x19, 0x58,
+	0xca, 0xba, 0x28, 0x27, 0xf6, 0x4a, 0x9c, 0x5a, 0x4b, 0xb0, 0x32, 0x68, 0x17, 0xd5, 0xc7, 0xe5,
+	0xcb, 0x45, 0xa9, 0x37, 0x20, 0x73, 0xc3, 0x85, 0x8f, 0x16, 0xc6, 0xb7, 0xa6, 0x5c, 0xe8, 0x79,
+	0x09, 0xce, 0x7a, 0xa2, 0xe5, 0x7a, 0x7b, 0xc5, 0xce, 0x53, 0xcd, 0x6a, 0xf2, 0x6a, 0x58, 0x78,
+	0x19, 0xce, 0x49, 0xd6, 0x15, 0x9a, 0x65, 0xd8, 0xe3, 0x39, 0xec, 0x6c, 0xfa, 0x6e, 0x00, 0x5e,
+	0xfb, 0x58, 0x81, 0xe5, 0x7b, 0x42, 0x69, 0xf4, 0x1a, 0x96, 0x9a, 0x0d, 0xb4, 0x62, 0x4f, 0x96,
+	0x47, 0x3b, 0x89, 0x54, 0xcd, 0x9e, 0x14, 0x9e, 0x6e, 0x9a, 0x75, 0x21, 0x8c, 0xf0, 0xd9, 0x06,
+	0x57, 0x81, 0xe7, 0xbe, 0x22, 0xba, 0xc3, 0x88, 0x41, 0x5c, 0x55, 0xa4, 0xd9, 0x40, 0xef, 0x01,
+	0x3c, 0x99, 0x45, 0x11, 0x5d, 0x9f, 0x54, 0x38, 0x9f, 0xde, 0x9a, 0x33, 0x25, 0xcb, 0xba, 0x14,
+	0x46, 0x78, 0xe1, 0x01, 0x57, 0x9a, 0xb8, 0x9e, 0x97, 0x37, 0x94, 0xc5, 0x7c, 0x15, 0xa0, 0x77,
+	0x00, 0xce, 0x16, 0x0e, 0x0a, 0x5a, 0x9f, 0xa6, 0xed, 0x7f, 0x73, 0x78, 0x3e, 0x8c, 0xf0, 0xe9,
+	0xc4, 0xa1, 0x09, 0x42, 0xc1, 0xd7, 0x67, 0x00, 0xd1, 0xb6, 0xc7, 0x5c, 0xf9, 0xdf, 0xcc, 0x2d,
+	0x86, 0x11, 0xbe, 0x9c, 0x58, 0x18, 0x73, 0x47, 0x0e, 0xa4, 0xe8, 0xa6, 0x6b, 0x4a, 0x0b, 0xc9,
+	0x56, 0x81, 0xf9, 0x7f, 0xe7, 0x8a, 0x03, 0x01, 0x6d, 0x4c, 0x51, 0xaf, 0x38, 0x48, 0xa6, 0x0e,
+	0x5e, 0x2d, 0x8c, 0xf0, 0xb9, 0xd1, 0x9c, 0xc9, 0xbb, 0x45, 0x7d, 0x00, 0x2b, 0x83, 0x83, 0x88,
+	0xd6, 0x26, 0xd5, 0x1d, 0xcd, 0x91, 0xda, 0xb4, 0x1c, 0x2e, 0x7c, 0x6b, 0x25, 0x8c, 0xf0, 0xd2,
+	0x1d, 0x5f, 0xf5, 0x24, 0x33, 0xb1, 0x93, 0x8c, 0x70, 0x45, 0x5c, 0xd2, 0xca, 0x10, 0x44, 0x8b,
+	0xd1, 0x04, 0x5c, 0x05, 0x5b, 0xf7, 0xbf, 0x1c, 0xd5, 0xc1, 0xd7, 0xa3, 0x3a, 0xf8, 0x76, 0x54,
+	0x07, 0x1f, 0xbe, 0xd7, 0x8f, 0x3d, 0xd9, 0xf8, 0x9b, 0xab, 0xe7, 0xa6, 0xf9, 0xda, 0x9f, 0x49,
+	0x6e, 0x86, 0x6b, 0xbf, 0x02, 0x00, 0x00, 0xff, 0xff, 0xe1, 0x8c, 0xd9, 0x7d, 0xbe, 0x06, 0x00,
 	0x00,
 }

@@ -7,9 +7,9 @@ package mockaudit
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	audit "github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
 	cs "github.com/stratumn/go-indigocore/cs"
-	go_libp2p_peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	audit "github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	reflect "reflect"
 )
 

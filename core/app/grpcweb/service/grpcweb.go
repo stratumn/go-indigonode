@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/stratumn/go-indigonode/core/httputil"

@@ -22,7 +22,7 @@ import (
 	// Blank import to register fossilizer concrete evidence types.
 	_ "github.com/stratumn/go-indigocore/fossilizer/evidences"
 
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 )
 
 const (

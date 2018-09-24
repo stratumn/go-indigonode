@@ -54,7 +54,7 @@ type provider struct {
 	resources map[string]bool
 }
 
-func (p *provider) Provide(ctx context.Context, key *cid.Cid, brdcst bool) error {
+func (p *provider) Provide(ctx context.Context, key cid.Cid, brdcst bool) error {
 	if p.resources == nil {
 		p.resources = map[string]bool{}
 	}

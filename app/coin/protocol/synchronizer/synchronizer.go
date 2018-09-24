@@ -65,7 +65,7 @@ type Synchronizer interface {
 // ContentProviderFinder is an interface used to get the peers that provide a resource.
 // The resource is identified by a content ID.
 type ContentProviderFinder interface {
-	FindProviders(ctx context.Context, c *cid.Cid) ([]pstore.PeerInfo, error)
+	FindProviders(ctx context.Context, c cid.Cid) ([]pstore.PeerInfo, error)
 }
 
 type synchronizer struct {

@@ -30,6 +30,7 @@ import (
 
 	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
 	kaddht "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht"
+	kaddhtopts "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht/opts"
 	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
@@ -59,12 +60,12 @@ func expectHost(ctx context.Context, t *testing.T, host *mockservice.MockHost) {
 	host.EXPECT().Peerstore().Return(swm.Peerstore()).AnyTimes()
 	host.EXPECT().ConnManager().Return(ifconnmgr.NullConnMgr{}).AnyTimes()
 	host.EXPECT().Network().Return(swm).AnyTimes()
-	host.EXPECT().SetStreamHandler(kaddht.ProtocolDHT, gomock.Any())
-	host.EXPECT().SetStreamHandler(kaddht.ProtocolDHTOld, gomock.Any())
+	host.EXPECT().SetStreamHandler(kaddhtopts.ProtocolDHT, gomock.Any())
+	host.EXPECT().SetStreamHandler(kaddhtopts.ProtocolDHTOld, gomock.Any())
 	host.EXPECT().SetRouter(gomock.Any())
 	host.EXPECT().SetRouter(nil)
-	host.EXPECT().RemoveStreamHandler(kaddht.ProtocolDHT)
-	host.EXPECT().RemoveStreamHandler(kaddht.ProtocolDHTOld)
+	host.EXPECT().RemoveStreamHandler(kaddhtopts.ProtocolDHT)
+	host.EXPECT().RemoveStreamHandler(kaddhtopts.ProtocolDHTOld)
 }
 
 func TestService_strings(t *testing.T) {

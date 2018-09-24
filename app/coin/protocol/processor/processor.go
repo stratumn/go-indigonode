@@ -52,7 +52,7 @@ type Processor interface {
 // ContentProvider is an interface used to let the network know we provide a resource.
 // The resource is identified by a content ID.
 type ContentProvider interface {
-	Provide(ctx context.Context, key *cid.Cid, brdcst bool) error
+	Provide(ctx context.Context, key cid.Cid, brdcst bool) error
 }
 
 type processor struct {

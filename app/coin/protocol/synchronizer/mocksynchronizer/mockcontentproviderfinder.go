@@ -36,7 +36,7 @@ func (m *MockContentProviderFinder) EXPECT() *MockContentProviderFinderMockRecor
 }
 
 // FindProviders mocks base method
-func (m *MockContentProviderFinder) FindProviders(arg0 context.Context, arg1 *go_cid.Cid) ([]go_libp2p_peerstore.PeerInfo, error) {
+func (m *MockContentProviderFinder) FindProviders(arg0 context.Context, arg1 go_cid.Cid) ([]go_libp2p_peerstore.PeerInfo, error) {
 	ret := m.ctrl.Call(m, "FindProviders", arg0, arg1)
 	ret0, _ := ret[0].([]go_libp2p_peerstore.PeerInfo)
 	ret1, _ := ret[1].(error)

@@ -204,6 +204,24 @@
       "hash": "QmRNhSdqzMcuRxX9A1egBeQ3BhDTguDV5HPwi8wRykkPU8",
       "name": "go-testutil",
       "version": "1.2.7"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmReYSQGHjf28pKf93FwyD72mLXoZo94MB2Cq6VBSUHvFB",
+      "name": "go-libp2p-secio",
+      "version": "2.0.9"
+    },
+    {
+      "author": "steb",
+      "hash": "QmWRcKvbFVND1vSTJZv5imdBxmkj9FFJ5Jku1qWxasAAMo",
+      "name": "go-libp2p-transport-upgrader",
+      "version": "0.1.9"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmV8KW6eBanaxCxGNrXx8Q3fZUqvumCz2Hwd2FGpb3vzYC",
+      "name": "go-tcp-transport",
+      "version": "2.0.9"
     }
   ],
   "gxVersion": "0.11.0",

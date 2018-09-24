@@ -79,7 +79,7 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 }
 
 // testConnect ensures two swarms networks are connected.
-func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Network) {
+func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Swarm) {
 	pi1 := n1.Peerstore().PeerInfo(n1.LocalPeer())
 	pi2 := n2.Peerstore().PeerInfo(n2.LocalPeer())
 
@@ -96,7 +96,7 @@ func TestGRPCServer_Peers(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
 	n2 := swarmtesting.GenSwarm(t, ctx)
@@ -162,7 +162,7 @@ func TestGRPCServer_Connections(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
 	n2 := swarmtesting.GenSwarm(t, ctx)
@@ -188,7 +188,7 @@ func TestGRPCServer_Connections_peer(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
 	n2 := swarmtesting.GenSwarm(t, ctx)

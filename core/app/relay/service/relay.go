@@ -124,7 +124,7 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 		log.Event(ctx, "hopDisabled")
 	}
 
-	err := circuit.AddRelayTransport(relayCtx, s.host, opts...)
+	err := circuit.AddRelayTransport(relayCtx, s.host, nil, opts...)
 	if err != nil {
 		return errors.WithStack(err)
 	}

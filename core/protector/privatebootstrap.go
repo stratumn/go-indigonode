@@ -17,12 +17,12 @@ package protector
 
 import (
 	"context"
+	"net"
 	"sync"
 
 	"github.com/stratumn/go-indigonode/core/protector/pb"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmU129xU8dM79BgR97hu4fsiUDkTQrNHbzkiYfyrkNci8o/go-libp2p-transport"
 	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
@@ -58,7 +58,7 @@ func NewPrivateNetworkWithBootstrap(peerStore peerstore.Peerstore) Protector {
 
 // Protect accepts all connections until the bootstrap channel is notified.
 // Then it switches to private network mode.
-func (p *PrivateNetworkWithBootstrap) Protect(conn transport.Conn) (transport.Conn, error) {
+func (p *PrivateNetworkWithBootstrap) Protect(conn net.Conn) (net.Conn, error) {
 	p.networkStateLock.RLock()
 	bootstrapDone := p.networkState != pb.NetworkState_BOOTSTRAP
 	p.networkStateLock.RUnlock()

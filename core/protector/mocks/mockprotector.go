@@ -10,8 +10,8 @@ import (
 	protector "github.com/stratumn/go-indigonode/core/protector"
 	pb "github.com/stratumn/go-indigonode/core/protector/pb"
 	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	go_libp2p_transport "gx/ipfs/QmU129xU8dM79BgR97hu4fsiUDkTQrNHbzkiYfyrkNci8o/go-libp2p-transport"
 	go_multiaddr "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	net "net"
 	reflect "reflect"
 )
 
@@ -85,9 +85,9 @@ func (mr *MockProtectorMockRecorder) ListenForUpdates(arg0 interface{}) *gomock.
 }
 
 // Protect mocks base method
-func (m *MockProtector) Protect(arg0 go_libp2p_transport.Conn) (go_libp2p_transport.Conn, error) {
+func (m *MockProtector) Protect(arg0 net.Conn) (net.Conn, error) {
 	ret := m.ctrl.Call(m, "Protect", arg0)
-	ret0, _ := ret[0].(go_libp2p_transport.Conn)
+	ret0, _ := ret[0].(net.Conn)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -167,9 +167,9 @@ func (mr *MockStateAwareProtectorMockRecorder) ListenForUpdates(arg0 interface{}
 }
 
 // Protect mocks base method
-func (m *MockStateAwareProtector) Protect(arg0 go_libp2p_transport.Conn) (go_libp2p_transport.Conn, error) {
+func (m *MockStateAwareProtector) Protect(arg0 net.Conn) (net.Conn, error) {
 	ret := m.ctrl.Call(m, "Protect", arg0)
-	ret0, _ := ret[0].(go_libp2p_transport.Conn)
+	ret0, _ := ret[0].(net.Conn)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

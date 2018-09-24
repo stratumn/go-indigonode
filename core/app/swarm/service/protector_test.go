@@ -87,7 +87,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&config)
 	require.NoError(t, err)
 
-	p, networkConfig, err := cfg.Configure(ctx, s, pstoreme.NewPeerstore())
+	p, networkConfig, err := cfg.Configure(ctx, s, pstoremem.NewPeerstore())
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
 	require.NotNil(t, networkConfig)
 

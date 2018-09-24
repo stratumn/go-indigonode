@@ -31,7 +31,6 @@ import (
 	mafilter "gx/ipfs/QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y/go-maddr-filter"
 	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	swarm "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm"
 )
 
 var (
@@ -170,7 +169,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 			return errors.Wrap(ErrNotNetwork, s.config.Network)
 		}
 
-		s.netw = (*swarm.Network)(swm.Swarm)
+		s.netw = swm.Swarm
 	}
 
 	if s.config.ConnectionManager != "" {

@@ -41,6 +41,7 @@ import (
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
 
 func expectCoordinatorHost(host *mocks.MockHost) {
@@ -262,7 +263,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 			"during-bootstrap-missing-peer-addr",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				h.EXPECT().Peerstore().Return(peerstore.NewPeerstore())
+				h.EXPECT().Peerstore().Return(pstoremem.NewPeerstore())
 
 				streamtest.ExpectDecodeNodeID(t, codec, &pb.NodeIdentity{PeerId: []byte(peer1)})
 				streamtest.ExpectEncodeAck(t, codec, proposal.ErrMissingPeerAddr)
@@ -288,7 +289,7 @@ func TestCoordinator_HandlePropose(t *testing.T) {
 			"during-bootstrap-addr-in-peerstore",
 			peer1,
 			func(t *testing.T, _ *gomock.Controller, h *mocks.MockHost, codec *mockstream.MockCodec, cfg protector.NetworkConfig, ps proposal.Store) {
-				pstore := peerstore.NewPeerstore()
+				pstore := pstoremem.NewPeerstore()
 				pstore.AddAddr(peer1, test.GeneratePeerMultiaddr(t, peer1), peerstore.PermanentAddrTTL)
 				h.EXPECT().Peerstore().Return(pstore)
 
@@ -723,7 +724,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		func(_ *testing.T, _ *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, _ *mockstream.MockProvider) {
 			// If the peer store doesn't have an address for the node,
 			// and it wasn't provided we reject the request.
-			peerStore := peerstore.NewPeerstore()
+			peerStore := pstoremem.NewPeerstore()
 			h.EXPECT().Peerstore().Return(peerStore)
 		},
 		func(t *testing.T, cfg protector.NetworkConfig) {
@@ -747,7 +748,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		peer1,
 		nil,
 		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
-			peerStore := peerstore.NewPeerstore()
+			peerStore := pstoremem.NewPeerstore()
 			peerStore.AddAddrs(peer1, peer1Addrs, peerstore.PermanentAddrTTL)
 			h.EXPECT().Peerstore().Return(peerStore)
 
@@ -769,7 +770,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		peer1,
 		peer1Addrs[0],
 		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
-			peerStore := peerstore.NewPeerstore()
+			peerStore := pstoremem.NewPeerstore()
 			h.EXPECT().Peerstore().Return(peerStore)
 
 			codec := mockstream.NewMockCodec(ctrl)
@@ -790,7 +791,7 @@ func TestCoordinator_AddNode(t *testing.T) {
 		peer1,
 		peer1Addrs[0],
 		func(t *testing.T, ctrl *gomock.Controller, h *mocks.MockHost, cfg protector.NetworkConfig, p *mockstream.MockProvider) {
-			peerStore := peerstore.NewPeerstore()
+			peerStore := pstoremem.NewPeerstore()
 			previousAddr := test.GeneratePeerMultiaddr(t, peer1)
 			peerStore.AddAddr(peer1, previousAddr, peerstore.PermanentAddrTTL)
 			h.EXPECT().Peerstore().Return(peerStore)
@@ -980,7 +981,7 @@ func TestCoordinator_Accept(t *testing.T) {
 			store.EXPECT().Get(gomock.Any(), peer2).Return(r, nil)
 			store.EXPECT().Remove(gomock.Any(), peer2)
 
-			pstore := peerstore.NewPeerstore()
+			pstore := pstoremem.NewPeerstore()
 			h.EXPECT().Peerstore().Return(pstore)
 
 			prov.EXPECT().NewStream(gomock.Any(), h, gomock.Any()).Return(nil, errors.New("no stream")).Times(2)

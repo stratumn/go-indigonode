@@ -36,7 +36,7 @@ import (
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
 
 func generateValidPeerAddrs(t *testing.T, peerID peer.ID) *pb.PeerAddrs {
@@ -577,7 +577,7 @@ func TestConfigProtectUpdater(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		peerStore := peerstore.NewPeerstore()
+		peerStore := pstoremem.NewPeerstore()
 		p := protector.NewPrivateNetworkWithBootstrap(peerStore)
 
 		networkConfig := protector.WrapWithProtectUpdater(inMemoryConfig, p, peerStore)

@@ -37,6 +37,7 @@ import (
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
 
 const (
@@ -76,7 +77,7 @@ func expectPublicHost(ctx context.Context, t *testing.T, net *mocks.MockNetwork,
 	seedID, err := peer.IDB58Decode(testPID)
 	require.NoError(t, err, "peer.IDB58Decode(testPID)")
 
-	ps := pstore.NewPeerstore()
+	ps := pstoremem.NewPeerstore()
 
 	host.EXPECT().Network().Return(net).AnyTimes()
 	host.EXPECT().Peerstore().Return(ps).AnyTimes()

@@ -17,20 +17,20 @@ package protocol
 
 import (
 	"context"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
-
 	"testing"
 	"time"
 
 	"github.com/stratumn/go-indigonode/core/p2p"
 	"github.com/stretchr/testify/require"
+
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func TestClock_RemoteTime(t *testing.T) {
 	ctx := context.Background()
-	h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	defer h1.Close()
 	defer h2.Close()
 

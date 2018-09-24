@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 type coreTest struct {
@@ -85,7 +85,7 @@ func (s *mockService) Run(ctx context.Context, running, stopping func()) error {
 
 // withValidServices mocks a valid host service.
 func withValidServices(ctx context.Context, t *testing.T) ([]manager.Service, func() error) {
-	host := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	host := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 
 	services := []manager.Service{
 		&mockService{

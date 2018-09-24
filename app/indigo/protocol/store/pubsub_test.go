@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	bhost "gx/ipfs/QmQ4bjZSEC5drCRqssuXRymCswHPmW3Z46ibgBtg9XGd34/go-libp2p-blankhost"
-	netutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func genNetworkID() string {
@@ -41,7 +41,7 @@ func TestPubSub_NodeID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+	h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 	defer h.Close()
 
 	networkID := genNetworkID()
@@ -57,7 +57,7 @@ func TestPubSub_JoinLeave(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		networkMgr := store.NewPubSubNetworkManager()
@@ -69,8 +69,8 @@ func TestPubSub_JoinLeave(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -88,7 +88,7 @@ func TestPubSub_JoinLeave(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		networkMgr := store.NewPubSubNetworkManager()
@@ -103,7 +103,7 @@ func TestPubSub_JoinLeave(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		networkMgr := store.NewPubSubNetworkManager()
@@ -121,7 +121,7 @@ func TestPubSub_PublishListen(t *testing.T) {
 	nodeCount := 3
 	hosts := make([]*p2p.Host, nodeCount)
 	for i := 0; i < nodeCount; i++ {
-		hosts[i] = p2p.NewHost(ctx, netutil.GenSwarmNetwork(t, ctx))
+		hosts[i] = p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 		defer hosts[i].Close()
 	}
 

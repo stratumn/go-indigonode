@@ -31,8 +31,8 @@ import (
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
-	netutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
 )
 
 var (
@@ -70,7 +70,7 @@ func NewTestNetwork(ctx context.Context, t *testing.T) *TestNetwork {
 
 // AddCoordinatorNode adds a coordinator node to the network.
 func (n *TestNetwork) AddCoordinatorNode() protocol.Handler {
-	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+	h := bhost.NewBlankHost(swarmtesting.GenSwarm(n.t, n.ctx))
 	coordinatorID := h.ID()
 	coordinatorKey := h.Peerstore().PrivKey(coordinatorID)
 	h.Peerstore().AddAddr(h.ID(), DummyNonLocalAddr, peerstore.PermanentAddrTTL)
@@ -105,7 +105,7 @@ func (n *TestNetwork) AddCoordinatedNode() (protocol.Handler, peer.ID) {
 	require.NotNil(n.t, n.coordinator, "n.coordinator")
 	coordinatorAddrs := append(n.CoordinatorHost().Addrs(), DummyNonLocalAddr)
 
-	h := bhost.NewBlankHost(netutil.GenSwarmNetwork(n.t, n.ctx))
+	h := bhost.NewBlankHost(swarmtesting.GenSwarm(n.t, n.ctx))
 
 	h.Peerstore().AddAddrs(
 		n.CoordinatorID(),

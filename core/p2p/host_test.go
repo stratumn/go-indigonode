@@ -25,20 +25,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	testutil "gx/ipfs/QmRNhSdqzMcuRxX9A1egBeQ3BhDTguDV5HPwi8wRykkPU8/go-testutil"
 	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 	host "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
 	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
 func TestHostSimple(t *testing.T) {
 	ctx := context.Background()
-	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	h1.SetIDService(identify.NewIDService(h1))
 	h2.SetIDService(identify.NewIDService(h2))
 	defer h1.Close()
@@ -77,8 +78,8 @@ func TestHostSimple(t *testing.T) {
 }
 
 func getHostPair(ctx context.Context, t *testing.T) (host.Host, host.Host) {
-	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	h1.SetIDService(identify.NewIDService(h1))
 	h2.SetIDService(identify.NewIDService(h2))
 
@@ -170,8 +171,8 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	h1 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	h1.SetIDService(identify.NewIDService(h1))
 	h2.SetIDService(identify.NewIDService(h2))
 
@@ -315,7 +316,7 @@ func TestAddrResolution(t *testing.T) {
 	}
 	resolver := &madns.Resolver{Backend: backend}
 
-	h := NewHost(ctx, testutil.GenSwarmNetwork(t, ctx), OptResolver(resolver))
+	h := NewHost(ctx, swarmtesting.GenSwarm(t, ctx), OptResolver(resolver))
 	h.SetIDService(identify.NewIDService(h))
 
 	defer h.Close()

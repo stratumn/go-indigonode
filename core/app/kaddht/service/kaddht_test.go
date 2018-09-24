@@ -30,7 +30,7 @@ import (
 
 	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
 	kaddht "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht"
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -53,7 +53,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 }
 
 func expectHost(ctx context.Context, t *testing.T, host *mockservice.MockHost) {
-	swm := testutil.GenSwarmNetwork(t, ctx)
+	swm := swarmtesting.GenSwarm(t, ctx)
 
 	host.EXPECT().ID().Return(swm.LocalPeer()).AnyTimes()
 	host.EXPECT().Peerstore().Return(swm.Peerstore()).AnyTimes()

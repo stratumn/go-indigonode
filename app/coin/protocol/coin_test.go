@@ -36,9 +36,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
 	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
 )
 
 func TestCoinGenesis(t *testing.T) {
@@ -94,7 +94,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 	p2ps := make([]*mockp2p.MockP2P, 2)
 
 	for i := 0; i < 2; i++ {
-		hosts[i] = p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+		hosts[i] = p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 		defer func(h ihost.Host) {
 			h.Close()
 		}(hosts[i])

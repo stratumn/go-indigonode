@@ -33,14 +33,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
-	testutil "gx/ipfs/QmfDapjsRAfzVpjeEm2tSmX19QpCrkLDXRCDDWJcbbUsFn/go-libp2p-netutil"
 )
 
 func TestP2P_PullFile(t *testing.T) {
 	ctx := context.Background()
-	h1 := p2pcore.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := p2pcore.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := p2pcore.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := p2pcore.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	defer h1.Close()
 	defer h2.Close()
 

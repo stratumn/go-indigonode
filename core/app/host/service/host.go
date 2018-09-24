@@ -201,7 +201,6 @@ func (s *Service) Expose() interface{} {
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	opts := []p2p.HostOption{
 		p2p.OptNegTimeout(s.negTimeout),
-		p2p.OptMetricsInterval(s.metricsInterval),
 	}
 
 	if s.cmgr != nil {

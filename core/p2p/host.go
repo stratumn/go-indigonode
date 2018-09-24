@@ -39,8 +39,6 @@ import (
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 	msmux "gx/ipfs/QmabLh8TrJ3emfAoQk5AbqbLTbMyj7XqumMFmAFxa9epo8/go-multistream"
 	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	metrics "gx/ipfs/QmdhwKw53CTV8EJSAsR1bpmMT5kXiWBgeAyv1EXeeDiXqR/go-libp2p-metrics"
-	mstream "gx/ipfs/QmdhwKw53CTV8EJSAsR1bpmMT5kXiWBgeAyv1EXeeDiXqR/go-libp2p-metrics/stream"
 	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
 )
 
@@ -68,9 +66,6 @@ type Host struct {
 	natmgr bhost.NATManager
 	ids    *identify.IDService
 	router func(context.Context, peer.ID) (pstore.PeerInfo, error)
-
-	bwc  metrics.Reporter
-	tick *time.Ticker
 }
 
 // HostOption configures a host.
@@ -104,13 +99,6 @@ func OptAddrsFilters(filter *mafilter.Filters) HostOption {
 	}
 }
 
-// OptMetricsInterval sets the interval at which metrics are collected.
-func OptMetricsInterval(interval time.Duration) HostOption {
-	return func(h *Host) {
-		h.tick = time.NewTicker(interval)
-	}
-}
-
 // DefHostOpts are the default options for a host.
 //
 // These options are set before the options passed to NewHost are processed.
@@ -118,7 +106,6 @@ var DefHostOpts = []HostOption{
 	OptConnManager(ifconnmgr.NullConnMgr{}),
 	OptResolver(madns.DefaultResolver),
 	OptNegTimeout(time.Minute),
-	OptMetricsInterval(time.Second),
 }
 
 // NewHost creates a new host.
@@ -127,7 +114,6 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 		ctx:  ctx,
 		netw: netw,
 		mux:  msmux.NewMultistreamMuxer(),
-		bwc:  &MetricsReporter{},
 	}
 
 	for _, o := range DefHostOpts {
@@ -140,9 +126,6 @@ func NewHost(ctx context.Context, netw inet.Network, opts ...HostOption) *Host {
 
 	netw.SetConnHandler(h.newConnHandler)
 	netw.SetStreamHandler(h.newStreamHandler)
-
-	// This go-routine will be stopped when Host.Close() is called.
-	go h.collectMetrics()
 
 	return h
 }
@@ -220,10 +203,6 @@ func (h *Host) newStreamHandler(stream inet.Stream) {
 	stream.SetProtocol(protocol.ID(protoID))
 	span.SetProtocolID(protocol.ID(protoID))
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
-	}
-
 	// Assumes handle lifecyle is already properly handled.
 	go func() {
 		err := handle(protoID, stream)
@@ -243,58 +222,6 @@ func (h *Host) Peerstore() pstore.Peerstore {
 	return h.netw.Peerstore()
 }
 
-// Addrs returns the filtered addresses of this host.
-func (h *Host) Addrs() []ma.Multiaddr {
-	var addrs []ma.Multiaddr
-
-	allAddrs := h.AllAddrs()
-
-	for _, address := range allAddrs {
-		if h.addrsFilters != nil && h.addrsFilters.AddrBlocked(address) {
-			continue
-		}
-
-		// Filter out relay addresses.
-		// TODO: Should the relay service take care of adding a filter? It
-		// would be worth it if multiple services need to add filters.
-		_, err := address.ValueForProtocol(circuit.P_CIRCUIT)
-		if err == nil {
-			continue
-		}
-
-		addrs = append(addrs, address)
-	}
-
-	return addrs
-}
-
-// AllAddrs returns all the addresses of BasicHost at this moment in time.
-//
-// It's ok to not include addresses if they're not available to be used now.
-func (h *Host) AllAddrs() []ma.Multiaddr {
-	ctx, span := monitoring.StartSpan(context.Background(), "p2p", "AllAddrs")
-	defer span.End()
-
-	addrs, err := h.netw.InterfaceListenAddresses()
-	if err != nil {
-		span.Annotate(ctx, "addrsError", err.Error())
-	}
-
-	if h.ids != nil {
-		// Add external observed addresses.
-		addrs = append(addrs, h.ids.OwnObservedAddrs()...)
-	}
-
-	if h.natmgr != nil {
-		nat := h.natmgr.NAT()
-		if nat != nil {
-			addrs = append(addrs, nat.ExternalAddrs()...)
-		}
-	}
-
-	return addrs
-}
-
 // Network returns the network interface.
 func (h *Host) Network() inet.Network {
 	return h.netw
@@ -305,164 +232,9 @@ func (h *Host) Mux() *msmux.MultistreamMuxer {
 	return h.mux
 }
 
-// Connect ensures there is a connection between the host and the given peer.
-func (h *Host) Connect(ctx context.Context, pi pstore.PeerInfo) error {
-	ctx, span := monitoring.StartSpan(ctx, "p2p", "Connect")
-	defer span.End()
-
-	span.SetPeerID(pi.ID)
-	span.SetAddrs(pi.Addrs)
-
-	ps := h.Peerstore()
-
-	// Check if already connected.
-	conns := h.Network().ConnsToPeer(pi.ID)
-	if len(conns) > 0 {
-		span.AddIntAttribute("connections", int64(len(conns)))
-		return nil
-	}
-
-	if len(pi.Addrs) > 0 {
-		// Absorb addresses into peerstore.
-		ps.AddAddrs(pi.ID, pi.Addrs, pstore.TempAddrTTL)
-	}
-
-	addrs := ps.Addrs(pi.ID)
-
-	if len(addrs) < 1 && h.router != nil {
-		// No addrs? Find some with the router.
-		var err error
-		addrs, err = h.findPeerAddrs(ctx, pi.ID)
-		if err != nil {
-			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
-			return err
-		}
-
-		// Absorb addresses into peerstore.
-		ps.AddAddrs(pi.ID, addrs, pstore.TempAddrTTL)
-	}
-
-	pi.Addrs = addrs
-
-	resolved, err := h.resolveAddrs(ctx, ps.PeerInfo(pi.ID))
-	if err != nil {
-		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
-		return err
-	}
-
-	ps.AddAddrs(pi.ID, resolved, pstore.TempAddrTTL)
-
-	err = h.dialPeer(ctx, pi.ID)
-	if err != nil {
-		span.SetUnknownError(err)
-		return err
-	}
-
-	return nil
-}
-
-// findPeerAddrs finds addresses for a peer ID using the router.
-func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multiaddr, error) {
-	pi, err := h.router(ctx, id)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	if pi.ID != id {
-		return nil, errors.WithStack(ErrWrongPeerID)
-	}
-
-	return pi.Addrs, nil
-}
-
-// resolveAddrs resolves the multiaddresses of a peer using the DNS if
-// necessary.
-func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multiaddr, error) {
-	ctx, span := monitoring.StartSpan(ctx, "p2p", "resolveAddrs")
-	defer span.End()
-
-	span.SetPeerID(pi.ID)
-	span.SetAddrs(pi.Addrs)
-
-	// Create the IPFS P2P address of the peer.
-	protocol := ma.ProtocolWithCode(ma.P_IPFS).Name
-	p2pAddr, err := ma.NewMultiaddr("/" + protocol + "/" + pi.ID.Pretty())
-	if err != nil {
-		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
-		return nil, errors.WithStack(err)
-	}
-
-	var addrs []ma.Multiaddr
-
-	for _, addr := range pi.Addrs {
-		addrs = append(addrs, addr)
-		if !madns.Matches(addr) {
-			// Address doesn't need to be resolved with DNS.
-			continue
-		}
-
-		reqAddr := addr.Encapsulate(p2pAddr)
-		resAddrs, err := h.resolver.Resolve(ctx, reqAddr)
-		if err != nil {
-			span.Annotate(ctx, "resolveError", err.Error())
-			continue
-		}
-
-		for _, res := range resAddrs {
-			pi, err := pstore.InfoFromP2pAddr(res)
-			if err != nil {
-				span.Annotate(ctx, "p2pAddrError", err.Error())
-				continue
-			}
-
-			addrs = append(addrs, pi.Addrs...)
-		}
-	}
-
-	return addrs, nil
-}
-
-// dialPeer opens a connection to peer, and makes sure to identify the
-// connection once it has been opened.
-func (h *Host) dialPeer(ctx context.Context, pid peer.ID) error {
-	ctx, span := monitoring.StartSpan(ctx, "p2p", "dialPeer")
-	defer span.End()
-
-	span.SetPeerID(pid)
-
-	conn, err := h.Network().DialPeer(ctx, pid)
-	if err != nil {
-		span.SetUnknownError(err)
-		return errors.WithStack(err)
-	}
-
-	// Clear protocols on connecting to new peer to avoid issues caused
-	// by misremembering protocols between reconnects.
-	if err := h.Peerstore().SetProtocols(pid); err != nil {
-		span.SetUnknownError(err)
-		return errors.WithStack(err)
-	}
-
-	// Identify the connection before returning.
-	if h.ids != nil {
-		done := make(chan struct{})
-		go func() {
-			h.ids.IdentifyConn(conn)
-			close(done)
-		}()
-
-		select {
-		case <-done:
-		case <-ctx.Done():
-			err := ctx.Err()
-			if err != nil {
-				span.SetUnknownError(err)
-			}
-			return errors.WithStack(err)
-		}
-	}
-
-	return nil
+// IDService returns the identify service.
+func (h *Host) IDService() *identify.IDService {
+	return h.ids
 }
 
 // SetStreamHandler sets the stream handler for the given protocol.
@@ -578,11 +350,16 @@ func (h *Host) NewStream(ctx context.Context, pid peer.ID, protocols ...protocol
 		return nil, errors.WithStack(err)
 	}
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
-	}
-
 	return stream, nil
+}
+
+// protocolsToString converts protocol IDs to strings.
+func protocolsToStrings(protocols []protocol.ID) []string {
+	out := make([]string, len(protocols))
+	for i, proto := range protocols {
+		out[i] = string(proto)
+	}
+	return out
 }
 
 // preferredProtocol finds the first protocol preferred by a peer.
@@ -617,10 +394,6 @@ func (h *Host) newStream(ctx context.Context, pid peer.ID, proto protocol.ID) (i
 
 	stream.SetProtocol(proto)
 
-	if h.bwc != nil {
-		stream = mstream.WrapStream(stream, h.bwc)
-	}
-
 	lzcon := msmux.NewMSSelect(stream, string(proto))
 
 	return &streamWrapper{
@@ -629,19 +402,246 @@ func (h *Host) newStream(ctx context.Context, pid peer.ID, proto protocol.ID) (i
 	}, nil
 }
 
-// Close shuts down the host and its network.
-func (h *Host) Close() error {
-	h.netw.SetStreamHandler(nil)
-	h.netw.SetConnHandler(nil)
+// Connect ensures there is a connection between this host and the peer with
+// given peer.ID. If there is not an active connection, Connect will issue a
+// h.Network.Dial, and block until a connection is open, or an error is
+// returned.
+// Connect will absorb the addresses in pi into its internal peerstore.
+// It will also resolve any /dns4, /dns6, and /dnsaddr addresses.
+func (h *Host) Connect(ctx context.Context, pi pstore.PeerInfo) error {
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "Connect")
+	defer span.End()
 
-	h.tick.Stop()
+	span.SetPeerID(pi.ID)
+	span.SetAddrs(pi.Addrs)
 
-	return errors.WithStack(h.netw.Close())
+	ps := h.Peerstore()
+
+	if len(pi.Addrs) > 0 {
+		// Absorb addresses into peerstore.
+		ps.AddAddrs(pi.ID, pi.Addrs, pstore.TempAddrTTL)
+	}
+
+	if h.Network().Connectedness(pi.ID) == inet.Connected {
+		span.AddBoolAttribute("already_connected", true)
+		return nil
+	}
+
+	addrs := ps.Addrs(pi.ID)
+
+	if len(addrs) == 0 && h.router != nil {
+		// No addrs? Find some with the router.
+		var err error
+		addrs, err = h.findPeerAddrs(ctx, pi.ID)
+		if err != nil {
+			span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
+			return err
+		}
+
+		// Absorb addresses into peerstore.
+		ps.AddAddrs(pi.ID, addrs, pstore.TempAddrTTL)
+	}
+
+	pi.Addrs = addrs
+
+	resolved, err := h.resolveAddrs(ctx, ps.PeerInfo(pi.ID))
+	if err != nil {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
+		return err
+	}
+
+	ps.AddAddrs(pi.ID, resolved, pstore.TempAddrTTL)
+
+	err = h.dialPeer(ctx, pi.ID)
+	if err != nil {
+		span.SetUnknownError(err)
+		return err
+	}
+
+	return nil
+}
+
+// resolveAddrs resolves the multiaddresses of a peer using the DNS if
+// necessary.
+func (h *Host) resolveAddrs(ctx context.Context, pi pstore.PeerInfo) ([]ma.Multiaddr, error) {
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "resolveAddrs")
+	defer span.End()
+
+	span.SetPeerID(pi.ID)
+	span.SetAddrs(pi.Addrs)
+
+	// Create the IPFS P2P address of the peer.
+	protocol := ma.ProtocolWithCode(ma.P_IPFS).Name
+	p2pAddr, err := ma.NewMultiaddr("/" + protocol + "/" + pi.ID.Pretty())
+	if err != nil {
+		span.SetStatus(monitoring.NewStatus(monitoring.StatusCodeFailedPrecondition, err.Error()))
+		return nil, errors.WithStack(err)
+	}
+
+	var addrs []ma.Multiaddr
+
+	for _, addr := range pi.Addrs {
+		addrs = append(addrs, addr)
+		if !madns.Matches(addr) {
+			// Address doesn't need to be resolved with DNS.
+			continue
+		}
+
+		reqAddr := addr.Encapsulate(p2pAddr)
+		resAddrs, err := h.resolver.Resolve(ctx, reqAddr)
+		if err != nil {
+			span.Annotate(ctx, "resolveError", err.Error())
+			continue
+		}
+
+		for _, res := range resAddrs {
+			pi, err := pstore.InfoFromP2pAddr(res)
+			if err != nil {
+				span.Annotate(ctx, "p2pAddrError", err.Error())
+				continue
+			}
+
+			addrs = append(addrs, pi.Addrs...)
+		}
+	}
+
+	return addrs, nil
+}
+
+// dialPeer opens a connection to peer, and makes sure to identify the
+// connection once it has been opened.
+func (h *Host) dialPeer(ctx context.Context, pid peer.ID) error {
+	ctx, span := monitoring.StartSpan(ctx, "p2p", "dialPeer")
+	defer span.End()
+
+	span.SetPeerID(pid)
+
+	conn, err := h.Network().DialPeer(ctx, pid)
+	if err != nil {
+		span.SetUnknownError(err)
+		return errors.WithStack(err)
+	}
+
+	// Clear protocols on connecting to new peer to avoid issues caused
+	// by misremembering protocols between reconnects.
+	if err := h.Peerstore().SetProtocols(pid); err != nil {
+		span.SetUnknownError(err)
+		return errors.WithStack(err)
+	}
+
+	// Identify the connection before returning.
+	if h.ids != nil {
+		done := make(chan struct{})
+		go func() {
+			h.ids.IdentifyConn(conn)
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-ctx.Done():
+			err := ctx.Err()
+			if err != nil {
+				span.SetUnknownError(err)
+			}
+			return errors.WithStack(err)
+		}
+	}
+
+	return nil
 }
 
 // ConnManager returns the connection manager.
 func (h *Host) ConnManager() ifconnmgr.ConnManager {
 	return h.cmgr
+}
+
+// Addrs returns the filtered addresses of this host.
+func (h *Host) Addrs() []ma.Multiaddr {
+	var addrs []ma.Multiaddr
+
+	allAddrs := h.AllAddrs()
+
+	for _, address := range allAddrs {
+		if h.addrsFilters != nil && h.addrsFilters.AddrBlocked(address) {
+			continue
+		}
+
+		// Filter out relay addresses.
+		// TODO: Should the relay service take care of adding a filter? It
+		// would be worth it if multiple services need to add filters.
+		_, err := address.ValueForProtocol(circuit.P_CIRCUIT)
+		if err == nil {
+			continue
+		}
+
+		addrs = append(addrs, address)
+	}
+
+	return addrs
+}
+
+// AllAddrs returns all the addresses of BasicHost at this moment in time.
+//
+// It's ok to not include addresses if they're not available to be used now.
+func (h *Host) AllAddrs() []ma.Multiaddr {
+	ctx, span := monitoring.StartSpan(context.Background(), "p2p", "AllAddrs")
+	defer span.End()
+
+	listenAddrs, err := h.netw.InterfaceListenAddresses()
+	if err != nil {
+		span.Annotate(ctx, "addrsError", err.Error())
+	}
+
+	var observedAddrs []ma.Multiaddr
+	if h.ids != nil {
+		observedAddrs = h.ids.OwnObservedAddrs()
+	}
+
+	var natAddrs []ma.Multiaddr
+	if h.natmgr != nil && h.natmgr.NAT() != nil {
+		natAddrs = h.natmgr.NAT().ExternalAddrs()
+	}
+
+	return mergeAddrs(listenAddrs, observedAddrs, natAddrs)
+}
+
+// mergeAddrs merges input address lists, leaves only unique addresses.
+func mergeAddrs(addrLists ...[]ma.Multiaddr) (uniqueAddrs []ma.Multiaddr) {
+	exists := make(map[string]bool)
+	for _, addrList := range addrLists {
+		for _, addr := range addrList {
+			k := string(addr.Bytes())
+			if exists[k] {
+				continue
+			}
+			exists[k] = true
+			uniqueAddrs = append(uniqueAddrs, addr)
+		}
+	}
+	return uniqueAddrs
+}
+
+// findPeerAddrs finds addresses for a peer ID using the router.
+func (h *Host) findPeerAddrs(ctx context.Context, id peer.ID) ([]ma.Multiaddr, error) {
+	pi, err := h.router(ctx, id)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	if pi.ID != id {
+		return nil, errors.WithStack(ErrWrongPeerID)
+	}
+
+	return pi.Addrs, nil
+}
+
+// Close shuts down the host and its network.
+func (h *Host) Close() error {
+	h.netw.SetStreamHandler(nil)
+	h.netw.SetConnHandler(nil)
+
+	return errors.WithStack(h.netw.Close())
 }
 
 // SetNATManager sets the NAT manager.
@@ -681,37 +681,6 @@ func (h *Host) SetRouter(router func(context.Context, peer.ID) (pstore.PeerInfo,
 
 	_, span := monitoring.StartSpan(h.ctx, "p2p", eventName)
 	span.End()
-}
-
-// collectMetrics periodically reports p2p metrics.
-func (h *Host) collectMetrics() {
-	for range h.tick.C {
-		ctx := context.Background()
-		connCount := len(h.Network().Conns())
-		peerCount := len(h.Network().Peers())
-
-		connections.Record(ctx, int64(connCount))
-		peers.Record(ctx, int64(peerCount))
-
-		for _, peerID := range h.Peerstore().Peers() {
-			if peerID == h.ID() {
-				continue
-			}
-
-			ctx := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
-			peerLatency := ((float64)(h.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
-			latency.Record(ctx, peerLatency)
-		}
-	}
-}
-
-// protocolsToString converts protocol IDs to strings.
-func protocolsToStrings(protocols []protocol.ID) []string {
-	out := make([]string, len(protocols))
-	for i, proto := range protocols {
-		out[i] = string(proto)
-	}
-	return out
 }
 
 // streamWrapper adds lazy-negotiation to a stream.

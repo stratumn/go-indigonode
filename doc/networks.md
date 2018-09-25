@@ -7,8 +7,8 @@ The default behavior is to create a public node and join the public network.
 If you just run:
 
 ```bash
-indigo-node init
-indigo-node up
+stratumn-node init
+stratumn-node up
 ```
 
 This is what will happen.
@@ -31,14 +31,14 @@ If plan on being the network coordinator, create your node with the following
 command:
 
 ```bash
-indigo-node init --private-with-coordinator --private-coordinator
+stratumn-node init --private-with-coordinator --private-coordinator
 ```
 
-Open `indigo_node.core.toml` and add your public IP address to the
+Open `stratumn_node.core.toml` and add your public IP address to the
 `swarm.addresses` list. Once that's done, you can start the node:
 
 ```bash
-indigo-node up
+stratumn-node up
 ```
 
 Your node won't connect to the public network and will sit idle, waiting
@@ -64,13 +64,13 @@ able to join the network.
 Create your node with the following command:
 
 ```bash
-indigo-node init --private-with-coordinator --coordinator-addr <multiaddr>
+stratumn-node init --private-with-coordinator --coordinator-addr <multiaddr>
 ```
 
 The coordinator address should uses the IPFS multiformat and specify the ID
 (e.g. `ip4/127.0.0.1/tcp/8903/ipfs/12D3KooWN35NseW9wy5MdBbWSAb1CaJuUTeZAPXjRs82URjdo1jE`).
 
-When you run `indigo-node up` your node will try to connect to the coordinator
+When you run `stratumn-node up` your node will try to connect to the coordinator
 and wait until it gets approved.
 
 ### Updating a private network

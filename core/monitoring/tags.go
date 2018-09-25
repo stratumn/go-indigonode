@@ -25,9 +25,9 @@ import (
 
 // Common tags that can be used by all apps.
 var (
-	ErrorTag      = NewTag("indigo-node/keys/error")
-	PeerIDTag     = NewTag("indigo-node/keys/peerid")
-	ProtocolIDTag = NewTag("indigo-node/keys/protocolid")
+	ErrorTag      = NewTag("stratumn-node/keys/error")
+	PeerIDTag     = NewTag("stratumn-node/keys/peerid")
+	ProtocolIDTag = NewTag("stratumn-node/keys/protocolid")
 )
 
 // Tag can be associated to metrics.

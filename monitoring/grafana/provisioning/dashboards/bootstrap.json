@@ -1,7 +1,7 @@
 {
   "__inputs": [
     {
-      "name": "DS_INDIGO_NODE",
+      "name": "DS_STRATUMN_NODE",
       "label": "Indigo Node",
       "description": "",
       "type": "datasource",
@@ -59,7 +59,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -91,19 +91,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_in{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         },
         {
-          "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_out{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/config/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "B"
         }
       ],
@@ -152,7 +150,7 @@
       "colorBackground": false,
       "colorValue": false,
       "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -204,7 +202,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr": "indigo_node_views_bootstrap_participants",
+          "expr": "stratumn_node_views_bootstrap_participants",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -228,7 +226,7 @@
       "colorBackground": false,
       "colorValue": false,
       "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -280,8 +278,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
+          "expr": "sum(stratumn_node_views_streams_in{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -305,7 +302,7 @@
       "colorBackground": false,
       "colorValue": false,
       "colors": ["#299c46", "rgba(237, 129, 40, 0.89)", "#d44a3a"],
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "format": "none",
       "gauge": {
         "maxValue": 100,
@@ -357,8 +354,7 @@
       "tableColumn": "",
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
+          "expr": "sum(stratumn_node_views_streams_in{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -382,7 +378,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -414,19 +410,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_in{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         },
         {
-          "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_out{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/propose/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "B"
         }
       ],
@@ -475,7 +469,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -507,19 +501,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_in{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         },
         {
-          "expr":
-            "sum(indigo_node_views_streams_out{indigo_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_out{stratumn_node_keys_protocolid=~\"/indigo/node/bootstrap/private/(coordinator|coordinated)/vote/v.+\"}) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "B"
         }
       ],

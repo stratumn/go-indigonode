@@ -40,7 +40,7 @@ import (
 
 // Set the identify protocol client version.
 func init() {
-	identify.ClientVersion = "indigo-node/" + release.Version + "/" + release.GitCommit
+	identify.ClientVersion = "stratumn-node/" + release.Version + "/" + release.GitCommit
 }
 
 var (

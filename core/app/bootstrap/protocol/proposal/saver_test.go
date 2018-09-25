@@ -32,7 +32,7 @@ import (
 func TestSaver(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "indigo-node")
+	dir, _ := ioutil.TempDir("", "stratumn-node")
 	peer1 := test.GeneratePeerID(t)
 	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 

@@ -48,7 +48,7 @@ const (
 	DeploymentKeyFlagName = "key"
 
 	// DefaultDeploymentKey is the path to the private key setup on the cloud platform.
-	DefaultDeploymentKey = "/keybase/team/stratumn_eng/indigo_node_test_network/indigo-node-test-key.pem"
+	DefaultDeploymentKey = "/keybase/team/stratumn_eng/stratumn_node_test_network/stratumn-node-test-key.pem"
 
 	// AnsibleConfigFlagName is the name of the flag ansible configuration file path.
 	AnsibleConfigFlagName = "ansible-cfg"
@@ -86,7 +86,7 @@ func setupEnv(cmd *exec.Cmd) {
 func getDependencies() {
 	_, err := exec.LookPath("python")
 	if err != nil {
-		osExit(1, "python must be installed to run indigo-node deploy")
+		osExit(1, "python must be installed to run stratumn-node deploy")
 	}
 
 	// Install python dependencies.

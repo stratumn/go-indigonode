@@ -257,7 +257,7 @@ func (c *Config) CreateTraceExporter() (trace.Exporter, error) {
 
 		exporter, err = jaeger.NewExporter(jaeger.Options{
 			Endpoint:    "http://" + jaegerEndpoint.String(),
-			ServiceName: "indigo-node",
+			ServiceName: "stratumn-node",
 		})
 	case StackdriverExporter:
 		exporter, err = stackdriver.NewExporter(stackdriver.Options{

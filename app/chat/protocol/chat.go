@@ -34,11 +34,11 @@ import (
 	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
 )
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/indigo/node/chat/v1.0.0")
+var ProtocolID = protocol.ID("/stratumn/node/chat/v1.0.0")
 
 // Chat implements the chat protocol.
 type Chat struct {

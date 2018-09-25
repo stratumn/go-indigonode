@@ -4,7 +4,7 @@ Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Launchd
 
-Edit `indigo_node.core.toml` so that the `log` section looks like this:
+Edit `stratumn_node.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -46,19 +46,19 @@ You should also disable the boot screen in the `core` section:
 Install the property list file:
 
 ```bash
-indigo-node daemon install --core-config /path/to/indigo_node.core.toml
+stratumn-node daemon install --core-config /path/to/stratumn_node.core.toml
 ```
 
 Start the Indigo Node service:
 
 ```bash
-sudo launchctl load /Library/LaunchDaemons/indigo-node.plist
+sudo launchctl load /Library/LaunchDaemons/stratumn-node.plist
 ```
 
 You can stop it with:
 
 ```bash
-sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
+sudo launchctl unload /Library/LaunchDaemons/stratumn-node.plist
 ```
 
 ## View Logs
@@ -66,11 +66,11 @@ sudo launchctl unload /Library/LaunchDaemons/indigo-node.plist
 To view the streaming info logs, run:
 
 ```bash
-indigo-node log -f /usr/local/var/log/indigo-node.log
+stratumn-node log -f /usr/local/var/log/stratumn-node.log
 ```
 
 To view the streaming error logs, run:
 
 ```bash
-indigo-node log -f /usr/local/var/log/indigo-node.err
+stratumn-node log -f /usr/local/var/log/stratumn-node.err
 ```

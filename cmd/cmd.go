@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package cmd defines the commands of the indigo-node executable.
+// Package cmd defines the commands of the stratumn-node executable.
 package cmd
 
 import (

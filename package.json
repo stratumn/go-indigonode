@@ -227,7 +227,7 @@
   "gxVersion": "0.11.0",
   "language": "go",
   "license": "",
-  "name": "indigo-node",
+  "name": "stratumn-node",
   "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
   "version": "0.0.0"
 }

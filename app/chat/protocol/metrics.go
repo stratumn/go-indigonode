@@ -26,19 +26,19 @@ import (
 // Measures exposed by the chat app.
 var (
 	msgReceived = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/chat/message-received",
+		"stratumn-node/measure/chat/message-received",
 		"chat message received",
 		stats.UnitNone,
 	))
 
 	msgSent = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/chat/message-sent",
+		"stratumn-node/measure/chat/message-sent",
 		"chat message sent",
 		stats.UnitNone,
 	))
 
 	msgError = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/chat/message-error",
+		"stratumn-node/measure/chat/message-error",
 		"chat message error",
 		stats.UnitNone,
 	))
@@ -47,7 +47,7 @@ var (
 // Views exposed by the chat app.
 var (
 	MessageReceived = &view.View{
-		Name:        "indigo-node/views/chat/message-received",
+		Name:        "stratumn-node/views/chat/message-received",
 		Description: "chat message received",
 		Measure:     msgReceived.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},
@@ -55,7 +55,7 @@ var (
 	}
 
 	MessageSent = &view.View{
-		Name:        "indigo-node/views/chat/message-sent",
+		Name:        "stratumn-node/views/chat/message-sent",
 		Description: "chat message sent",
 		Measure:     msgSent.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},
@@ -63,7 +63,7 @@ var (
 	}
 
 	MessageError = &view.View{
-		Name:        "indigo-node/views/chat/message-error",
+		Name:        "stratumn-node/views/chat/message-error",
 		Description: "chat message error",
 		Measure:     msgError.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},

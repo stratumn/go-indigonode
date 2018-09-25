@@ -4,7 +4,7 @@ Make sure Indigo Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Journald
 
-Edit `indigo_node.core.toml` so that the `log` section looks like this:
+Edit `stratumn_node.core.toml` so that the `log` section looks like this:
 
 ```toml
 [log]
@@ -35,7 +35,7 @@ You should also disable the boot screen in the `core` section:
 Install the systemd unit file:
 
 ```bash
-indigo-node daemon install --core-config /path/to/indigo_node.core.toml
+stratumn-node daemon install --core-config /path/to/stratumn_node.core.toml
 ```
 
 Tell systemd to reload the unit files:
@@ -47,13 +47,13 @@ systemctl daemon-reload
 Start the Indigo Node service:
 
 ```bash
-systemctl start indigo-node
+systemctl start stratumn-node
 ```
 
 You can stop it with:
 
 ```bash
-systemctl stop indigo-node
+systemctl stop stratumn-node
 ```
 
 ## View Logs
@@ -61,11 +61,11 @@ systemctl stop indigo-node
 To view all the streaming logs, run:
 
 ```bash
-journalctl -f -u indigo-node
+journalctl -f -u stratumn-node
 ```
 
 To view only errors, run (errors have a priority of three):
 
 ```bash
-journalctl -f -u indigo-node -p 3
+journalctl -f -u stratumn-node -p 3
 ```

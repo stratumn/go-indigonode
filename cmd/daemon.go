@@ -32,7 +32,7 @@ func init() {
 
 // newDaemon creates a new daemon service.
 func newDaemon() daemon.Daemon {
-	d, err := daemon.New("indigo-node", "Indigo Node")
+	d, err := daemon.New("stratumn-node", "Indigo Node")
 	fail(err)
 
 	return d

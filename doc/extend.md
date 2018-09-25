@@ -132,9 +132,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 It should be self-explanatory if you are experienced with the Go programming
 language.
 
-## Register you Service
+## Register your Service
 
-To build `indigo-node` with your service included, all you have to do is
+To build `stratumn-node` with your service included, all you have to do is
 register your package somewhere. For instance the core services are registered
 in `core/service.go`:
 
@@ -202,7 +202,7 @@ func BuiltinServices() []manager.Service {
 
 Updating the configuration structure should be done via migrations.
 Migrations ensure that existing nodes can easily update their binary
-and run `indigo-node up` without errors.
+and run `stratumn-node up` without errors.
 
 If your service has configuration options, you should add a migration to add
 them to the config file. The migrations for the core Indigo Node modules are
@@ -221,7 +221,7 @@ var migrations = []cfg.MigrateHandler{
 
 ## Start your Service
 
-After registering your service, you can build `indigo-node` using `make install`.
+After registering your service, you can build `stratumn-node` using `make install`.
 
 You should now be able to start your service from the CLI using
 `manager-start myservice`.
@@ -347,10 +347,10 @@ type Runner interface {
 | bootstrap  | Bootstrap           | Bootstraps network connections.            | struct{}{}                                                     |
 | connmgr    | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
 | grpcapi    | gRPC API            | Starts a gRPC API server.                  |                                                                |
-| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-node/core/\*p2p.Host              |
+| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-node/core/\*p2p.Host                    |
 | identify   | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht     | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
-| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-node/core/\*manager.Manager       |
+| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-node/core/\*manager.Manager             |
 | monitoring | Monitoring          | Collects metrics and traces.               |                                                                |
 | mssmux     | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
 | natmgr     | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |

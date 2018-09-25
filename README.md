@@ -47,7 +47,7 @@ Install Go dependencies:
 make deps
 ```
 
-Compile and install `indigo-node`:
+Compile and install `stratumn-node`:
 
 ```bash
 make install
@@ -56,22 +56,22 @@ make install
 ## Usage
 
 Create a new directory for your node. Open a terminal in that directory
-then create configuration files using `indigo-node init`:
+then create configuration files using `stratumn-node init`:
 
 ```bash
-indigo-node init
+stratumn-node init
 ```
 
 Now you can launch a node (from the same directory):
 
 ```bash
-indigo-node up
+stratumn-node up
 ```
 
 Open another terminal and connect to the node (from the same directory):
 
 ```bash
-indigo-node cli
+stratumn-node cli
 ```
 
 The auto-completion should help you explore available APIs easily.
@@ -81,7 +81,7 @@ The auto-completion should help you explore available APIs easily.
 To view streaming logs (from the same directory):
 
 ```bash
-indigo-node log -f log.jsonld
+stratumn-node log -f log.jsonld
 ```
 
 To view metrics you need to install Prometheus. On macOS:
@@ -121,7 +121,7 @@ grafana-server
 
 Distributed tracing is available in Indigo Node but disabled by default.
 
-You can configure it in the `monitoring` section in `indigo_node.core.config`.
+You can configure it in the `monitoring` section in `stratumn_node.core.config`.
 
 We recommend using [Jaeger](https://www.jaegertracing.io) to collect traces
 locally (during development).
@@ -130,7 +130,7 @@ We recommend using [Stackdriver](https://cloud.google.com/stackdriver/)
 on [AWS](https://aws.amazon.com/) or [GCP](https://cloud.google.com/).
 
 To view traces locally, set `monitoring.jaeger.endpoint = "/ip4/127.0.0.1/tcp/14268"`
-in `indigo_node.core.config` and run:
+in `stratumn_node.core.config` and run:
 
 ```bash
 docker run -p 14268:14268 -p 16686:16686 jaegertracing/all-in-one:latest

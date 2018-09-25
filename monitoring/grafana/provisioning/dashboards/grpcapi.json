@@ -1,7 +1,7 @@
 {
   "__inputs": [
     {
-      "name": "DS_INDIGO_NODE",
+      "name": "DS_STRATUMN_NODE",
       "label": "Indigo Node",
       "description": "",
       "type": "datasource",
@@ -53,7 +53,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -85,11 +85,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_grpcapi_request_received) by (indigo_node_keys_grpc_method)",
+          "expr": "sum(stratumn_node_views_grpcapi_request_received) by (stratumn_node_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_grpc_method}}",
+          "legendFormat": "{{stratumn_node_keys_grpc_method}}",
           "refId": "A"
         }
       ],
@@ -138,7 +137,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -170,11 +169,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_grpcapi_request_error) by (indigo_node_keys_grpc_method)",
+          "expr": "sum(stratumn_node_views_grpcapi_request_error) by (stratumn_node_keys_grpc_method)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_grpc_method}}",
+          "legendFormat": "{{stratumn_node_keys_grpc_method}}",
           "refId": "A"
         }
       ],
@@ -223,7 +221,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -255,11 +253,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "histogram_quantile(0.5, sum(rate(indigo_node_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
+          "expr": "histogram_quantile(0.5, sum(rate(stratumn_node_views_grpcapi_request_duration_bucket[5m])) by (stratumn_node_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_grpc_method}}",
+          "legendFormat": "{{stratumn_node_keys_grpc_method}}",
           "refId": "A"
         }
       ],
@@ -308,7 +305,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -340,11 +337,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "histogram_quantile(0.95, sum(rate(indigo_node_views_grpcapi_request_duration_bucket[5m])) by (indigo_node_keys_grpc_method, le))",
+          "expr": "histogram_quantile(0.95, sum(rate(stratumn_node_views_grpcapi_request_duration_bucket[5m])) by (stratumn_node_keys_grpc_method, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_grpc_method}}",
+          "legendFormat": "{{stratumn_node_keys_grpc_method}}",
           "refId": "A"
         }
       ],

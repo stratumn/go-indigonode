@@ -35,6 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
@@ -490,9 +491,9 @@ func TestConfigProtectUpdater(t *testing.T) {
 	ctx := context.Background()
 
 	peer1 := test.GeneratePeerID(t)
-	peer1Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)}
+	peer1Addrs := []multiaddr.Multiaddr{test.GenerateNetAddr(t)}
 	peer2 := test.GeneratePeerID(t)
-	peer2Addrs := []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer2)}
+	peer2Addrs := []multiaddr.Multiaddr{test.GenerateNetAddr(t)}
 	peer3 := test.GeneratePeerID(t)
 
 	inMemoryConfig, _ := protector.NewInMemoryConfig(
@@ -603,9 +604,12 @@ func TestConfigProtectUpdater(t *testing.T) {
 
 		assert.ElementsMatch(t, []peer.ID{peer1, peer3}, p.AllowedPeers(ctx))
 
-		rejectedConn := libp2pmocks.NewMockTransportConn(ctrl)
-		rejectedConn.EXPECT().LocalMultiaddr().Times(1).Return(peer1Addrs[0])
-		rejectedConn.EXPECT().RemoteMultiaddr().Times(1).Return(peer2Addrs[0])
+		localAddr, _ := manet.ToNetAddr(peer1Addrs[0])
+		remoteAddr, _ := manet.ToNetAddr(peer2Addrs[0])
+
+		rejectedConn := libp2pmocks.NewMockNetConn(ctrl)
+		rejectedConn.EXPECT().LocalAddr().Return(localAddr)
+		rejectedConn.EXPECT().RemoteAddr().Return(remoteAddr)
 		rejectedConn.EXPECT().Close().AnyTimes()
 
 		_, err = p.Protect(rejectedConn)

@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 )
@@ -171,12 +172,12 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
 			peer1: []multiaddr.Multiaddr{
-				test.GeneratePeerMultiaddr(t, peer1),
-				test.GeneratePeerMultiaddr(t, peer1),
+				test.GenerateNetAddr(t),
+				test.GenerateNetAddr(t),
 			},
 			peer2: []multiaddr.Multiaddr{
-				test.GeneratePeerMultiaddr(t, peer2),
-				test.GeneratePeerMultiaddr(t, peer2),
+				test.GenerateNetAddr(t),
+				test.GenerateNetAddr(t),
 			},
 		},
 	}
@@ -259,11 +260,13 @@ func TestPrivateNetwork_Protect(t *testing.T) {
 
 			tt.networkUpdates(p, updateChan)
 
-			conn := libp2pmocks.NewMockTransportConn(ctrl)
-			conn.EXPECT().LocalMultiaddr().Return(tt.local).Times(1)
-			conn.EXPECT().RemoteMultiaddr().Return(tt.remote).Times(1)
+			conn := libp2pmocks.NewMockNetConn(ctrl)
+			local, _ := manet.ToNetAddr(tt.local)
+			remote, _ := manet.ToNetAddr(tt.remote)
+			conn.EXPECT().LocalAddr().Return(local)
+			conn.EXPECT().RemoteAddr().Return(remote)
 			if tt.reject {
-				conn.EXPECT().Close().Times(1)
+				conn.EXPECT().Close()
 			}
 
 			wrappedConn, err := p.Protect(conn)

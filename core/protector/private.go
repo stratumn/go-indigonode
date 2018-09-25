@@ -26,6 +26,7 @@ import (
 
 	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
@@ -114,7 +115,7 @@ func (p *PrivateNetwork) Protect(conn net.Conn) (net.Conn, error) {
 	remoteAddr := conn.RemoteAddr()
 	span.AddStringAttribute("remote", remoteAddr.String())
 
-	remoteMultiAddr, err := multiaddr.NewMultiaddr(remoteAddr.String())
+	remoteMultiAddr, err := manet.FromNetAddr(remoteAddr)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

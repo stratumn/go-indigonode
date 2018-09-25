@@ -83,3 +83,15 @@ func GenerateMultiaddrs(t *testing.T) []multiaddr.Multiaddr {
 		GenerateMultiaddr(t),
 	}
 }
+
+// GenerateNetAddr generates a valid multiaddr without the ipfs peerID part.
+func GenerateNetAddr(t *testing.T) multiaddr.Multiaddr {
+	peerAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf(
+		"/ip4/10.0.0.%d/tcp/%d",
+		rand.Intn(256),
+		8900+rand.Intn(10000),
+	))
+	require.NoError(t, err, "multiaddr.NewMultiaddr()")
+
+	return peerAddr
+}

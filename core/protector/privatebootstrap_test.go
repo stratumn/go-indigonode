@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
 	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 )
@@ -58,8 +59,8 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 
 	testData := &PeerStoreData{
 		Peers: map[peer.ID][]multiaddr.Multiaddr{
-			peer1: []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer1)},
-			peer2: []multiaddr.Multiaddr{test.GeneratePeerMultiaddr(t, peer2)},
+			peer1: []multiaddr.Multiaddr{test.GenerateNetAddr(t)},
+			peer2: []multiaddr.Multiaddr{test.GenerateNetAddr(t)},
 		},
 	}
 
@@ -72,7 +73,7 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	waitUntilAllowed(t, p, peer2, 2)
 
 	// All connections are accepted during bootstrap.
-	bootstrapConn := libp2pmocks.NewMockTransportConn(ctrl)
+	bootstrapConn := libp2pmocks.NewMockNetConn(ctrl)
 	wrappedConn, err := p.Protect(bootstrapConn)
 	assert.Equal(t, bootstrapConn, wrappedConn)
 
@@ -81,17 +82,21 @@ func TestPrivateNetworkWithBootstrap_Protect(t *testing.T) {
 	require.True(t, ok, "p.(networkStateWriter)")
 	networkStateWriter.SetNetworkState(ctx, pb.NetworkState_PROTECTED)
 
-	invalidConn := libp2pmocks.NewMockTransportConn(ctrl)
-	invalidConn.EXPECT().LocalMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)
-	invalidConn.EXPECT().RemoteMultiaddr().Return(test.GenerateMultiaddr(t)).Times(1)
-	invalidConn.EXPECT().Close().Times(1)
+	invalidConn := libp2pmocks.NewMockNetConn(ctrl)
+	invalidLocalAddr, _ := manet.ToNetAddr(test.GenerateNetAddr(t))
+	invalidRemoteAddr, _ := manet.ToNetAddr(test.GenerateNetAddr(t))
+	invalidConn.EXPECT().LocalAddr().Return(invalidLocalAddr)
+	invalidConn.EXPECT().RemoteAddr().Return(invalidRemoteAddr)
+	invalidConn.EXPECT().Close()
 
 	_, err = p.Protect(invalidConn)
 	assert.EqualError(t, err, protector.ErrConnectionRefused.Error())
 
-	validConn := libp2pmocks.NewMockTransportConn(ctrl)
-	validConn.EXPECT().LocalMultiaddr().Return(testData.Peers[peer1][0]).Times(1)
-	validConn.EXPECT().RemoteMultiaddr().Return(testData.Peers[peer2][0]).Times(1)
+	validConn := libp2pmocks.NewMockNetConn(ctrl)
+	validLocalAddr, _ := manet.ToNetAddr(testData.Peers[peer1][0])
+	validRemoteAddr, _ := manet.ToNetAddr(testData.Peers[peer2][0])
+	validConn.EXPECT().LocalAddr().Return(validLocalAddr)
+	validConn.EXPECT().RemoteAddr().Return(validRemoteAddr)
 
 	wrappedConn, err = p.Protect(validConn)
 	assert.Equal(t, validConn, wrappedConn)

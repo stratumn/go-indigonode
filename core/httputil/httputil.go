@@ -14,7 +14,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Package httputil provides an utility method to start an HTTP server in the
-// context of an Indigo Node service.
+// context of a Stratumn Node service.
 package httputil
 
 import (

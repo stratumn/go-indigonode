@@ -1,14 +1,14 @@
-# Extend Indigo Node By Writing Your Own Service
+# Extend Stratumn Node By Writing Your Own Service
 
-Great care went into making Indigo Node extendable with minimum hassle.
-The core of Indigo Node handles service dependencies and configuration files.
+Great care went into making Stratumn Node extendable with minimum hassle.
+The core of Stratumn Node handles service dependencies and configuration files.
 Extending the API is a little more work but it's still very reasonable,
 and the CLI uses reflection to automatically add new commands,
 so you don't have to worry about that part.
 
 ## Implement Service interfaces
 
-Adding new services to your Indigo Node is easy.
+Adding new services to your Stratumn Node is easy.
 A service needs to implement at least the three methods of the `Service`
 interface (`ID`, `Name`, and `Desc`).
 You can start from this template, which implements all the most commonly used
@@ -205,7 +205,7 @@ Migrations ensure that existing nodes can easily update their binary
 and run `stratumn-node up` without errors.
 
 If your service has configuration options, you should add a migration to add
-them to the config file. The migrations for the core Indigo Node modules are
+them to the config file. The migrations for the core Stratumn Node modules are
 in `core/migrate.go`. You can append one for your service:
 
 ```go
@@ -278,7 +278,7 @@ The service manager understands the following interfaces:
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Service describes an Indigo Node service.
+// Service describes a Stratumn Node service.
 type Service interface {
     // ID returns a unique identifier.
     ID() string

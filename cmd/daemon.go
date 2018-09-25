@@ -23,7 +23,7 @@ import (
 // daemonCmd represents the daemon command.
 var daemonCmd = &cobra.Command{
 	Use:   "daemon",
-	Short: "Subcommands to run Indigo Node as a daemon",
+	Short: "Subcommands to run Stratumn Node as a daemon",
 }
 
 func init() {
@@ -32,7 +32,7 @@ func init() {
 
 // newDaemon creates a new daemon service.
 func newDaemon() daemon.Daemon {
-	d, err := daemon.New("stratumn-node", "Indigo Node")
+	d, err := daemon.New("stratumn-node", "Stratumn Node")
 	fail(err)
 
 	return d

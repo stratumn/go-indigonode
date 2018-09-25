@@ -1,15 +1,15 @@
-# Indigo Node
+# Stratumn Node
 
 [![GoDoc](https://github.com/golang/gddo/blob/c782c79e0a3c3282dacdaaebeff9e6fd99cb2919/gddo-server/assets/status.svg)](http://godoc.org/github.com/stratumn/go-node)
 [![Build Status](https://semaphoreci.com/api/v1/projects/7e0b5b26-d529-4d2b-a0a0-fabc120c414a/2050943/badge.svg)](https://semaphoreci.com/stratumn/go-node)
 [![codecov](https://codecov.io/gh/stratumn/go-node/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-node)
 [![Go Report Card](https://goreportcard.com/badge/github.com/stratumn/go-node)](https://goreportcard.com/report/github.com/stratumn/go-node)
 
-Indigo Node is virtual infrastructure for interoperable P2P services.
+Stratumn Node is virtual infrastructure for interoperable P2P services.
 
 ## Project Status
 
-The current focus is to build a solid architecture to develop P2P services and run Stratumn's Indigo products.
+The current focus is to build a solid architecture to develop P2P services and run Stratumn's products.
 
 ### Current features
 
@@ -17,7 +17,6 @@ The current focus is to build a solid architecture to develop P2P services and r
 - core services (P2P, NAT, DHT routing, relay, etc...)
 - P2P bootstrapping from seed nodes
 - P2P bootstrapping for private networks (with a coordinator node)
-- Indigo Store and Fossilizer support
 - gRPC API
 - CLI with gRPC command reflection
 - neat and powerful inner-process service based architecture
@@ -119,7 +118,7 @@ grafana-server
 
 ## Traces
 
-Distributed tracing is available in Indigo Node but disabled by default.
+Distributed tracing is available in Stratumn Node but disabled by default.
 
 You can configure it in the `monitoring` section in `stratumn_node.core.config`.
 

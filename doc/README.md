@@ -12,7 +12,7 @@
 
 - [Contributing](contribute.md)
 - [Conventions](conventions.md)
-- [Extend Indigo Node](extend.md)
+- [Extend Stratumn Node](extend.md)
 - [System Testing](system.md)
 - [Libp2p Overview](libp2p.md)
 - [Internal Dependency Graph](depgraph.md)

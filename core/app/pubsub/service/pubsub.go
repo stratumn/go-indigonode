@@ -31,7 +31,7 @@ var (
 	ErrNotHost = errors.New("connected service is not a host")
 )
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the PubSub service.

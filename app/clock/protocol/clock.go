@@ -36,11 +36,11 @@ import (
 // log is the logger for the protocol.
 var log = logging.Logger("clock")
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the protocol.
-var ProtocolID = protocol.ID("/indigo/node/clock/v1.0.0")
+var ProtocolID = protocol.ID("/stratumn/node/clock/v1.0.0")
 
 // Clock implements the clock protocol.
 type Clock struct {

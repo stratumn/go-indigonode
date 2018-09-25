@@ -62,7 +62,7 @@ var (
 // log is the logger for the service.
 var log = logging.Logger(ServiceID)
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host ihost.Host
 
 // Service is the Bootstrap service.

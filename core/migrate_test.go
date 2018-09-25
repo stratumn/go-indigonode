@@ -89,7 +89,7 @@ func TestMigrations(t *testing.T) {
 
 // Original configuration before migrations.
 const confZero = `
-# Indigo Node configuration file. Keep private!!!
+# Stratumn Node configuration file. Keep private!!!
 
 # Settings for the bootstrap module.
 [bootstrap]
@@ -188,7 +188,7 @@ const confZero = `
   # Name of the host service used by the boot screen to display metrics and host addresses.
   boot_screen_host = "host"
 
-  # The version of Indigo Node that generated this file.
+  # The version of Stratumn Node that generated this file.
   generated_by_version = "v0.0.1"
 
   [[core.service_groups]]
@@ -275,20 +275,6 @@ const confZero = `
     # Services started by the group.
     services = ["contacts","event"]
 
-  [[core.service_groups]]
-
-    # Description of the service group.
-    description = "Starts Stratumn Indigo services for Proof-of-Process networks."
-
-    # Unique identifier of the service group.
-    id = "indigo"
-
-    # Name of the service group.
-    name = "Stratumn Indigo Services"
-
-    # Services started by the group.
-    services = ["indigostore","indigofossilizer"]
-
 # Settings for the event module.
 [event]
 
@@ -345,58 +331,6 @@ const confZero = `
 
   # The name of the host service.
   host = "host"
-
-# Settings for the indigofossilizer module.
-[indigofossilizer]
-
-  # amount of the fee to use when sending transactions to the bitcoin blockchain (only applicable to the bitcoin fossilizer).
-  bitcoin_fee = 15000
-
-  # The type of fossilizer (eg: dummy, dummybatch, bitcoin...).
-  fossilizer_type = "dummy"
-
-  # The time interval between batches expressed in seconds (only applicable to fossilizers using batches).
-  interval = 0
-
-  # The maximum number of leaves of a merkle tree in a batch (only applicable to fossilizers using batches).
-  max_leaves = 0
-
-  # The version of the indigo fossilizer service.
-  version = "0.1.0"
-
-# Settings for the indigostore module.
-[indigostore]
-
-  # The name of the host service.
-  host = "host"
-
-  # The type of storage to use.
-  # Supported values: in-memory and postgreSQL.
-  storage_type = "in-memory"
-
-  # The name of the swarm service.
-  swarm = "swarm"
-
-  # The ID of your Indigo PoP network.
-  network_id = "indigo"
-
-  # The version of the indigo service.
-  version = "0.1.0"
-
-  # Configure settings for the Indigo PostgreSQL Store in the following section.
-  [indigostore.postgres]
-
-    # If external storage is used, the url of that storage.
-    storage_db_url = "postgres://postgres@postgres/postgres?sslmode=disable"
-
-  # Configure settings for the validation rules of your indigo network in the following section.
-  [indigostore.validation]
-
-    # The directory where the validator scripts are located.
-    plugins_path = ""
-
-    # The path to the validation rules file.
-    rules_path = ""
 
 # Settings for the kaddht module.
 [kaddht]

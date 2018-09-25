@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package core defines Indigo Node's core functionality.
+// Package core defines Stratumn Node's core functionality.
 package core
 
 import (

@@ -47,7 +47,7 @@ var (
 
 var log = logging.Logger("storage.service")
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the Storage service.

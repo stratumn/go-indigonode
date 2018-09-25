@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Service describes an Indigo Node service.
+// Service describes a Stratumn Node service.
 type Service interface {
 	// ID returns a unique identifier.
 	ID() string

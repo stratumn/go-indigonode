@@ -31,7 +31,7 @@ var services = core.BuiltinServices()
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
 	Use:   "stratumn-node",
-	Short: "Indigo Node is a node in an Indigo network",
+	Short: "Stratumn Node is a node in a P2P network",
 }
 
 // Execute adds all child commands to the root command and sets flags

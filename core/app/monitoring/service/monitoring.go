@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package service defines a service to configure monitoring for your Indigo
+// Package service defines a service to configure monitoring for your Stratumn
 // Node.
 // Metrics are collected and can be exposed to a Prometheus server.
 // Traces are collected and can be exported to a tracing agent
@@ -26,8 +26,6 @@ import (
 
 	"github.com/pkg/errors"
 	chat "github.com/stratumn/go-node/app/chat/protocol"
-	indigofossilizer "github.com/stratumn/go-node/app/indigo/protocol/fossilizer"
-	indigostore "github.com/stratumn/go-node/app/indigo/protocol/store"
 	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/protocol"
 	grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
 	pb "github.com/stratumn/go-node/core/app/monitoring/grpc"
@@ -62,10 +60,6 @@ var views = []*view.View{
 	grpcapi.RequestError,
 	grpcapi.RequestDuration,
 	bootstrap.Participants,
-	indigofossilizer.Fossils,
-	indigostore.SegmentsCreated,
-	indigostore.SegmentsReceived,
-	indigostore.InvalidSegments,
 }
 
 // Service is the Monitoring service.

@@ -29,7 +29,7 @@ const (
 	// InventoryFlagName is the name of the flag to pass the ansible inventory file.
 	InventoryFlagName = "inventory"
 
-	// DefaultInventory is the default name for the Indigo test network inventory file.
+	// DefaultInventory is the default name for the Stratumn test network inventory file.
 	DefaultInventory = "network.ini"
 
 	// PlaybookFlagName is the name of the flag for the ansible playbook.
@@ -134,7 +134,7 @@ func runDeploy(cmd *exec.Cmd) {
 // deployCmd represents the deploy command
 var deployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Deploys an indigo network on the cloud",
+	Short: "Deploys a stratumn nodes network on the cloud",
 	Run: func(cmd *cobra.Command, args []string) {
 		getDependencies()
 		ansibleCmd := exec.Command(

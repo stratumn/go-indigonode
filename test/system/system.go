@@ -15,9 +15,9 @@
 
 //+build !lint
 
-// Package system defines system tests for Indigo Node.
+// Package system defines system tests for Stratumn Node.
 //
-// The tests are done by connecting via the API to Indigo nodes launched in
+// The tests are done by connecting via the API to Stratumn nodes launched in
 // separate processes.
 package system
 

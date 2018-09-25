@@ -35,7 +35,7 @@ func TestNewStream(t *testing.T) {
 	provider := streamutil.NewStreamProvider()
 
 	peerID := test.GeneratePeerID(t)
-	protocolID := protocol.ID("/indigo/node/test/streamutil/v1.0.0")
+	protocolID := protocol.ID("/stratumn/node/test/streamutil/v1.0.0")
 
 	t.Run("reject-missing-peer-id", func(t *testing.T) {
 		ctrl := gomock.NewController(t)

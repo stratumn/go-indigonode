@@ -1,6 +1,6 @@
 # Systemd Installation
 
-Make sure Indigo Node is installed somewhere in your `$PATH`.
+Make sure Stratumn Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Journald
 
@@ -30,7 +30,7 @@ You should also disable the boot screen in the `core` section:
   enable_boot_screen = false
 ```
 
-## Setup The Indigo Node Daemon
+## Setup The Stratumn Node Daemon
 
 Install the systemd unit file:
 
@@ -44,7 +44,7 @@ Tell systemd to reload the unit files:
 systemctl daemon-reload
 ```
 
-Start the Indigo Node service:
+Start the Stratumn Node service:
 
 ```bash
 systemctl start stratumn-node

@@ -20,8 +20,6 @@ import (
 	clock "github.com/stratumn/go-node/app/clock/service"
 	coin "github.com/stratumn/go-node/app/coin/service"
 	contacts "github.com/stratumn/go-node/app/contacts/service"
-	indigofossilizer "github.com/stratumn/go-node/app/indigo/service/fossilizer"
-	indigostore "github.com/stratumn/go-node/app/indigo/service/store"
 	raft "github.com/stratumn/go-node/app/raft/service"
 	storage "github.com/stratumn/go-node/app/storage/service"
 	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
@@ -59,8 +57,6 @@ func BuiltinServices() []manager.Service {
 		&grpcweb.Service{},
 		&host.Service{},
 		&identify.Service{},
-		&indigostore.Service{},
-		&indigofossilizer.Service{},
 		&kaddht.Service{},
 		&monitoring.Service{},
 		&mssmux.Service{},

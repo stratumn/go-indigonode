@@ -1,6 +1,6 @@
 # Launchd Installation
 
-Make sure Indigo Node is installed somewhere in your `$PATH`.
+Make sure Stratumn Node is installed somewhere in your `$PATH`.
 
 ## Configure Logging For Launchd
 
@@ -41,7 +41,7 @@ You should also disable the boot screen in the `core` section:
   enable_boot_screen = false
 ```
 
-## Setup The Indigo Node Daemon
+## Setup The Stratumn Node Daemon
 
 Install the property list file:
 
@@ -49,7 +49,7 @@ Install the property list file:
 stratumn-node daemon install --core-config /path/to/stratumn_node.core.toml
 ```
 
-Start the Indigo Node service:
+Start the Stratumn Node service:
 
 ```bash
 sudo launchctl load /Library/LaunchDaemons/stratumn-node.plist

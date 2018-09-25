@@ -39,7 +39,7 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the Ping service.

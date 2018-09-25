@@ -3,10 +3,10 @@
 ## Introduction
 
 A service is a fundamental concept. Almost everything is implemented as a
-service. In fact, the core of Indigo Node is essentially a service manager.
+service. In fact, the core of Stratumn Node is essentially a service manager.
 Without any services running, it doesn't do much!
 
-A service runs until it is no longer needed and adds functionality to an Indigo
+A service runs until it is no longer needed and adds functionality to an Stratumn
 node. For instance, the CLI (Command Line Interface) connects to a node via its
 gRPC API. If the gRPC API service is stopped, it is no longer possible to
 control the node from the CLI.
@@ -32,7 +32,7 @@ a chat application. Other services, such as `boot`, do nothing on their own,
 and exist solely to ensure other services are started.
 
 A service can depend on other services, as you can see in the `NEEDS` column
-back in the CLI. When you start a service that needs other services, Indigo Node
+back in the CLI. When you start a service that needs other services, Stratumn Node
 starts all of them. If a service is not needed by any other services, it is
 said to be `STOPPABLE`. A service is said to be `PRUNABLE` if it wasn't
 started directly but rather because it was needed by another service. Every
@@ -81,10 +81,10 @@ system   STOPPED  [pruner signal]  true       true      System Services  Starts 
 ```
 
 What happened there? We stopped the `boot` service. It is a very special
-service that tells Indigo Node what to start when it boots. It does so by declaring
+service that tells Stratumn Node what to start when it boots. It does so by declaring
 that it "needs" other services. Since we just shut it down, nothing except the
 services required by the gRPC API is needed anymore. Good thing we made sure
-the gRPC API service wouldn't be stopped! We also told Indigo Node to immediately
+the gRPC API service wouldn't be stopped! We also told Stratumn Node to immediately
 prune the services so they would be removed right away.
 
 You can turn the services back on by starting the `boot` service again.

@@ -17,10 +17,10 @@ import (
 type host = ihost.Host
 
 // DiscoverProtocol defines protocol for peer discovery
-var DiscoverProtocol = protocol.ID("/indigo/node/circle-discover/v1.0.0")
+var DiscoverProtocol = protocol.ID("/stratumn/node/circle-discover/v1.0.0")
 
 // CircleProtocol defines protocol for internal use
-var CircleProtocol = protocol.ID("/indigo/node/circle/v1.0.0")
+var CircleProtocol = protocol.ID("/stratumn/node/circle/v1.0.0")
 
 type netProcess struct {
 	host               host

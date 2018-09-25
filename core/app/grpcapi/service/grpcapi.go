@@ -16,7 +16,7 @@
 /*
 Package service defines a service that exposes a gRPC API.
 
-The API allows external applications such as Indigo Node's command line interface
+The API allows external applications such as Stratumn Node's command line interface
 to interact with the node without having to connect to the P2P network.
 
 The API is implemented using gRPC. It is possible to automatically generate API

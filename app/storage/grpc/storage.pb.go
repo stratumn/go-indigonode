@@ -191,7 +191,7 @@ const _ = grpc1.SupportPackageIsVersion4
 // Client API for Storage service
 
 type StorageClient interface {
-	// Upload a file to the Indigo node.
+	// Upload a file to the Stratumn node.
 	Upload(ctx context.Context, opts ...grpc1.CallOption) (Storage_UploadClient, error)
 	// Sends a request to the server to start a new upload.
 	StartUpload(ctx context.Context, in *UploadReq, opts ...grpc1.CallOption) (*UploadSession, error)
@@ -318,7 +318,7 @@ func (x *storageDownloadClient) Recv() (*stratumn_node_app_storage.FileChunk, er
 // Server API for Storage service
 
 type StorageServer interface {
-	// Upload a file to the Indigo node.
+	// Upload a file to the Stratumn node.
 	Upload(Storage_UploadServer) error
 	// Sends a request to the server to start a new upload.
 	StartUpload(context.Context, *UploadReq) (*UploadSession, error)

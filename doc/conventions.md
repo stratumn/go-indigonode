@@ -13,7 +13,7 @@ protocols:
 - multicodec - self-describing serialization
 - multistream - self-describing stream network protocols
 
-Indigo Node uses these when possible.
+Stratumn Node uses these when possible.
 
 The string representation of the formats should be used in documentation and
 human readable files such as configuration files.
@@ -47,7 +47,7 @@ Use commit messages of the form `package: short description`. For instance:
 
 ## Logging
 
-For consistency with libp2p, Indigo Node uses
+For consistency with libp2p, Stratumn Node uses
 [go-log](https://github.com/ipfs/go-log) as the logger.
 
 It is an event based logger (use events, not the deprecated Debug, Info,

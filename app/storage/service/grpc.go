@@ -82,7 +82,7 @@ type grpcServer struct {
 	uploadTimeout time.Duration
 }
 
-// Upload saves a file on the Indigo node.
+// Upload saves a file on the Stratumn node.
 // The first message must contain the file name.
 func (s *grpcServer) Upload(stream grpcpb.Storage_UploadServer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.uploadTimeout)

@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	indigopb "github.com/stratumn/go-node/app/indigo/pb/store"
 	"github.com/stratumn/go-node/core/app/bootstrap/pb"
 	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
 	protectorpb "github.com/stratumn/go-node/core/protector/pb"
@@ -130,17 +129,6 @@ func ExpectEncodeVote(t *testing.T, codec *mockstream.MockCodec, r *proposal.Req
 		require.NoError(t, err)
 		require.NoError(t, v.Verify(context.Background(), r))
 
-		return nil
-	})
-}
-
-// ExpectDecodeSegment configures a mock codec to decode the given segment.
-func ExpectDecodeSegment(t *testing.T, codec *mockstream.MockCodec, s *indigopb.Segment) {
-	codec.EXPECT().Decode(gomock.Any()).Do(func(n interface{}) error {
-		seg, ok := n.(*indigopb.Segment)
-		require.True(t, ok, "n.(*indigopb.Segment)")
-
-		*seg = *s
 		return nil
 	})
 }

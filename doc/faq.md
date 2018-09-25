@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-## When did Indigo Node start
+## When did Stratumn Node start
 
 October 12th 2017.
 

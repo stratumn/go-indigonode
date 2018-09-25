@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/go-indigonode/core/p2p"
+	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/require"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"

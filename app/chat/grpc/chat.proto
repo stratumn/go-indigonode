@@ -17,34 +17,34 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.app.chat.grpc;
+package stratumn.node.app.chat.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/app/chat/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/app/chat/grpc;grpc";
 
 // The chat service definition.
 service Chat {
   // Sends a message to a peer.
   rpc Message (ChatMessage) returns (Ack) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Send a message to a peer";
+    option (stratumn.node.cli.ext.method_desc) = "Send a message to a peer";
   }
 
   // Gets the chat history with a peer.
   rpc GetHistory (HistoryReq) returns (stream DatedMessage) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Gets the chat history with a peer";
+    option (stratumn.node.cli.ext.method_desc) = "Gets the chat history with a peer";
   }
 }
 
 // A chat message.
 message ChatMessage {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Peer ID",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   string message = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Message content"
+    (stratumn.node.cli.ext.field_desc) = "Message content"
   ];
 }
 
@@ -55,28 +55,28 @@ message Ack {
 // The request message to get the chat history with a peer.
 message HistoryReq {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Peer ID",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
 }
 
 message DatedMessage {
   bytes from = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Message sender",
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Message sender",
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   bytes to = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Message recipient",
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Message recipient",
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   string content = 3 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Message content",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Message content",
+    (stratumn.node.cli.ext.field_required) = true
   ];
   google.protobuf.Timestamp time = 4 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Message received time",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Message received time",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 

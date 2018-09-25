@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/test"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

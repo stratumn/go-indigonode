@@ -19,7 +19,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	pb "github.com/stratumn/go-indigonode/app/coin/pb"
+	pb "github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

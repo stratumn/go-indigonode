@@ -18,8 +18,8 @@ package protocol
 import (
 	"context"
 
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/protector"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"

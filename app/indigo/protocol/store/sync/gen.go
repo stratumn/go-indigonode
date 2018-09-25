@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync Engine
+//go:generate mockgen -package mocksync -destination mocksync/mocksync.go github.com/stratumn/go-node/app/indigo/protocol/store/sync Engine
 
 package sync

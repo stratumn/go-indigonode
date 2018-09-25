@@ -19,7 +19,7 @@ import (
 	"bytes"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 
 	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )

@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/core/db"
 
 	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )

@@ -19,7 +19,7 @@ package storetestcases
 import (
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/audit"
 )
 
 // Factory wraps functions to allocate and free an audit store

@@ -15,11 +15,11 @@
 
 syntax = "proto3"; 
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.core.app.event.grpc;
+package stratumn.node.core.app.event.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/core/app/event/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/core/app/event/grpc;grpc";
 
 // The Emitter service definition.
 // If your service wants to emit events, it should depend on the Emitter
@@ -28,15 +28,15 @@ option go_package = "github.com/stratumn/go-indigonode/core/app/event/grpc;grpc"
 service Emitter {
     // Listen starts listening to events.
     rpc Listen (ListenReq) returns (stream Event) {
-      option (stratumn.indigonode.cli.ext.method_desc) = "Listen for events";
+      option (stratumn.node.cli.ext.method_desc) = "Listen for events";
     }
 }
 
 // The Listen request message.
 message ListenReq {
     string topic = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "Event topic to listen to",
-        (stratumn.indigonode.cli.ext.field_required) = true
+        (stratumn.node.cli.ext.field_desc) = "Event topic to listen to",
+        (stratumn.node.cli.ext.field_required) = true
     ];
 }
 
@@ -51,14 +51,14 @@ enum Level {
 // display customization (if supported by the listener).
 message Event {
     string message = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "Event message to be displayed or logged",
-        (stratumn.indigonode.cli.ext.field_required) = true
+        (stratumn.node.cli.ext.field_desc) = "Event message to be displayed or logged",
+        (stratumn.node.cli.ext.field_required) = true
     ];
     Level level = 2 [
-        (stratumn.indigonode.cli.ext.field_desc) = "Event level that should control the display of the message"
+        (stratumn.node.cli.ext.field_desc) = "Event level that should control the display of the message"
     ];
     string topic = 3 [
-        (stratumn.indigonode.cli.ext.field_desc) = "Event topic",
-        (stratumn.indigonode.cli.ext.field_required) = true
+        (stratumn.node.cli.ext.field_desc) = "Event topic",
+        (stratumn.node.cli.ext.field_required) = true
     ];
 }

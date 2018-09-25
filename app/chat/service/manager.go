@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/chat/grpc"
-	"github.com/stratumn/go-indigonode/core/db"
+	pb "github.com/stratumn/go-node/app/chat/grpc"
+	"github.com/stratumn/go-node/core/db"
 )
 
 // PeerHistory represents a list of messages

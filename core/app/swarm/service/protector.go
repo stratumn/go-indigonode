@@ -18,7 +18,7 @@ package service
 import (
 	"context"
 
-	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-node/core/protector"
 
 	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"

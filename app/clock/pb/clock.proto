@@ -15,9 +15,9 @@
 
 syntax = "proto3";
 
-package stratumn.indigonode.pb.clock;
+package stratumn.node.pb.clock;
 
-option go_package = "github.com/stratumn/go-indigonode/app/clock/pb;pb";
+option go_package = "github.com/stratumn/go-node/app/clock/pb;pb";
 
 // The time message containing a Unix nano timestamp.
 message Time {

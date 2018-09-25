@@ -51,7 +51,7 @@ func NewRline(cli CLI) *Rline {
 func (p *Rline) Run(ctx context.Context, rc io.ReadCloser) {
 	rl, err := readline.NewEx(&readline.Config{
 		Stdin:             rc,
-		Prompt:            "IndigoNode> ",
+		Prompt:            "node> ",
 		HistorySearchFold: true,
 		AutoComplete:      p,
 	})

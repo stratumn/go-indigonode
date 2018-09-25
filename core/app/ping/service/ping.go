@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/app/ping/grpc"
+	pb "github.com/stratumn/go-node/core/app/ping/grpc"
 	"google.golang.org/grpc"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"

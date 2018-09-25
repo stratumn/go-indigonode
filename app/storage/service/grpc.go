@@ -24,8 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
-	grpcpb "github.com/stratumn/go-indigonode/app/storage/grpc"
-	"github.com/stratumn/go-indigonode/app/storage/pb"
+	grpcpb "github.com/stratumn/go-node/app/storage/grpc"
+	"github.com/stratumn/go-node/app/storage/pb"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/manager/testservice"
+	"github.com/stratumn/go-node/core/manager/testservice"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

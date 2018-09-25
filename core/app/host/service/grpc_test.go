@@ -23,10 +23,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/app/host/grpc"
-	mockpb "github.com/stratumn/go-indigonode/core/app/host/grpc/mockgrpc"
-	"github.com/stratumn/go-indigonode/core/p2p"
-	"github.com/stratumn/go-indigonode/test"
+	pb "github.com/stratumn/go-node/core/app/host/grpc"
+	mockpb "github.com/stratumn/go-node/core/app/host/grpc/mockgrpc"
+	"github.com/stratumn/go-node/core/p2p"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

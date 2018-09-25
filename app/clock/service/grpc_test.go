@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/clock/grpc"
+	pb "github.com/stratumn/go-node/app/clock/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

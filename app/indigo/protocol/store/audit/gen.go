@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockaudit -destination mockaudit/mockaudit.go github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit Store
+//go:generate mockgen -package mockaudit -destination mockaudit/mockaudit.go github.com/stratumn/go-node/app/indigo/protocol/store/audit Store
 
 package audit

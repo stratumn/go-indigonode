@@ -15,17 +15,17 @@
 
 syntax = "proto3"; 
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.core.app.grpcapi.grpc;
+package stratumn.node.core.app.grpcapi.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/core/app/grpcapi/grpc;grpc";
 
 // The API service definition.
 service API {
   // Returns information about the API.
   rpc Inform (InformReq) returns (Info) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Get information about the API";
+    option (stratumn.node.cli.ext.method_desc) = "Get information about the API";
   }
 }
 

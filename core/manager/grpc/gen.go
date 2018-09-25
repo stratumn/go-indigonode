@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockmanager.go github.com/stratumn/go-indigonode/core/manager/grpc Manager_ListServer,Manager_PruneServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockmanager.go github.com/stratumn/go-node/core/manager/grpc Manager_ListServer,Manager_PruneServer
 
 package grpc

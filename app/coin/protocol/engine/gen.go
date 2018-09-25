@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockengine -destination mockengine/mockengine.go github.com/stratumn/go-indigonode/app/coin/protocol/engine Engine,PoW
+//go:generate mockgen -package mockengine -destination mockengine/mockengine.go github.com/stratumn/go-node/app/coin/protocol/engine Engine,PoW
 
 package engine

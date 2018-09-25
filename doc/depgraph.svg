@@ -12,12 +12,12 @@
 <!-- N0 -->
 <g id="node1" class="node"><title>N0</title>
 <polygon fill="none" stroke="black" points="6062,-252 5721,-252 5721,-216 6062,-216 6062,-252"/>
-<text text-anchor="middle" x="5891.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/state</text>
+<text text-anchor="middle" x="5891.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/state</text>
 </g>
 <!-- N76 -->
 <g id="node33" class="node"><title>N76</title>
 <polygon fill="none" stroke="black" points="5518,-180 5161,-180 5161,-144 5518,-144 5518,-180"/>
-<text text-anchor="middle" x="5339.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/coinutil</text>
+<text text-anchor="middle" x="5339.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/coinutil</text>
 </g>
 <!-- N0&#45;&gt;N76 -->
 <g id="edge77" class="edge"><title>N0&#45;&gt;N76</title>
@@ -27,7 +27,7 @@
 <!-- N88 -->
 <g id="node68" class="node"><title>N88</title>
 <polygon fill="none" stroke="black" points="6585,-108 6328,-108 6328,-72 6585,-72 6585,-108"/>
-<text text-anchor="middle" x="6456.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/db</text>
+<text text-anchor="middle" x="6456.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/db</text>
 </g>
 <!-- N0&#45;&gt;N88 -->
 <g id="edge79" class="edge"><title>N0&#45;&gt;N88</title>
@@ -37,7 +37,7 @@
 <!-- N16 -->
 <g id="node79" class="node"><title>N16</title>
 <polygon fill="none" stroke="black" points="5763,-108 5482,-108 5482,-72 5763,-72 5763,-108"/>
-<text text-anchor="middle" x="5622.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/pb</text>
+<text text-anchor="middle" x="5622.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/pb</text>
 </g>
 <!-- N0&#45;&gt;N16 -->
 <g id="edge76" class="edge"><title>N0&#45;&gt;N16</title>
@@ -47,7 +47,7 @@
 <!-- N24 -->
 <g id="node87" class="node"><title>N24</title>
 <polygon fill="none" stroke="black" points="6060.5,-180 5726.5,-180 5726.5,-144 6060.5,-144 6060.5,-180"/>
-<text text-anchor="middle" x="5893.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/trie</text>
+<text text-anchor="middle" x="5893.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/trie</text>
 </g>
 <!-- N0&#45;&gt;N24 -->
 <g id="edge78" class="edge"><title>N0&#45;&gt;N24</title>
@@ -57,12 +57,12 @@
 <!-- N38 -->
 <g id="node2" class="node"><title>N38</title>
 <polygon fill="none" stroke="black" points="6885.5,-36 6607.5,-36 6607.5,-0 6885.5,-0 6885.5,-36"/>
-<text text-anchor="middle" x="6746.5" y="-14.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/cli/grpc/ext</text>
+<text text-anchor="middle" x="6746.5" y="-14.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/cli/grpc/ext</text>
 </g>
 <!-- N50 -->
 <g id="node3" class="node"><title>N50</title>
 <polygon fill="none" stroke="black" points="3127.5,-540 2837.5,-540 2837.5,-504 3127.5,-504 3127.5,-540"/>
-<text text-anchor="middle" x="2982.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/chat/grpc</text>
+<text text-anchor="middle" x="2982.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/chat/grpc</text>
 </g>
 <!-- N50&#45;&gt;N38 -->
 <g id="edge10" class="edge"><title>N50&#45;&gt;N38</title>
@@ -72,12 +72,12 @@
 <!-- N56 -->
 <g id="node4" class="node"><title>N56</title>
 <polygon fill="none" stroke="black" points="9727.5,-468 9417.5,-468 9417.5,-432 9727.5,-432 9727.5,-468"/>
-<text text-anchor="middle" x="9572.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/protector/pb</text>
+<text text-anchor="middle" x="9572.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/protector/pb</text>
 </g>
 <!-- N29 -->
 <g id="node46" class="node"><title>N29</title>
 <polygon fill="none" stroke="black" points="9604.5,-396 9326.5,-396 9326.5,-360 9604.5,-360 9604.5,-396"/>
-<text text-anchor="middle" x="9465.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/crypto</text>
+<text text-anchor="middle" x="9465.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/crypto</text>
 </g>
 <!-- N56&#45;&gt;N29 -->
 <g id="edge149" class="edge"><title>N56&#45;&gt;N29</title>
@@ -87,7 +87,7 @@
 <!-- N91 -->
 <g id="node5" class="node"><title>N91</title>
 <polygon fill="none" stroke="black" points="5832.5,-468 5482.5,-468 5482.5,-432 5832.5,-432 5832.5,-468"/>
-<text text-anchor="middle" x="5657.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/gossip</text>
+<text text-anchor="middle" x="5657.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/gossip</text>
 </g>
 <!-- N91&#45;&gt;N0 -->
 <g id="edge180" class="edge"><title>N91&#45;&gt;N0</title>
@@ -97,7 +97,7 @@
 <!-- N8 -->
 <g id="node31" class="node"><title>N8</title>
 <polygon fill="none" stroke="black" points="5764.5,-396 5400.5,-396 5400.5,-360 5764.5,-360 5764.5,-396"/>
-<text text-anchor="middle" x="5582.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/validator</text>
+<text text-anchor="middle" x="5582.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/validator</text>
 </g>
 <!-- N91&#45;&gt;N8 -->
 <g id="edge181" class="edge"><title>N91&#45;&gt;N8</title>
@@ -107,7 +107,7 @@
 <!-- N17 -->
 <g id="node71" class="node"><title>N17</title>
 <polygon fill="none" stroke="black" points="5105,-252 4760,-252 4760,-216 5105,-216 5105,-252"/>
-<text text-anchor="middle" x="4932.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/chain</text>
+<text text-anchor="middle" x="4932.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/chain</text>
 </g>
 <!-- N91&#45;&gt;N17 -->
 <g id="edge179" class="edge"><title>N91&#45;&gt;N17</title>
@@ -122,12 +122,12 @@
 <!-- N6 -->
 <g id="node6" class="node"><title>N6</title>
 <polygon fill="none" stroke="black" points="7516.5,-684 7180.5,-684 7180.5,-648 7516.5,-648 7516.5,-684"/>
-<text text-anchor="middle" x="7348.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/relay/service</text>
+<text text-anchor="middle" x="7348.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/relay/service</text>
 </g>
 <!-- N9 -->
 <g id="node7" class="node"><title>N9</title>
 <polygon fill="none" stroke="black" points="6890,-108 6603,-108 6603,-72 6890,-72 6890,-108"/>
-<text text-anchor="middle" x="6746.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/raft/grpc</text>
+<text text-anchor="middle" x="6746.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/raft/grpc</text>
 </g>
 <!-- N9&#45;&gt;N38 -->
 <g id="edge198" class="edge"><title>N9&#45;&gt;N38</title>
@@ -137,7 +137,7 @@
 <!-- N32 -->
 <g id="node8" class="node"><title>N32</title>
 <polygon fill="none" stroke="black" points="4583.5,-756 4343.5,-756 4343.5,-720 4583.5,-720 4583.5,-756"/>
-<text text-anchor="middle" x="4463.5" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core</text>
+<text text-anchor="middle" x="4463.5" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core</text>
 </g>
 <!-- N32&#45;&gt;N6 -->
 <g id="edge49" class="edge"><title>N32&#45;&gt;N6</title>
@@ -147,7 +147,7 @@
 <!-- N67 -->
 <g id="node11" class="node"><title>N67</title>
 <polygon fill="none" stroke="black" points="347,-684 2.84217e-14,-684 2.84217e-14,-648 347,-648 347,-684"/>
-<text text-anchor="middle" x="173.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/yamux/service</text>
+<text text-anchor="middle" x="173.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/yamux/service</text>
 </g>
 <!-- N32&#45;&gt;N67 -->
 <g id="edge52" class="edge"><title>N32&#45;&gt;N67</title>
@@ -157,7 +157,7 @@
 <!-- N72 -->
 <g id="node12" class="node"><title>N72</title>
 <polygon fill="none" stroke="black" points="723.5,-684 365.5,-684 365.5,-648 723.5,-648 723.5,-684"/>
-<text text-anchor="middle" x="544.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/connmgr/service</text>
+<text text-anchor="middle" x="544.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/connmgr/service</text>
 </g>
 <!-- N32&#45;&gt;N72 -->
 <g id="edge36" class="edge"><title>N32&#45;&gt;N72</title>
@@ -167,7 +167,7 @@
 <!-- N34 -->
 <g id="node13" class="node"><title>N34</title>
 <polygon fill="none" stroke="black" points="1093,-684 742,-684 742,-648 1093,-648 1093,-684"/>
-<text text-anchor="middle" x="917.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/identify/service</text>
+<text text-anchor="middle" x="917.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/identify/service</text>
 </g>
 <!-- N32&#45;&gt;N34 -->
 <g id="edge41" class="edge"><title>N32&#45;&gt;N34</title>
@@ -177,7 +177,7 @@
 <!-- N45 -->
 <g id="node14" class="node"><title>N45</title>
 <polygon fill="none" stroke="black" points="4804.5,-540 4454.5,-540 4454.5,-504 4804.5,-504 4804.5,-540"/>
-<text text-anchor="middle" x="4629.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/metrics/service</text>
+<text text-anchor="middle" x="4629.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/metrics/service</text>
 </g>
 <!-- N32&#45;&gt;N45 -->
 <g id="edge43" class="edge"><title>N32&#45;&gt;N45</title>
@@ -187,7 +187,7 @@
 <!-- N81 -->
 <g id="node17" class="node"><title>N81</title>
 <polygon fill="none" stroke="black" points="2243.5,-684 1897.5,-684 1897.5,-648 2243.5,-648 2243.5,-684"/>
-<text text-anchor="middle" x="2070.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/kaddht/service</text>
+<text text-anchor="middle" x="2070.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/kaddht/service</text>
 </g>
 <!-- N32&#45;&gt;N81 -->
 <g id="edge42" class="edge"><title>N32&#45;&gt;N81</title>
@@ -197,7 +197,7 @@
 <!-- N92 -->
 <g id="node30" class="node"><title>N92</title>
 <polygon fill="none" stroke="black" points="2066,-612 1805,-612 1805,-576 2066,-576 2066,-612"/>
-<text text-anchor="middle" x="1935.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/log</text>
+<text text-anchor="middle" x="1935.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/log</text>
 </g>
 <!-- N32&#45;&gt;N92 -->
 <g id="edge54" class="edge"><title>N32&#45;&gt;N92</title>
@@ -207,7 +207,7 @@
 <!-- N12 -->
 <g id="node35" class="node"><title>N12</title>
 <polygon fill="none" stroke="black" points="6772.5,-684 6402.5,-684 6402.5,-648 6772.5,-648 6772.5,-684"/>
-<text text-anchor="middle" x="6587.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/service/fossilizer</text>
+<text text-anchor="middle" x="6587.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/service/fossilizer</text>
 </g>
 <!-- N32&#45;&gt;N12 -->
 <g id="edge31" class="edge"><title>N32&#45;&gt;N12</title>
@@ -217,7 +217,7 @@
 <!-- N46 -->
 <g id="node37" class="node"><title>N46</title>
 <polygon fill="none" stroke="black" points="4131,-612 3840,-612 3840,-576 4131,-576 4131,-612"/>
-<text text-anchor="middle" x="3985.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/manager</text>
+<text text-anchor="middle" x="3985.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/manager</text>
 </g>
 <!-- N32&#45;&gt;N46 -->
 <g id="edge55" class="edge"><title>N32&#45;&gt;N46</title>
@@ -227,7 +227,7 @@
 <!-- N5 -->
 <g id="node40" class="node"><title>N5</title>
 <polygon fill="none" stroke="black" points="4455.5,-684 4105.5,-684 4105.5,-648 4455.5,-648 4455.5,-684"/>
-<text text-anchor="middle" x="4280.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/grpcapi/service</text>
+<text text-anchor="middle" x="4280.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/grpcapi/service</text>
 </g>
 <!-- N32&#45;&gt;N5 -->
 <g id="edge38" class="edge"><title>N32&#45;&gt;N5</title>
@@ -237,7 +237,7 @@
 <!-- N14 -->
 <g id="node41" class="node"><title>N14</title>
 <polygon fill="none" stroke="black" points="3293,-684 2988,-684 2988,-648 3293,-648 3293,-684"/>
-<text text-anchor="middle" x="3140.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/chat/service</text>
+<text text-anchor="middle" x="3140.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/chat/service</text>
 </g>
 <!-- N32&#45;&gt;N14 -->
 <g id="edge27" class="edge"><title>N32&#45;&gt;N14</title>
@@ -247,7 +247,7 @@
 <!-- N59 -->
 <g id="node42" class="node"><title>N59</title>
 <polygon fill="none" stroke="black" points="2483.5,-540 2145.5,-540 2145.5,-504 2483.5,-504 2483.5,-540"/>
-<text text-anchor="middle" x="2314.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/event/service</text>
+<text text-anchor="middle" x="2314.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/event/service</text>
 </g>
 <!-- N32&#45;&gt;N59 -->
 <g id="edge37" class="edge"><title>N32&#45;&gt;N59</title>
@@ -257,7 +257,7 @@
 <!-- N35 -->
 <g id="node47" class="node"><title>N35</title>
 <polygon fill="none" stroke="black" points="2603,-684 2262,-684 2262,-648 2603,-648 2603,-684"/>
-<text text-anchor="middle" x="2432.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/signal/service</text>
+<text text-anchor="middle" x="2432.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/signal/service</text>
 </g>
 <!-- N32&#45;&gt;N35 -->
 <g id="edge50" class="edge"><title>N32&#45;&gt;N35</title>
@@ -267,7 +267,7 @@
 <!-- N74 -->
 <g id="node48" class="node"><title>N74</title>
 <polygon fill="none" stroke="black" points="5821,-684 5516,-684 5516,-648 5821,-648 5821,-684"/>
-<text text-anchor="middle" x="5668.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/service</text>
+<text text-anchor="middle" x="5668.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/service</text>
 </g>
 <!-- N32&#45;&gt;N74 -->
 <g id="edge29" class="edge"><title>N32&#45;&gt;N74</title>
@@ -277,7 +277,7 @@
 <!-- N41 -->
 <g id="node50" class="node"><title>N41</title>
 <polygon fill="none" stroke="black" points="1879.5,-684 1531.5,-684 1531.5,-648 1879.5,-648 1879.5,-684"/>
-<text text-anchor="middle" x="1705.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/pubsub/service</text>
+<text text-anchor="middle" x="1705.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/pubsub/service</text>
 </g>
 <!-- N32&#45;&gt;N41 -->
 <g id="edge48" class="edge"><title>N32&#45;&gt;N41</title>
@@ -287,7 +287,7 @@
 <!-- N44 -->
 <g id="node51" class="node"><title>N44</title>
 <polygon fill="none" stroke="black" points="6384,-684 6083,-684 6083,-648 6384,-648 6384,-684"/>
-<text text-anchor="middle" x="6233.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/raft/service</text>
+<text text-anchor="middle" x="6233.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/raft/service</text>
 </g>
 <!-- N32&#45;&gt;N44 -->
 <g id="edge33" class="edge"><title>N32&#45;&gt;N44</title>
@@ -297,7 +297,7 @@
 <!-- N94 -->
 <g id="node52" class="node"><title>N94</title>
 <polygon fill="none" stroke="black" points="3821.5,-612 3557.5,-612 3557.5,-576 3821.5,-576 3821.5,-612"/>
-<text text-anchor="middle" x="3689.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/p2p</text>
+<text text-anchor="middle" x="3689.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/p2p</text>
 </g>
 <!-- N32&#45;&gt;N94 -->
 <g id="edge56" class="edge"><title>N32&#45;&gt;N94</title>
@@ -307,7 +307,7 @@
 <!-- N54 -->
 <g id="node53" class="node"><title>N54</title>
 <polygon fill="none" stroke="black" points="4436.5,-540 4080.5,-540 4080.5,-504 4436.5,-504 4436.5,-540"/>
-<text text-anchor="middle" x="4258.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/grpcweb/service</text>
+<text text-anchor="middle" x="4258.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/grpcweb/service</text>
 </g>
 <!-- N32&#45;&gt;N54 -->
 <g id="edge39" class="edge"><title>N32&#45;&gt;N54</title>
@@ -317,7 +317,7 @@
 <!-- N96 -->
 <g id="node59" class="node"><title>N96</title>
 <polygon fill="none" stroke="black" points="7463,-396 7142,-396 7142,-360 7463,-360 7463,-396"/>
-<text text-anchor="middle" x="7302.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/service</text>
+<text text-anchor="middle" x="7302.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/service</text>
 </g>
 <!-- N32&#45;&gt;N96 -->
 <g id="edge34" class="edge"><title>N32&#45;&gt;N96</title>
@@ -327,7 +327,7 @@
 <!-- N48 -->
 <g id="node64" class="node"><title>N48</title>
 <polygon fill="none" stroke="black" points="8738,-684 8477,-684 8477,-648 8738,-648 8738,-684"/>
-<text text-anchor="middle" x="8607.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/cfg</text>
+<text text-anchor="middle" x="8607.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/cfg</text>
 </g>
 <!-- N32&#45;&gt;N48 -->
 <g id="edge53" class="edge"><title>N32&#45;&gt;N48</title>
@@ -337,7 +337,7 @@
 <!-- N53 -->
 <g id="node65" class="node"><title>N53</title>
 <polygon fill="none" stroke="black" points="4817.5,-684 4473.5,-684 4473.5,-648 4817.5,-648 4817.5,-684"/>
-<text text-anchor="middle" x="4645.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/pruner/service</text>
+<text text-anchor="middle" x="4645.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/pruner/service</text>
 </g>
 <!-- N32&#45;&gt;N53 -->
 <g id="edge47" class="edge"><title>N32&#45;&gt;N53</title>
@@ -347,7 +347,7 @@
 <!-- N15 -->
 <g id="node70" class="node"><title>N15</title>
 <polygon fill="none" stroke="black" points="2969.5,-684 2621.5,-684 2621.5,-648 2969.5,-648 2969.5,-684"/>
-<text text-anchor="middle" x="2795.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/natmgr/service</text>
+<text text-anchor="middle" x="2795.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/natmgr/service</text>
 </g>
 <!-- N32&#45;&gt;N15 -->
 <g id="edge45" class="edge"><title>N32&#45;&gt;N15</title>
@@ -357,7 +357,7 @@
 <!-- N26 -->
 <g id="node72" class="node"><title>N26</title>
 <polygon fill="none" stroke="black" points="7957,-684 7610,-684 7610,-648 7957,-648 7957,-684"/>
-<text text-anchor="middle" x="7783.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/service/store</text>
+<text text-anchor="middle" x="7783.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/service/store</text>
 </g>
 <!-- N32&#45;&gt;N26 -->
 <g id="edge32" class="edge"><title>N32&#45;&gt;N26</title>
@@ -367,7 +367,7 @@
 <!-- N4 -->
 <g id="node77" class="node"><title>N4</title>
 <polygon fill="none" stroke="black" points="3661,-684 3350,-684 3350,-648 3661,-648 3661,-684"/>
-<text text-anchor="middle" x="3505.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/clock/service</text>
+<text text-anchor="middle" x="3505.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/clock/service</text>
 </g>
 <!-- N32&#45;&gt;N4 -->
 <g id="edge28" class="edge"><title>N32&#45;&gt;N4</title>
@@ -377,7 +377,7 @@
 <!-- N60 -->
 <g id="node82" class="node"><title>N60</title>
 <polygon fill="none" stroke="black" points="5229.5,-684 4873.5,-684 4873.5,-648 5229.5,-648 5229.5,-684"/>
-<text text-anchor="middle" x="5051.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/mssmux/service</text>
+<text text-anchor="middle" x="5051.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/mssmux/service</text>
 </g>
 <!-- N32&#45;&gt;N60 -->
 <g id="edge44" class="edge"><title>N32&#45;&gt;N60</title>
@@ -387,7 +387,7 @@
 <!-- N64 -->
 <g id="node84" class="node"><title>N64</title>
 <polygon fill="none" stroke="black" points="7526.5,-612 7180.5,-612 7180.5,-576 7526.5,-576 7526.5,-612"/>
-<text text-anchor="middle" x="7353.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/swarm/service</text>
+<text text-anchor="middle" x="7353.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/swarm/service</text>
 </g>
 <!-- N32&#45;&gt;N64 -->
 <g id="edge51" class="edge"><title>N32&#45;&gt;N64</title>
@@ -397,7 +397,7 @@
 <!-- N23 -->
 <g id="node86" class="node"><title>N23</title>
 <polygon fill="none" stroke="black" points="4087.5,-684 3755.5,-684 3755.5,-648 4087.5,-648 4087.5,-684"/>
-<text text-anchor="middle" x="3921.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/host/service</text>
+<text text-anchor="middle" x="3921.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/host/service</text>
 </g>
 <!-- N32&#45;&gt;N23 -->
 <g id="edge40" class="edge"><title>N32&#45;&gt;N23</title>
@@ -407,7 +407,7 @@
 <!-- N25 -->
 <g id="node88" class="node"><title>N25</title>
 <polygon fill="none" stroke="black" points="9328.5,-612 9074.5,-612 9074.5,-576 9328.5,-576 9328.5,-612"/>
-<text text-anchor="middle" x="9201.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/release</text>
+<text text-anchor="middle" x="9201.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/release</text>
 </g>
 <!-- N32&#45;&gt;N25 -->
 <g id="edge57" class="edge"><title>N32&#45;&gt;N25</title>
@@ -417,7 +417,7 @@
 <!-- N40 -->
 <g id="node90" class="node"><title>N40</title>
 <polygon fill="none" stroke="black" points="1437.5,-684 1111.5,-684 1111.5,-648 1437.5,-648 1437.5,-684"/>
-<text text-anchor="middle" x="1274.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/contacts/service</text>
+<text text-anchor="middle" x="1274.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/contacts/service</text>
 </g>
 <!-- N32&#45;&gt;N40 -->
 <g id="edge30" class="edge"><title>N32&#45;&gt;N40</title>
@@ -427,7 +427,7 @@
 <!-- N52 -->
 <g id="node91" class="node"><title>N52</title>
 <polygon fill="none" stroke="black" points="9574,-684 9215,-684 9215,-648 9574,-648 9574,-684"/>
-<text text-anchor="middle" x="9394.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/bootstrap/service</text>
+<text text-anchor="middle" x="9394.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/bootstrap/service</text>
 </g>
 <!-- N32&#45;&gt;N52 -->
 <g id="edge35" class="edge"><title>N32&#45;&gt;N52</title>
@@ -437,7 +437,7 @@
 <!-- N61 -->
 <g id="node97" class="node"><title>N61</title>
 <polygon fill="none" stroke="black" points="7124,-684 6791,-684 6791,-648 7124,-648 7124,-684"/>
-<text text-anchor="middle" x="6957.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/ping/service</text>
+<text text-anchor="middle" x="6957.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/ping/service</text>
 </g>
 <!-- N32&#45;&gt;N61 -->
 <g id="edge46" class="edge"><title>N32&#45;&gt;N61</title>
@@ -447,12 +447,12 @@
 <!-- N58 -->
 <g id="node9" class="node"><title>N58</title>
 <polygon fill="none" stroke="black" points="6850.5,-540 6524.5,-540 6524.5,-504 6850.5,-504 6850.5,-540"/>
-<text text-anchor="middle" x="6687.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/raft/protocol/lib</text>
+<text text-anchor="middle" x="6687.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/raft/protocol/lib</text>
 </g>
 <!-- N66 -->
 <g id="node10" class="node"><title>N66</title>
 <polygon fill="none" stroke="black" points="2814.5,-468 2490.5,-468 2490.5,-432 2814.5,-432 2814.5,-468"/>
-<text text-anchor="middle" x="2652.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/event/grpc</text>
+<text text-anchor="middle" x="2652.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/event/grpc</text>
 </g>
 <!-- N66&#45;&gt;N38 -->
 <g id="edge123" class="edge"><title>N66&#45;&gt;N38</title>
@@ -462,7 +462,7 @@
 <!-- N69 -->
 <g id="node22" class="node"><title>N69</title>
 <polygon fill="none" stroke="black" points="4400,-468 4117,-468 4117,-432 4400,-432 4400,-468"/>
-<text text-anchor="middle" x="4258.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/httputil</text>
+<text text-anchor="middle" x="4258.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/httputil</text>
 </g>
 <!-- N45&#45;&gt;N69 -->
 <g id="edge21" class="edge"><title>N45&#45;&gt;N69</title>
@@ -472,7 +472,7 @@
 <!-- N36 -->
 <g id="node89" class="node"><title>N36</title>
 <polygon fill="none" stroke="black" points="4230,-324 3895,-324 3895,-288 4230,-288 4230,-324"/>
-<text text-anchor="middle" x="4062.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/metrics/grpc</text>
+<text text-anchor="middle" x="4062.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/metrics/grpc</text>
 </g>
 <!-- N45&#45;&gt;N36 -->
 <g id="edge20" class="edge"><title>N45&#45;&gt;N36</title>
@@ -482,7 +482,7 @@
 <!-- N47 -->
 <g id="node15" class="node"><title>N47</title>
 <polygon fill="none" stroke="black" points="8877.5,-756 8647.5,-756 8647.5,-720 8877.5,-720 8877.5,-756"/>
-<text text-anchor="middle" x="8762.5" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/cli</text>
+<text text-anchor="middle" x="8762.5" y="-734.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/cli</text>
 </g>
 <!-- N47&#45;&gt;N38 -->
 <g id="edge160" class="edge"><title>N47&#45;&gt;N38</title>
@@ -507,7 +507,7 @@
 <!-- N20 -->
 <g id="node95" class="node"><title>N20</title>
 <polygon fill="none" stroke="black" points="9042,-684 8795,-684 8795,-648 9042,-648 9042,-684"/>
-<text text-anchor="middle" x="8918.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/script</text>
+<text text-anchor="middle" x="8918.5" y="-662.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/script</text>
 </g>
 <!-- N47&#45;&gt;N20 -->
 <g id="edge164" class="edge"><title>N47&#45;&gt;N20</title>
@@ -517,7 +517,7 @@
 <!-- N79 -->
 <g id="node16" class="node"><title>N79</title>
 <polygon fill="none" stroke="black" points="10081,-468 9746,-468 9746,-432 10081,-432 10081,-468"/>
-<text text-anchor="middle" x="9913.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/bootstrap/pb</text>
+<text text-anchor="middle" x="9913.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/bootstrap/pb</text>
 </g>
 <!-- N79&#45;&gt;N38 -->
 <g id="edge183" class="edge"><title>N79&#45;&gt;N38</title>
@@ -532,7 +532,7 @@
 <!-- N82 -->
 <g id="node18" class="node"><title>N82</title>
 <polygon fill="none" stroke="black" points="4192,-108 3857,-108 3857,-72 4192,-72 4192,-108"/>
-<text text-anchor="middle" x="4024.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/grpcapi/grpc</text>
+<text text-anchor="middle" x="4024.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/grpcapi/grpc</text>
 </g>
 <!-- N82&#45;&gt;N38 -->
 <g id="edge136" class="edge"><title>N82&#45;&gt;N38</title>
@@ -542,12 +542,12 @@
 <!-- N2 -->
 <g id="node19" class="node"><title>N2</title>
 <polygon fill="none" stroke="black" points="8843,-468 8436,-468 8436,-432 8843,-432 8843,-468"/>
-<text text-anchor="middle" x="8639.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store/constants</text>
+<text text-anchor="middle" x="8639.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store/constants</text>
 </g>
 <!-- N28 -->
 <g id="node20" class="node"><title>N28</title>
 <polygon fill="none" stroke="black" points="9945,-540 9652,-540 9652,-504 9945,-504 9945,-540"/>
-<text text-anchor="middle" x="9798.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/protector</text>
+<text text-anchor="middle" x="9798.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/protector</text>
 </g>
 <!-- N28&#45;&gt;N56 -->
 <g id="edge146" class="edge"><title>N28&#45;&gt;N56</title>
@@ -557,7 +557,7 @@
 <!-- N55 -->
 <g id="node21" class="node"><title>N55</title>
 <polygon fill="none" stroke="black" points="8807,-828 8566,-828 8566,-792 8807,-792 8807,-828"/>
-<text text-anchor="middle" x="8686.5" y="-806.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/cmd</text>
+<text text-anchor="middle" x="8686.5" y="-806.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/cmd</text>
 </g>
 <!-- N55&#45;&gt;N32 -->
 <g id="edge5" class="edge"><title>N55&#45;&gt;N32</title>
@@ -592,7 +592,7 @@
 <!-- N42 -->
 <g id="node26" class="node"><title>N42</title>
 <polygon fill="none" stroke="black" points="4359.5,-396 4081.5,-396 4081.5,-360 4359.5,-360 4359.5,-396"/>
-<text text-anchor="middle" x="4220.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/netutil</text>
+<text text-anchor="middle" x="4220.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/netutil</text>
 </g>
 <!-- N69&#45;&gt;N42 -->
 <g id="edge68" class="edge"><title>N69&#45;&gt;N42</title>
@@ -602,7 +602,7 @@
 <!-- N86 -->
 <g id="node23" class="node"><title>N86</title>
 <polygon fill="none" stroke="black" points="8012,-612 7659,-612 7659,-576 8012,-576 8012,-612"/>
-<text text-anchor="middle" x="7835.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store</text>
+<text text-anchor="middle" x="7835.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store</text>
 </g>
 <!-- N86&#45;&gt;N2 -->
 <g id="edge95" class="edge"><title>N86&#45;&gt;N2</title>
@@ -612,7 +612,7 @@
 <!-- N7 -->
 <g id="node69" class="node"><title>N7</title>
 <polygon fill="none" stroke="black" points="8767.5,-540 8383.5,-540 8383.5,-504 8767.5,-504 8767.5,-540"/>
-<text text-anchor="middle" x="8575.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store/audit</text>
+<text text-anchor="middle" x="8575.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store/audit</text>
 </g>
 <!-- N86&#45;&gt;N7 -->
 <g id="edge94" class="edge"><title>N86&#45;&gt;N7</title>
@@ -622,7 +622,7 @@
 <!-- N51 -->
 <g id="node74" class="node"><title>N51</title>
 <polygon fill="none" stroke="black" points="8289.5,-540 7907.5,-540 7907.5,-504 8289.5,-504 8289.5,-540"/>
-<text text-anchor="middle" x="8098.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store/sync</text>
+<text text-anchor="middle" x="8098.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store/sync</text>
 </g>
 <!-- N86&#45;&gt;N51 -->
 <g id="edge96" class="edge"><title>N86&#45;&gt;N51</title>
@@ -632,7 +632,7 @@
 <!-- N95 -->
 <g id="node24" class="node"><title>N95</title>
 <polygon fill="none" stroke="black" points="7889.5,-540 7557.5,-540 7557.5,-504 7889.5,-504 7889.5,-540"/>
-<text text-anchor="middle" x="7723.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/grpc/store</text>
+<text text-anchor="middle" x="7723.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/grpc/store</text>
 </g>
 <!-- N95&#45;&gt;N38 -->
 <g id="edge19" class="edge"><title>N95&#45;&gt;N38</title>
@@ -642,7 +642,7 @@
 <!-- N84 -->
 <g id="node29" class="node"><title>N84</title>
 <polygon fill="none" stroke="black" points="8071.5,-468 7749.5,-468 7749.5,-432 8071.5,-432 8071.5,-468"/>
-<text text-anchor="middle" x="7910.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/pb/store</text>
+<text text-anchor="middle" x="7910.5" y="-446.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/pb/store</text>
 </g>
 <!-- N95&#45;&gt;N84 -->
 <g id="edge18" class="edge"><title>N95&#45;&gt;N84</title>
@@ -652,7 +652,7 @@
 <!-- N11 -->
 <g id="node25" class="node"><title>N11</title>
 <polygon fill="none" stroke="black" points="6576.5,-612 6268.5,-612 6268.5,-576 6576.5,-576 6576.5,-612"/>
-<text text-anchor="middle" x="6422.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/raft/protocol</text>
+<text text-anchor="middle" x="6422.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/raft/protocol</text>
 </g>
 <!-- N11&#45;&gt;N58 -->
 <g id="edge214" class="edge"><title>N11&#45;&gt;N58</title>
@@ -662,7 +662,7 @@
 <!-- N85 -->
 <g id="node34" class="node"><title>N85</title>
 <polygon fill="none" stroke="black" points="6506.5,-540 6230.5,-540 6230.5,-504 6506.5,-504 6506.5,-540"/>
-<text text-anchor="middle" x="6368.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/raft/pb</text>
+<text text-anchor="middle" x="6368.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/raft/pb</text>
 </g>
 <!-- N11&#45;&gt;N85 -->
 <g id="edge213" class="edge"><title>N11&#45;&gt;N85</title>
@@ -672,7 +672,7 @@
 <!-- N62 -->
 <g id="node27" class="node"><title>N62</title>
 <polygon fill="none" stroke="black" points="8514.5,-612 8030.5,-612 8030.5,-576 8514.5,-576 8514.5,-612"/>
-<text text-anchor="middle" x="8272.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store/audit/dummyauditstore</text>
+<text text-anchor="middle" x="8272.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store/audit/dummyauditstore</text>
 </g>
 <!-- N62&#45;&gt;N2 -->
 <g id="edge125" class="edge"><title>N62&#45;&gt;N2</title>
@@ -687,7 +687,7 @@
 <!-- N70 -->
 <g id="node28" class="node"><title>N70</title>
 <polygon fill="none" stroke="black" points="7084.5,-252 6728.5,-252 6728.5,-216 7084.5,-216 7084.5,-252"/>
-<text text-anchor="middle" x="6906.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/grpc/fossilizer</text>
+<text text-anchor="middle" x="6906.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/grpc/fossilizer</text>
 </g>
 <!-- N70&#45;&gt;N38 -->
 <g id="edge84" class="edge"><title>N70&#45;&gt;N38</title>
@@ -712,7 +712,7 @@
 <!-- N87 -->
 <g id="node58" class="node"><title>N87</title>
 <polygon fill="none" stroke="black" points="5720.5,-324 5368.5,-324 5368.5,-288 5720.5,-288 5720.5,-324"/>
-<text text-anchor="middle" x="5544.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/engine</text>
+<text text-anchor="middle" x="5544.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/engine</text>
 </g>
 <!-- N8&#45;&gt;N87 -->
 <g id="edge15" class="edge"><title>N8&#45;&gt;N87</title>
@@ -732,7 +732,7 @@
 <!-- N43 -->
 <g id="node32" class="node"><title>N43</title>
 <polygon fill="none" stroke="black" points="7010,-324 6691,-324 6691,-288 7010,-288 7010,-324"/>
-<text text-anchor="middle" x="6850.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/ping/grpc</text>
+<text text-anchor="middle" x="6850.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/ping/grpc</text>
 </g>
 <!-- N43&#45;&gt;N38 -->
 <g id="edge17" class="edge"><title>N43&#45;&gt;N38</title>
@@ -752,7 +752,7 @@
 <!-- N71 -->
 <g id="node92" class="node"><title>N71</title>
 <polygon fill="none" stroke="black" points="7048,-612 6671,-612 6671,-576 7048,-576 7048,-612"/>
-<text text-anchor="middle" x="6859.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/fossilizer</text>
+<text text-anchor="middle" x="6859.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/fossilizer</text>
 </g>
 <!-- N12&#45;&gt;N71 -->
 <g id="edge23" class="edge"><title>N12&#45;&gt;N71</title>
@@ -762,7 +762,7 @@
 <!-- N37 -->
 <g id="node36" class="node"><title>N37</title>
 <polygon fill="none" stroke="black" points="8295,-252 7988,-252 7988,-216 8295,-216 8295,-252"/>
-<text text-anchor="middle" x="8141.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/grpc</text>
+<text text-anchor="middle" x="8141.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/grpc</text>
 </g>
 <!-- N37&#45;&gt;N38 -->
 <g id="edge70" class="edge"><title>N37&#45;&gt;N38</title>
@@ -772,7 +772,7 @@
 <!-- N65 -->
 <g id="node54" class="node"><title>N65</title>
 <polygon fill="none" stroke="black" points="7912.5,-180 7616.5,-180 7616.5,-144 7912.5,-144 7912.5,-180"/>
-<text text-anchor="middle" x="7764.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/pb</text>
+<text text-anchor="middle" x="7764.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/pb</text>
 </g>
 <!-- N37&#45;&gt;N65 -->
 <g id="edge69" class="edge"><title>N37&#45;&gt;N65</title>
@@ -782,7 +782,7 @@
 <!-- N83 -->
 <g id="node57" class="node"><title>N83</title>
 <polygon fill="none" stroke="black" points="3800,-108 3481,-108 3481,-72 3800,-72 3800,-108"/>
-<text text-anchor="middle" x="3640.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/manager/grpc</text>
+<text text-anchor="middle" x="3640.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/manager/grpc</text>
 </g>
 <!-- N46&#45;&gt;N83 -->
 <g id="edge158" class="edge"><title>N46&#45;&gt;N83</title>
@@ -792,7 +792,7 @@
 <!-- N49 -->
 <g id="node38" class="node"><title>N49</title>
 <polygon fill="none" stroke="black" points="8793,-900 8580,-900 8580,-864 8793,-864 8793,-900"/>
-<text text-anchor="middle" x="8686.5" y="-878.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode</text>
+<text text-anchor="middle" x="8686.5" y="-878.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node</text>
 </g>
 <!-- N49&#45;&gt;N55 -->
 <g id="edge185" class="edge"><title>N49&#45;&gt;N55</title>
@@ -802,7 +802,7 @@
 <!-- N75 -->
 <g id="node39" class="node"><title>N75</title>
 <polygon fill="none" stroke="black" points="4956.5,-396 4570.5,-396 4570.5,-360 4956.5,-360 4956.5,-396"/>
-<text text-anchor="middle" x="4763.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/synchronizer</text>
+<text text-anchor="middle" x="4763.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/synchronizer</text>
 </g>
 <!-- N75&#45;&gt;N76 -->
 <g id="edge223" class="edge"><title>N75&#45;&gt;N76</title>
@@ -812,7 +812,7 @@
 <!-- N39 -->
 <g id="node63" class="node"><title>N39</title>
 <polygon fill="none" stroke="black" points="4622.5,-324 4286.5,-324 4286.5,-288 4622.5,-288 4622.5,-324"/>
-<text text-anchor="middle" x="4454.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/p2p</text>
+<text text-anchor="middle" x="4454.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/p2p</text>
 </g>
 <!-- N75&#45;&gt;N39 -->
 <g id="edge224" class="edge"><title>N75&#45;&gt;N39</title>
@@ -867,7 +867,7 @@
 <!-- N93 -->
 <g id="node93" class="node"><title>N93</title>
 <polygon fill="none" stroke="black" points="2835,-612 2524,-612 2524,-576 2835,-576 2835,-612"/>
-<text text-anchor="middle" x="2679.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/chat/protocol</text>
+<text text-anchor="middle" x="2679.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/chat/protocol</text>
 </g>
 <!-- N14&#45;&gt;N93 -->
 <g id="edge59" class="edge"><title>N14&#45;&gt;N93</title>
@@ -882,7 +882,7 @@
 <!-- N78 -->
 <g id="node43" class="node"><title>N78</title>
 <polygon fill="none" stroke="black" points="9788.5,-612 9422.5,-612 9422.5,-576 9788.5,-576 9788.5,-612"/>
-<text text-anchor="middle" x="9605.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/bootstrap/protocol</text>
+<text text-anchor="middle" x="9605.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/bootstrap/protocol</text>
 </g>
 <!-- N78&#45;&gt;N56 -->
 <g id="edge156" class="edge"><title>N78&#45;&gt;N56</title>
@@ -902,7 +902,7 @@
 <!-- N80 -->
 <g id="node75" class="node"><title>N80</title>
 <polygon fill="none" stroke="black" points="9557.5,-540 9141.5,-540 9141.5,-504 9557.5,-504 9557.5,-540"/>
-<text text-anchor="middle" x="9349.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/bootstrap/protocol/proposal</text>
+<text text-anchor="middle" x="9349.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/bootstrap/protocol/proposal</text>
 </g>
 <!-- N78&#45;&gt;N80 -->
 <g id="edge154" class="edge"><title>N78&#45;&gt;N80</title>
@@ -912,7 +912,7 @@
 <!-- N19 -->
 <g id="node94" class="node"><title>N19</title>
 <polygon fill="none" stroke="black" points="9123,-540 8824,-540 8824,-504 9123,-504 9123,-540"/>
-<text text-anchor="middle" x="8973.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/streamutil</text>
+<text text-anchor="middle" x="8973.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/streamutil</text>
 </g>
 <!-- N78&#45;&gt;N19 -->
 <g id="edge157" class="edge"><title>N78&#45;&gt;N19</title>
@@ -922,12 +922,12 @@
 <!-- N1 -->
 <g id="node44" class="node"><title>N1</title>
 <polygon fill="none" stroke="black" points="3524,-540 3237,-540 3237,-504 3524,-504 3524,-540"/>
-<text text-anchor="middle" x="3380.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/clock/pb</text>
+<text text-anchor="middle" x="3380.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/clock/pb</text>
 </g>
 <!-- N3 -->
 <g id="node45" class="node"><title>N3</title>
 <polygon fill="none" stroke="black" points="5532.5,-612 5220.5,-612 5220.5,-576 5532.5,-576 5532.5,-612"/>
-<text text-anchor="middle" x="5376.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol</text>
+<text text-anchor="middle" x="5376.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol</text>
 </g>
 <!-- N3&#45;&gt;N0 -->
 <g id="edge195" class="edge"><title>N3&#45;&gt;N0</title>
@@ -952,7 +952,7 @@
 <!-- N31 -->
 <g id="node49" class="node"><title>N31</title>
 <polygon fill="none" stroke="black" points="5550.5,-540 5202.5,-540 5202.5,-504 5550.5,-504 5550.5,-540"/>
-<text text-anchor="middle" x="5376.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/miner</text>
+<text text-anchor="middle" x="5376.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/miner</text>
 </g>
 <!-- N3&#45;&gt;N31 -->
 <g id="edge192" class="edge"><title>N3&#45;&gt;N31</title>
@@ -967,7 +967,7 @@
 <!-- N27 -->
 <g id="node62" class="node"><title>N27</title>
 <polygon fill="none" stroke="black" points="5236.5,-324 4868.5,-324 4868.5,-288 5236.5,-288 5236.5,-324"/>
-<text text-anchor="middle" x="5052.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/protocol/processor</text>
+<text text-anchor="middle" x="5052.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/protocol/processor</text>
 </g>
 <!-- N3&#45;&gt;N27 -->
 <g id="edge194" class="edge"><title>N3&#45;&gt;N27</title>
@@ -1057,7 +1057,7 @@
 <!-- N89 -->
 <g id="node83" class="node"><title>N89</title>
 <polygon fill="none" stroke="black" points="6445,-180 6154,-180 6154,-144 6445,-144 6445,-180"/>
-<text text-anchor="middle" x="6299.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/coin/grpc</text>
+<text text-anchor="middle" x="6299.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/coin/grpc</text>
 </g>
 <!-- N74&#45;&gt;N89 -->
 <g id="edge165" class="edge"><title>N74&#45;&gt;N89</title>
@@ -1142,7 +1142,7 @@
 <!-- N73 -->
 <g id="node55" class="node"><title>N73</title>
 <polygon fill="none" stroke="black" points="7598.5,-180 7248.5,-180 7248.5,-144 7598.5,-144 7598.5,-180"/>
-<text text-anchor="middle" x="7423.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/protocol/file</text>
+<text text-anchor="middle" x="7423.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/protocol/file</text>
 </g>
 <!-- N73&#45;&gt;N88 -->
 <g id="edge135" class="edge"><title>N73&#45;&gt;N88</title>
@@ -1152,7 +1152,7 @@
 <!-- N77 -->
 <g id="node56" class="node"><title>N77</title>
 <polygon fill="none" stroke="black" points="8350.5,-180 7968.5,-180 7968.5,-144 8350.5,-144 8350.5,-180"/>
-<text text-anchor="middle" x="8159.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/protocol/constants</text>
+<text text-anchor="middle" x="8159.5" y="-158.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/protocol/constants</text>
 </g>
 <!-- N83&#45;&gt;N38 -->
 <g id="edge147" class="edge"><title>N83&#45;&gt;N38</title>
@@ -1202,7 +1202,7 @@
 <!-- N10 -->
 <g id="node78" class="node"><title>N10</title>
 <polygon fill="none" stroke="black" points="7659.5,-324 7331.5,-324 7331.5,-288 7659.5,-288 7659.5,-324"/>
-<text text-anchor="middle" x="7495.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/protocol</text>
+<text text-anchor="middle" x="7495.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/protocol</text>
 </g>
 <!-- N96&#45;&gt;N10 -->
 <g id="edge132" class="edge"><title>N96&#45;&gt;N10</title>
@@ -1212,12 +1212,12 @@
 <!-- N68 -->
 <g id="node60" class="node"><title>N68</title>
 <polygon fill="none" stroke="black" points="2819.5,-540 2539.5,-540 2539.5,-504 2819.5,-504 2819.5,-540"/>
-<text text-anchor="middle" x="2679.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/chat/pb</text>
+<text text-anchor="middle" x="2679.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/chat/pb</text>
 </g>
 <!-- N18 -->
 <g id="node61" class="node"><title>N18</title>
 <polygon fill="none" stroke="black" points="8388.5,-324 8056.5,-324 8056.5,-288 8388.5,-288 8388.5,-324"/>
-<text text-anchor="middle" x="8222.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/swarm/grpc</text>
+<text text-anchor="middle" x="8222.5" y="-302.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/swarm/grpc</text>
 </g>
 <!-- N18&#45;&gt;N38 -->
 <g id="edge129" class="edge"><title>N18&#45;&gt;N38</title>
@@ -1257,7 +1257,7 @@
 <!-- N57 -->
 <g id="node66" class="node"><title>N57</title>
 <polygon fill="none" stroke="black" points="2212.5,-396 1900.5,-396 1900.5,-360 2212.5,-360 2212.5,-396"/>
-<text text-anchor="middle" x="2056.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/contacts/grpc</text>
+<text text-anchor="middle" x="2056.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/contacts/grpc</text>
 </g>
 <!-- N57&#45;&gt;N38 -->
 <g id="edge67" class="edge"><title>N57&#45;&gt;N38</title>
@@ -1267,7 +1267,7 @@
 <!-- N63 -->
 <g id="node67" class="node"><title>N63</title>
 <polygon fill="none" stroke="black" points="9056.5,-612 8570.5,-612 8570.5,-576 9056.5,-576 9056.5,-612"/>
-<text text-anchor="middle" x="8813.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/indigo/protocol/store/audit/postgresauditstore</text>
+<text text-anchor="middle" x="8813.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/indigo/protocol/store/audit/postgresauditstore</text>
 </g>
 <!-- N63&#45;&gt;N2 -->
 <g id="edge127" class="edge"><title>N63&#45;&gt;N2</title>
@@ -1347,7 +1347,7 @@
 <!-- N30 -->
 <g id="node73" class="node"><title>N30</title>
 <polygon fill="none" stroke="black" points="7932.5,-252 7580.5,-252 7580.5,-216 7932.5,-216 7932.5,-252"/>
-<text text-anchor="middle" x="7756.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/protocol/p2p</text>
+<text text-anchor="middle" x="7756.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/protocol/p2p</text>
 </g>
 <!-- N30&#45;&gt;N65 -->
 <g id="edge150" class="edge"><title>N30&#45;&gt;N65</title>
@@ -1387,7 +1387,7 @@
 <!-- N90 -->
 <g id="node76" class="node"><title>N90</title>
 <polygon fill="none" stroke="black" points="3539.5,-612 3221.5,-612 3221.5,-576 3539.5,-576 3539.5,-612"/>
-<text text-anchor="middle" x="3380.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/clock/protocol</text>
+<text text-anchor="middle" x="3380.5" y="-590.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/clock/protocol</text>
 </g>
 <!-- N90&#45;&gt;N1 -->
 <g id="edge148" class="edge"><title>N90&#45;&gt;N1</title>
@@ -1402,7 +1402,7 @@
 <!-- N21 -->
 <g id="node80" class="node"><title>N21</title>
 <polygon fill="none" stroke="black" points="3358,-108 3061,-108 3061,-72 3358,-72 3358,-108"/>
-<text text-anchor="middle" x="3209.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/clock/grpc</text>
+<text text-anchor="middle" x="3209.5" y="-86.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/clock/grpc</text>
 </g>
 <!-- N4&#45;&gt;N21 -->
 <g id="edge186" class="edge"><title>N4&#45;&gt;N21</title>
@@ -1432,7 +1432,7 @@
 <!-- N22 -->
 <g id="node81" class="node"><title>N22</title>
 <polygon fill="none" stroke="black" points="7449,-252 7102,-252 7102,-216 7449,-216 7449,-252"/>
-<text text-anchor="middle" x="7275.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/app/storage/protocol/acl</text>
+<text text-anchor="middle" x="7275.5" y="-230.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/app/storage/protocol/acl</text>
 </g>
 <!-- N10&#45;&gt;N22 -->
 <g id="edge200" class="edge"><title>N10&#45;&gt;N22</title>
@@ -1482,7 +1482,7 @@
 <!-- N13 -->
 <g id="node85" class="node"><title>N13</title>
 <polygon fill="none" stroke="black" points="3986,-396 3669,-396 3669,-360 3986,-360 3986,-396"/>
-<text text-anchor="middle" x="3827.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/host/grpc</text>
+<text text-anchor="middle" x="3827.5" y="-374.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/host/grpc</text>
 </g>
 <!-- N13&#45;&gt;N38 -->
 <g id="edge26" class="edge"><title>N13&#45;&gt;N38</title>
@@ -1572,7 +1572,7 @@
 <!-- N33 -->
 <g id="node96" class="node"><title>N33</title>
 <polygon fill="none" stroke="black" points="10384,-540 10039,-540 10039,-504 10384,-504 10384,-540"/>
-<text text-anchor="middle" x="10211.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;indigonode/core/app/bootstrap/grpc</text>
+<text text-anchor="middle" x="10211.5" y="-518.3" font-family="Times,serif" font-size="14.00">github.com/stratumn/go&#45;node/core/app/bootstrap/grpc</text>
 </g>
 <!-- N52&#45;&gt;N33 -->
 <g id="edge110" class="edge"><title>N52&#45;&gt;N33</title>

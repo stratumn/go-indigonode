@@ -18,7 +18,7 @@ package store
 import (
 	"encoding/json"
 
-	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
+	pb "github.com/stratumn/go-node/app/indigo/pb/store"
 	"github.com/stratumn/go-indigocore/cs"
 	indigostore "github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"

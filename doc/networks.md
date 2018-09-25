@@ -51,7 +51,7 @@ Once you've confirmed that a given ID is correctly owned by someone that
 you want to allow in your network, you can use the accept command:
 
 ```bash
-IndigoNode> bootstrap-accept <PeerID>
+node> bootstrap-accept <PeerID>
 ```
 
 The node will be added to the network and all participants notified.
@@ -79,7 +79,7 @@ Once the coordinator has accepted the initial participants, it should complete
 the bootstrap phase with the following command:
 
 ```bash
-IndigoNode> bootstrap-complete
+node> bootstrap-complete
 ```
 
 Participants can now send proposals to add or remove participants.

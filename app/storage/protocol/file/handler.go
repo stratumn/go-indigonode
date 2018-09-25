@@ -28,7 +28,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/core/db"
 
 	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

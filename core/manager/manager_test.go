@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/manager/mockmanager"
+	"github.com/stratumn/go-node/core/manager/mockmanager"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -41,7 +41,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/manager/grpc"
+	pb "github.com/stratumn/go-node/core/manager/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

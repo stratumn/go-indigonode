@@ -20,8 +20,8 @@ import (
 	"io"
 	"testing"
 
-	ping "github.com/stratumn/go-indigonode/core/app/ping/grpc"
-	"github.com/stratumn/go-indigonode/test/session"
+	ping "github.com/stratumn/go-node/core/app/ping/grpc"
+	"github.com/stratumn/go-node/test/session"
 	"google.golang.org/grpc"
 )
 

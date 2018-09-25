@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockping.go github.com/stratumn/go-indigonode/core/app/ping/grpc Ping_PingServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockping.go github.com/stratumn/go-node/core/app/ping/grpc Ping_PingServer
 
 package grpc

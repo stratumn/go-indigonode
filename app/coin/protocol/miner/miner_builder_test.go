@@ -18,13 +18,13 @@ package miner
 import (
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/gossip"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/processor"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/testutil"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/validator"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/engine"
+	"github.com/stratumn/go-node/app/coin/protocol/gossip"
+	"github.com/stratumn/go-node/app/coin/protocol/processor"
+	"github.com/stratumn/go-node/app/coin/protocol/state"
+	"github.com/stratumn/go-node/app/coin/protocol/testutil"
+	"github.com/stratumn/go-node/app/coin/protocol/validator"
 )
 
 // MinerBuilder is a utility to create miners with custom mocks

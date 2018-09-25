@@ -6,7 +6,7 @@ It is a proof-of-concept and shouldn't be used for a real crypto-asset.
 This service isn't enabled by default, you need to start it yourself:
 
 ```bash
-IndigoNode> manager-start coin
+node> manager-start coin
 ```
 
 Once started, it will start mining blocks (this is CPU intensive).

@@ -18,8 +18,8 @@ package state_test
 import (
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
-	txtest "github.com/stratumn/go-indigonode/app/coin/protocol/testutil/transaction"
+	"github.com/stratumn/go-node/app/coin/protocol/state"
+	txtest "github.com/stratumn/go-node/app/coin/protocol/testutil/transaction"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockhandler -destination mockhandler/mockhandler.go github.com/stratumn/go-indigonode/app/storage/protocol/file Handler,Reader
+//go:generate mockgen -package mockhandler -destination mockhandler/mockhandler.go github.com/stratumn/go-node/app/storage/protocol/file Handler,Reader
 
 package file

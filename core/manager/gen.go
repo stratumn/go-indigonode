@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockmanager -destination mockmanager/mockmanager.go github.com/stratumn/go-indigonode/core/manager Service,Needy,Pluggable,Friendly,Exposer,Runner,GRPCManager
+//go:generate mockgen -package mockmanager -destination mockmanager/mockmanager.go github.com/stratumn/go-node/core/manager Service,Needy,Pluggable,Friendly,Exposer,Runner,GRPCManager
 
 package manager

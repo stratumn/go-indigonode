@@ -26,11 +26,11 @@ import (
 
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/core/protector/mocks"
-	"github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/test"
-	libp2pmocks "github.com/stratumn/go-indigonode/test/mocks"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/core/protector/mocks"
+	"github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/test"
+	libp2pmocks "github.com/stratumn/go-node/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

@@ -110,7 +110,7 @@ generate:
 	done
 
 	@for f in $(MOCK_FILES); do \
-		sed -i'.bak' 's|github.com/stratumn/go-indigonode/vendor/||g' $$f; \
+		sed -i'.bak' 's|github.com/stratumn/go-node/vendor/||g' $$f; \
 		rm $$f.bak; \
 	done
 

@@ -109,7 +109,7 @@ You can view the internal dependency graph of this package using:
 
 ```bash
 go get -u github.com/davecheney/graphpkg
-graphpkg -match github.com/stratumn/go-indigonode github.com/stratumn/go-indigonode
+graphpkg -match github.com/stratumn/go-node github.com/stratumn/go-node
 ```
 
 Create packages for domains, not types.

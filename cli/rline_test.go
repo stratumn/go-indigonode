@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/cli"
-	"github.com/stratumn/go-indigonode/cli/mockcli"
+	"github.com/stratumn/go-node/cli"
+	"github.com/stratumn/go-node/cli/mockcli"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -16,9 +16,9 @@
 package core
 
 import (
-	"github.com/stratumn/go-indigonode/core/cfg"
-	logging "github.com/stratumn/go-indigonode/core/log"
-	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-node/core/cfg"
+	logging "github.com/stratumn/go-node/core/log"
+	"github.com/stratumn/go-node/core/manager"
 )
 
 // ConfigVersionKey is the key of the configuration version number in the TOML

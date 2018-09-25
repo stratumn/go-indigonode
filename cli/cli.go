@@ -51,8 +51,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/core/cfg"
+	"github.com/stratumn/go-node/script"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

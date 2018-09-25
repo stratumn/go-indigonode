@@ -2,7 +2,7 @@
   "author": "stephan",
   "bugs": {},
   "gx": {
-    "dvcsimport": "github.com/stratumn/go-indigonode"
+    "dvcsimport": "github.com/stratumn/go-node"
   },
   "gxDependencies": [
     {

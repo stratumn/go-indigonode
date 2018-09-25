@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockcli -destination mockcli/mockcli.go github.com/stratumn/go-indigonode/cli CLI
-//go:generate mockgen -package mockcli -destination mockcli/mocksignaler.go github.com/stratumn/go-indigonode/cli Signaler
-//go:generate mockgen -package mockcli -destination mockcli/mockserverstream.go github.com/stratumn/go-indigonode/cli ServerStream
+//go:generate mockgen -package mockcli -destination mockcli/mockcli.go github.com/stratumn/go-node/cli CLI
+//go:generate mockgen -package mockcli -destination mockcli/mocksignaler.go github.com/stratumn/go-node/cli Signaler
+//go:generate mockgen -package mockcli -destination mockcli/mockserverstream.go github.com/stratumn/go-node/cli ServerStream
 
 package cli

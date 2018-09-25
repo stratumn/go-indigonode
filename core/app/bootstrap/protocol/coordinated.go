@@ -19,12 +19,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/protector"
-	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-node/core/app/bootstrap/pb"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/protector"
+	protectorpb "github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/core/streamutil"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"

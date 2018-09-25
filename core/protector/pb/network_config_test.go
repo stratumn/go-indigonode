@@ -23,8 +23,8 @@ import (
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/gogo/protobuf/types"
-	"github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

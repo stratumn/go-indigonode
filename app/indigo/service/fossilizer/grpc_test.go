@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilizer"
+	rpcpb "github.com/stratumn/go-node/app/indigo/grpc/fossilizer"
 	"github.com/stretchr/testify/assert"
 )
 

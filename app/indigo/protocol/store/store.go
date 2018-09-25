@@ -24,10 +24,10 @@ import (
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
 	"github.com/stratumn/go-indigocore/validator"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/sync"
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/sync"
+	"github.com/stratumn/go-node/core/monitoring"
 )
 
 // Store implements github.com/stratumn/go-indigocore/store.Adapter.

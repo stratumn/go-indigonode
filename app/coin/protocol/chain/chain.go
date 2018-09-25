@@ -19,8 +19,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 )
 
 var (

@@ -19,9 +19,9 @@ import (
 	"context"
 	"testing"
 
-	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc"
-	"github.com/stratumn/go-indigonode/release"
-	"github.com/stratumn/go-indigonode/test/session"
+	grpcapi "github.com/stratumn/go-node/core/app/grpcapi/grpc"
+	"github.com/stratumn/go-node/release"
+	"github.com/stratumn/go-node/test/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

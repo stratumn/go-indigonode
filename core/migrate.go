@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/cfg"
+	"github.com/stratumn/go-node/core/cfg"
 )
 
 var migrations = []cfg.MigrateHandler{

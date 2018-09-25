@@ -15,27 +15,27 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.core.app.swarm.grpc;
+package stratumn.node.core.app.swarm.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/core/app/swarm/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/core/app/swarm/grpc;grpc";
 
 // The swarm service definition.
 service Swarm {
   // Returns the local peer.
   rpc LocalPeer (LocalPeerReq) returns (Peer) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Display the local peer";
+    option (stratumn.node.cli.ext.method_desc) = "Display the local peer";
   }
 
   // Streams the connected peers.
   rpc Peers (PeersReq) returns (stream Peer) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "List all the connected peers";
+    option (stratumn.node.cli.ext.method_desc) = "List all the connected peers";
   }
 
   // Streams connections.
   rpc Connections (ConnectionsReq) returns (stream Connection) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "List connections to peers";
+    option (stratumn.node.cli.ext.method_desc) = "List connections to peers";
   }
 }
 
@@ -50,19 +50,19 @@ message PeersReq {
 // The connections request message.
 message ConnectionsReq {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Show only connections to this peer",
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Show only connections to this peer",
+    (stratumn.node.cli.ext.field_base58) = true
   ];
 }
 
 // The peer message containing the ID of the peer.
 message Peer {
-  bytes id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
+  bytes id = 1 [(stratumn.node.cli.ext.field_base58) = true];
 }
 
 // The connection message containing the peer ID and addresses.
 message Connection {
-    bytes peer_id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
-    bytes local_address = 2 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
-    bytes remote_address = 3 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
+    bytes peer_id = 1 [(stratumn.node.cli.ext.field_base58) = true];
+    bytes local_address = 2 [(stratumn.node.cli.ext.field_multiaddr) = true];
+    bytes remote_address = 3 [(stratumn.node.cli.ext.field_multiaddr) = true];
 }

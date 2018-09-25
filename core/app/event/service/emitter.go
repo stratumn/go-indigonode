@@ -22,7 +22,7 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/app/event/grpc"
+	"github.com/stratumn/go-node/core/app/event/grpc"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

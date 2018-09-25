@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/stratumn/go-indigonode/core/cfg"
+	"github.com/stratumn/go-node/core/cfg"
 )
 
 var backup bool

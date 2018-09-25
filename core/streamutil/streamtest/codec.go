@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	indigopb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/core/streamutil/mockstream"
+	indigopb "github.com/stratumn/go-node/app/indigo/pb/store"
+	"github.com/stratumn/go-node/core/app/bootstrap/pb"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	protectorpb "github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/core/streamutil/mockstream"
 	"github.com/stretchr/testify/require"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"

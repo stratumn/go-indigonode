@@ -23,9 +23,9 @@ import (
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
 	"github.com/stratumn/go-indigocore/types"
-	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/streamutil"
+	pb "github.com/stratumn/go-node/app/indigo/pb/store"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/streamutil"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"

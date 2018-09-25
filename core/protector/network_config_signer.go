@@ -18,8 +18,8 @@ package protector
 import (
 	"context"
 
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/protector/pb"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/protector/pb"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"

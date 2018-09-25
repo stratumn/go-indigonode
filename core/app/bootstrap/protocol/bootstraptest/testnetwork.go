@@ -19,11 +19,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/core/protector"
-	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/core/protector"
+	protectorpb "github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/core/streamutil"
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"

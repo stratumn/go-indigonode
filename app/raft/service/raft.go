@@ -20,9 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/raft/grpc"
-	"github.com/stratumn/go-indigonode/app/raft/protocol"
-	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
+	pb "github.com/stratumn/go-node/app/raft/grpc"
+	"github.com/stratumn/go-node/app/raft/protocol"
+	swarmSvc "github.com/stratumn/go-node/core/app/swarm/service"
 
 	"google.golang.org/grpc"
 

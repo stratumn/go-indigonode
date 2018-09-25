@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	rpcpb "github.com/stratumn/go-indigonode/app/coin/grpc"
-	"github.com/stratumn/go-indigonode/app/coin/grpc/mockcoin"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	rpcpb "github.com/stratumn/go-node/app/coin/grpc"
+	"github.com/stratumn/go-node/app/coin/grpc/mockcoin"
+	"github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

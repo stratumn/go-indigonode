@@ -157,22 +157,22 @@ in `core/service.go`:
 package core
 
 import (
-    "github.com/stratumn/go-indigonode/core/manager"
-    bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
-    connmgr "github.com/stratumn/go-indigonode/core/app/connmgr/service"
-    grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-    host "github.com/stratumn/go-indigonode/core/app/host/service"
-    identify "github.com/stratumn/go-indigonode/core/app/identify/service"
-    kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
-    monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
-    mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
-    natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
-    ping "github.com/stratumn/go-indigonode/core/app/ping/service"
-    pruner "github.com/stratumn/go-indigonode/core/app/pruner/service"
-    relay "github.com/stratumn/go-indigonode/core/app/relay/service"
-    signal "github.com/stratumn/go-indigonode/core/app/signal/service"
-    swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-    yamux "github.com/stratumn/go-indigonode/core/app/yamux/service"
+    "github.com/stratumn/go-node/core/manager"
+    bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
+    connmgr "github.com/stratumn/go-node/core/app/connmgr/service"
+    grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
+    host "github.com/stratumn/go-node/core/app/host/service"
+    identify "github.com/stratumn/go-node/core/app/identify/service"
+    kaddht "github.com/stratumn/go-node/core/app/kaddht/service"
+    monitoring "github.com/stratumn/go-node/core/app/monitoring/service"
+    mssmux "github.com/stratumn/go-node/core/app/mssmux/service"
+    natmgr "github.com/stratumn/go-node/core/app/natmgr/service"
+    ping "github.com/stratumn/go-node/core/app/ping/service"
+    pruner "github.com/stratumn/go-node/core/app/pruner/service"
+    relay "github.com/stratumn/go-node/core/app/relay/service"
+    signal "github.com/stratumn/go-node/core/app/signal/service"
+    swarm "github.com/stratumn/go-node/core/app/swarm/service"
+    yamux "github.com/stratumn/go-node/core/app/yamux/service"
 )
 
 // BuiltinServices returns all the builtin services.
@@ -347,10 +347,10 @@ type Runner interface {
 | bootstrap  | Bootstrap           | Bootstraps network connections.            | struct{}{}                                                     |
 | connmgr    | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
 | grpcapi    | gRPC API            | Starts a gRPC API server.                  |                                                                |
-| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host              |
+| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-node/core/\*p2p.Host              |
 | identify   | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht     | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
-| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager       |
+| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-node/core/\*manager.Manager       |
 | monitoring | Monitoring          | Collects metrics and traces.               |                                                                |
 | mssmux     | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
 | natmgr     | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |

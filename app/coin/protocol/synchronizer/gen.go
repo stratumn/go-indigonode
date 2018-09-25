@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mocksynchronizer.go github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer Synchronizer
-//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mockcontentproviderfinder.go github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer ContentProviderFinder
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mocksynchronizer.go github.com/stratumn/go-node/app/coin/protocol/synchronizer Synchronizer
+//go:generate mockgen -package mocksynchronizer -destination mocksynchronizer/mockcontentproviderfinder.go github.com/stratumn/go-node/app/coin/protocol/synchronizer ContentProviderFinder
 
 package synchronizer

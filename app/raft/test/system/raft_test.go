@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	raft "github.com/stratumn/go-indigonode/app/raft/grpc"
-	"github.com/stratumn/go-indigonode/test/session"
-	"github.com/stratumn/go-indigonode/test/system"
+	raft "github.com/stratumn/go-node/app/raft/grpc"
+	"github.com/stratumn/go-node/test/session"
+	"github.com/stratumn/go-node/test/system"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )

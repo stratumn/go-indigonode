@@ -23,16 +23,16 @@ import (
 	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	tassert "github.com/stratumn/go-indigonode/app/coin/protocol/testutil/assert"
+	"github.com/stratumn/go-node/app/coin/pb"
+	tassert "github.com/stratumn/go-node/app/coin/protocol/testutil/assert"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p/mockp2p"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer/mocksynchronizer"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/testutil"
+	"github.com/stratumn/go-node/app/coin/protocol/p2p/mockp2p"
+	"github.com/stratumn/go-node/app/coin/protocol/synchronizer/mocksynchronizer"
+	"github.com/stratumn/go-node/app/coin/protocol/testutil"
 )
 
 func TestSynchronize(t *testing.T) {

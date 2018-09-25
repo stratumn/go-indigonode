@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilizer"
+	rpcpb "github.com/stratumn/go-node/app/indigo/grpc/fossilizer"
 )
 
 var (

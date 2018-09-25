@@ -28,11 +28,11 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	logger "github.com/stratumn/go-indigonode/core/log"
-	"github.com/stratumn/go-indigonode/core/manager"
-	"github.com/stratumn/go-indigonode/core/p2p"
-	"github.com/stratumn/go-indigonode/release"
+	"github.com/stratumn/go-node/core/cfg"
+	logger "github.com/stratumn/go-node/core/log"
+	"github.com/stratumn/go-node/core/manager"
+	"github.com/stratumn/go-node/core/p2p"
+	"github.com/stratumn/go-node/release"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"

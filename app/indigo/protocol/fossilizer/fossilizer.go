@@ -22,7 +22,7 @@ import (
 
 	"github.com/stratumn/go-indigocore/batchfossilizer"
 	"github.com/stratumn/go-indigocore/fossilizer"
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 )
 
 var log = logging.Logger("indigo.fossilizer")

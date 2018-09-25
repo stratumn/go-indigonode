@@ -18,7 +18,7 @@
 // Indigo Node is virtual infrastructure for interoperable P2P services.
 package main
 
-import "github.com/stratumn/go-indigonode/cmd"
+import "github.com/stratumn/go-node/cmd"
 
 func main() {
 	cmd.Execute()

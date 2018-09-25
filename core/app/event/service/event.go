@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	eventgrpc "github.com/stratumn/go-indigonode/core/app/event/grpc"
+	eventgrpc "github.com/stratumn/go-node/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 

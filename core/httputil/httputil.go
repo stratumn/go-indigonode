@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/netutil"
+	"github.com/stratumn/go-node/core/netutil"
 )
 
 // StartServer starts an HTTP server that listens on the provided address.

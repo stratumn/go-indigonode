@@ -1,9 +1,9 @@
 # Indigo Node
 
-[![GoDoc](https://github.com/golang/gddo/blob/c782c79e0a3c3282dacdaaebeff9e6fd99cb2919/gddo-server/assets/status.svg)](http://godoc.org/github.com/stratumn/go-indigonode)
-[![Build Status](https://semaphoreci.com/api/v1/projects/7e0b5b26-d529-4d2b-a0a0-fabc120c414a/2050943/badge.svg)](https://semaphoreci.com/stratumn/go-indigonode)
-[![codecov](https://codecov.io/gh/stratumn/go-indigonode/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-indigonode)
-[![Go Report Card](https://goreportcard.com/badge/github.com/stratumn/go-indigonode)](https://goreportcard.com/report/github.com/stratumn/go-indigonode)
+[![GoDoc](https://github.com/golang/gddo/blob/c782c79e0a3c3282dacdaaebeff9e6fd99cb2919/gddo-server/assets/status.svg)](http://godoc.org/github.com/stratumn/go-node)
+[![Build Status](https://semaphoreci.com/api/v1/projects/7e0b5b26-d529-4d2b-a0a0-fabc120c414a/2050943/badge.svg)](https://semaphoreci.com/stratumn/go-node)
+[![codecov](https://codecov.io/gh/stratumn/go-node/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-node)
+[![Go Report Card](https://goreportcard.com/badge/github.com/stratumn/go-node)](https://goreportcard.com/report/github.com/stratumn/go-node)
 
 Indigo Node is virtual infrastructure for interoperable P2P services.
 

@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Reader
-//go:generate mockgen -package mockchain -destination mockchain/mockchainwriter.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Writer
-//go:generate mockgen -package mockchain -destination mockchain/mockchain.go github.com/stratumn/go-indigonode/app/coin/protocol/chain Chain
+//go:generate mockgen -package mockchain -destination mockchain/mockchainreader.go github.com/stratumn/go-node/app/coin/protocol/chain Reader
+//go:generate mockgen -package mockchain -destination mockchain/mockchainwriter.go github.com/stratumn/go-node/app/coin/protocol/chain Writer
+//go:generate mockgen -package mockchain -destination mockchain/mockchain.go github.com/stratumn/go-node/app/coin/protocol/chain Chain
 
 package chain

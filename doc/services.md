@@ -15,7 +15,7 @@ From the CLI prompt, you can list the available services using the
 `manager-list` command.
 
 ```bash
-IndigoNode> manager-list
+node> manager-list
 ID       STATUS   NEEDS            STOPPABLE  PRUNABLE  NAME             DESC
 api      RUNNING  [grpcapi]        false      false     API Services     Starts API services.
 boot     RUNNING  [api system]     true       false     Boot Services    Starts boot services.
@@ -46,7 +46,7 @@ never gets pruned (don't worry, it should never happen under normal
 circumstances).
 
 ```bash
-IndigoNode> manager-start grpcapi
+node> manager-start grpcapi
 ID         grpcapi
 STATUS     RUNNING
 NEEDS      [manager]
@@ -60,7 +60,7 @@ The gRPC API service is no longer `PRUNABLE`. In the spirit of minimalism,
 let's stop everything but the gRPC API services.
 
 ```bash
-IndigoNode> manager-stop boot
+node> manager-stop boot
 ID         boot
 STATUS     STOPPED
 NEEDS      [api system]
@@ -69,7 +69,7 @@ PRUNABLE   false
 NAME       Boot Services
 DESC       Starts boot services.
 
-IndigoNode> manager-prune
+node> manager-prune
 ID       STATUS   NEEDS            STOPPABLE  PRUNABLE  NAME             DESC
 api      RUNNING  [grpcapi]        true       false     API Services     Starts API services.
 boot     STOPPED  [api system]     true       false     Boot Services    Starts boot services.
@@ -90,7 +90,7 @@ prune the services so they would be removed right away.
 You can turn the services back on by starting the `boot` service again.
 
 ```bash
-IndigoNode> manager-start boot
+node> manager-start boot
 ID         boot
 STATUS     RUNNING
 NEEDS      [api system]
@@ -99,7 +99,7 @@ PRUNABLE   false
 NAME       Boot Services
 DESC       Starts boot services.
 
-IndigoNode> manager-list
+node> manager-list
 ID       STATUS   NEEDS            STOPPABLE  PRUNABLE  NAME             DESC
 api      RUNNING  [grpcapi]        false      false     API Services     Starts API services.
 boot     RUNNING  [api system]     true       false     Boot Services    Starts boot services.

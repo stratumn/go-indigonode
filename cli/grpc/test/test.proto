@@ -15,19 +15,19 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.cli.test;
+package stratumn.node.cli.test;
 
-option go_package = "github.com/stratumn/go-indigonode/cli/grpc/test;test";
+option go_package = "github.com/stratumn/go-node/cli/grpc/test;test";
 
 service Test {
   rpc UnaryReq (Message) returns (Message) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Unary request";
+    option (stratumn.node.cli.ext.method_desc) = "Unary request";
   }
 
   rpc ServerStream (Message) returns (stream Message) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Server stream";
+    option (stratumn.node.cli.ext.method_desc) = "Server stream";
   }
 
   rpc NoExt (Message) returns (Message) {}
@@ -37,57 +37,57 @@ message Message {
   string noext = 1;
 
   string req = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "required field",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "required field",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 
   string str = 10 [
-    (stratumn.indigonode.cli.ext.field_desc) = "string field"
+    (stratumn.node.cli.ext.field_desc) = "string field"
   ];
   repeated string str_repeated = 11 [
-    (stratumn.indigonode.cli.ext.field_desc) = "string repeated field"
+    (stratumn.node.cli.ext.field_desc) = "string repeated field"
   ];
 
   bool boolean = 12 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bool field"
+    (stratumn.node.cli.ext.field_desc) = "bool field"
   ];
   repeated bool boolean_repeated = 13 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bool repeated field"
+    (stratumn.node.cli.ext.field_desc) = "bool repeated field"
   ];
 
   int32 i32 = 14 [
-    (stratumn.indigonode.cli.ext.field_desc) = "int32 field"
+    (stratumn.node.cli.ext.field_desc) = "int32 field"
   ];
   repeated uint32 i32_repeated = 15 [
-    (stratumn.indigonode.cli.ext.field_desc) = "int32 repeated field"
+    (stratumn.node.cli.ext.field_desc) = "int32 repeated field"
   ];
 
   uint32 u32 = 16 [
-    (stratumn.indigonode.cli.ext.field_desc) = "uint32 field"
+    (stratumn.node.cli.ext.field_desc) = "uint32 field"
   ];
   repeated uint32 u32_repeated = 17 [
-    (stratumn.indigonode.cli.ext.field_desc) = "uint32 repeated field"
+    (stratumn.node.cli.ext.field_desc) = "uint32 repeated field"
   ];
 
   int64 i64 = 18 [
-    (stratumn.indigonode.cli.ext.field_desc) = "int64 field"
+    (stratumn.node.cli.ext.field_desc) = "int64 field"
   ];
   repeated int64 i64_repeated = 19 [
-    (stratumn.indigonode.cli.ext.field_desc) = "int64 repeated field"
+    (stratumn.node.cli.ext.field_desc) = "int64 repeated field"
   ];
 
   uint64 u64 = 20 [
-    (stratumn.indigonode.cli.ext.field_desc) = "uint64 field"
+    (stratumn.node.cli.ext.field_desc) = "uint64 field"
   ];
   repeated uint64 u64_repeated = 21 [
-    (stratumn.indigonode.cli.ext.field_desc) = "uint64 repeated field"
+    (stratumn.node.cli.ext.field_desc) = "uint64 repeated field"
   ];
 
   bytes buf = 22 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bytes field"
+    (stratumn.node.cli.ext.field_desc) = "bytes field"
   ];
   repeated bytes buf_repeated = 23 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bytes repeated field"
+    (stratumn.node.cli.ext.field_desc) = "bytes repeated field"
   ];
 
   enum Enum {
@@ -95,63 +95,63 @@ message Message {
     B = 1;
   }
   Enum enumeration = 30 [
-    (stratumn.indigonode.cli.ext.field_desc) = "enum field"
+    (stratumn.node.cli.ext.field_desc) = "enum field"
   ];
   repeated Enum enumeration_repeated = 31 [
-    (stratumn.indigonode.cli.ext.field_desc) = "enum repeated field"
+    (stratumn.node.cli.ext.field_desc) = "enum repeated field"
   ];
 
   bytes base58 = 50 [
-    (stratumn.indigonode.cli.ext.field_desc) = "base58 field",
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "base58 field",
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   repeated bytes base58_repeated = 51 [
-    (stratumn.indigonode.cli.ext.field_desc) = "base58 repeated field",
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "base58 repeated field",
+    (stratumn.node.cli.ext.field_base58) = true
   ];
 
   bytes multiaddr = 52 [
-    (stratumn.indigonode.cli.ext.field_desc) = "multiaddr field",
-    (stratumn.indigonode.cli.ext.field_multiaddr) = true
+    (stratumn.node.cli.ext.field_desc) = "multiaddr field",
+    (stratumn.node.cli.ext.field_multiaddr) = true
   ];
   repeated bytes multiaddr_repeated = 53 [
-    (stratumn.indigonode.cli.ext.field_desc) = "multiaddr repeated field",
-    (stratumn.indigonode.cli.ext.field_multiaddr) = true
+    (stratumn.node.cli.ext.field_desc) = "multiaddr repeated field",
+    (stratumn.node.cli.ext.field_multiaddr) = true
   ];
 
   int64 time = 54 [
-    (stratumn.indigonode.cli.ext.field_desc) = "time field",
-    (stratumn.indigonode.cli.ext.field_time) = true
+    (stratumn.node.cli.ext.field_desc) = "time field",
+    (stratumn.node.cli.ext.field_time) = true
   ];
   repeated int64 time_repeated = 55 [
-    (stratumn.indigonode.cli.ext.field_desc) = "time repeated field",
-    (stratumn.indigonode.cli.ext.field_time) = true
+    (stratumn.node.cli.ext.field_desc) = "time repeated field",
+    (stratumn.node.cli.ext.field_time) = true
   ];
 
   int64 duration = 56 [
-    (stratumn.indigonode.cli.ext.field_desc) = "duration field",
-    (stratumn.indigonode.cli.ext.field_duration) = true
+    (stratumn.node.cli.ext.field_desc) = "duration field",
+    (stratumn.node.cli.ext.field_duration) = true
   ];
   repeated int64 duration_repeated = 57 [
-    (stratumn.indigonode.cli.ext.field_desc) = "duration repeated field",
-    (stratumn.indigonode.cli.ext.field_duration) = true
+    (stratumn.node.cli.ext.field_desc) = "duration repeated field",
+    (stratumn.node.cli.ext.field_duration) = true
   ];
 
   uint64 bytesize = 58 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bytesize field",
-    (stratumn.indigonode.cli.ext.field_bytesize) = true
+    (stratumn.node.cli.ext.field_desc) = "bytesize field",
+    (stratumn.node.cli.ext.field_bytesize) = true
   ];
   repeated uint64 bytesize_repeated = 59 [
-    (stratumn.indigonode.cli.ext.field_desc) = "bytesize repeated field",
-    (stratumn.indigonode.cli.ext.field_bytesize) = true
+    (stratumn.node.cli.ext.field_desc) = "bytesize repeated field",
+    (stratumn.node.cli.ext.field_bytesize) = true
   ];
 
   uint64 byterate = 60 [
-    (stratumn.indigonode.cli.ext.field_desc) = "byterate field",
-    (stratumn.indigonode.cli.ext.field_byterate) = true
+    (stratumn.node.cli.ext.field_desc) = "byterate field",
+    (stratumn.node.cli.ext.field_byterate) = true
   ];
   repeated uint64 byterate_repeated = 61 [
-    (stratumn.indigonode.cli.ext.field_desc) = "byterate repeated field",
-    (stratumn.indigonode.cli.ext.field_byterate) = true
+    (stratumn.node.cli.ext.field_desc) = "byterate repeated field",
+    (stratumn.node.cli.ext.field_byterate) = true
   ];
 }

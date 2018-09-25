@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/core/db"
 )
 
 func BenchmarkNode_MarshalBinary(b *testing.B) {

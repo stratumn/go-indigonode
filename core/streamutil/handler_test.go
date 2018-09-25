@@ -20,10 +20,10 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/streamutil"
-	"github.com/stratumn/go-indigonode/test"
-	"github.com/stratumn/go-indigonode/test/mocks"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/streamutil"
+	"github.com/stratumn/go-node/test"
+	"github.com/stratumn/go-node/test/mocks"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"

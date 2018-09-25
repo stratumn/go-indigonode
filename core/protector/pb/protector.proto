@@ -15,13 +15,13 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/core/crypto/crypto.proto";
+import "github.com/stratumn/go-node/core/crypto/crypto.proto";
 
 import "google/protobuf/timestamp.proto";
 
-package stratumn.indigonode.core.protector;
+package stratumn.node.core.protector;
 
-option go_package = "github.com/stratumn/go-indigonode/core/protector/pb;pb";
+option go_package = "github.com/stratumn/go-node/core/protector/pb;pb";
 
 enum NetworkState {
 	// The network is in the bootstrap phase (not fully private yet).    
@@ -41,5 +41,5 @@ message NetworkConfig {
     NetworkState network_state = 1;
     map<string, PeerAddrs> participants = 2;
     google.protobuf.Timestamp last_updated = 3;
-    stratumn.indigonode.core.crypto.Signature signature = 10;
+    stratumn.node.core.crypto.Signature signature = 10;
 }

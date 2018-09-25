@@ -21,9 +21,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/streamutil"
-	"github.com/stratumn/go-indigonode/test"
-	"github.com/stratumn/go-indigonode/test/mocks"
+	"github.com/stratumn/go-node/core/streamutil"
+	"github.com/stratumn/go-node/test"
+	"github.com/stratumn/go-node/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

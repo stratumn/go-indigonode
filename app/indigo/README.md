@@ -7,8 +7,8 @@ See the [Indigo Core](https://indigocore.org/) documentation for more details.
 These services aren't enabled by default, you need to start them yourself:
 
 ```sh
-IndigoNode> manager-start indigostore
-IndigoNode> manager-start indigofossilizer
+StratumnNode> manager-start indigostore
+StratumnNode> manager-start indigofossilizer
 ```
 
 ## Configuration

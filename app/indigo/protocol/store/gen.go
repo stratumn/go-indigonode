@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mocknetworkmanager -destination mocknetwork/mocknetwork.go github.com/stratumn/go-indigonode/app/indigo/protocol/store NetworkManager
+//go:generate mockgen -package mocknetworkmanager -destination mocknetwork/mocknetwork.go github.com/stratumn/go-node/app/indigo/protocol/store NetworkManager
 //go:generate mockgen -package mockstore -destination mockstore/mockstore.go github.com/stratumn/go-indigocore/store Adapter
 //go:generate mockgen -package mockvalidator -destination mockvalidator/mockvalidator.go github.com/stratumn/go-indigocore/validator Validator
 //go:generate mockgen -package mockvalidator -destination mockvalidator/mockgovernance.go github.com/stratumn/go-indigocore/validator GovernanceManager

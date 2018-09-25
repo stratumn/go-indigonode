@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	rpcpb "github.com/stratumn/go-indigonode/app/indigo/grpc/fossilizer"
-	protocol "github.com/stratumn/go-indigonode/app/indigo/protocol/fossilizer"
+	rpcpb "github.com/stratumn/go-node/app/indigo/grpc/fossilizer"
+	protocol "github.com/stratumn/go-node/app/indigo/protocol/fossilizer"
 	"github.com/stratumn/go-indigocore/blockchain/btc/btctimestamper"
 )
 

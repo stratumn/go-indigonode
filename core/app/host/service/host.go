@@ -21,9 +21,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/app/host/grpc"
-	swarmSvc "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/p2p"
+	pb "github.com/stratumn/go-node/core/app/host/grpc"
+	swarmSvc "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/p2p"
 
 	"google.golang.org/grpc"
 
@@ -191,7 +191,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 //
 // It exposes the type:
 //
-//	github.com/stratumn/go-indigonode/core/*p2p.Host
+//	github.com/stratumn/go-node/core/*p2p.Host
 func (s *Service) Expose() interface{} {
 	return s.host
 }

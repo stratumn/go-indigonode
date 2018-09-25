@@ -16,7 +16,7 @@
 package service
 
 import (
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"

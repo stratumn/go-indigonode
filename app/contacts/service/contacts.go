@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/contacts/grpc"
+	pb "github.com/stratumn/go-node/app/contacts/grpc"
 	"google.golang.org/grpc"
 )
 

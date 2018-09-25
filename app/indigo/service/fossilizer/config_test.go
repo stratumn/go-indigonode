@@ -28,7 +28,7 @@ import (
 
 	indigofossilizer "github.com/stratumn/go-indigocore/fossilizer"
 
-	"github.com/stratumn/go-indigonode/app/indigo/service/fossilizer"
+	"github.com/stratumn/go-node/app/indigo/service/fossilizer"
 	"github.com/stretchr/testify/assert"
 )
 

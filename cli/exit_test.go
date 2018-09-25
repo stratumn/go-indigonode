@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/cli"
+	"github.com/stratumn/go-node/cli"
 )
 
 func TestExit(t *testing.T) {

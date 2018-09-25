@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockservice -destination mockservice/mockserver.go github.com/stratumn/go-indigonode/core/app/bootstrap/grpc Bootstrap_ListServer
+//go:generate mockgen -package mockservice -destination mockservice/mockserver.go github.com/stratumn/go-node/core/app/bootstrap/grpc Bootstrap_ListServer
 
 package service

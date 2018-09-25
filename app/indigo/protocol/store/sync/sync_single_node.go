@@ -20,10 +20,10 @@ import (
 
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/store"
-	pb "github.com/stratumn/go-indigonode/app/indigo/pb/store"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/streamutil"
+	pb "github.com/stratumn/go-node/app/indigo/pb/store"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/streamutil"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"

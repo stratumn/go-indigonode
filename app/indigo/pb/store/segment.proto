@@ -15,50 +15,50 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.app.indigo.store;
+package stratumn.node.app.indigo.store;
 
-option go_package = "github.com/stratumn/go-indigonode/app/indigo/pb/store;store";
+option go_package = "github.com/stratumn/go-node/app/indigo/pb/store;store";
 
 message Link {
     bytes data = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded link bytes"
+        (stratumn.node.cli.ext.field_desc) = "JSON-encoded link bytes"
     ];
 }
 
 message LinkHash {
     bytes data = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "32-bytes link hash"
+        (stratumn.node.cli.ext.field_desc) = "32-bytes link hash"
     ];
 }
 
 message LinkHashes {
     repeated LinkHash link_hashes = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "Link hashes"
+        (stratumn.node.cli.ext.field_desc) = "Link hashes"
     ];
 }
 
 message Segment {
     bytes data = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded segment bytes"
+        (stratumn.node.cli.ext.field_desc) = "JSON-encoded segment bytes"
     ];
 }
 
 message Segments {
     repeated Segment segments = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded segments bytes"
+        (stratumn.node.cli.ext.field_desc) = "JSON-encoded segments bytes"
     ];
 }
 
 message Evidence {
     bytes data = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded evidence bytes"
+        (stratumn.node.cli.ext.field_desc) = "JSON-encoded evidence bytes"
     ];
 }
 
 message Evidences {
     repeated Evidence evidences = 1 [
-        (stratumn.indigonode.cli.ext.field_desc) = "JSON-encoded evidences bytes"
+        (stratumn.node.cli.ext.field_desc) = "JSON-encoded evidences bytes"
     ];
 }

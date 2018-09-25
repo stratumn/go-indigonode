@@ -26,7 +26,7 @@ import (
 
 // renderPrompt re-renders the prompt.
 //
-// This is necessary to re-render the prompt ("IndigoNode>"").
+// This is necessary to re-render the prompt ("node>"").
 // See https://github.com/c-bata/go-prompt/issues/18.
 func renderPrompt(sig Signaler) error {
 	return errors.WithStack(sig.Signal(syscall.SIGWINCH))

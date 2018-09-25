@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockcoin -destination mockcoin/mockcoin.go github.com/stratumn/go-indigonode/app/coin/grpc Coin_AccountTransactionsServer
+//go:generate mockgen -package mockcoin -destination mockcoin/mockcoin.go github.com/stratumn/go-node/app/coin/grpc Coin_AccountTransactionsServer
 
 package grpc

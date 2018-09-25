@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockstorage -destination mockstorage/mockstorage.go github.com/stratumn/go-indigonode/app/storage/grpc Storage_UploadServer,Storage_DownloadServer
+//go:generate mockgen -package mockstorage -destination mockstorage/mockstorage.go github.com/stratumn/go-node/app/storage/grpc Storage_UploadServer,Storage_DownloadServer
 
 package grpc

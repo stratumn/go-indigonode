@@ -23,9 +23,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigocore/cs"
 	"github.com/stratumn/go-indigocore/cs/cstesting"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/audit"
-	"github.com/stratumn/go-indigonode/app/indigo/protocol/store/constants"
-	"github.com/stratumn/go-indigonode/core/crypto"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/audit"
+	"github.com/stratumn/go-node/app/indigo/protocol/store/constants"
+	"github.com/stratumn/go-node/core/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

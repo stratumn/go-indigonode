@@ -21,11 +21,11 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	pbchat "github.com/stratumn/go-indigonode/app/chat/grpc"
-	"github.com/stratumn/go-indigonode/app/chat/pb"
-	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
-	event "github.com/stratumn/go-indigonode/core/app/event/service"
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	pbchat "github.com/stratumn/go-node/app/chat/grpc"
+	"github.com/stratumn/go-node/app/chat/pb"
+	pbevent "github.com/stratumn/go-node/core/app/event/grpc"
+	event "github.com/stratumn/go-node/core/app/event/service"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"

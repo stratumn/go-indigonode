@@ -18,7 +18,7 @@ package testutil
 import (
 	"fmt"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 )
 
 // TxMatcher matches transactions.

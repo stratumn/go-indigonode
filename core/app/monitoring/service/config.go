@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/httputil"
+	"github.com/stratumn/go-node/core/httputil"
 
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	"go.opencensus.io/exporter/jaeger"

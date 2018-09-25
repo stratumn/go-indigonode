@@ -21,8 +21,8 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
-	"github.com/stratumn/go-indigonode/core/crypto"
+	"github.com/stratumn/go-node/core/app/bootstrap/pb"
+	"github.com/stratumn/go-node/core/crypto"
 
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"

@@ -37,9 +37,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
 
 func expectCoordinatedHost(host *mocks.MockHost) {
@@ -470,7 +471,7 @@ func TestCoordinated_Handshake(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			pstore := peerstore.NewPeerstore()
+			pstore := pstoremem.NewPeerstore()
 			pstore.AddAddrs(coordinatorID, coordinatorAddrs, peerstore.PermanentAddrTTL)
 
 			host := mocks.NewMockHost(ctrl)
@@ -640,7 +641,7 @@ func TestCoordinated_Accept(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			pstore := peerstore.NewPeerstore()
+			pstore := pstoremem.NewPeerstore()
 			require.NoError(t, pstore.AddPrivKey(hostID, hostKey))
 
 			host := mocks.NewMockHost(ctrl)

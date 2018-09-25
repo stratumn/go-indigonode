@@ -27,8 +27,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	bhost "gx/ipfs/QmWsV6kzPaYGBDVyuUfWBvyQygEc9Qrv9vzo8vZ7X4mdLN/go-libp2p/p2p/host/basic"
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
+	bhost "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/host/basic"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -47,7 +47,7 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 }
 
 func expectHost(ctx context.Context, t *testing.T, host *mockservice.MockHost) {
-	swm := testutil.GenSwarmNetwork(t, ctx)
+	swm := swarmtesting.GenSwarm(t, ctx)
 
 	host.EXPECT().Network().Return(swm).AnyTimes()
 	host.EXPECT().SetNATManager(gomock.Any())

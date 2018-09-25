@@ -27,11 +27,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
 	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
-	mafilter "gx/ipfs/Qmf2UAmRwDG4TvnkQpHZWPAzw7rpCYVhxmRXmYxXr5LD1g/go-maddr-filter"
-	ifconnmgr "gx/ipfs/QmfQNieWBPwmnUjXWPZbjJPzhNwFFabTb5RQ79dyVWGujQ/go-libp2p-interface-connmgr"
+	mafilter "gx/ipfs/QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y/go-maddr-filter"
+	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 )
 
 var (
@@ -170,7 +169,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 			return errors.Wrap(ErrNotNetwork, s.config.Network)
 		}
 
-		s.netw = (*swarm.Network)(swm.Swarm)
+		s.netw = swm.Swarm
 	}
 
 	if s.config.ConnectionManager != "" {
@@ -201,7 +200,6 @@ func (s *Service) Expose() interface{} {
 func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	opts := []p2p.HostOption{
 		p2p.OptNegTimeout(s.negTimeout),
-		p2p.OptMetricsInterval(s.metricsInterval),
 	}
 
 	if s.cmgr != nil {

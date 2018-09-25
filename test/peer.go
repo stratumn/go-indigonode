@@ -23,9 +23,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 )
 
 // GeneratePrivateKey generates a valid private key.
@@ -82,4 +82,16 @@ func GenerateMultiaddrs(t *testing.T) []multiaddr.Multiaddr {
 		GenerateMultiaddr(t),
 		GenerateMultiaddr(t),
 	}
+}
+
+// GenerateNetAddr generates a valid multiaddr without the ipfs peerID part.
+func GenerateNetAddr(t *testing.T) multiaddr.Multiaddr {
+	peerAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf(
+		"/ip4/10.0.0.%d/tcp/%d",
+		rand.Intn(256),
+		8900+rand.Intn(10000),
+	))
+	require.NoError(t, err, "multiaddr.NewMultiaddr()")
+
+	return peerAddr
 }

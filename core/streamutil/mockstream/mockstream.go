@@ -7,7 +7,7 @@ package mockstream
 import (
 	gomock "github.com/golang/mock/gomock"
 	streamutil "github.com/stratumn/go-indigonode/core/streamutil"
-	go_libp2p_net "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	go_libp2p_net "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	reflect "reflect"
 )
 

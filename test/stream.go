@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 )
 
 // WaitUntilStreamClosed waits until a stream is closed by the other party.

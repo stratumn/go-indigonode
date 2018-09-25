@@ -28,15 +28,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	swarm "gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	swarm "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
-	swm := (*swarm.Swarm)(testutil.GenSwarmNetwork(t, ctx))
+	swm := (*swarm.Swarm)(swarmtesting.GenSwarm(t, ctx))
 
 	return grpcServer{
 		GetSwarm: func() *swarm.Swarm { return swm },
@@ -79,7 +79,7 @@ func TestGRPCServer_LocalPeer_unavailable(t *testing.T) {
 }
 
 // testConnect ensures two swarms networks are connected.
-func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Network) {
+func testConnect(ctx context.Context, t *testing.T, n1, n2 *swarm.Swarm) {
 	pi1 := n1.Peerstore().PeerInfo(n1.LocalPeer())
 	pi2 := n2.Peerstore().PeerInfo(n2.LocalPeer())
 
@@ -96,10 +96,10 @@ func TestGRPCServer_Peers(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
-	n2 := testutil.GenSwarmNetwork(t, ctx)
+	n2 := swarmtesting.GenSwarm(t, ctx)
 	defer n2.Close()
 
 	testConnect(ctx, t, n1, n2)
@@ -162,10 +162,10 @@ func TestGRPCServer_Connections(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
-	n2 := testutil.GenSwarmNetwork(t, ctx)
+	n2 := swarmtesting.GenSwarm(t, ctx)
 	defer n2.Close()
 
 	testConnect(ctx, t, n1, n2)
@@ -188,13 +188,13 @@ func TestGRPCServer_Connections_peer(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	n1 := (*swarm.Network)(srv.GetSwarm())
+	n1 := srv.GetSwarm()
 	defer n1.Close()
 
-	n2 := testutil.GenSwarmNetwork(t, ctx)
+	n2 := swarmtesting.GenSwarm(t, ctx)
 	defer n2.Close()
 
-	n3 := testutil.GenSwarmNetwork(t, ctx)
+	n3 := swarmtesting.GenSwarm(t, ctx)
 	defer n3.Close()
 
 	testConnect(ctx, t, n1, n2)

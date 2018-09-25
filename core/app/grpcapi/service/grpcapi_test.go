@@ -33,7 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T, mgr Manager) *Service {
@@ -147,7 +147,7 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.Manager = "mymgr" },
 		map[string]interface{}{
 			"mymgr": mockservice.NewMockManager(ctrl),
-			"swarm": testutil.GenSwarmNetwork(t, context.Background()),
+			"swarm": swarmtesting.GenSwarm(t, context.Background()),
 		},
 		nil,
 	}, {
@@ -155,7 +155,7 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.Manager = "mymgr" },
 		map[string]interface{}{
 			"mymgr": struct{}{},
-			"swarm": testutil.GenSwarmNetwork(t, context.Background()),
+			"swarm": swarmtesting.GenSwarm(t, context.Background()),
 		},
 		ErrNotManager,
 	}}

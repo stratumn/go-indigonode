@@ -26,10 +26,10 @@ import (
 	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
 	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p"
 
+	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
 )
 
 var log = logging.Logger("coin.synchronizer")
@@ -65,7 +65,7 @@ type Synchronizer interface {
 // ContentProviderFinder is an interface used to get the peers that provide a resource.
 // The resource is identified by a content ID.
 type ContentProviderFinder interface {
-	FindProviders(ctx context.Context, c *cid.Cid) ([]pstore.PeerInfo, error)
+	FindProviders(ctx context.Context, c cid.Cid) ([]pstore.PeerInfo, error)
 }
 
 type synchronizer struct {

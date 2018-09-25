@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/db"
 
-	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
+	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
 )
 
 var (

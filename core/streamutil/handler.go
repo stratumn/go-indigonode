@@ -20,7 +20,7 @@ import (
 
 	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 )
 
 // AutoCloseHandler is a specialized stream handler that closes the stream

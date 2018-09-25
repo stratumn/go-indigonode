@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	connmgr "gx/ipfs/Qmbe3mKoxoRtHoziHxfAGoTJPPTh4QTB7nmhZjqeviLhs4/go-libp2p-connmgr"
+	connmgr "gx/ipfs/QmW9pfNup4hcWxyMxDGSe25tG9xepvLqqmQUoTDaawzTZe/go-libp2p-connmgr"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {

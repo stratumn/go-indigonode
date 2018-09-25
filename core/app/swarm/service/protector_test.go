@@ -29,9 +29,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
 )
 
 func TestInvalidConfig(t *testing.T) {
@@ -87,7 +87,8 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&config)
 	require.NoError(t, err)
 
-	p, networkConfig, err := cfg.Configure(ctx, s, peerstore.NewPeerstore())
+	p, networkConfig, err := cfg.Configure(ctx, s, pstoremem.NewPeerstore())
+	require.NoError(t, err)
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
 	require.NotNil(t, networkConfig)
 
@@ -115,7 +116,7 @@ func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	cfg, err := swarm.NewProtectorConfig(&config)
 	require.NoError(t, err)
 
-	pstore := peerstore.NewPeerstore()
+	pstore := pstoremem.NewPeerstore()
 	p, networkConfig, err := cfg.Configure(ctx, s, pstore)
 	assert.IsType(t, &protector.PrivateNetwork{}, p)
 

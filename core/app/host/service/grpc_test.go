@@ -30,14 +30,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {
-	h := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 
 	return grpcServer{func() *p2p.Host { return h }}
 }
@@ -143,7 +143,7 @@ func TestGRPCServer_Connect(t *testing.T) {
 
 	srv := testGRPCServer(ctx, t)
 
-	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h2 := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 
 	addr := h2.Addrs()[0].String() + "/ipfs/" + h2.ID().Pretty()
 	maddr, err := ma.NewMultiaddr(addr)

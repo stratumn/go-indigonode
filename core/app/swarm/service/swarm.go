@@ -26,12 +26,15 @@ import (
 	"github.com/stratumn/go-indigonode/core/protector"
 	"google.golang.org/grpc"
 
-	"gx/ipfs/QmRqfgh56f8CrqpwH7D2s6t8zQRsvPoftT3sp5Y6SUhNA3/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
+	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"gx/ipfs/QmReYSQGHjf28pKf93FwyD72mLXoZo94MB2Cq6VBSUHvFB/go-libp2p-secio"
+	"gx/ipfs/QmV8KW6eBanaxCxGNrXx8Q3fZUqvumCz2Hwd2FGpb3vzYC/go-tcp-transport"
+	tptu "gx/ipfs/QmWRcKvbFVND1vSTJZv5imdBxmkj9FFJ5Jku1qWxasAAMo/go-libp2p-transport-upgrader"
 	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	"gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstoremem "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
+	"gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm"
 )
 
 const (
@@ -207,7 +210,7 @@ func (s *Service) Expose() interface{} {
 
 // Run starts the service.
 func (s *Service) Run(ctx context.Context, running, stopping func()) (err error) {
-	pstore := peerstore.NewPeerstore()
+	pstore := pstoremem.NewPeerstore()
 
 	if err = pstore.AddPrivKey(s.peerID, s.privKey); err != nil {
 		return errors.WithStack(err)
@@ -227,10 +230,28 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 		return err
 	}
 
+	secureTransport, err := secio.New(s.privKey)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	transportUpgrader := &tptu.Upgrader{
+		Secure:    secureTransport,
+		Muxer:     s.smuxer,
+		Protector: protect,
+	}
+	tcpTransport := tcp.NewTCPTransport(transportUpgrader)
+
 	swmCtx, swmCancel := context.WithCancel(ctx)
 	defer swmCancel()
 
-	swm, err := swarm.NewSwarmWithProtector(swmCtx, s.addrs, s.peerID, pstore, protect, s.smuxer, &p2p.MetricsReporter{})
+	swm := swarm.NewSwarm(swmCtx, s.peerID, pstore, &p2p.MetricsReporter{})
+	err = swm.AddTransport(tcpTransport)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	err = swm.Listen(s.addrs...)
 	if err != nil {
 		return errors.WithStack(err)
 	}

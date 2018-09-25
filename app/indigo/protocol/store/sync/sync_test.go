@@ -32,12 +32,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	protobuf "gx/ipfs/QmRDePEiL4Yupq5EkcK3L3ko3iMgYaqUdLu7xc1kqs7dnV/go-multicodec/protobuf"
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
+	bhost "gx/ipfs/QmQ4bjZSEC5drCRqssuXRymCswHPmW3Z46ibgBtg9XGd34/go-libp2p-blankhost"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	netutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	bhost "gx/ipfs/Qmc64U41EEB4nPG7wxjEqFwKJajS2f8kk5q2TvUrQf78Xu/go-libp2p-blankhost"
-	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
 )
 
 func TestListMissingLinkHashes(t *testing.T) {
@@ -296,7 +296,7 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("node-not-connected", func(t *testing.T) {
 		ctx := context.Background()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		indigoStore := dummystore.New(&dummystore.Config{})
@@ -314,8 +314,8 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("simple-one-pass-sync", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -356,8 +356,8 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("link-missing-from-all-peers", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -390,9 +390,9 @@ func TestMultiNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("recursive-sync", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h3 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h3 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 		defer h3.Close()
@@ -449,7 +449,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("no-missing-links", func(t *testing.T) {
 		ctx := context.Background()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		prevLink := cstesting.NewLinkBuilder().WithoutParent().Build()
@@ -469,7 +469,7 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("sender-connection-failure", func(t *testing.T) {
 		ctx := context.Background()
 
-		h := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h.Close()
 
 		engine := sync.NewSingleNodeEngine(h, nil, streamutil.NewStreamProvider())
@@ -488,8 +488,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("sender-protocol-error", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -535,8 +535,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("missing-previous-link", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -568,8 +568,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("diamond-dependency", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 
@@ -606,8 +606,8 @@ func TestSingleNodeEngine_GetMissingLinks(t *testing.T) {
 	t.Run("recursive-sync", func(t *testing.T) {
 		ctx := context.Background()
 
-		h1 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
-		h2 := bhost.NewBlankHost(netutil.GenSwarmNetwork(t, ctx))
+		h1 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
+		h2 := bhost.NewBlankHost(swarmtesting.GenSwarm(t, ctx))
 		defer h1.Close()
 		defer h2.Close()
 

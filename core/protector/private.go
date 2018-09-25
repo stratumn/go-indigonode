@@ -17,17 +17,19 @@ package protector
 
 import (
 	"context"
+	"net"
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/stratumn/go-indigonode/core/monitoring"
 
-	"gx/ipfs/QmPUHzTLPZFYqv8WqcBTuMFYTgeom4uHHEaxzk7bd5GYZB/go-libp2p-transport"
-	"gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	"gx/ipfs/QmZyZDi491cCNTLfAhwcaDii2Kg4pwKRkhqQzURGDvY6ua/go-multihash"
-	"gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	"gx/ipfs/Qmd3oYWVLCVWryDV6Pobv6whZcvDXAHqS3chemZ658y4a8/go-libp2p-interface-pnet"
-	"gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
+	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
 )
 
 // PrivateNetwork implements the github.com/libp2p/go-libp2p-interface-pnet/ipnet.Protector interface.
@@ -104,17 +106,22 @@ func (p *PrivateNetwork) Fingerprint() []byte {
 }
 
 // Protect drops any connection attempt from or to a nonwhitelisted peer.
-func (p *PrivateNetwork) Protect(conn transport.Conn) (transport.Conn, error) {
+func (p *PrivateNetwork) Protect(conn net.Conn) (net.Conn, error) {
 	ctx, span := monitoring.StartSpan(context.Background(), "protector", "Protect")
 	defer span.End()
 
-	localAddr := conn.LocalMultiaddr()
+	localAddr := conn.LocalAddr()
 	span.AddStringAttribute("local", localAddr.String())
-	remoteAddr := conn.RemoteMultiaddr()
+	remoteAddr := conn.RemoteAddr()
 	span.AddStringAttribute("remote", remoteAddr.String())
 
+	remoteMultiAddr, err := manet.FromNetAddr(remoteAddr)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	for _, addr := range p.AllowedAddrs(ctx) {
-		if remoteAddr.Equal(addr) {
+		if remoteMultiAddr.Equal(addr) {
 			return conn, nil
 		}
 	}

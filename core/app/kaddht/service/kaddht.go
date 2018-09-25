@@ -35,12 +35,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	kaddht "gx/ipfs/QmT9TxakNKCHg3uBcLnNzBSBhhACvqH8tRzJvYZjUevrvE/go-libp2p-kad-dht"
-	levelds "gx/ipfs/Qmb4NghN5y3uGjiZCQWU6g1ZWRVmFCykLmByqxEVi7px1d/go-ds-leveldb"
-	peer "gx/ipfs/QmcJukH2sAFjY3HdBKq35WDzWoL3UUu2gt9wdfqZTUyM74/go-libp2p-peer"
-	pstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmfZTdmunzKzAGJrSvXXQbQ5kLLUiEMX5vdwux7iXkdk7D/go-libp2p-host"
+	kaddht "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht"
+	kaddhtopts "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht/opts"
+	levelds "gx/ipfs/QmcaNdDGptNd3uaT6HGwPwvPLpVhrnASgqHXkofboDuFjW/go-ds-leveldb"
+	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
 )
 
 var (
@@ -271,8 +272,8 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 	stopping()
 
 	s.host.SetRouter(nil)
-	s.host.RemoveStreamHandler(kaddht.ProtocolDHT)
-	s.host.RemoveStreamHandler(kaddht.ProtocolDHTOld)
+	s.host.RemoveStreamHandler(kaddhtopts.ProtocolDHT)
+	s.host.RemoveStreamHandler(kaddhtopts.ProtocolDHTOld)
 
 	closeBS()
 	closeDHT()

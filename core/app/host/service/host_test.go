@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
-	ifconnmgr "gx/ipfs/QmfQNieWBPwmnUjXWPZbjJPzhNwFFabTb5RQ79dyVWGujQ/go-libp2p-interface-connmgr"
+	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {
@@ -41,7 +41,7 @@ func testService(ctx context.Context, t *testing.T) *Service {
 
 	deps := map[string]interface{}{
 		"monitoring": 42 * time.Second,
-		"swarm":      testutil.GenSwarmNetwork(t, ctx),
+		"swarm":      swarmtesting.GenSwarm(t, ctx),
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -159,7 +159,7 @@ func TestService_Plug(t *testing.T) {
 		"valid network",
 		func(c *Config) { c.Network = "myswarm" },
 		map[string]interface{}{
-			"myswarm":    testutil.GenSwarmNetwork(t, context.Background()),
+			"myswarm":    swarmtesting.GenSwarm(t, context.Background()),
 			"monitoring": time.Second,
 		},
 		nil,
@@ -184,7 +184,7 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
 		map[string]interface{}{
 			"myconnmgr":  ifconnmgr.NullConnMgr{},
-			"swarm":      testutil.GenSwarmNetwork(t, context.Background()),
+			"swarm":      swarmtesting.GenSwarm(t, context.Background()),
 			"monitoring": time.Second,
 		},
 		nil,
@@ -193,7 +193,7 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
 		map[string]interface{}{
 			"myconnmgr":  struct{}{},
-			"swarm":      testutil.GenSwarmNetwork(t, context.Background()),
+			"swarm":      swarmtesting.GenSwarm(t, context.Background()),
 			"monitoring": time.Second,
 		},
 		ErrNotConnManager,
@@ -202,7 +202,7 @@ func TestService_Plug(t *testing.T) {
 		func(c *Config) { c.Monitoring = "mymonitoring" },
 		map[string]interface{}{
 			"connmgr":      ifconnmgr.NullConnMgr{},
-			"swarm":        testutil.GenSwarmNetwork(t, context.Background()),
+			"swarm":        swarmtesting.GenSwarm(t, context.Background()),
 			"mymonitoring": struct{}{},
 		},
 		ErrNotMonitoring,

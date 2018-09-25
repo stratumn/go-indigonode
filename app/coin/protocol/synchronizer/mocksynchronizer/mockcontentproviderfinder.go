@@ -7,8 +7,8 @@ package mocksynchronizer
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	go_cid "gx/ipfs/QmcZfnkapfECQGcLZaf9B79NRg7cRa9EnZh4LSbkCzwNvY/go-cid"
-	go_libp2p_peerstore "gx/ipfs/QmdeiKhUy1TVGBaKxt7y1QmBDLBdisSrLJ1x58Eoj4PXUh/go-libp2p-peerstore"
+	go_cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
+	go_libp2p_peerstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
 	reflect "reflect"
 )
 
@@ -36,7 +36,7 @@ func (m *MockContentProviderFinder) EXPECT() *MockContentProviderFinderMockRecor
 }
 
 // FindProviders mocks base method
-func (m *MockContentProviderFinder) FindProviders(arg0 context.Context, arg1 *go_cid.Cid) ([]go_libp2p_peerstore.PeerInfo, error) {
+func (m *MockContentProviderFinder) FindProviders(arg0 context.Context, arg1 go_cid.Cid) ([]go_libp2p_peerstore.PeerInfo, error) {
 	ret := m.ctrl.Call(m, "FindProviders", arg0, arg1)
 	ret0, _ := ret[0].([]go_libp2p_peerstore.PeerInfo)
 	ret1, _ := ret[1].(error)

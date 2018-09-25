@@ -28,14 +28,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	inet "gx/ipfs/QmXoz9o2PT3tEzf7hicegwex5UgVP54n3k82K7jrWFyN86/go-libp2p-net"
-	testutil "gx/ipfs/Qmb6BsZf6Y3kxffXMNTubGPF1w1bkHtpvhfYbmnwP3NQyw/go-libp2p-netutil"
+	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
 )
 
 func TestChat(t *testing.T) {
 	ctx := context.Background()
-	h1 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
-	h2 := p2p.NewHost(ctx, testutil.GenSwarmNetwork(t, ctx))
+	h1 := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
+	h2 := p2p.NewHost(ctx, swarmtesting.GenSwarm(t, ctx))
 	defer h1.Close()
 	defer h2.Close()
 

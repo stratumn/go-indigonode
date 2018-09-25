@@ -88,6 +88,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	p, networkConfig, err := cfg.Configure(ctx, s, pstoremem.NewPeerstore())
+	require.NoError(t, err)
 	assert.IsType(t, &protector.PrivateNetworkWithBootstrap{}, p)
 	require.NotNil(t, networkConfig)
 

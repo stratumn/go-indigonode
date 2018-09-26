@@ -17,7 +17,7 @@ package service
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-node/core/protector"
 )
 
 // Configuration errors.

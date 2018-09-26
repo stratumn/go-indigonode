@@ -19,9 +19,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/gossip"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/gossip/mockgossip"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/gossip"
+	"github.com/stratumn/go-node/app/coin/protocol/gossip/mockgossip"
 )
 
 // NewDummyGossip returns a gossip mock that does nothing.

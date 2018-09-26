@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockevent.go github.com/stratumn/go-indigonode/core/app/event/grpc Emitter_ListenServer,EmitterClient,Emitter_ListenClient
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockevent.go github.com/stratumn/go-node/core/app/event/grpc Emitter_ListenServer,EmitterClient,Emitter_ListenClient
 
 package grpc

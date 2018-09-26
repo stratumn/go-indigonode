@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/testutil"
-	txtest "github.com/stratumn/go-indigonode/app/coin/protocol/testutil/transaction"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/app/coin/protocol/engine"
+	"github.com/stratumn/go-node/app/coin/protocol/testutil"
+	txtest "github.com/stratumn/go-node/app/coin/protocol/testutil/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

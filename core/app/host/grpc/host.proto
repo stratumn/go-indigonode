@@ -15,42 +15,42 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.core.app.host.grpc;
+package stratumn.node.core.app.host.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/core/app/host/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/core/app/host/grpc;grpc";
 
 // The host service definition.
 service Host {
   // Returns the host ID.
   rpc ID (IdReq) returns (PeerId) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Display the host's ID";
+    option (stratumn.node.cli.ext.method_desc) = "Display the host's ID";
   }
 
   // Streams the host addresses.
   rpc Addresses (AddressesReq) returns (stream Address) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "List all the host's addresses";
+    option (stratumn.node.cli.ext.method_desc) = "List all the host's addresses";
   }
 
   // Streams a peer's known addresses.
   rpc PeerAddresses (PeerAddressesReq) returns (stream Address) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "List peer addresses";
+    option (stratumn.node.cli.ext.method_desc) = "List peer addresses";
   }
 
   // Clears a peer's known addresses.
   rpc ClearPeerAddresses (PeerAddressesReq) returns (stream Address) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Clear peer addresses from peer store";
+    option (stratumn.node.cli.ext.method_desc) = "Clear peer addresses from peer store";
   }
 
   // Add a new peer address to the node's Peer Store.
   rpc AddPeerAddress (AddPeerAddressReq) returns (PeerId) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Add a new peer address";
+    option (stratumn.node.cli.ext.method_desc) = "Add a new peer address";
   }
 
   // Connects to a multiaddress.
   rpc Connect (ConnectReq) returns (stream Connection) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Ensure there is a connection to this peer";
+    option (stratumn.node.cli.ext.method_desc) = "Ensure there is a connection to this peer";
   }
 }
 
@@ -65,48 +65,48 @@ message AddressesReq {
 // The peer addresses request message.
 message PeerAddressesReq {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Show known addresses for this peer",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Show known addresses for this peer",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
 }
 
 // The add peer address request message.
 message AddPeerAddressReq {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Add a new address for this peer",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Add a new address for this peer",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   bytes address = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "New address value",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_multiaddr) = true
+    (stratumn.node.cli.ext.field_desc) = "New address value",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_multiaddr) = true
   ];
 }
 
 // The connect request message.
 message ConnectReq {
   bytes address = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Multiaddress",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_multiaddr) = true
+    (stratumn.node.cli.ext.field_desc) = "Multiaddress",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_multiaddr) = true
   ];
 }
 
 // The peer ID message containing the ID of a peer.
 message PeerId {
-  bytes id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
+  bytes id = 1 [(stratumn.node.cli.ext.field_base58) = true];
 }
 
 // The address message containing a multiaddress.
 message Address {
-    bytes address = 1 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
+    bytes address = 1 [(stratumn.node.cli.ext.field_multiaddr) = true];
 }
 
 // The connection message containing the peer ID and addresses.
 message Connection {
-    bytes peer_id = 1 [(stratumn.indigonode.cli.ext.field_base58) = true];
-    bytes local_address = 2 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
-    bytes remote_address = 3 [(stratumn.indigonode.cli.ext.field_multiaddr) = true];
+    bytes peer_id = 1 [(stratumn.node.cli.ext.field_base58) = true];
+    bytes local_address = 2 [(stratumn.node.cli.ext.field_multiaddr) = true];
+    bytes remote_address = 3 [(stratumn.node.cli.ext.field_multiaddr) = true];
 }

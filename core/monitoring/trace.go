@@ -72,7 +72,7 @@ func StartSpan(ctx context.Context, service string, method string, opts ...SpanO
 	loggersLock.Unlock()
 
 	event := log.EventBegin(ctx, method)
-	ctx, s := trace.StartSpan(ctx, fmt.Sprintf("indigo-node/%s/%s", service, method))
+	ctx, s := trace.StartSpan(ctx, fmt.Sprintf("stratumn-node/%s/%s", service, method))
 	span := &Span{event: event, log: log, span: s}
 
 	for _, opt := range opts {

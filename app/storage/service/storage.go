@@ -24,10 +24,10 @@ import (
 
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	grpcpb "github.com/stratumn/go-indigonode/app/storage/grpc"
-	"github.com/stratumn/go-indigonode/app/storage/protocol"
-	"github.com/stratumn/go-indigonode/app/storage/protocol/constants"
-	"github.com/stratumn/go-indigonode/core/db"
+	grpcpb "github.com/stratumn/go-node/app/storage/grpc"
+	"github.com/stratumn/go-node/app/storage/protocol"
+	"github.com/stratumn/go-node/app/storage/protocol/constants"
+	"github.com/stratumn/go-node/core/db"
 
 	"google.golang.org/grpc"
 
@@ -47,7 +47,7 @@ var (
 
 var log = logging.Logger("storage.service")
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the Storage service.

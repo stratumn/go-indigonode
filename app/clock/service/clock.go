@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/clock/grpc"
-	"github.com/stratumn/go-indigonode/app/clock/protocol"
+	pb "github.com/stratumn/go-node/app/clock/grpc"
+	"github.com/stratumn/go-node/app/clock/protocol"
 	"google.golang.org/grpc"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
@@ -40,7 +40,7 @@ var (
 	ErrUnavailable = errors.New("the service is not available")
 )
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the Clock service.
@@ -126,7 +126,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 // Expose exposes the clock service to other services.
 //
 // It exposes the type:
-//	github.com/stratumn/go-indigonode/core/service/*clock.Clock
+//	github.com/stratumn/go-node/core/service/*clock.Clock
 func (s *Service) Expose() interface{} {
 	return s.clock
 }

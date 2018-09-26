@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/core/protector"
-	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/core/protector"
+	protectorpb "github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/require"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"

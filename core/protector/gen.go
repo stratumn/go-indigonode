@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mocks -destination mocks/mockprotector.go github.com/stratumn/go-indigonode/core/protector Protector,StateAwareProtector
-//go:generate mockgen -package mocks -destination mocks/mocknetworkconfig.go github.com/stratumn/go-indigonode/core/protector NetworkConfig
+//go:generate mockgen -package mocks -destination mocks/mockprotector.go github.com/stratumn/go-node/core/protector Protector,StateAwareProtector
+//go:generate mockgen -package mocks -destination mocks/mocknetworkconfig.go github.com/stratumn/go-node/core/protector NetworkConfig
 
 package protector

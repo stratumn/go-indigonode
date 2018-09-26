@@ -1,15 +1,15 @@
-# Indigo Node
+# Stratumn Node
 
-[![GoDoc](https://github.com/golang/gddo/blob/c782c79e0a3c3282dacdaaebeff9e6fd99cb2919/gddo-server/assets/status.svg)](http://godoc.org/github.com/stratumn/go-indigonode)
-[![Build Status](https://semaphoreci.com/api/v1/projects/7e0b5b26-d529-4d2b-a0a0-fabc120c414a/2050943/badge.svg)](https://semaphoreci.com/stratumn/go-indigonode)
-[![codecov](https://codecov.io/gh/stratumn/go-indigonode/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-indigonode)
-[![Go Report Card](https://goreportcard.com/badge/github.com/stratumn/go-indigonode)](https://goreportcard.com/report/github.com/stratumn/go-indigonode)
+[![GoDoc](https://github.com/golang/gddo/blob/c782c79e0a3c3282dacdaaebeff9e6fd99cb2919/gddo-server/assets/status.svg)](http://godoc.org/github.com/stratumn/go-node)
+[![Build Status](https://semaphoreci.com/api/v1/projects/7e0b5b26-d529-4d2b-a0a0-fabc120c414a/2050943/badge.svg)](https://semaphoreci.com/stratumn/go-node)
+[![codecov](https://codecov.io/gh/stratumn/go-node/branch/master/graph/badge.svg?token=nVHWHcr5xQ)](https://codecov.io/gh/stratumn/go-node)
+[![Go Report Card](https://goreportcard.com/badge/github.com/stratumn/go-node)](https://goreportcard.com/report/github.com/stratumn/go-node)
 
-Indigo Node is virtual infrastructure for interoperable P2P services.
+Stratumn Node is virtual infrastructure for interoperable P2P services.
 
 ## Project Status
 
-The current focus is to build a solid architecture to develop P2P services and run Stratumn's Indigo products.
+The current focus is to build a solid architecture to develop P2P services and run Stratumn's products.
 
 ### Current features
 
@@ -17,7 +17,6 @@ The current focus is to build a solid architecture to develop P2P services and r
 - core services (P2P, NAT, DHT routing, relay, etc...)
 - P2P bootstrapping from seed nodes
 - P2P bootstrapping for private networks (with a coordinator node)
-- Indigo Store and Fossilizer support
 - gRPC API
 - CLI with gRPC command reflection
 - neat and powerful inner-process service based architecture
@@ -47,7 +46,7 @@ Install Go dependencies:
 make deps
 ```
 
-Compile and install `indigo-node`:
+Compile and install `stratumn-node`:
 
 ```bash
 make install
@@ -56,22 +55,22 @@ make install
 ## Usage
 
 Create a new directory for your node. Open a terminal in that directory
-then create configuration files using `indigo-node init`:
+then create configuration files using `stratumn-node init`:
 
 ```bash
-indigo-node init
+stratumn-node init
 ```
 
 Now you can launch a node (from the same directory):
 
 ```bash
-indigo-node up
+stratumn-node up
 ```
 
 Open another terminal and connect to the node (from the same directory):
 
 ```bash
-indigo-node cli
+stratumn-node cli
 ```
 
 The auto-completion should help you explore available APIs easily.
@@ -81,7 +80,7 @@ The auto-completion should help you explore available APIs easily.
 To view streaming logs (from the same directory):
 
 ```bash
-indigo-node log -f log.jsonld
+stratumn-node log -f log.jsonld
 ```
 
 To view metrics you need to install Prometheus. On macOS:
@@ -119,9 +118,9 @@ grafana-server
 
 ## Traces
 
-Distributed tracing is available in Indigo Node but disabled by default.
+Distributed tracing is available in Stratumn Node but disabled by default.
 
-You can configure it in the `monitoring` section in `indigo_node.core.config`.
+You can configure it in the `monitoring` section in `stratumn_node.core.config`.
 
 We recommend using [Jaeger](https://www.jaegertracing.io) to collect traces
 locally (during development).
@@ -130,7 +129,7 @@ We recommend using [Stackdriver](https://cloud.google.com/stackdriver/)
 on [AWS](https://aws.amazon.com/) or [GCP](https://cloud.google.com/).
 
 To view traces locally, set `monitoring.jaeger.endpoint = "/ip4/127.0.0.1/tcp/14268"`
-in `indigo_node.core.config` and run:
+in `stratumn_node.core.config` and run:
 
 ```bash
 docker run -p 14268:14268 -p 16686:16686 jaegertracing/all-in-one:latest

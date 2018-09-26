@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"github.com/stratumn/go-indigonode/app/raft/pb"
+	"github.com/stratumn/go-node/app/raft/pb"
 )
 
 type hubCallStart struct{}

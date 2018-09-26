@@ -22,11 +22,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain/mockchain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p/mockencoder"
-	p2pcore "github.com/stratumn/go-indigonode/core/p2p"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/chain/mockchain"
+	"github.com/stratumn/go-node/app/coin/protocol/p2p/mockencoder"
+	p2pcore "github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

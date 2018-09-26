@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/script"
 	"github.com/stretchr/testify/assert"
 )
 

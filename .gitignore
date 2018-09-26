@@ -9,8 +9,8 @@ vendor
 tmp
 data
 log.jsonld
-go-indigonode.*
-indigo_node.*
+go-node.*
+stratumn_node.*
 server.*
 GPATH
 GRTAGS

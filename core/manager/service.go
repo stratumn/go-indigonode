@@ -19,11 +19,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/manager/grpc"
+	pb "github.com/stratumn/go-node/core/manager/grpc"
 	"google.golang.org/grpc"
 )
 
-// Service describes an Indigo Node service.
+// Service describes a Stratumn Node service.
 type Service interface {
 	// ID returns a unique identifier.
 	ID() string
@@ -135,7 +135,7 @@ func (s managerService) Desc() string {
 // Expose exposes the manager to other services.
 //
 // It exposes the type:
-//	github.com/stratumn/go-indigonode/core/*manager.Manager
+//	github.com/stratumn/go-node/core/*manager.Manager
 func (s managerService) Expose() interface{} {
 	return s.mgr
 }

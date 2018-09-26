@@ -16,9 +16,9 @@
 package core
 
 import (
-	"github.com/stratumn/go-indigonode/core/cfg"
-	logging "github.com/stratumn/go-indigonode/core/log"
-	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-node/core/cfg"
+	logging "github.com/stratumn/go-node/core/log"
+	"github.com/stratumn/go-node/core/manager"
 )
 
 // ConfigVersionKey is the key of the configuration version number in the TOML
@@ -59,11 +59,6 @@ var DefaultConfig = Config{
 		Name:     "Utility Services",
 		Desc:     "Starts utility services.",
 		Services: []string{"contacts", "event"},
-	}, {
-		ID:       "indigo",
-		Name:     "Stratumn Indigo Services",
-		Desc:     "Starts Stratumn Indigo services for Proof-of-Process networks.",
-		Services: []string{"indigostore", "indigofossilizer"},
 	}},
 	EnableBootScreen: true,
 	BootScreenHost:   "host",

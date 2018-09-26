@@ -21,9 +21,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/core/app/swarm/grpc"
-	"github.com/stratumn/go-indigonode/core/p2p"
-	"github.com/stratumn/go-indigonode/core/protector"
+	pb "github.com/stratumn/go-node/core/app/swarm/grpc"
+	"github.com/stratumn/go-node/core/p2p"
+	"github.com/stratumn/go-node/core/protector"
 	"google.golang.org/grpc"
 
 	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -99,7 +99,7 @@ func (s *Service) Desc() string {
 // Config returns the current service configuration or creates one with
 // good default values.
 //
-// It can panic but it can only happen during `indigo-node init`.
+// It can panic but it can only happen during `stratumn-node init`.
 func (s *Service) Config() interface{} {
 	if s.config != nil {
 		return *s.config
@@ -199,7 +199,7 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 // Expose exposes the swarm to other services.
 //
 // It exposes the type:
-//	github.com/stratumn/go-indigonode/core/service/*swarm.Swarm
+//	github.com/stratumn/go-node/core/service/*swarm.Swarm
 func (s *Service) Expose() interface{} {
 	return &Swarm{
 		NetworkConfig: s.networkConfig,

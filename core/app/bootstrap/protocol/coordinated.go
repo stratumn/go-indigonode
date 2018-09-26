@@ -19,12 +19,12 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/core/monitoring"
-	"github.com/stratumn/go-indigonode/core/protector"
-	protectorpb "github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/core/streamutil"
+	"github.com/stratumn/go-node/core/app/bootstrap/pb"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/core/monitoring"
+	"github.com/stratumn/go-node/core/protector"
+	protectorpb "github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/core/streamutil"
 
 	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
@@ -37,12 +37,12 @@ var (
 	// PrivateCoordinatedConfigPID is the protocol for receiving network
 	// configuration updates in a private network.
 	// Network participants should implement this protocol.
-	PrivateCoordinatedConfigPID = protocol.ID("/indigo/node/bootstrap/private/coordinated/config/v1.0.0")
+	PrivateCoordinatedConfigPID = protocol.ID("/stratumn/node/bootstrap/private/coordinated/config/v1.0.0")
 
 	// PrivateCoordinatedProposePID is the protocol for receiving network update
 	// proposals from peers.
 	// Network participants should implement this protocol.
-	PrivateCoordinatedProposePID = protocol.ID("/indigo/node/bootstrap/private/coordinated/propose/v1.0.0")
+	PrivateCoordinatedProposePID = protocol.ID("/stratumn/node/bootstrap/private/coordinated/propose/v1.0.0")
 )
 
 // CoordinatedHandler is the handler for a non-coordinator node

@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	eventgrpc "github.com/stratumn/go-indigonode/core/app/event/grpc"
+	eventgrpc "github.com/stratumn/go-node/core/app/event/grpc"
 
 	"google.golang.org/grpc"
 
@@ -55,7 +55,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "An event emitter. Clients can connect to receive events from Indigo Node services."
+	return "An event emitter. Clients can connect to receive events from Stratumn Node services."
 }
 
 // Config returns the current service configuration or creates one with

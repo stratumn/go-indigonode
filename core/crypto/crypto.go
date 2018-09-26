@@ -19,7 +19,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 )

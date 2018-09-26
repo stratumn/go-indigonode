@@ -19,7 +19,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/script"
 )
 
 func Example_simple() {

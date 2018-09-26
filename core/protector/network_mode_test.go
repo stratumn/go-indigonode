@@ -18,8 +18,8 @@ package protector_test
 import (
 	"testing"
 
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 )
 

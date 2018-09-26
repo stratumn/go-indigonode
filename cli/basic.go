@@ -24,7 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/script"
 )
 
 // BasicCmd is designed for simple commands to just need to parse flags and

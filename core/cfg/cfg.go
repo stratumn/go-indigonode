@@ -265,7 +265,7 @@ func (cs ConfigSet) Save(filename string, perms os.FileMode, opts ConfigSaveOpts
 		}
 	}()
 
-	_, err = fmt.Fprintln(f, "# Indigo Node configuration file. Keep private!!!")
+	_, err = fmt.Fprintln(f, "# Stratumn Node configuration file. Keep private!!!")
 	if err != nil {
 		err := errors.WithStack(err)
 		event.SetError(err)

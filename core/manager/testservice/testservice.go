@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/manager"
+	"github.com/stratumn/go-node/core/manager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

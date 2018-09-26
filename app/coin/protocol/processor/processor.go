@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/app/coin/protocol/state"
 
 	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"

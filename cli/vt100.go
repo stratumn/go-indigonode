@@ -56,7 +56,7 @@ func vt100Run(ctx context.Context, c CLI) {
 
 			return psugs
 		},
-		prompt.OptionTitle("Indigo Node CLI"),
-		prompt.OptionPrefix("IndigoNode> "),
+		prompt.OptionTitle("Stratumn Node CLI"),
+		prompt.OptionPrefix("node> "),
 	).Run()
 }

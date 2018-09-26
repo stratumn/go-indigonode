@@ -15,39 +15,39 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
 
-package stratumn.indigonode.app.contacts.grpc;
+package stratumn.node.app.contacts.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/app/contacts/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/app/contacts/grpc;grpc";
 
 // The contacts service definition.
 service Contacts {
   // Streams all the contacts.
   rpc List (ListReq) returns (stream Contact) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "List all the contacts";
+    option (stratumn.node.cli.ext.method_desc) = "List all the contacts";
   }
 
   // Returns a contact.
   rpc Get (GetReq) returns (Contact) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Display a contact";
+    option (stratumn.node.cli.ext.method_desc) = "Display a contact";
   }
 
   // Sets a contact.
   rpc Set (SetReq) returns (Contact) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Set a contact";
+    option (stratumn.node.cli.ext.method_desc) = "Set a contact";
   }
 
   // Delete a contact.
   rpc Delete (DeleteReq) returns (Contact) {
-    option (stratumn.indigonode.cli.ext.method_desc) = "Delete a contact";
+    option (stratumn.node.cli.ext.method_desc) = "Delete a contact";
   }
 }
 
 // The contact message containing the name and peer ID.
 message Contact {
     string name = 1;
-    bytes peer_id = 2 [(stratumn.indigonode.cli.ext.field_base58) = true];
+    bytes peer_id = 2 [(stratumn.node.cli.ext.field_base58) = true];
 }
 
 // The list request message.
@@ -57,28 +57,28 @@ message ListReq {
 // The get request message.
 message GetReq {
   string name = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Contact name",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Contact name",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 // The set request message.
 message SetReq {
   string name = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Contact name",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Contact name",
+    (stratumn.node.cli.ext.field_required) = true
   ];
   bytes peer_id = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
-    (stratumn.indigonode.cli.ext.field_base58) = true,
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Peer ID",
+    (stratumn.node.cli.ext.field_base58) = true,
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 // The delete request message.
 message DeleteReq {
   string name = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Contact name",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Contact name",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }

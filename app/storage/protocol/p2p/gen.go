@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/go-indigonode/app/storage/protocol/p2p Encoder
+//go:generate mockgen -package mockencoder -destination mockencoder/mockencoder.go github.com/stratumn/go-node/app/storage/protocol/p2p Encoder
 
 package p2p

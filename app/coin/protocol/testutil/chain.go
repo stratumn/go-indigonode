@@ -19,9 +19,9 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 )
 
 // SimpleChain can be used in tests to inject arbitrary blocks.

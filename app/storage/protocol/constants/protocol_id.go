@@ -18,4 +18,4 @@ package constants
 import protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 
 // ProtocolID is the protocol ID of the service.
-var ProtocolID = protocol.ID("/indigo/node/storage/v1.0.0")
+var ProtocolID = protocol.ID("/stratumn/node/storage/v1.0.0")

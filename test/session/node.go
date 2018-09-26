@@ -32,16 +32,16 @@ import (
 
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core"
-	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
-	grpcapipb "github.com/stratumn/go-indigonode/core/app/grpcapi/grpc"
-	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-	grpcweb "github.com/stratumn/go-indigonode/core/app/grpcweb/service"
-	kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
-	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	managerpb "github.com/stratumn/go-indigonode/core/manager/grpc"
-	"github.com/stratumn/go-indigonode/core/netutil"
+	"github.com/stratumn/go-node/core"
+	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
+	grpcapipb "github.com/stratumn/go-node/core/app/grpcapi/grpc"
+	grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
+	grpcweb "github.com/stratumn/go-node/core/app/grpcweb/service"
+	kaddht "github.com/stratumn/go-node/core/app/kaddht/service"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/cfg"
+	managerpb "github.com/stratumn/go-node/core/manager/grpc"
+	"github.com/stratumn/go-node/core/netutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
@@ -113,7 +113,7 @@ func NewTestNode(dir string, config cfg.ConfigSet) (*TestNode, error) {
 		return nil, errors.WithStack(err)
 	}
 
-	confFile := filepath.Join(dir, "indigo_node.core.toml")
+	confFile := filepath.Join(dir, "stratumn_node.core.toml")
 	if err := config.Save(confFile, 0600, cfg.ConfigSaveOpts{
 		Overwrite: false,
 		Backup:    false,
@@ -146,7 +146,7 @@ func (h *TestNode) Up(ctx context.Context) error {
 	defer logf.Close()
 	defer logf.Sync()
 
-	cmd := exec.Command("indigo-node", "up")
+	cmd := exec.Command("stratumn-node", "up")
 	cmd.Dir = h.dir
 	cmd.Stdout = logf
 	cmd.Stderr = logf
@@ -305,7 +305,7 @@ func NewTestNodeSet(dir string, n int, config cfg.ConfigSet) (TestNodeSet, error
 	nodes.randSeeds()
 
 	for _, node := range nodes {
-		confFile := filepath.Join(node.dir, "indigo_node.core.toml")
+		confFile := filepath.Join(node.dir, "stratumn_node.core.toml")
 		if err := node.conf.Save(confFile, 0600, cfg.ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,
@@ -344,7 +344,7 @@ func NewTestNodeSetWithConfigs(dir string, n int, configs []cfg.ConfigSet) (Test
 	nodes.randSeeds()
 
 	for _, node := range nodes {
-		confFile := filepath.Join(node.dir, "indigo_node.core.toml")
+		confFile := filepath.Join(node.dir, "stratumn_node.core.toml")
 		if err := node.conf.Save(confFile, 0600, cfg.ConfigSaveOpts{
 			Overwrite: true,
 			Backup:    true,

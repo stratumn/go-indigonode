@@ -22,7 +22,7 @@ import (
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
 
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
@@ -32,49 +32,49 @@ import (
 // Measures exposed by the p2p layer.
 var (
 	bandwidthIn = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/bandwidth-in",
+		"stratumn-node/measure/bandwidth-in",
 		"incoming messages bandwidth",
 		stats.UnitBytes,
 	))
 
 	bandwidthOut = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/bandwidth-out",
+		"stratumn-node/measure/bandwidth-out",
 		"outgoing messages bandwidth",
 		stats.UnitBytes,
 	))
 
 	connections = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/connections",
+		"stratumn-node/measure/connections",
 		"open connections",
 		stats.UnitNone,
 	))
 
 	peers = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/peers",
+		"stratumn-node/measure/peers",
 		"connected peers",
 		stats.UnitNone,
 	))
 
 	streamsIn = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/streams-in",
+		"stratumn-node/measure/streams-in",
 		"incoming streams",
 		stats.UnitNone,
 	))
 
 	streamsOut = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/streams-out",
+		"stratumn-node/measure/streams-out",
 		"outgoing streams",
 		stats.UnitNone,
 	))
 
 	streamsErr = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/streams-err",
+		"stratumn-node/measure/streams-err",
 		"errored streams",
 		stats.UnitNone,
 	))
 
 	latency = monitoring.NewFloat64(stats.Float64(
-		"indigo-node/measure/latency",
+		"stratumn-node/measure/latency",
 		"peer latency",
 		stats.UnitMilliseconds,
 	))
@@ -83,7 +83,7 @@ var (
 // Views exposed by the p2p layer.
 var (
 	BandwidthIn = &view.View{
-		Name:        "indigo-node/views/bandwidth-in",
+		Name:        "stratumn-node/views/bandwidth-in",
 		Description: "incoming messages bandwidth",
 		Measure:     bandwidthIn.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
@@ -91,7 +91,7 @@ var (
 	}
 
 	BandwidthOut = &view.View{
-		Name:        "indigo-node/views/bandwidth-out",
+		Name:        "stratumn-node/views/bandwidth-out",
 		Description: "outgoing messages bandwidth",
 		Measure:     bandwidthOut.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
@@ -99,21 +99,21 @@ var (
 	}
 
 	Connections = &view.View{
-		Name:        "indigo-node/views/connections",
+		Name:        "stratumn-node/views/connections",
 		Description: "open connections",
 		Measure:     connections.Measure,
 		Aggregation: view.LastValue(),
 	}
 
 	Peers = &view.View{
-		Name:        "indigo-node/views/peers",
+		Name:        "stratumn-node/views/peers",
 		Description: "connected peers",
 		Measure:     peers.Measure,
 		Aggregation: view.LastValue(),
 	}
 
 	StreamsIn = &view.View{
-		Name:        "indigo-node/views/streams-in",
+		Name:        "stratumn-node/views/streams-in",
 		Description: "incoming streams",
 		Measure:     streamsIn.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
@@ -121,7 +121,7 @@ var (
 	}
 
 	StreamsOut = &view.View{
-		Name:        "indigo-node/views/streams-out",
+		Name:        "stratumn-node/views/streams-out",
 		Description: "outgoing streams",
 		Measure:     streamsOut.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
@@ -129,7 +129,7 @@ var (
 	}
 
 	StreamsErr = &view.View{
-		Name:        "indigo-node/views/streams-error",
+		Name:        "stratumn-node/views/streams-error",
 		Description: "errored streams",
 		Measure:     streamsErr.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ErrorTag.OCTag},
@@ -137,7 +137,7 @@ var (
 	}
 
 	Latency = &view.View{
-		Name:        "indigo-node/views/latency",
+		Name:        "stratumn-node/views/latency",
 		Description: "peer latency distribution",
 		Measure:     latency.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},

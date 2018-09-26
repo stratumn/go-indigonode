@@ -24,8 +24,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	pb "github.com/stratumn/go-indigonode/app/contacts/grpc"
-	mockpb "github.com/stratumn/go-indigonode/app/contacts/grpc/mockcontacts"
+	pb "github.com/stratumn/go-node/app/contacts/grpc"
+	mockpb "github.com/stratumn/go-node/app/contacts/grpc/mockcontacts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

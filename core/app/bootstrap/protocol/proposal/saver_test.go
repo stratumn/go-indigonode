@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +32,7 @@ import (
 func TestSaver(t *testing.T) {
 	ctx := context.Background()
 
-	dir, _ := ioutil.TempDir("", "indigo-node")
+	dir, _ := ioutil.TempDir("", "stratumn-node")
 	peer1 := test.GeneratePeerID(t)
 	peer1Addr := test.GeneratePeerMultiaddr(t, peer1)
 

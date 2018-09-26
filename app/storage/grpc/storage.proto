@@ -15,18 +15,18 @@
 
 syntax = "proto3";
 
-import "github.com/stratumn/go-indigonode/cli/grpc/ext/ext.proto";
-import "github.com/stratumn/go-indigonode/app/storage/pb/storage.proto";
+import "github.com/stratumn/go-node/cli/grpc/ext/ext.proto";
+import "github.com/stratumn/go-node/app/storage/pb/storage.proto";
 
-package stratumn.indigonode.app.storage.grpc;
+package stratumn.node.app.storage.grpc;
 
-option go_package = "github.com/stratumn/go-indigonode/app/storage/grpc;grpc";
+option go_package = "github.com/stratumn/go-node/app/storage/grpc;grpc";
 
 // The storage service definition.
 service Storage {
   
-  // Upload a file to the Indigo node.
-  rpc Upload (stream stratumn.indigonode.app.storage.FileChunk) returns (UploadAck) {}
+  // Upload a file to the Stratumn node.
+  rpc Upload (stream stratumn.node.app.storage.FileChunk) returns (UploadAck) {}
 
   // Sends a request to the server to start a new upload.
   rpc StartUpload(UploadReq) returns (UploadSession) {}
@@ -41,56 +41,56 @@ service Storage {
   rpc AuthorizePeers (AuthRequest) returns (Ack) {}
 
   // Download downloads a file from a peer.
-  rpc Download (DownloadRequest) returns (stream stratumn.indigonode.app.storage.FileChunk) {}
+  rpc Download (DownloadRequest) returns (stream stratumn.node.app.storage.FileChunk) {}
 }
 
 message SessionFileChunk {
   // file name is required only on first message.
   bytes id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Id of the upload session",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Id of the upload session",
+    (stratumn.node.cli.ext.field_required) = true
   ];
   bytes data = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Bytes of one file chunk",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Bytes of one file chunk",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 message UploadReq {
   string file_name = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Name of the file",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Name of the file",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 message UploadSession {
   bytes id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Id of the upload session",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Id of the upload session",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 message AuthRequest {
   repeated bytes peer_ids = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Peer IDs",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Peer IDs",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   bytes file_hash = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Hash of the file",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Hash of the file",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
 message DownloadRequest {
   bytes peer_id = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Peer ID",
-    (stratumn.indigonode.cli.ext.field_required) = true,
-    (stratumn.indigonode.cli.ext.field_base58) = true
+    (stratumn.node.cli.ext.field_desc) = "Peer ID",
+    (stratumn.node.cli.ext.field_required) = true,
+    (stratumn.node.cli.ext.field_base58) = true
   ];
   bytes file_hash = 2 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Hash of the file",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Hash of the file",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }
 
@@ -100,7 +100,7 @@ message Ack {
 
 message UploadAck {
   bytes file_hash = 1 [
-    (stratumn.indigonode.cli.ext.field_desc) = "Hash of the file that was uploaded",
-    (stratumn.indigonode.cli.ext.field_required) = true
+    (stratumn.node.cli.ext.field_desc) = "Hash of the file that was uploaded",
+    (stratumn.node.cli.ext.field_required) = true
   ];
 }

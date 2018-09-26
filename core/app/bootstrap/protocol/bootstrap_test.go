@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol"
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/test"
-	"github.com/stratumn/go-indigonode/test/mocks"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/test"
+	"github.com/stratumn/go-node/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

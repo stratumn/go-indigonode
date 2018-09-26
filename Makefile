@@ -7,12 +7,12 @@ GIT_PATH=$(shell git rev-parse --show-toplevel)
 GITHUB_REPO=$(shell basename $(GIT_PATH))
 GITHUB_USER=$(shell dirname `git remote get-url --all origin` | sed 's/.*[:/]//')
 GIT_TAG=$(VERSION)
-CMD=indigo-node
+CMD=stratumn-node
 DIST_DIR=dist
 RELEASE_NAME=$(GIT_TAG)
 RELEASE_NOTES_FILE=RELEASE_NOTES.md
 TEXT_FILES=LICENSE RELEASE_NOTES.md CHANGE_LOG.md
-DOCKER_USER=indigocore
+DOCKER_USER=stratumn
 DOCKER_FILE=Dockerfile
 COVERAGE_FILE=coverage.txt
 COVERHTML_FILE=coverhtml.txt
@@ -110,7 +110,7 @@ generate:
 	done
 
 	@for f in $(MOCK_FILES); do \
-		sed -i'.bak' 's|github.com/stratumn/go-indigonode/vendor/||g' $$f; \
+		sed -i'.bak' 's|github.com/stratumn/go-node/vendor/||g' $$f; \
 		rm $$f.bak; \
 	done
 
@@ -226,8 +226,8 @@ cyclo: $(CYCLO_SOURCES)
 
 # == install ==================================================================
 install:
-	$(GO_CMD) build -o indigo-node
-	mv indigo-node $(GOPATH)/bin
+	$(GO_CMD) build -o stratumn-node
+	mv stratumn-node $(GOPATH)/bin
 
 # == build ====================================================================
 build: $(EXECS)

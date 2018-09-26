@@ -21,8 +21,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/cli"
-	"github.com/stratumn/go-indigonode/cli/mockcli"
+	"github.com/stratumn/go-node/cli"
+	"github.com/stratumn/go-node/cli/mockcli"
 )
 
 func TestConnect(t *testing.T) {

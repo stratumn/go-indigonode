@@ -18,7 +18,7 @@ package cli
 import (
 	"context"
 
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/script"
 )
 
 // Content represents console content used to find suggestions.

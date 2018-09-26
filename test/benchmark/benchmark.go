@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package benchmark defines integration benchmarks for Indigo Node.
+// Package benchmark defines integration benchmarks for Stratumn Node.
 //
-// The tests are done by connecting via the API to Indigo nodes launched in
+// The tests are done by connecting via the API to Stratumn nodes launched in
 // separate processes.
 package benchmark
 

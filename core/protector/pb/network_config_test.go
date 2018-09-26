@@ -23,8 +23,8 @@ import (
 
 	json "github.com/gibson042/canonicaljson-go"
 	"github.com/gogo/protobuf/types"
-	"github.com/stratumn/go-indigonode/core/protector/pb"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/protector/pb"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -207,7 +207,7 @@ func TestNetworkConfig_ValidateContent(t *testing.T) {
 }
 
 func TestNetworkConfig_Load(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "indigo-node")
+	dir, _ := ioutil.TempDir("", "stratumn-node")
 
 	signerKey := test.GeneratePrivateKey(t)
 	signerID := test.GetPeerIDFromKey(t, signerKey)

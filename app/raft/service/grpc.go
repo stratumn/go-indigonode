@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stratumn/go-indigonode/app/raft/grpc"
-	"github.com/stratumn/go-indigonode/app/raft/pb"
-	"github.com/stratumn/go-indigonode/app/raft/protocol"
+	"github.com/stratumn/go-node/app/raft/grpc"
+	"github.com/stratumn/go-node/app/raft/pb"
+	"github.com/stratumn/go-node/app/raft/protocol"
 )
 
 var (

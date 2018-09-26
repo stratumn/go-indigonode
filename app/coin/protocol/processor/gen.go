@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockprocessor -destination mockprocessor/mockprocessor.go github.com/stratumn/go-indigonode/app/coin/protocol/processor Processor
+//go:generate mockgen -package mockprocessor -destination mockprocessor/mockprocessor.go github.com/stratumn/go-node/app/coin/protocol/processor Processor
 
 package processor

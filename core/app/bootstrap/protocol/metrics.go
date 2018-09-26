@@ -16,7 +16,7 @@
 package protocol
 
 import (
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
@@ -25,7 +25,7 @@ import (
 // Measures exposed by the bootstrap app.
 var (
 	participants = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/bootstrap/participants",
+		"stratumn-node/measure/bootstrap/participants",
 		"number of network participants",
 		stats.UnitNone,
 	))
@@ -34,7 +34,7 @@ var (
 // Views exposed by the bootstrap app.
 var (
 	Participants = &view.View{
-		Name:        "indigo-node/views/bootstrap/participants",
+		Name:        "stratumn-node/views/bootstrap/participants",
 		Description: "number of network participants",
 		Measure:     participants.Measure,
 		Aggregation: view.LastValue(),

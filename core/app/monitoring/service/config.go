@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/httputil"
+	"github.com/stratumn/go-node/core/httputil"
 
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	"go.opencensus.io/exporter/jaeger"
@@ -257,7 +257,7 @@ func (c *Config) CreateTraceExporter() (trace.Exporter, error) {
 
 		exporter, err = jaeger.NewExporter(jaeger.Options{
 			Endpoint:    "http://" + jaegerEndpoint.String(),
-			ServiceName: "indigo-node",
+			ServiceName: "stratumn-node",
 		})
 	case StackdriverExporter:
 		exporter, err = stackdriver.NewExporter(stackdriver.Options{

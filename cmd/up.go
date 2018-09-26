@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/stratumn/go-indigonode/core"
+	"github.com/stratumn/go-node/core"
 )
 
 // upCmd represents the up command.

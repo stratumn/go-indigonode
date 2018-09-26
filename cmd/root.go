@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/stratumn/go-indigonode/core"
+	"github.com/stratumn/go-node/core"
 )
 
 // services are the services that will be used by core.
@@ -30,8 +30,8 @@ var services = core.BuiltinServices()
 
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
-	Use:   "indigo-node",
-	Short: "Indigo Node is a node in an Indigo network",
+	Use:   "stratumn-node",
+	Short: "Stratumn Node is a node in a P2P network",
 }
 
 // Execute adds all child commands to the root command and sets flags
@@ -46,8 +46,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().String("core-config", "indigo_node.core.toml", "core configuration file")
-	RootCmd.PersistentFlags().String("cli-config", "indigo_node.cli.toml", "command line interface configuration file")
+	RootCmd.PersistentFlags().String("core-config", "stratumn_node.core.toml", "core configuration file")
+	RootCmd.PersistentFlags().String("cli-config", "stratumn_node.cli.toml", "command line interface configuration file")
 
 	err := viper.BindPFlags(RootCmd.PersistentFlags())
 	if err != nil {
@@ -57,7 +57,7 @@ func init() {
 
 // initConfig reads in ENV variables if set.
 func initConfig() {
-	viper.SetEnvPrefix("indigo_node")
+	viper.SetEnvPrefix("stratumn_node")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 }

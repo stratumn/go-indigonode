@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package core defines Indigo Node's core functionality.
+// Package core defines Stratumn Node's core functionality.
 package core
 
 import (
@@ -28,11 +28,11 @@ import (
 
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	logger "github.com/stratumn/go-indigonode/core/log"
-	"github.com/stratumn/go-indigonode/core/manager"
-	"github.com/stratumn/go-indigonode/core/p2p"
-	"github.com/stratumn/go-indigonode/release"
+	"github.com/stratumn/go-node/core/cfg"
+	logger "github.com/stratumn/go-node/core/log"
+	"github.com/stratumn/go-node/core/manager"
+	"github.com/stratumn/go-node/core/p2p"
+	"github.com/stratumn/go-node/release"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
@@ -40,7 +40,7 @@ import (
 
 // Set the identify protocol client version.
 func init() {
-	identify.ClientVersion = "indigo-node/" + release.Version + "/" + release.GitCommit
+	identify.ClientVersion = "stratumn-node/" + release.Version + "/" + release.GitCommit
 }
 
 var (
@@ -52,12 +52,12 @@ var (
 var log = logging.Logger("core")
 
 // art is shown upon booting.
-const art = "\033[0;34m    ____          ___                _   __          __\n" +
-	"   /  _/___  ____/ (_)___ _____     / | / /___  ____/ /__\n" +
-	"   / // __ \\/ __  / / __ `/ __ \\   /  |/ / __ \\/ __  / _ \\\n" +
-	" _/ // / / / /_/ / / /_/ / /_/ /  / /|  / /_/ / /_/ /  __/\n" +
-	"/___/_/ /_/\\__,_/_/\\__, /\\____/  /_/ |_/\\____/\\__,_/\\___/\n" +
-	"                  /____/\n\033[0m"
+const art = "\033[0;34m   _____ __             __                      \n" +
+	"  / ___// /__________ _/ /___  ______ ___  ____ \n" +
+	"  \\__ \\/ __/ ___/ __ `/ __/ / / / __ `__ \\/ __ \\\n" +
+	" ___/ / /_/ /  / /_/ / /_/ /_/ / / / / / / / / /\n" +
+	"/____/\\__/_/   \\__,_/\\__/\\__,_/_/ /_/ /_/_/ /_/ \n" +
+	"											  \n\033[0m"
 
 // Opt is a core option.
 type Opt func(*Core)

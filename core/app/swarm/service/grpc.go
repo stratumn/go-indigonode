@@ -20,7 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	pb "github.com/stratumn/go-indigonode/core/app/swarm/grpc"
+	pb "github.com/stratumn/go-node/core/app/swarm/grpc"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"

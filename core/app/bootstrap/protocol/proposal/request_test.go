@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/pb"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/test"
+	"github.com/stratumn/go-node/core/app/bootstrap/pb"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

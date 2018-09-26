@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/raft/pb"
-	"github.com/stratumn/go-indigonode/app/raft/protocol/lib"
-	"github.com/stratumn/go-indigonode/app/raft/protocol/lib/mocklib"
+	"github.com/stratumn/go-node/app/raft/pb"
+	"github.com/stratumn/go-node/app/raft/protocol/lib"
+	"github.com/stratumn/go-node/app/raft/protocol/lib/mocklib"
 
 	"github.com/golang/mock/gomock"
 )

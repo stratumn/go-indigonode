@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockgrpc -destination mockgrpc/mockswarm.go github.com/stratumn/go-indigonode/core/app/swarm/grpc Swarm_PeersServer,Swarm_ConnectionsServer
+//go:generate mockgen -package mockgrpc -destination mockgrpc/mockswarm.go github.com/stratumn/go-node/core/app/swarm/grpc Swarm_PeersServer,Swarm_ConnectionsServer
 
 package grpc

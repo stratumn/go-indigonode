@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	pbchat "github.com/stratumn/go-indigonode/app/chat/grpc"
-	pbevent "github.com/stratumn/go-indigonode/core/app/event/grpc"
-	event "github.com/stratumn/go-indigonode/core/app/event/service"
-	"github.com/stratumn/go-indigonode/core/p2p"
+	pbchat "github.com/stratumn/go-node/app/chat/grpc"
+	pbevent "github.com/stratumn/go-node/core/app/event/grpc"
+	event "github.com/stratumn/go-node/core/app/event/service"
+	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

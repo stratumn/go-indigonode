@@ -18,9 +18,9 @@ package chain
 import (
 	"testing"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/core/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

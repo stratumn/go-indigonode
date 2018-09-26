@@ -18,7 +18,7 @@ package coinutil
 import (
 	"errors"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 )
 
 var (

@@ -52,7 +52,7 @@ var (
 // log is the logger for the service.
 var log = logging.Logger("kaddht")
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host interface {
 	ihost.Host
 

@@ -18,7 +18,7 @@ package state
 import (
 	"sync"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 )
 
 // TxPool stores transactions that need to be processed.

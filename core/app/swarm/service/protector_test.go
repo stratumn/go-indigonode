@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/test"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -70,7 +70,7 @@ func waitUntilAllowed(t *testing.T, peerID peer.ID, networkConfig protector.Netw
 
 func TestPrivateCoordinatorConfig(t *testing.T) {
 	ctx := context.Background()
-	configDir, _ := ioutil.TempDir("", "indigo-node")
+	configDir, _ := ioutil.TempDir("", "stratumn-node")
 
 	s := &swarm.Service{}
 	config := s.Config().(swarm.Config)
@@ -98,7 +98,7 @@ func TestPrivateCoordinatorConfig(t *testing.T) {
 
 func TestPrivateWithCoordinatorConfig(t *testing.T) {
 	ctx := context.Background()
-	configDir, _ := ioutil.TempDir("", "indigo-node")
+	configDir, _ := ioutil.TempDir("", "stratumn-node")
 
 	coordinatorID := test.GeneratePeerID(t)
 	coordinatorAddr := test.GeneratePeerMultiaddr(t, coordinatorID)

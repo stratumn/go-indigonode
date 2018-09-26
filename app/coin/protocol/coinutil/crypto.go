@@ -16,7 +16,7 @@
 package coinutil
 
 import (
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 
 	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
 )

@@ -21,10 +21,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/engine"
+	"github.com/stratumn/go-node/app/coin/protocol/state"
 )
 
 // InstrumentedEngine adds method calls instrumentation to an engine.

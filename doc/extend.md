@@ -1,14 +1,14 @@
-# Extend Indigo Node By Writing Your Own Service
+# Extend Stratumn Node By Writing Your Own Service
 
-Great care went into making Indigo Node extendable with minimum hassle.
-The core of Indigo Node handles service dependencies and configuration files.
+Great care went into making Stratumn Node extendable with minimum hassle.
+The core of Stratumn Node handles service dependencies and configuration files.
 Extending the API is a little more work but it's still very reasonable,
 and the CLI uses reflection to automatically add new commands,
 so you don't have to worry about that part.
 
 ## Implement Service interfaces
 
-Adding new services to your Indigo Node is easy.
+Adding new services to your Stratumn Node is easy.
 A service needs to implement at least the three methods of the `Service`
 interface (`ID`, `Name`, and `Desc`).
 You can start from this template, which implements all the most commonly used
@@ -132,9 +132,9 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) error {
 It should be self-explanatory if you are experienced with the Go programming
 language.
 
-## Register you Service
+## Register your Service
 
-To build `indigo-node` with your service included, all you have to do is
+To build `stratumn-node` with your service included, all you have to do is
 register your package somewhere. For instance the core services are registered
 in `core/service.go`:
 
@@ -157,22 +157,22 @@ in `core/service.go`:
 package core
 
 import (
-    "github.com/stratumn/go-indigonode/core/manager"
-    bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
-    connmgr "github.com/stratumn/go-indigonode/core/app/connmgr/service"
-    grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-    host "github.com/stratumn/go-indigonode/core/app/host/service"
-    identify "github.com/stratumn/go-indigonode/core/app/identify/service"
-    kaddht "github.com/stratumn/go-indigonode/core/app/kaddht/service"
-    monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
-    mssmux "github.com/stratumn/go-indigonode/core/app/mssmux/service"
-    natmgr "github.com/stratumn/go-indigonode/core/app/natmgr/service"
-    ping "github.com/stratumn/go-indigonode/core/app/ping/service"
-    pruner "github.com/stratumn/go-indigonode/core/app/pruner/service"
-    relay "github.com/stratumn/go-indigonode/core/app/relay/service"
-    signal "github.com/stratumn/go-indigonode/core/app/signal/service"
-    swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-    yamux "github.com/stratumn/go-indigonode/core/app/yamux/service"
+    "github.com/stratumn/go-node/core/manager"
+    bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
+    connmgr "github.com/stratumn/go-node/core/app/connmgr/service"
+    grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
+    host "github.com/stratumn/go-node/core/app/host/service"
+    identify "github.com/stratumn/go-node/core/app/identify/service"
+    kaddht "github.com/stratumn/go-node/core/app/kaddht/service"
+    monitoring "github.com/stratumn/go-node/core/app/monitoring/service"
+    mssmux "github.com/stratumn/go-node/core/app/mssmux/service"
+    natmgr "github.com/stratumn/go-node/core/app/natmgr/service"
+    ping "github.com/stratumn/go-node/core/app/ping/service"
+    pruner "github.com/stratumn/go-node/core/app/pruner/service"
+    relay "github.com/stratumn/go-node/core/app/relay/service"
+    signal "github.com/stratumn/go-node/core/app/signal/service"
+    swarm "github.com/stratumn/go-node/core/app/swarm/service"
+    yamux "github.com/stratumn/go-node/core/app/yamux/service"
 )
 
 // BuiltinServices returns all the builtin services.
@@ -202,10 +202,10 @@ func BuiltinServices() []manager.Service {
 
 Updating the configuration structure should be done via migrations.
 Migrations ensure that existing nodes can easily update their binary
-and run `indigo-node up` without errors.
+and run `stratumn-node up` without errors.
 
 If your service has configuration options, you should add a migration to add
-them to the config file. The migrations for the core Indigo Node modules are
+them to the config file. The migrations for the core Stratumn Node modules are
 in `core/migrate.go`. You can append one for your service:
 
 ```go
@@ -221,7 +221,7 @@ var migrations = []cfg.MigrateHandler{
 
 ## Start your Service
 
-After registering your service, you can build `indigo-node` using `make install`.
+After registering your service, you can build `stratumn-node` using `make install`.
 
 You should now be able to start your service from the CLI using
 `manager-start myservice`.
@@ -278,7 +278,7 @@ The service manager understands the following interfaces:
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Service describes an Indigo Node service.
+// Service describes a Stratumn Node service.
 type Service interface {
     // ID returns a unique identifier.
     ID() string
@@ -347,10 +347,10 @@ type Runner interface {
 | bootstrap  | Bootstrap           | Bootstraps network connections.            | struct{}{}                                                     |
 | connmgr    | Connection Manager  | Manages connections to peers.              | github.com/libp2p/\*go-libp2p-connmgr.BasicConnMgr             |
 | grpcapi    | gRPC API            | Starts a gRPC API server.                  |                                                                |
-| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-indigonode/core/\*p2p.Host              |
+| host       | Host                | Starts a P2P host.                         | github.com/stratumn/go-node/core/\*p2p.Host                    |
 | identify   | Identify            | Identifies peers.                          | github.com/libp2p/go-libp2p/p2p/protocols/\*identify.IDService |
 | kaddht     | Kademlia DHT        | Manages a Kademlia distributed hash table. | github.com/libp2p/\*go-libp2p-kad-dht.IpfsDHT                  |
-| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-indigonode/core/\*manager.Manager       |
+| manager    | Service Manager     | Manages services.                          | github.com/stratumn/go-node/core/\*manager.Manager             |
 | monitoring | Monitoring          | Collects metrics and traces.               |                                                                |
 | mssmux     | Stream Muxer Router | Routes protocols to stream muxers.         | github.com/libp2p/go-stream-muxer.Transport                    |
 | natmgr     | NAT Manager         | Manages NAT port mappings.                 | github.com/libp2p/go-libp2p/p2p/host/basic.NATManager          |

@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockproposal -destination mocks/mockstore.go github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal Store
+//go:generate mockgen -package mockproposal -destination mocks/mockstore.go github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal Store
 
 package proposal

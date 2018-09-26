@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	"github.com/stratumn/go-indigonode/core/manager"
-	"github.com/stratumn/go-indigonode/core/p2p"
+	"github.com/stratumn/go-node/core/cfg"
+	"github.com/stratumn/go-node/core/manager"
+	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

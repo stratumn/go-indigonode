@@ -24,10 +24,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core/manager/testservice"
-	"github.com/stratumn/go-indigonode/core/protector"
-	"github.com/stratumn/go-indigonode/test"
-	"github.com/stratumn/go-indigonode/test/mocks"
+	"github.com/stratumn/go-node/core/manager/testservice"
+	"github.com/stratumn/go-node/core/protector"
+	"github.com/stratumn/go-node/test"
+	"github.com/stratumn/go-node/test/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -81,7 +81,7 @@ func TestService_Expose(t *testing.T) {
 		[]OptConfig{
 			func(cfg *Config) { cfg.ProtectionMode = protector.PrivateWithCoordinatorMode },
 			func(cfg *Config) {
-				configDir, _ := ioutil.TempDir("", "indigo-node")
+				configDir, _ := ioutil.TempDir("", "stratumn-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
 					CoordinatorID:        peerID.Pretty(),
 					CoordinatorAddresses: []string{"/ip4/42.42.42.42/tcp/8903"},
@@ -109,7 +109,7 @@ func TestService_Expose(t *testing.T) {
 				cfg.ProtectionMode = protector.PrivateWithCoordinatorMode
 			},
 			func(cfg *Config) {
-				configDir, _ := ioutil.TempDir("", "indigo-node")
+				configDir, _ := ioutil.TempDir("", "stratumn-node")
 				cfg.CoordinatorConfig = &CoordinatorConfig{
 					IsCoordinator: true,
 					ConfigPath:    path.Join(configDir, "config.json"),
@@ -170,11 +170,11 @@ func TestService_SetConfig(t *testing.T) {
 		err  error
 	}{{
 		"invalid peer ID",
-		func(c *Config) { c.PeerID = "indigo-node" },
+		func(c *Config) { c.PeerID = "stratumn-node" },
 		errAny,
 	}, {
 		"invalid private key",
-		func(c *Config) { c.PrivateKey = "indigo-node" },
+		func(c *Config) { c.PrivateKey = "stratumn-node" },
 		errAny,
 	}, {
 		"invalid-protection-mode",

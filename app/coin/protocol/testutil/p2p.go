@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p/mockp2p"
+	"github.com/stratumn/go-node/app/coin/protocol/p2p"
+	"github.com/stratumn/go-node/app/coin/protocol/p2p/mockp2p"
 )
 
 // NewDummyP2P returns a p2p mock that does nothing.

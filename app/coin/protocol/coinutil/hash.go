@@ -17,7 +17,7 @@ package coinutil
 
 import (
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stratumn/merkle"
 
 	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"

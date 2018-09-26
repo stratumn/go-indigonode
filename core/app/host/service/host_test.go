@@ -22,9 +22,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/manager/testservice"
-	"github.com/stratumn/go-indigonode/core/p2p"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/manager/testservice"
+	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

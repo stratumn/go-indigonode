@@ -15,9 +15,9 @@
 
 syntax = "proto3";
 
-package stratumn.indigonode.pb.chat;
+package stratumn.node.pb.chat;
 
-option go_package = "github.com/stratumn/go-indigonode/app/chat/pb;pb";
+option go_package = "github.com/stratumn/go-node/app/chat/pb;pb";
 
 // The chat message containing a simple message.
 message Message {

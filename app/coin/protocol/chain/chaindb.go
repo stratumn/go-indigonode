@@ -23,9 +23,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/coinutil"
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
+	"github.com/stratumn/go-node/core/db"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )

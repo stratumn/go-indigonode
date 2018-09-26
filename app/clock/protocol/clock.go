@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/clock/pb"
+	"github.com/stratumn/go-node/app/clock/pb"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -36,11 +36,11 @@ import (
 // log is the logger for the protocol.
 var log = logging.Logger("clock")
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // ProtocolID is the protocol ID of the protocol.
-var ProtocolID = protocol.ID("/indigo/node/clock/v1.0.0")
+var ProtocolID = protocol.ID("/stratumn/node/clock/v1.0.0")
 
 // Clock implements the clock protocol.
 type Clock struct {

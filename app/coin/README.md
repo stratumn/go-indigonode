@@ -6,7 +6,7 @@ It is a proof-of-concept and shouldn't be used for a real crypto-asset.
 This service isn't enabled by default, you need to start it yourself:
 
 ```bash
-IndigoNode> manager-start coin
+node> manager-start coin
 ```
 
 Once started, it will start mining blocks (this is CPU intensive).
@@ -14,7 +14,7 @@ Once started, it will start mining blocks (this is CPU intensive).
 ## Configuration
 
 Most of the configuration values will be automatically set.
-You can tweak them in the `coin` section in `indigo_node.core.toml`.
+You can tweak them in the `coin` section in `stratumn_node.core.toml`.
 But be careful because other nodes in the network might reject your blocks
 if you use invalid configuration values.
 
@@ -40,7 +40,7 @@ func GenerateKeyPair() error {
         return err
     }
 
-    // This is how your miner_id should appear in indigo_node.core.toml
+    // This is how your miner_id should appear in stratumn_node.core.toml
     configMinerID := peer.IDB58Encode(minerID)
 }
 ```

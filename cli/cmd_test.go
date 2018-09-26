@@ -24,9 +24,9 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/cli"
-	"github.com/stratumn/go-indigonode/cli/mockcli"
-	"github.com/stratumn/go-indigonode/script"
+	"github.com/stratumn/go-node/cli"
+	"github.com/stratumn/go-node/cli/mockcli"
+	"github.com/stratumn/go-node/script"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

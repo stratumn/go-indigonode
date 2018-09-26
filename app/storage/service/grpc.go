@@ -24,8 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/satori/go.uuid"
 
-	grpcpb "github.com/stratumn/go-indigonode/app/storage/grpc"
-	"github.com/stratumn/go-indigonode/app/storage/pb"
+	grpcpb "github.com/stratumn/go-node/app/storage/grpc"
+	"github.com/stratumn/go-node/app/storage/pb"
 
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 )
@@ -82,7 +82,7 @@ type grpcServer struct {
 	uploadTimeout time.Duration
 }
 
-// Upload saves a file on the Indigo node.
+// Upload saves a file on the Stratumn node.
 // The first message must contain the file name.
 func (s *grpcServer) Upload(stream grpcpb.Storage_UploadServer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.uploadTimeout)

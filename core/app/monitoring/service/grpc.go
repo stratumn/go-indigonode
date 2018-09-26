@@ -18,7 +18,7 @@ package service
 import (
 	"context"
 
-	pb "github.com/stratumn/go-indigonode/core/app/monitoring/grpc"
+	pb "github.com/stratumn/go-node/core/app/monitoring/grpc"
 
 	"go.opencensus.io/trace"
 )

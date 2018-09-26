@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stratumn/go-indigonode/app/raft/pb"
+	"github.com/stratumn/go-node/app/raft/pb"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

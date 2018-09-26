@@ -20,11 +20,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/app/storage/pb"
-	"github.com/stratumn/go-indigonode/app/storage/protocol/acl"
-	"github.com/stratumn/go-indigonode/app/storage/protocol/file"
-	"github.com/stratumn/go-indigonode/app/storage/protocol/p2p"
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/app/storage/pb"
+	"github.com/stratumn/go-node/app/storage/protocol/acl"
+	"github.com/stratumn/go-node/app/storage/protocol/file"
+	"github.com/stratumn/go-node/app/storage/protocol/p2p"
+	"github.com/stratumn/go-node/core/db"
 
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
@@ -36,7 +36,7 @@ import (
 // ChunkSize size of a chunk of data
 const ChunkSize = 1024
 
-// Host represents an Indigo Node host.
+// Host represents a Stratumn Node host.
 type Host = ihost.Host
 
 // log is the logger for the service.

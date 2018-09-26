@@ -35,12 +35,12 @@ import (
 
 	"github.com/mohae/deepcopy"
 	"github.com/pkg/errors"
-	"github.com/stratumn/go-indigonode/core"
-	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
-	grpcapi "github.com/stratumn/go-indigonode/core/app/grpcapi/service"
-	monitoring "github.com/stratumn/go-indigonode/core/app/monitoring/service"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	logging "github.com/stratumn/go-indigonode/core/log"
+	"github.com/stratumn/go-node/core"
+	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
+	grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
+	monitoring "github.com/stratumn/go-node/core/app/monitoring/service"
+	"github.com/stratumn/go-node/core/cfg"
+	logging "github.com/stratumn/go-node/core/log"
 	"google.golang.org/grpc"
 )
 

@@ -19,8 +19,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/protocol/proposal"
-	"github.com/stratumn/go-indigonode/core/app/bootstrap/service"
+	"github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
+	"github.com/stratumn/go-node/core/app/bootstrap/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

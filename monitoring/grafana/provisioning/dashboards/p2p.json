@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_INDIGO_NODE",
-      "label": "Indigo Node",
+      "name": "DS_STRATUMN_NODE",
+      "label": "Stratumn Node",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -67,7 +67,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -99,14 +99,14 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "indigo_node_views_connections",
+          "expr": "stratumn_node_views_connections",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "connections",
           "refId": "A"
         },
         {
-          "expr": "indigo_node_views_peers",
+          "expr": "stratumn_node_views_peers",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "connected peers",
@@ -158,7 +158,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -190,19 +190,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_in) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}} (in)",
+          "legendFormat": "{{stratumn_node_keys_peerid}} (in)",
           "refId": "A"
         },
         {
-          "expr":
-            "sum(indigo_node_views_streams_out) by (indigo_node_keys_peerid)",
+          "expr": "sum(stratumn_node_views_streams_out) by (stratumn_node_keys_peerid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}} (out)",
+          "legendFormat": "{{stratumn_node_keys_peerid}} (out)",
           "refId": "B"
         }
       ],
@@ -251,7 +249,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -283,19 +281,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(indigo_node_views_streams_in) by (indigo_node_keys_protocolid)",
+          "expr": "sum(stratumn_node_views_streams_in) by (stratumn_node_keys_protocolid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_protocolid}} (in)",
+          "legendFormat": "{{stratumn_node_keys_protocolid}} (in)",
           "refId": "A"
         },
         {
-          "expr":
-            "sum(indigo_node_views_streams_out) by (indigo_node_keys_protocolid)",
+          "expr": "sum(stratumn_node_views_streams_out) by (stratumn_node_keys_protocolid)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_protocolid}} (out)",
+          "legendFormat": "{{stratumn_node_keys_protocolid}} (out)",
           "refId": "B"
         }
       ],
@@ -357,7 +353,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -389,11 +385,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "histogram_quantile(0.5, sum(rate(indigo_node_views_latency_bucket[5m])) by (indigo_node_keys_peerid, le))",
+          "expr": "histogram_quantile(0.5, sum(rate(stratumn_node_views_latency_bucket[5m])) by (stratumn_node_keys_peerid, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -442,7 +437,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -474,11 +469,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "histogram_quantile(0.95, sum(rate(indigo_node_views_latency_bucket[5m])) by (indigo_node_keys_peerid, le))",
+          "expr": "histogram_quantile(0.95, sum(rate(stratumn_node_views_latency_bucket[5m])) by (stratumn_node_keys_peerid, le))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -540,7 +534,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -572,11 +566,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(rate(indigo_node_views_bandwidth_out[5m])) by (indigo_node_keys_peerid, le)",
+          "expr": "sum(rate(stratumn_node_views_bandwidth_out[5m])) by (stratumn_node_keys_peerid, le)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         }
       ],
@@ -625,7 +618,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_INDIGO_NODE}",
+      "datasource": "${DS_STRATUMN_NODE}",
       "fill": 1,
       "gridPos": {
         "h": 9,
@@ -657,11 +650,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr":
-            "sum(rate(indigo_node_views_bandwidth_in[5m])) by (indigo_node_keys_peerid, le)",
+          "expr": "sum(rate(stratumn_node_views_bandwidth_in[5m])) by (stratumn_node_keys_peerid, le)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{indigo_node_keys_peerid}}",
+          "legendFormat": "{{stratumn_node_keys_peerid}}",
           "refId": "A"
         }
       ],

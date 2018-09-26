@@ -20,7 +20,7 @@ import (
 	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	"testing"
 
-	"github.com/stratumn/go-indigonode/core/db"
+	"github.com/stratumn/go-node/core/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

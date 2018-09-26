@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Command indigo-node manages an Indigo Node.
+// Command stratumn-node manages a Stratumn Node.
 //
-// Indigo Node is virtual infrastructure for interoperable P2P services.
+// Stratumn Node is virtual infrastructure for interoperable P2P services.
 package main
 
-import "github.com/stratumn/go-indigonode/cmd"
+import "github.com/stratumn/go-node/cmd"
 
 func main() {
 	cmd.Execute()

@@ -13,6 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockcontacts -destination mockcontacts/mockcontacts.go github.com/stratumn/go-indigonode/app/contacts/grpc Contacts_ListServer
+//go:generate mockgen -package mockcontacts -destination mockcontacts/mockcontacts.go github.com/stratumn/go-node/app/contacts/grpc Contacts_ListServer
 
 package grpc

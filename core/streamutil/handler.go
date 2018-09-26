@@ -18,7 +18,7 @@ package streamutil
 import (
 	"context"
 
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
 )

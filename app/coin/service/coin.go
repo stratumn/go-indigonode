@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-// Package service is a service to interact with Indigo coins.
-// It runs a proof of work consensus engine between Indigo nodes.
+// Package service is a service to interact with Stratumn coins.
+// It runs a proof of work consensus engine between Stratumn nodes.
 package service
 
 import (
@@ -24,18 +24,18 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	rpcpb "github.com/stratumn/go-indigonode/app/coin/grpc"
-	"github.com/stratumn/go-indigonode/app/coin/pb"
-	"github.com/stratumn/go-indigonode/app/coin/protocol"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/chain"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/engine"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/gossip"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/p2p"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/processor"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/state"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/synchronizer"
-	"github.com/stratumn/go-indigonode/app/coin/protocol/validator"
-	"github.com/stratumn/go-indigonode/core/db"
+	rpcpb "github.com/stratumn/go-node/app/coin/grpc"
+	"github.com/stratumn/go-node/app/coin/pb"
+	"github.com/stratumn/go-node/app/coin/protocol"
+	"github.com/stratumn/go-node/app/coin/protocol/chain"
+	"github.com/stratumn/go-node/app/coin/protocol/engine"
+	"github.com/stratumn/go-node/app/coin/protocol/gossip"
+	"github.com/stratumn/go-node/app/coin/protocol/p2p"
+	"github.com/stratumn/go-node/app/coin/protocol/processor"
+	"github.com/stratumn/go-node/app/coin/protocol/state"
+	"github.com/stratumn/go-node/app/coin/protocol/synchronizer"
+	"github.com/stratumn/go-node/app/coin/protocol/validator"
+	"github.com/stratumn/go-node/core/db"
 
 	"google.golang.org/grpc"
 
@@ -68,7 +68,7 @@ var (
 
 var log = logging.Logger("coin")
 
-// Host represents an Indigo Node host.
+// Host represents an Stratumn Node host.
 type Host = ihost.Host
 
 // Service is the Coin service.
@@ -161,7 +161,7 @@ func (s *Service) Name() string {
 
 // Desc returns a description of what the service does.
 func (s *Service) Desc() string {
-	return "A service to use Indigo coins."
+	return "A service to use Stratumn coins."
 }
 
 // Config returns the current service configuration or creates one with

@@ -19,12 +19,12 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/stratumn/go-indigonode/cli"
-	"github.com/stratumn/go-indigonode/core"
-	bootstrap "github.com/stratumn/go-indigonode/core/app/bootstrap/service"
-	swarm "github.com/stratumn/go-indigonode/core/app/swarm/service"
-	"github.com/stratumn/go-indigonode/core/cfg"
-	"github.com/stratumn/go-indigonode/core/protector"
+	"github.com/stratumn/go-node/cli"
+	"github.com/stratumn/go-node/core"
+	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/service"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
+	"github.com/stratumn/go-node/core/cfg"
+	"github.com/stratumn/go-node/core/protector"
 
 	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"

@@ -16,7 +16,7 @@
 package service
 
 import (
-	"github.com/stratumn/go-indigonode/core/monitoring"
+	"github.com/stratumn/go-node/core/monitoring"
 
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
@@ -25,25 +25,25 @@ import (
 
 // Tags used by the grpcapi app.
 var (
-	methodTag = monitoring.NewTag("indigo-node/keys/grpc-method")
+	methodTag = monitoring.NewTag("stratumn-node/keys/grpc-method")
 )
 
 // Measures exposed by the grpcapi app.
 var (
 	requestReceived = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/grpcapi/request-received",
+		"stratumn-node/measure/grpcapi/request-received",
 		"grpc request received",
 		stats.UnitNone,
 	))
 
 	requestDuration = monitoring.NewFloat64(stats.Float64(
-		"indigo-node/measure/grpcapi/request-duration",
+		"stratumn-node/measure/grpcapi/request-duration",
 		"grpc request duration",
 		stats.UnitMilliseconds,
 	))
 
 	requestErr = monitoring.NewInt64(stats.Int64(
-		"indigo-node/measure/grpcapi/request-error",
+		"stratumn-node/measure/grpcapi/request-error",
 		"grpc request error",
 		stats.UnitNone,
 	))
@@ -52,7 +52,7 @@ var (
 // Views exposed by the grpcapi app.
 var (
 	RequestReceived = &view.View{
-		Name:        "indigo-node/views/grpcapi/request-received",
+		Name:        "stratumn-node/views/grpcapi/request-received",
 		Description: "grpc request received",
 		Measure:     requestReceived.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},
@@ -60,7 +60,7 @@ var (
 	}
 
 	RequestDuration = &view.View{
-		Name:        "indigo-node/views/grpcapi/request-duration",
+		Name:        "stratumn-node/views/grpcapi/request-duration",
 		Description: "grpc request duration",
 		Measure:     requestDuration.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},
@@ -68,7 +68,7 @@ var (
 	}
 
 	RequestError = &view.View{
-		Name:        "indigo-node/views/grpcapi/request-error",
+		Name:        "stratumn-node/views/grpcapi/request-error",
 		Description: "grpc request error",
 		Measure:     requestErr.Measure,
 		TagKeys:     []tag.Key{methodTag.OCTag},

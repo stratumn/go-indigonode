@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//go:generate mockgen -package mockstream -destination mockstream/mockcodec.go github.com/stratumn/go-indigonode/core/streamutil Codec
-//go:generate mockgen -package mockstream -destination mockstream/mockprovider.go github.com/stratumn/go-indigonode/core/streamutil Provider
-//go:generate mockgen -package mockstream -destination mockstream/mockstream.go github.com/stratumn/go-indigonode/core/streamutil Stream
+//go:generate mockgen -package mockstream -destination mockstream/mockcodec.go github.com/stratumn/go-node/core/streamutil Codec
+//go:generate mockgen -package mockstream -destination mockstream/mockprovider.go github.com/stratumn/go-node/core/streamutil Provider
+//go:generate mockgen -package mockstream -destination mockstream/mockstream.go github.com/stratumn/go-node/core/streamutil Stream
 
 package streamutil

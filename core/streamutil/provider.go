@@ -66,7 +66,7 @@ func (s *wrappedStream) Codec() Codec {
 }
 
 func (s *wrappedStream) Close() {
-	err := s.stream.Close()
+	err := inet.FullClose(s.stream)
 	if err != nil {
 		s.span.Annotate(context.TODO(), "close_err", err.Error())
 	}

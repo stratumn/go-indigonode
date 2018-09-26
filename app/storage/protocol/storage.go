@@ -111,7 +111,7 @@ func (s *Storage) StreamHandler(ctx context.Context, stream inet.Stream) {
 	})
 
 	defer func() {
-		if err := stream.Close(); err != nil {
+		if err := inet.FullClose(stream); err != nil {
 			event.Append(logging.Metadata{"stream_close_err": err})
 		}
 

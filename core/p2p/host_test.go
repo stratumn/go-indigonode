@@ -115,7 +115,7 @@ func TestHostProtoPreference(t *testing.T) {
 
 	handler := func(s inet.Stream) {
 		connectedOn <- s.Protocol()
-		s.Close()
+		inet.FullClose(s)
 	}
 
 	h1.SetStreamHandler(protoOld, handler)
@@ -124,7 +124,7 @@ func TestHostProtoPreference(t *testing.T) {
 	require.NoError(t, err)
 
 	assertWait(t, connectedOn, protoOld)
-	s.Close()
+	inet.FullClose(s)
 
 	mfunc, err := host.MultistreamSemverMatcher(protoMinor)
 	require.NoError(t, err)
@@ -141,13 +141,13 @@ func TestHostProtoPreference(t *testing.T) {
 
 	assertWait(t, connectedOn, protoOld)
 
-	s2.Close()
+	inet.FullClose(s2)
 
 	s3, err := h2.NewStream(ctx, h1.ID(), protoMinor)
 	require.NoError(t, err)
 
 	assertWait(t, connectedOn, protoMinor)
-	s3.Close()
+	inet.FullClose(s3)
 }
 
 func TestHostProtoMismatch(t *testing.T) {
@@ -179,7 +179,7 @@ func TestHostProtoPreknowledge(t *testing.T) {
 	conn := make(chan protocol.ID)
 	handler := func(s inet.Stream) {
 		conn <- s.Protocol()
-		s.Close()
+		inet.FullClose(s)
 	}
 
 	h1.SetStreamHandler("/super", handler)
@@ -220,7 +220,7 @@ func TestHostProtoPreknowledge(t *testing.T) {
 
 	assertWait(t, conn, "/super")
 
-	s.Close()
+	inet.FullClose(s)
 }
 
 func TestNewDialOld(t *testing.T) {
@@ -234,7 +234,7 @@ func TestNewDialOld(t *testing.T) {
 	connectedOn := make(chan protocol.ID)
 	h1.SetStreamHandler("/testing", func(s inet.Stream) {
 		connectedOn <- s.Protocol()
-		s.Close()
+		inet.FullClose(s)
 	})
 
 	s, err := h2.NewStream(ctx, h1.ID(), "/testing/1.0.0", "/testing")
@@ -244,7 +244,7 @@ func TestNewDialOld(t *testing.T) {
 
 	require.EqualValues(t, "/testing", s.Protocol(), "s.Protocol()")
 
-	s.Close()
+	inet.FullClose(s)
 }
 
 func TestProtoDowngrade(t *testing.T) {
@@ -258,7 +258,7 @@ func TestProtoDowngrade(t *testing.T) {
 	connectedOn := make(chan protocol.ID)
 	h1.SetStreamHandler("/testing/1.0.0", func(s inet.Stream) {
 		connectedOn <- s.Protocol()
-		s.Close()
+		inet.FullClose(s)
 	})
 
 	s, err := h2.NewStream(ctx, h1.ID(), "/testing/1.0.0", "/testing")
@@ -267,7 +267,7 @@ func TestProtoDowngrade(t *testing.T) {
 	assertWait(t, connectedOn, "/testing/1.0.0")
 
 	require.EqualValues(t, "/testing/1.0.0", s.Protocol(), "s.Protocol()")
-	s.Close()
+	inet.FullClose(s)
 
 	h1.Network().ConnsToPeer(h2.ID())[0].Close()
 
@@ -275,7 +275,7 @@ func TestProtoDowngrade(t *testing.T) {
 	h1.RemoveStreamHandler("/testing/1.0.0")
 	h1.SetStreamHandler("/testing", func(s inet.Stream) {
 		connectedOn <- s.Protocol()
-		s.Close()
+		inet.FullClose(s)
 	})
 
 	h2pi := h2.Peerstore().PeerInfo(h2.ID())
@@ -291,7 +291,7 @@ func TestProtoDowngrade(t *testing.T) {
 	assertWait(t, connectedOn, "/testing")
 
 	require.EqualValues(t, "/testing", s2.Protocol(), "s2.Protocol()")
-	s2.Close()
+	inet.FullClose(s2)
 }
 
 func TestAddrResolution(t *testing.T) {

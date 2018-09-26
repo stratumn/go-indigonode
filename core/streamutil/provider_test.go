@@ -17,6 +17,7 @@ package streamutil_test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -83,10 +84,10 @@ func TestNewStream(t *testing.T) {
 		conn := mocks.NewMockConn(ctrl)
 
 		stream := mocks.NewMockStream(ctrl)
-		stream.EXPECT().Conn().Times(1).Return(conn)
+		stream.EXPECT().Conn().Return(conn)
 
 		host := mocks.NewMockHost(ctrl)
-		host.EXPECT().NewStream(gomock.Any(), peerID, protocolID).Times(1).Return(stream, nil)
+		host.EXPECT().NewStream(gomock.Any(), peerID, protocolID).Return(stream, nil)
 
 		s, err := provider.NewStream(
 			ctx,
@@ -98,7 +99,13 @@ func TestNewStream(t *testing.T) {
 		require.NotNil(t, s.Codec())
 		require.Equal(t, conn, s.Conn())
 
-		stream.EXPECT().Close().Times(1)
+		// FullClose closes the stream and sets a deadline before trying to
+		// read an EOF.
+		// See https://github.com/libp2p/go-libp2p/blob/master/NEWS.md#zombie-streams
+		stream.EXPECT().Close()
+		stream.EXPECT().SetDeadline(gomock.Any())
+		stream.EXPECT().Read(gomock.Any()).Return(0, io.EOF)
+
 		s.Close()
 	})
 }

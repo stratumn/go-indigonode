@@ -17,6 +17,7 @@ package streamutil_test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -37,10 +38,10 @@ func TestAutoCloseHandler(t *testing.T) {
 		defer ctrl.Finish()
 
 		conn := mocks.NewMockConn(ctrl)
-		conn.EXPECT().RemotePeer().Return(peerID).Times(1)
+		conn.EXPECT().RemotePeer().Return(peerID)
 
 		stream := mocks.NewMockStream(ctrl)
-		stream.EXPECT().Conn().Return(conn).Times(1)
+		stream.EXPECT().Conn().Return(conn)
 		stream.EXPECT().Protocol().Return(protocol.ID("test"))
 
 		handler := streamutil.WithAutoClose(
@@ -51,7 +52,12 @@ func TestAutoCloseHandler(t *testing.T) {
 			},
 		)
 
-		stream.EXPECT().Close().Times(1)
+		// FullClose closes the stream and sets a deadline before trying to
+		// read an EOF.
+		// See https://github.com/libp2p/go-libp2p/blob/master/NEWS.md#zombie-streams
+		stream.EXPECT().Close()
+		stream.EXPECT().SetDeadline(gomock.Any())
+		stream.EXPECT().Read(gomock.Any()).Return(0, io.EOF)
 
 		handler(stream)
 	})

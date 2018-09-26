@@ -69,7 +69,7 @@ func (n *netProcess) Run(ctx context.Context) error {
 }
 
 func (n *netProcess) closeStream(stream inet.Stream) {
-	if err := stream.Close(); err != nil {
+	if err := inet.FullClose(stream); err != nil {
 		n.errorChan <- err
 	}
 }

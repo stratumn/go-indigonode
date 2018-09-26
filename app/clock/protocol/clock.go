@@ -158,6 +158,8 @@ func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error)
 		time := time.Unix(0, t.Timestamp)
 
 		timeCh <- &time
+
+		c.closeStream(ctx, stream)
 	}()
 
 	select {
@@ -172,7 +174,7 @@ func (c *Clock) RemoteTime(ctx context.Context, pid peer.ID) (*time.Time, error)
 
 // closeStream closes a stream.
 func (c *Clock) closeStream(ctx context.Context, stream inet.Stream) {
-	if err := stream.Close(); err != nil {
+	if err := inet.FullClose(stream); err != nil {
 		log.Event(ctx, "streamCloseError", logging.Metadata{
 			"error":  err.Error(),
 			"stream": stream,

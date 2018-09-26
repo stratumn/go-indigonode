@@ -141,9 +141,8 @@ func TestP2P_SendFile(t *testing.T) {
 // Returns a stream handler that streams the byte array.
 // if failAfter > 0, the transmission will fail after failAfter messages
 func getStreamHandler(ctx context.Context, name string, data []byte, failAfter int) func(inet.Stream) {
-
 	return func(stream inet.Stream) {
-		defer stream.Close()
+		defer inet.FullClose(stream)
 		dec := protobuf.Multicodec(nil).Decoder(stream)
 		enc := protobuf.Multicodec(nil).Encoder(stream)
 		ch := make(chan error, 1)

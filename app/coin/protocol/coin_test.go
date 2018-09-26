@@ -125,11 +125,11 @@ func TestCoinProtocolHandler(t *testing.T) {
 
 		s0_1, err := hosts[0].NewStream(ctx, hosts[1].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
-		defer s0_1.Close()
+		defer inet.FullClose(s0_1)
 
 		s1_0, err := hosts[1].NewStream(ctx, hosts[0].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
-		defer s1_0.Close()
+		defer inet.FullClose(s1_0)
 
 		done := []bool{false, false, false}
 		p2ps[0].EXPECT().RespondBlockByHash(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) { done[0] = true }).Return(nil).Times(1)
@@ -161,7 +161,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 
 		s1_0, err := hosts[1].NewStream(ctx, hosts[0].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
-		defer s1_0.Close()
+		defer inet.FullClose(s1_0)
 
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)
 		err = enc1_0.Encode(&pb.Transaction{Value: 42})
@@ -174,7 +174,7 @@ func TestCoinProtocolHandler(t *testing.T) {
 
 		s1_0, err := hosts[1].NewStream(ctx, hosts[0].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
-		defer s1_0.Close()
+		defer inet.FullClose(s1_0)
 
 		s0_1, err := hosts[0].NewStream(ctx, hosts[1].ID(), ProtocolID)
 		require.NoError(t, err, "NewStream()")
@@ -184,8 +184,8 @@ func TestCoinProtocolHandler(t *testing.T) {
 		err = enc0_1.Encode(req1)
 		assert.NoError(t, err, "Encode()")
 
-		err = s0_1.Close()
-		assert.NoError(t, err, "Close()")
+		err = inet.FullClose(s0_1)
+		assert.NoError(t, err, "FullClose()")
 
 		req2 := pb.NewBlockRequest([]byte("zou"))
 		enc1_0 := protobuf.Multicodec(nil).Encoder(s1_0)

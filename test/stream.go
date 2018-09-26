@@ -66,7 +66,7 @@ func (s *Stream) CloseChan() <-chan struct{} {
 
 // Close closes the stream and notifies a channel.
 func (s *Stream) Close() error {
-	err := s.Stream.Close()
+	err := inet.FullClose(s.Stream)
 	s.closeChan <- struct{}{}
 	return err
 }

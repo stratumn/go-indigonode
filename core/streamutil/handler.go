@@ -45,7 +45,7 @@ func WithAutoClose(service string, method string, h AutoCloseHandler) inet.Strea
 				span.SetUnknownError(err)
 			}
 
-			if closeErr := stream.Close(); closeErr != nil {
+			if closeErr := inet.FullClose(stream); closeErr != nil {
 				span.Annotate(ctx, "close_err", closeErr.Error())
 			}
 

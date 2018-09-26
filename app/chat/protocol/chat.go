@@ -62,7 +62,7 @@ func (c *Chat) StreamHandler(ctx context.Context, stream inet.Stream) {
 	defer span.End()
 
 	c.receive(ctx, stream)
-	if err := stream.Close(); err != nil {
+	if err := inet.FullClose(stream); err != nil {
 		span.Annotate(ctx, "close_err", err.Error())
 	}
 }
@@ -122,6 +122,10 @@ func (c *Chat) Send(ctx context.Context, pid peer.ID, message string) error {
 		}
 
 		successCh <- struct{}{}
+		err = inet.FullClose(stream)
+		if err != nil {
+			span.Annotate(ctx, "close_err", err.Error())
+		}
 	}()
 
 	select {

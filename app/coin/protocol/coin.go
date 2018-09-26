@@ -141,12 +141,17 @@ func (c *Coin) processGenesisBlock(ctx context.Context) error {
 
 // StreamHandler handles incoming messages from peers.
 func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
-	log.Event(ctx, "beginStream", logging.Metadata{
+	event := log.EventBegin(ctx, "handleStream", logging.Metadata{
 		"stream": stream,
 	})
-	defer log.Event(ctx, "endStream", logging.Metadata{
-		"stream": stream,
-	})
+	defer func() {
+		err := inet.FullClose(stream)
+		if err != nil {
+			event.Append(logging.Metadata{"close_err": err.Error()})
+		}
+
+		event.Done()
+	}()
 
 	dec := protobuf.Multicodec(nil).Decoder(stream)
 	enc := protobuf.Multicodec(nil).Encoder(stream)
@@ -162,31 +167,31 @@ func (c *Coin) StreamHandler(ctx context.Context, stream inet.Stream) {
 			return
 		}
 		if err != nil {
-			log.Event(ctx, "Decode", logging.Metadata{"error": err})
+			event.Append(logging.Metadata{"decode_err": err.Error()})
 			continue
 		}
 
 		switch m := gossip.Msg.(type) {
 		case *pb.Request_HeaderReq:
 			if err := c.p2p.RespondHeaderByHash(ctx, m.HeaderReq, enc, c.chain); err != nil {
-				log.Event(ctx, "HeaderReq response", logging.Metadata{"error": err})
+				event.Append(logging.Metadata{"header_req_err": err.Error()})
 			}
 		case *pb.Request_HeadersReq:
 			if err := c.p2p.RespondHeadersByNumber(ctx, m.HeadersReq, enc, c.chain); err != nil {
-				log.Event(ctx, "HeadersReq response", logging.Metadata{"error": err})
+				event.Append(logging.Metadata{"headers_req_err": err.Error()})
 			}
 		case *pb.Request_BlockReq:
 			if err := c.p2p.RespondBlockByHash(ctx, m.BlockReq, enc, c.chain); err != nil {
-				log.Event(ctx, "BlockReq response", logging.Metadata{"error": err})
+				event.Append(logging.Metadata{"block_req_err": err.Error()})
 			}
 		case *pb.Request_BlocksReq:
 			if err := c.p2p.RespondBlocksByNumber(ctx, m.BlocksReq, enc, c.chain); err != nil {
-				log.Event(ctx, "BlocksReq response", logging.Metadata{"error": err})
+				event.Append(logging.Metadata{"blocks_req_err": err.Error()})
 			}
 		default:
-			log.Event(ctx, "Gossip", logging.Metadata{
-				"error": "Unexpected type",
-				"type":  fmt.Sprintf("%T", m),
+			event.Append(logging.Metadata{
+				"err":  "Unexpected type",
+				"type": fmt.Sprintf("%T", m),
 			})
 		}
 	}

@@ -19,9 +19,11 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	pb "github.com/stratumn/go-node/core/app/swarm/grpc"
+	"github.com/stratumn/go-node/core/monitoring"
 	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stratumn/go-node/core/protector"
 	"google.golang.org/grpc"
@@ -51,6 +53,9 @@ var (
 	// stream muxer.
 	ErrNotStreamMuxer = errors.New("connected service is not a stream muxer")
 
+	// ErrNotMonitoring is returned when a specified service is not a monitoring.
+	ErrNotMonitoring = errors.New("connected service is not a monitoring")
+
 	// ErrUnavailable is returned from gRPC methods when the service is not
 	// available.
 	ErrUnavailable = errors.New("the service is not available")
@@ -71,6 +76,8 @@ type Service struct {
 
 	networkConfig protector.NetworkConfig
 	networkMode   *protector.NetworkMode
+
+	metricsInterval time.Duration
 }
 
 // Swarm wraps a swarm with other data that could be useful to services.
@@ -127,6 +134,7 @@ func (s *Service) Config() interface{} {
 			"/ip4/0.0.0.0/tcp/8903",
 			"/ip6/::/tcp/8903",
 		},
+		Monitoring:  "monitoring",
 		StreamMuxer: "mssmux",
 	}
 }
@@ -181,6 +189,7 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.StreamMuxer] = struct{}{}
+	needs[s.config.Monitoring] = struct{}{}
 
 	return needs
 }
@@ -191,6 +200,11 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 
 	if s.smuxer, ok = exposed[s.config.StreamMuxer].(Transport); !ok {
 		return errors.WithStack(ErrNotStreamMuxer)
+	}
+
+	s.metricsInterval, ok = exposed[s.config.Monitoring].(time.Duration)
+	if !ok {
+		return errors.Wrap(ErrNotMonitoring, s.config.Monitoring)
 	}
 
 	return nil
@@ -259,9 +273,14 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	s.networkConfig = networkConfig
 	s.swarm = swm
 
+	ticker := time.NewTicker(s.metricsInterval)
+	go s.collectMetrics(ticker)
+
 	running()
 	<-ctx.Done()
 	stopping()
+
+	ticker.Stop()
 
 	swmCancel()
 
@@ -273,6 +292,28 @@ func (s *Service) Run(ctx context.Context, running, stopping func()) (err error)
 	}
 
 	return errors.WithStack(ctx.Err())
+}
+
+// collectMetrics periodically reports network metrics.
+func (s *Service) collectMetrics(ticker *time.Ticker) {
+	for range ticker.C {
+		ctx := context.Background()
+		connCount := len(s.swarm.Conns())
+		peerCount := len(s.swarm.Peers())
+
+		connections.Record(ctx, int64(connCount))
+		peers.Record(ctx, int64(peerCount))
+
+		for _, peerID := range s.swarm.Peers() {
+			if peerID == s.swarm.LocalPeer() {
+				continue
+			}
+
+			ctx := monitoring.NewTaggedContext(ctx).Tag(monitoring.PeerIDTag, peerID.Pretty()).Build()
+			peerLatency := ((float64)(s.swarm.Peerstore().LatencyEWMA(peerID).Nanoseconds())) / 1e6
+			latency.Record(ctx, peerLatency)
+		}
+	}
 }
 
 // AddToGRPCServer adds the service to a gRPC server.

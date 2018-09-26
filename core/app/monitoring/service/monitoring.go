@@ -29,6 +29,7 @@ import (
 	bootstrap "github.com/stratumn/go-node/core/app/bootstrap/protocol"
 	grpcapi "github.com/stratumn/go-node/core/app/grpcapi/service"
 	pb "github.com/stratumn/go-node/core/app/monitoring/grpc"
+	swarm "github.com/stratumn/go-node/core/app/swarm/service"
 	"github.com/stratumn/go-node/core/p2p"
 
 	"go.opencensus.io/stats/view"
@@ -47,12 +48,12 @@ var (
 var views = []*view.View{
 	p2p.BandwidthIn,
 	p2p.BandwidthOut,
-	p2p.Connections,
-	p2p.Peers,
 	p2p.StreamsIn,
 	p2p.StreamsOut,
 	p2p.StreamsErr,
-	p2p.Latency,
+	swarm.Connections,
+	swarm.Peers,
+	swarm.Latency,
 	chat.MessageReceived,
 	chat.MessageSent,
 	chat.MessageError,

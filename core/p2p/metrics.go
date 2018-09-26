@@ -43,18 +43,6 @@ var (
 		stats.UnitBytes,
 	))
 
-	connections = monitoring.NewInt64(stats.Int64(
-		"stratumn-node/measure/connections",
-		"open connections",
-		stats.UnitNone,
-	))
-
-	peers = monitoring.NewInt64(stats.Int64(
-		"stratumn-node/measure/peers",
-		"connected peers",
-		stats.UnitNone,
-	))
-
 	streamsIn = monitoring.NewInt64(stats.Int64(
 		"stratumn-node/measure/streams-in",
 		"incoming streams",
@@ -71,12 +59,6 @@ var (
 		"stratumn-node/measure/streams-err",
 		"errored streams",
 		stats.UnitNone,
-	))
-
-	latency = monitoring.NewFloat64(stats.Float64(
-		"stratumn-node/measure/latency",
-		"peer latency",
-		stats.UnitMilliseconds,
 	))
 )
 
@@ -96,20 +78,6 @@ var (
 		Measure:     bandwidthOut.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ProtocolIDTag.OCTag},
 		Aggregation: view.Count(),
-	}
-
-	Connections = &view.View{
-		Name:        "stratumn-node/views/connections",
-		Description: "open connections",
-		Measure:     connections.Measure,
-		Aggregation: view.LastValue(),
-	}
-
-	Peers = &view.View{
-		Name:        "stratumn-node/views/peers",
-		Description: "connected peers",
-		Measure:     peers.Measure,
-		Aggregation: view.LastValue(),
 	}
 
 	StreamsIn = &view.View{
@@ -134,14 +102,6 @@ var (
 		Measure:     streamsErr.Measure,
 		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag, monitoring.ErrorTag.OCTag},
 		Aggregation: view.Count(),
-	}
-
-	Latency = &view.View{
-		Name:        "stratumn-node/views/latency",
-		Description: "peer latency distribution",
-		Measure:     latency.Measure,
-		TagKeys:     []tag.Key{monitoring.PeerIDTag.OCTag},
-		Aggregation: monitoring.DefaultLatencyDistribution,
 	}
 )
 

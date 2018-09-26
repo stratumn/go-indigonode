@@ -40,8 +40,7 @@ func testService(ctx context.Context, t *testing.T) *Service {
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"monitoring": 42 * time.Second,
-		"swarm":      swarmtesting.GenSwarm(t, ctx),
+		"swarm": swarmtesting.GenSwarm(t, ctx),
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -112,15 +111,11 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"network",
 		func(c *Config) { c.Network = "myswarm" },
-		[]string{"connmgr", "monitoring", "myswarm"},
+		[]string{"connmgr", "myswarm"},
 	}, {
 		"connmgr",
 		func(c *Config) { c.ConnectionManager = "myconnmgr" },
-		[]string{"monitoring", "myconnmgr", "swarm"},
-	}, {
-		"monitoring",
-		func(c *Config) { c.Monitoring = "mymonitoring" },
-		[]string{"connmgr", "mymonitoring", "swarm"},
+		[]string{"myconnmgr", "swarm"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -197,15 +192,6 @@ func TestService_Plug(t *testing.T) {
 			"monitoring": time.Second,
 		},
 		ErrNotConnManager,
-	}, {
-		"invalid monitoring",
-		func(c *Config) { c.Monitoring = "mymonitoring" },
-		map[string]interface{}{
-			"connmgr":      ifconnmgr.NullConnMgr{},
-			"swarm":        swarmtesting.GenSwarm(t, context.Background()),
-			"mymonitoring": struct{}{},
-		},
-		ErrNotMonitoring,
 	}}
 
 	for _, tt := range tests {

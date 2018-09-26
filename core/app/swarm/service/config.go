@@ -40,6 +40,9 @@ type Config struct {
 	// StreamMuxer is the name of the stream muxer service.
 	StreamMuxer string `toml:"stream_muxer" comment:"The name of the stream muxer service."`
 
+	// Monitoring is the name of the monitoring service.
+	Monitoring string `toml:"monitoring" comment:"The name of the monitoring service."`
+
 	// ProtectionMode describes the network protection mode.
 	ProtectionMode string `toml:"protection_mode" comment:"Protection mode for private network (blank = disabled)."`
 

@@ -317,9 +317,6 @@ const confZero = `
   # The name of the connection manager service.
   connection_manager = "connmgr"
 
-  # The name of the monitoring service.
-  monitoring = "monitoring"
-
   # The negotiation timeout.
   negotiation_timeout = "1m"
 
@@ -510,7 +507,10 @@ const confZero = `
   peer_id = "` + cfg.ConfZeroPID + `"
 
   # The private key of the host.
-    private_key = "` + cfg.ConfZeroPK + `"
+  private_key = "` + cfg.ConfZeroPK + `"
+
+  # The name of the monitoring service.
+  monitoring = "monitoring"
 
   # The name of the stream muxer service.
   stream_muxer = "mssmux"

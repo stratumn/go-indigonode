@@ -37,9 +37,6 @@ var (
 	// ErrNotNetwork is returned when a specified service is not a network.
 	ErrNotNetwork = errors.New("connected service is not a network or swarm")
 
-	// ErrNotMonitoring is returned when a specified service is not a monitoring.
-	ErrNotMonitoring = errors.New("connected service is not a monitoring")
-
 	// ErrNotConnManager is returned when a specified service is not a
 	// connection manager.
 	ErrNotConnManager = errors.New("connected service is not a connection manager")
@@ -56,9 +53,8 @@ type Service struct {
 	netw inet.Network
 	cmgr ifconnmgr.ConnManager
 
-	negTimeout      time.Duration
-	addrsFilters    *mafilter.Filters
-	metricsInterval time.Duration
+	negTimeout   time.Duration
+	addrsFilters *mafilter.Filters
 
 	host *p2p.Host
 }
@@ -67,9 +63,6 @@ type Service struct {
 type Config struct {
 	// Network is the name of the network or swarm service.
 	Network string `toml:"network" comment:"The name of the network or swarm service."`
-
-	// Monitoring is the name of the monitoring service.
-	Monitoring string `toml:"monitoring" comment:"The name of the monitoring service."`
 
 	// ConnectionManager is the name of the connection manager service.
 	ConnectionManager string `toml:"connection_manager" comment:"The name of the connection manager service."`
@@ -107,7 +100,6 @@ func (s *Service) Config() interface{} {
 
 	return Config{
 		Network:            "swarm",
-		Monitoring:         "monitoring",
 		ConnectionManager:  "connmgr",
 		NegotiationTimeout: "1m",
 		AddressesNetmasks:  []string{},
@@ -148,7 +140,6 @@ func (s *Service) SetConfig(config interface{}) error {
 func (s *Service) Needs() map[string]struct{} {
 	needs := map[string]struct{}{}
 	needs[s.config.Network] = struct{}{}
-	needs[s.config.Monitoring] = struct{}{}
 
 	if s.config.ConnectionManager != "" {
 		needs[s.config.ConnectionManager] = struct{}{}
@@ -177,11 +168,6 @@ func (s *Service) Plug(exposed map[string]interface{}) error {
 		if s.cmgr, ok = cmgr.(ifconnmgr.ConnManager); !ok {
 			return errors.Wrap(ErrNotConnManager, s.config.ConnectionManager)
 		}
-	}
-
-	s.metricsInterval, ok = exposed[s.config.Monitoring].(time.Duration)
-	if !ok {
-		return errors.Wrap(ErrNotMonitoring, s.config.Monitoring)
 	}
 
 	return nil

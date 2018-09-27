@@ -49,7 +49,8 @@ func testService(ctx context.Context, t *testing.T, smuxer Transport, cfgOpts ..
 	require.NoError(t, serv.SetConfig(config), "serv.SetConfig(config)")
 
 	deps := map[string]interface{}{
-		"mssmux": smuxer,
+		"monitoring": 42 * time.Second,
+		"mssmux":     smuxer,
 	}
 
 	require.NoError(t, serv.Plug(deps), "serv.Plug(deps)")
@@ -267,7 +268,11 @@ func TestService_Needs(t *testing.T) {
 	}{{
 		"stream muxer",
 		func(c *Config) { c.StreamMuxer = "mysmux" },
-		[]string{"mysmux"},
+		[]string{"mysmux", "monitoring"},
+	}, {
+		"monitoring",
+		func(c *Config) { c.Monitoring = "mymonitoring" },
+		[]string{"mssmux", "mymonitoring"},
 	}}
 
 	toSet := func(keys []string) map[string]struct{} {
@@ -308,16 +313,26 @@ func TestService_Plug(t *testing.T) {
 		"valid stream muxer",
 		func(c *Config) { c.StreamMuxer = "mysmux" },
 		map[string]interface{}{
-			"mysmux": smuxer,
+			"mysmux":     smuxer,
+			"monitoring": time.Second,
 		},
 		nil,
 	}, {
 		"invalid stream muxer",
 		func(c *Config) { c.StreamMuxer = "mysmux" },
 		map[string]interface{}{
-			"mysmux": struct{}{},
+			"mysmux":     struct{}{},
+			"monitoring": time.Second,
 		},
 		ErrNotStreamMuxer,
+	}, {
+		"invalid monitoring",
+		func(c *Config) { c.Monitoring = "mymonitoring" },
+		map[string]interface{}{
+			"mssmux":       smuxer,
+			"mymonitoring": struct{}{},
+		},
+		ErrNotMonitoring,
 	}}
 
 	for _, tt := range tests {

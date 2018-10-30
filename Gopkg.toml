@@ -46,7 +46,7 @@
 [[override]] 
   # This is required because Docker claims it needs ^0.4.
   name = "github.com/gogo/protobuf"
-  version = "~1.0.0"
+  version = "~1.1.1"
   
 [[override]]
   name = "go.opencensus.io"

@@ -515,12 +515,12 @@
   revision = "211f780988068502fe874c44dae530528ebd840f"
 
 [[projects]]
-  digest = "1:0d95e5683d06a8781c12a88086c6a627b40192f87d6f021ff83c6854b62c08c3"
+  digest = "1:44041216955490b57244b97e2fcc934b0764617584e245aeea8337ddfdd96619"
   name = "github.com/takama/daemon"
   packages = ["."]
   pruneopts = ""
-  revision = "f30a97dd1445619884e03e7ed088bc1b3c4f767e"
-  version = "0.9.3"
+  revision = "aa76b0035d1239b7bb3ae1bd84cd88ef2e0a1f1e"
+  version = "0.11.0"
 
 [[projects]]
   digest = "1:eb3da47361162f0ad991ddf391e6dc03e23889201d76046e2917687b84977aee"
@@ -602,6 +602,9 @@
   packages = [
     "unix",
     "windows",
+    "windows/registry",
+    "windows/svc",
+    "windows/svc/mgr",
   ]
   pruneopts = ""
   revision = "571f7bbbe08da2a8955aed9d4db316e78630e9a3"

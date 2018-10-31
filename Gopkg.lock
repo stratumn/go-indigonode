@@ -523,10 +523,11 @@
   version = "0.11.0"
 
 [[projects]]
-  digest = "1:eb3da47361162f0ad991ddf391e6dc03e23889201d76046e2917687b84977aee"
+  digest = "1:ad67dfd3799a2c58f6c65871dd141d8b53f61f600aec48ce8d7fa16a4d5476f8"
   name = "go.opencensus.io"
   packages = [
     ".",
+    "exemplar",
     "exporter/jaeger",
     "exporter/jaeger/internal/gen-go/jaeger",
     "exporter/prometheus",
@@ -543,10 +544,11 @@
     "trace",
     "trace/internal",
     "trace/propagation",
+    "trace/tracestate",
   ]
   pruneopts = ""
-  revision = "e262766cd0d230a1bb7c37281e345e465f19b41b"
-  version = "v0.14.0"
+  revision = "b7bf3cdb64150a8c8c53b769fdeb2ba581bd4d4b"
+  version = "v0.18.0"
 
 [[projects]]
   branch = "master"

@@ -270,7 +270,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:63061d70dbed4bacf2b622ebe5d9b4d19fbc8e4cde7fdc16aec2ba4be52c67f7"
+  digest = "1:c64174051a3b21d4cc182dfb1b75df16392b8c92e1eedc0c3764e75948849f6f"
   name = "github.com/jhump/protoreflect"
   packages = [
     "desc",
@@ -281,7 +281,7 @@
     "internal",
   ]
   pruneopts = ""
-  revision = "fdca9c549bffbca959a0b4b0640c76a439bee0c2"
+  revision = "4ccc86ba280ceea095584abe623bf3493b2ac68f"
 
 [[projects]]
   digest = "1:6f49eae0c1e5dab1dafafee34b207aeb7a42303105960944828c2079b92fc88e"

@@ -171,11 +171,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:85e195bd952faa2e720f5c371d0993af6d515cfcda3894de9caf5c896165cd8c"
+  digest = "1:501eef6205c5a3302e409335c8eee59c74082fcbfdc833dfdad1522e8eb5147e"
   name = "github.com/golang/mock"
   packages = ["gomock"]
   pruneopts = ""
-  revision = "b3e60bcdc577185fce3cf625fc96b62857ce5574"
+  revision = "8a44ef6e8be577e050008c7886f24fc705d709fb"
 
 [[projects]]
   digest = "1:3dd078fda7500c341bc26cfbc6c6a34614f295a2457149fc1045cab767cbcf18"

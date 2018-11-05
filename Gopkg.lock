@@ -97,11 +97,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8e9e9b413d0d42246340a89debd1d2c2ae0284774462c11a7ea1b1e25d913700"
+  digest = "1:534bfc1a194affafadc94be31ac3e221de127e47c0c28b3fe8eddc7ca1656f2f"
   name = "github.com/chzyer/readline"
   packages = ["."]
   pruneopts = ""
-  revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
+  revision = "2972be24d48e78746da79ba8e24e8b488c9880de"
 
 [[projects]]
   digest = "1:a747d7bc44c9e5cf05d97e278f66af69e5ae65cb9385c9c6388ac0814c8b5de0"

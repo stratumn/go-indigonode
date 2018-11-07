@@ -78,14 +78,14 @@ func (t *Tree) GetDefault(key string, def interface{}) interface{} {
 func (t *Tree) Set(key string, val interface{}) (err error) {
 	switch v := val.(type) {
 	case *Tree:
-		t.tree.Set(key, "", false, v.tree)
+		t.tree.Set(key, v.tree)
 		return
 	case []*Tree:
 		trees := make([]*toml.Tree, len(v))
 		for i, child := range v {
 			trees[i] = child.tree
 		}
-		t.tree.Set(key, "", false, trees)
+		t.tree.Set(key, trees)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (t *Tree) Set(key string, val interface{}) (err error) {
 		}
 	}
 
-	t.tree.Set(key, "", false, val)
+	t.tree.Set(key, val)
 
 	return
 }

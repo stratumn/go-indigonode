@@ -3,8 +3,8 @@
   name = "github.com/jhump/protoreflect"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/pelletier/go-toml"
+  version = "^1.2.0"
 
 [[constraint]]
   name = "github.com/golang/protobuf"

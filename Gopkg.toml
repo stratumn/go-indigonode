@@ -4,11 +4,11 @@
 
 [[constraint]]
   name = "github.com/pelletier/go-toml"
-  version = "^1.2.0"
+  version = "1.2.0"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
-  version = "^1.2.0"
+  version = "1.1.0"
 
 [[constraint]]
   branch = "master"
@@ -28,7 +28,7 @@
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "^1.2.2"
+  version = "1.2.2"
 
 [[constraint]]
   name = "github.com/takama/daemon"
@@ -36,7 +36,7 @@
 
 [[constraint]]
   name = "github.com/golang/mock"
-  version = "^1.1.1"
+  version = "1.1.1"
 
 [[override]]
   name = "github.com/hpcloud/tail"
@@ -46,11 +46,11 @@
 [[override]] 
   # This is required because Docker claims it needs ^0.4.
   name = "github.com/gogo/protobuf"
-  version = "~1.1.1"
+  version = "1.0.0"
   
 [[override]]
   name = "go.opencensus.io"
-  version = ">=0.18.0"
+  version = "0.18.0"
 
 [[constraint]]
   name = "contrib.go.opencensus.io/exporter/stackdriver"

@@ -568,38 +568,38 @@ Usage:
   test-unaryreq <required field>
 
 Flags:
-      --base58 string                      base58 field
-      --base58_repeated stringSlice        base58 repeated field
-      --boolean string                     bool field
-      --boolean_repeated stringSlice       bool repeated field
-      --buf string                         bytes field
-      --buf_repeated stringSlice           bytes repeated field
-      --byterate string                    byterate field
-      --byterate_repeated stringSlice      byterate repeated field
-      --bytesize string                    bytesize field
-      --bytesize_repeated stringSlice      bytesize repeated field
-      --duration string                    duration field
-      --duration_repeated stringSlice      duration repeated field
-      --enumeration string                 enum field
-      --enumeration_repeated stringSlice   enum repeated field
-      --field string                       Only display specified field
-  -h, --help                               Invoke help on command
-      --i32 string                         int32 field
-      --i32_repeated stringSlice           int32 repeated field
-      --i64 string                         int64 field
-      --i64_repeated stringSlice           int64 repeated field
-      --multiaddr string                   multiaddr field
-      --multiaddr_repeated stringSlice     multiaddr repeated field
-      --no-timeout                         Disable request timeout
-      --noext string                       noext
-      --str string                         string field
-      --str_repeated stringSlice           string repeated field
-      --time string                        time field
-      --time_repeated stringSlice          time repeated field
-      --u32 string                         uint32 field
-      --u32_repeated stringSlice           uint32 repeated field
-      --u64 string                         uint64 field
-      --u64_repeated stringSlice           uint64 repeated field
+      --base58 string                  base58 field
+      --base58_repeated strings        base58 repeated field
+      --boolean string                 bool field
+      --boolean_repeated strings       bool repeated field
+      --buf string                     bytes field
+      --buf_repeated strings           bytes repeated field
+      --byterate string                byterate field
+      --byterate_repeated strings      byterate repeated field
+      --bytesize string                bytesize field
+      --bytesize_repeated strings      bytesize repeated field
+      --duration string                duration field
+      --duration_repeated strings      duration repeated field
+      --enumeration string             enum field
+      --enumeration_repeated strings   enum repeated field
+      --field string                   Only display specified field
+  -h, --help                           Invoke help on command
+      --i32 string                     int32 field
+      --i32_repeated strings           int32 repeated field
+      --i64 string                     int64 field
+      --i64_repeated strings           int64 repeated field
+      --multiaddr string               multiaddr field
+      --multiaddr_repeated strings     multiaddr repeated field
+      --no-timeout                     Disable request timeout
+      --noext string                   noext
+      --str string                     string field
+      --str_repeated strings           string repeated field
+      --time string                    time field
+      --time_repeated strings          time repeated field
+      --u32 string                     uint32 field
+      --u32_repeated strings           uint32 repeated field
+      --u64 string                     uint64 field
+      --u64_repeated strings           uint64 repeated field
 `
 
 var serverReflectorTests = []reflectorServerTest{{

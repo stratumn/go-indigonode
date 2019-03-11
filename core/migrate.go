@@ -94,6 +94,11 @@ var migrations = []cfg.MigrateHandler{
 	},
 	// Set public bootstrap seeds
 	func(tree *cfg.Tree) error {
+		bootstrap := tree.Get("bootstrap")
+		// Do nothing if the bootstrap service is not defined.
+		if bootstrap == nil {
+			return nil
+		}
 		seeds := append(
 			tree.Get("bootstrap.addresses").([]interface{}),
 			"/ip4/138.197.77.223/tcp/8903/ipfs/Qmc1QbSba7RtPgxEw4NqXNeDpB5CpCTwv9dvdZRdTkche1",

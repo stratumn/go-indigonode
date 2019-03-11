@@ -7,10 +7,10 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_libp2p_crypto "github.com/libp2p/go-libp2p-crypto"
+	go_libp2p_peer "github.com/libp2p/go-libp2p-peer"
+	go_multiaddr "github.com/multiformats/go-multiaddr"
 	pb "github.com/stratumn/go-node/core/protector/pb"
-	go_libp2p_crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	go_multiaddr "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	reflect "reflect"
 )
 

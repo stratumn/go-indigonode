@@ -22,9 +22,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	mssmux "gx/ipfs/QmRYdszNNq7ykPqavVNKMVyyjX59AcTisHqzussDfhwHkK/go-smux-multistream"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
+	logging "github.com/ipfs/go-log"
+	smux "github.com/libp2p/go-stream-muxer"
+	mssmux "github.com/whyrusleeping/go-smux-multistream"
 )
 
 var (

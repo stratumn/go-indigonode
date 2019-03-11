@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	floodsub "gx/ipfs/QmY1L5krVk8dv8d74uESmJTXGpoigVYqBVxXXz1aS8aFSb/go-libp2p-floodsub"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	floodsub "github.com/libp2p/go-libp2p-pubsub"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

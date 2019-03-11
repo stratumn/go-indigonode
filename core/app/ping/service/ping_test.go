@@ -27,8 +27,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ping "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/ping"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {

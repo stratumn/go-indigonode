@@ -30,10 +30,6 @@ developed in a wide range of programming languages to connect to a host.
 The [dep](https://github.com/golang/dep) dependency manager is preferred and
 should be used when possible (until vgo becomes the standard).
 
-Libp2p and Multiaddr packages are exceptions and are usually distributed using
-the [gx](https://github.com/whyrusleeping/gx) package manager, which uses IPFS
-to fetch the packages.
-
 ## Git
 
 Squash multiple commits into commits that make sense before doing a pull

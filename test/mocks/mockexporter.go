@@ -5,10 +5,9 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	view "go.opencensus.io/stats/view"
+	reflect "reflect"
 )
 
 // MockExporter is a mock of Exporter interface

@@ -31,9 +31,9 @@ import (
 
 	"google.golang.org/grpc"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	logging "github.com/ipfs/go-log"
+	inet "github.com/libp2p/go-libp2p-net"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 	"github.com/stratumn/go-node/app/coin/protocol/state"
 
-	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"github.com/multiformats/go-multihash"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // HashEngine is an engine that uses hashes of the block as a proof-of-work.

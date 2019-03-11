@@ -27,10 +27,11 @@ import (
 
 	"google.golang.org/grpc"
 
-	mamask "gx/ipfs/QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv/multiaddr-filter"
-	mafilter "gx/ipfs/QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y/go-maddr-filter"
-	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	mafilter "github.com/libp2p/go-maddr-filter"
+
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	inet "github.com/libp2p/go-libp2p-net"
+	mamask "github.com/whyrusleeping/multiaddr-filter"
 )
 
 var (

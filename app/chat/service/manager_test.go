@@ -16,7 +16,7 @@
 package service
 
 import (
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 
 	"github.com/stretchr/testify/assert"
 

@@ -23,11 +23,11 @@ import (
 	"github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stratumn/go-node/app/coin/protocol/chain"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
-	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
+	peer "github.com/libp2p/go-libp2p-peer"
+	logging "github.com/ipfs/go-log"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	ihost "github.com/libp2p/go-libp2p-host"
+	protobuf "github.com/multiformats/go-multicodec/protobuf"
 )
 
 // log is the logger for the coin p2p layer.

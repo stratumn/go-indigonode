@@ -67,7 +67,8 @@ var DefaultConfig = Config{
 // NewConfigurableSet creates a new set of configurables bound to the given
 // services.
 // If no services are given, the builtin services are used.
-func NewConfigurableSet(services []manager.Service) cfg.Set {
+// If no customConfig is given, the default core config is used.
+func NewConfigurableSet(services []manager.Service, customConfig *Config) cfg.Set {
 	if services == nil {
 		services = BuiltinServices()
 	}
@@ -77,7 +78,7 @@ func NewConfigurableSet(services []manager.Service) cfg.Set {
 			configurables = append(configurables, configurable)
 		}
 	}
-	configurables = append(configurables, &ConfigHandler{})
+	configurables = append(configurables, &ConfigHandler{config: customConfig})
 	configurables = append(configurables, &logging.ConfigHandler{})
 	return cfg.NewSet(configurables)
 }

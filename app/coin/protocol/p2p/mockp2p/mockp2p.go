@@ -7,10 +7,10 @@ package mockp2p
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_libp2p_peer "github.com/libp2p/go-libp2p-peer"
 	pb "github.com/stratumn/go-node/app/coin/pb"
 	chain "github.com/stratumn/go-node/app/coin/protocol/chain"
 	p2p "github.com/stratumn/go-node/app/coin/protocol/p2p"
-	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	reflect "reflect"
 )
 

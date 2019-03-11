@@ -24,10 +24,10 @@ import (
 
 	"go.opencensus.io/trace"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-peer"
+	logging "github.com/ipfs/go-log"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p-protocol"
 )
 
 // SpanOption sets some initial settings for the span and context.

@@ -15,7 +15,7 @@
 
 package constants
 
-import protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+import protocol "github.com/libp2p/go-libp2p-protocol"
 
 // ProtocolID is the protocol ID of the service.
 var ProtocolID = protocol.ID("/stratumn/node/storage/v1.0.0")

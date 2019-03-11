@@ -33,7 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T, mgr Manager) *Service {

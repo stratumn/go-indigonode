@@ -78,15 +78,12 @@ CLEAN_LIST=$(foreach path, $(CLEAN_PATHS), clean_$(path))
 
 
 # == .PHONY ===================================================================
-.PHONY: gx dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo install build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(SYSTEM_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
+.PHONY: dep golangcilint graphpck deps generate protobuf unit system test coverage lint benchmark cyclo install build git_tag github_draft github_upload github_publish docker_image docker_push clean license_headers $(TEST_LIST) $(BENCHMARK_LIST) $(SYSTEM_LIST) $(GITHUB_UPLOAD_LIST) $(CLEAN_LIST)
 
 # == all ======================================================================
 all: build
 
 # == deps =====================================================================
-gx:
-	go get -u github.com/whyrusleeping/gx
-	go get -u github.com/whyrusleeping/gx-go
 
 dep:
 	go get -u github.com/golang/dep/cmd/dep
@@ -97,8 +94,7 @@ golangcilint:
 graphpkg:
 	go get -u github.com/davecheney/graphpkg
 
-deps: gx dep golangcilint graphpkg
-	gx install
+deps:
 	dep ensure
 
 # == generate =================================================================

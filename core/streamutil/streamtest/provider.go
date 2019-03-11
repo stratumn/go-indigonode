@@ -24,9 +24,9 @@ import (
 	"github.com/stratumn/go-node/core/streamutil/mockstream"
 	"github.com/stretchr/testify/assert"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-protocol"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 // ExpectStreamPeerAndProtocol configures a mock provider to

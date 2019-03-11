@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/go-node/core/cfg"
 	"github.com/stratumn/go-node/core/protector"
 
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"github.com/multiformats/go-multiaddr"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 // Flags used by the init command.
@@ -44,13 +44,14 @@ var (
 )
 
 // initCmd represents the init command.
+// It initializes the core configuration with the default values.
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create configuration file",
 	Run: func(cmd *cobra.Command, args []string) {
 		validateFlags()
 
-		configSet := core.NewConfigurableSet(services)
+		configSet := core.NewConfigurableSet(services, nil)
 
 		if initPrivateCoordinator {
 			configurePrivateCoordinator(configSet)

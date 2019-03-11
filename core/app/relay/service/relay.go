@@ -23,10 +23,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	circuit "gx/ipfs/QmWX6RySJ3yAYmfjLSw1LtRZnDh5oVeA9kM3scNQJkysqa/go-libp2p-circuit"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	logging "github.com/ipfs/go-log"
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

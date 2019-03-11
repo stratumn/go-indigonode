@@ -43,7 +43,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // ReflectFieldDesc returns a description a the gRPC field.

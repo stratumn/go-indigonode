@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 func generatePeerAddrs(t *testing.T, peerID peer.ID) *pb.PeerAddrs {

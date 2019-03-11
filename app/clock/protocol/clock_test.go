@@ -23,8 +23,8 @@ import (
 	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stretchr/testify/require"
 
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	inet "github.com/libp2p/go-libp2p-net"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 func TestClock_RemoteTime(t *testing.T) {

@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 type coreTest struct {
@@ -121,14 +121,14 @@ func validateRegexp(pattern string) validator {
 func TestConfigurableSet(t *testing.T) {
 	// NewConfigurableSet creates a configuration set for
 	// builtins services and adds the core and logging configurables.
-	setDefault := NewConfigurableSet(nil)
+	setDefault := NewConfigurableSet(nil, nil)
 	assert.Len(t, setDefault, len(BuiltinServices())+2)
 
 	services, close := withValidServices(context.Background(), t)
 	defer close()
 
 	// It only adds services that implement the Configurable interface.
-	setCustom := NewConfigurableSet(services)
+	setCustom := NewConfigurableSet(services, nil)
 	assert.Len(t, setCustom, 2)
 }
 
@@ -211,7 +211,7 @@ func createTestConfig(
 	boot []string,
 ) cfg.ConfigSet {
 	// Set up boot target to start the given services.
-	config := NewConfigurableSet(services).Configs()
+	config := NewConfigurableSet(services, nil).Configs()
 	coreConfig := config["core"].(Config)
 	coreConfig.ServiceGroups = []ServiceGroupConfig{{
 		ID:       "boot",

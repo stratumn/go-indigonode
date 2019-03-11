@@ -7,8 +7,8 @@ package mockstream
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_libp2p_host "github.com/libp2p/go-libp2p-host"
 	streamutil "github.com/stratumn/go-node/core/streamutil"
-	go_libp2p_host "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
 	reflect "reflect"
 )
 

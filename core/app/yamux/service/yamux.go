@@ -27,8 +27,8 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 
-	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
-	yamux "gx/ipfs/QmcsgrV3nCAKjiHKZhKVXWc4oY3WBECJCqahXEMpHeMrev/go-smux-yamux"
+	smux "github.com/libp2p/go-stream-muxer"
+	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
 // Service is the Yamux service.

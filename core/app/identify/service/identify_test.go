@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -51,6 +51,7 @@ func expectHost(net *mocks.MockNetwork, host *mockservice.MockHost) {
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(identify.ID), gomock.Any())
+	host.EXPECT().SetStreamHandler(protocol.ID(identify.IDPush), gomock.Any())
 	host.EXPECT().SetIDService(gomock.Any())
 	host.EXPECT().SetIDService(nil)
 	host.EXPECT().RemoveStreamHandler(protocol.ID(identify.ID))

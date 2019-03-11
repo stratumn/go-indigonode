@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr-net"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // Listen returns a listener that is compatible with net.Listener but uses a

@@ -7,13 +7,13 @@ package mockservice
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	go_libp2p_interface_connmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
-	go_multiaddr "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	go_libp2p_net "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	go_libp2p_protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	go_multistream "gx/ipfs/QmabLh8TrJ3emfAoQk5AbqbLTbMyj7XqumMFmAFxa9epo8/go-multistream"
-	go_libp2p_peerstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	go_libp2p_interface_connmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	go_libp2p_net "github.com/libp2p/go-libp2p-net"
+	go_libp2p_peer "github.com/libp2p/go-libp2p-peer"
+	go_libp2p_peerstore "github.com/libp2p/go-libp2p-peerstore"
+	go_libp2p_protocol "github.com/libp2p/go-libp2p-protocol"
+	go_multiaddr "github.com/multiformats/go-multiaddr"
+	go_multistream "github.com/multiformats/go-multistream"
 	reflect "reflect"
 )
 

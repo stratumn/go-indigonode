@@ -22,10 +22,10 @@ import (
 
 	"github.com/stratumn/go-node/core/protector/pb"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-interface-pnet"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peerstore"
 )
 
 // PrivateNetworkWithBootstrap implements the github.com/libp2p/go-libp2p-interface-pnet/ipnet.Protector interface.

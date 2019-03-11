@@ -13,6 +13,7 @@ blocks:
       prologue:
         commands:
           # Go project boiler plate.
+          - change-go-version 1.12
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"
@@ -36,6 +37,7 @@ blocks:
       prologue:
         commands:
           # Go project boiler plate.
+          - change-go-version 1.12
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"
@@ -60,6 +62,7 @@ blocks:
       prologue:
         commands:
           # Go project boiler plate.
+          - change-go-version 1.12
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"

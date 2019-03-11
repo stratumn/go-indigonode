@@ -1265,7 +1265,7 @@ func (r ServerReflector) printStream(w io.Writer, ss ServerStream, truncate, bor
 		if truncate {
 			r.printTruncated(w, row)
 		} else {
-			fmt.Fprintf(w, row)
+			fmt.Fprintln(w, row)
 		}
 	}
 

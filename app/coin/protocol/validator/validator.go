@@ -168,7 +168,7 @@ func (v *BalanceValidator) validateFormat(tx *pb.Transaction) error {
 		return ErrEmptyTx
 	}
 
-	if tx.Value <= 0 {
+	if tx.Value == 0 {
 		return ErrInvalidTxValue
 	}
 

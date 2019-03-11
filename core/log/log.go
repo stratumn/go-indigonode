@@ -32,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	writer "github.com/ipfs/go-log/writer"
 )
 
 var (
@@ -209,13 +209,13 @@ func (h *ConfigHandler) SetConfig(config interface{}) error {
 
 		switch writerConf.Formatter {
 		case Text:
-			logging.WriterGroup.AddWriter(NewPrettyWriter(w, &mu, filter, false))
+			writer.WriterGroup.AddWriter(NewPrettyWriter(w, &mu, filter, false))
 		case Color:
-			logging.WriterGroup.AddWriter(NewPrettyWriter(w, &mu, filter, true))
+			writer.WriterGroup.AddWriter(NewPrettyWriter(w, &mu, filter, true))
 		case JSON:
-			logging.WriterGroup.AddWriter(NewFilteredWriter(w, &mu, filter))
+			writer.WriterGroup.AddWriter(NewFilteredWriter(w, &mu, filter))
 		case Journald:
-			logging.WriterGroup.AddWriter(NewJournaldWriter(w, &mu, filter))
+			writer.WriterGroup.AddWriter(NewJournaldWriter(w, &mu, filter))
 		default:
 			return errors.WithStack(ErrInvalidWriterFormatter)
 		}
@@ -235,7 +235,7 @@ func Close() {
 	// Wait a bit for log to drain... Couldn't find a better way.
 	time.Sleep(100 * time.Millisecond)
 
-	if err := logging.WriterGroup.Close(); err != nil {
+	if err := writer.WriterGroup.Close(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s.\n", err)
 	}
 

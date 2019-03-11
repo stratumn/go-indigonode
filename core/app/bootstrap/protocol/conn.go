@@ -21,8 +21,8 @@ import (
 	"github.com/stratumn/go-node/core/monitoring"
 	"github.com/stratumn/go-node/core/protector"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	"github.com/libp2p/go-libp2p-peer"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 // Disconnect disconnects from the given peer.

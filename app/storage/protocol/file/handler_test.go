@@ -19,7 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	mh "gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	mh "github.com/multiformats/go-multihash"
 	"io/ioutil"
 	"path"
 	"testing"

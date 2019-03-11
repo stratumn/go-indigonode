@@ -27,8 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	floodsub "gx/ipfs/QmY1L5krVk8dv8d74uESmJTXGpoigVYqBVxXXz1aS8aFSb/go-libp2p-floodsub"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	floodsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 func testService(ctx context.Context, t *testing.T, host Host) *Service {
@@ -46,7 +47,12 @@ func testService(ctx context.Context, t *testing.T, host Host) *Service {
 	return serv
 }
 
-func expectHost(net *mocks.MockNetwork, host *mocks.MockHost) {
+func expectHost(net *mocks.MockNetwork, host *mocks.MockHost, peerstore *mocks.MockPeerstore) {
+	peerID := peer.ID("testID")
+	host.EXPECT().ID().Return(peerID).Times(2)
+	host.EXPECT().Peerstore().Return(peerstore)
+	peerstore.EXPECT().PrivKey(peerID)
+
 	host.EXPECT().Network().Return(net)
 	net.EXPECT().Notify(gomock.Any())
 	host.EXPECT().SetStreamHandler(protocol.ID(floodsub.FloodSubID), gomock.Any())
@@ -66,7 +72,8 @@ func TestService_Expose(t *testing.T) {
 
 	net := mocks.NewMockNetwork(ctrl)
 	host := mocks.NewMockHost(ctrl)
-	expectHost(net, host)
+	peerstore := mocks.NewMockPeerstore(ctrl)
+	expectHost(net, host, peerstore)
 
 	serv := testService(ctx, t, host)
 	exposed := testservice.Expose(ctx, t, serv, time.Second)
@@ -83,7 +90,8 @@ func TestService_Run(t *testing.T) {
 
 	net := mocks.NewMockNetwork(ctrl)
 	host := mocks.NewMockHost(ctrl)
-	expectHost(net, host)
+	peerstore := mocks.NewMockPeerstore(ctrl)
+	expectHost(net, host, peerstore)
 
 	serv := testService(ctx, t, host)
 	testservice.TestRun(ctx, t, serv, time.Second)

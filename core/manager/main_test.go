@@ -23,7 +23,7 @@ import (
 
 	logger "github.com/stratumn/go-node/core/log"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	writer "github.com/ipfs/go-log/writer"
 )
 
 func TestMain(m *testing.M) {
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	if *enableLog {
 		mu := sync.Mutex{}
 		w := logger.NewPrettyWriter(os.Stderr, &mu, nil, true)
-		logging.WriterGroup.AddWriter(w)
+		writer.WriterGroup.AddWriter(w)
 	}
 
 	os.Exit(m.Run())

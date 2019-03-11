@@ -40,7 +40,7 @@ func TestMigrations(t *testing.T) {
 	err = ioutil.WriteFile(filename, []byte(confZero), 0600)
 	require.NoError(t, err, "ioutil.WriteFile(filename, []byte(confZero), 0600)")
 
-	set := NewConfigurableSet(BuiltinServices())
+	set := NewConfigurableSet(BuiltinServices(), nil)
 
 	// Migrate and load.
 	err = LoadConfig(set, filename)
@@ -49,7 +49,7 @@ func TestMigrations(t *testing.T) {
 	migratedConf := set.Configs()
 
 	// Create default config.
-	defConf := NewConfigurableSet(BuiltinServices()).Configs()
+	defConf := NewConfigurableSet(BuiltinServices(), nil).Configs()
 
 	// Make sure both configs use the same private key and point to the
 	// same files.

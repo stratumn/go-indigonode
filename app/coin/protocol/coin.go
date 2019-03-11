@@ -33,10 +33,10 @@ import (
 	"github.com/stratumn/go-node/app/coin/protocol/synchronizer"
 	"github.com/stratumn/go-node/app/coin/protocol/validator"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
+	logging "github.com/ipfs/go-log"
+	inet "github.com/libp2p/go-libp2p-net"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	protobuf "github.com/multiformats/go-multicodec/protobuf"
 )
 
 // ProtocolID is the protocol ID of the protocol.

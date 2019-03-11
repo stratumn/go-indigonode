@@ -24,9 +24,9 @@ import (
 
 	"github.com/stratumn/go-node/core/monitoring"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	metrics "gx/ipfs/QmdhwKw53CTV8EJSAsR1bpmMT5kXiWBgeAyv1EXeeDiXqR/go-libp2p-metrics"
+	metrics "github.com/libp2p/go-libp2p-metrics"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
 // Measures exposed by the p2p layer.

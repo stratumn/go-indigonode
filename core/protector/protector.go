@@ -24,9 +24,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-interface-pnet"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var (

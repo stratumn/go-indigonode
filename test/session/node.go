@@ -45,10 +45,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 
-	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	peer "github.com/libp2p/go-libp2p-peer"
+	manet "github.com/multiformats/go-multiaddr-net"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // TestNode represents a test node.

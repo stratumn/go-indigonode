@@ -26,11 +26,11 @@ import (
 	protectorpb "github.com/stratumn/go-node/core/protector/pb"
 	"github.com/stratumn/go-node/core/streamutil"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/multiformats/go-multiaddr"
+	inet "github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-protocol"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

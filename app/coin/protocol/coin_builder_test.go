@@ -31,7 +31,7 @@ import (
 	"github.com/stratumn/go-node/core/db"
 	"github.com/stretchr/testify/require"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 var CoinBuilderDefaultGen = &pb.Block{Header: &pb.Header{Nonce: 42, Version: 32}}

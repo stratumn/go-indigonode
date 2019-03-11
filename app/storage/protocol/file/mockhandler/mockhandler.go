@@ -7,8 +7,8 @@ package mockhandler
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	file "github.com/stratumn/go-node/app/storage/protocol/file"
 	go_uuid "github.com/satori/go.uuid"
+	file "github.com/stratumn/go-node/app/storage/protocol/file"
 	reflect "reflect"
 )
 

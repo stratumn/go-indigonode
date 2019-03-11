@@ -7,8 +7,8 @@ package mocksynchronizer
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	go_cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	go_libp2p_peerstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	go_cid "github.com/ipfs/go-cid"
+	go_libp2p_peerstore "github.com/libp2p/go-libp2p-peerstore"
 	reflect "reflect"
 )
 

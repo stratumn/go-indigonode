@@ -27,8 +27,8 @@ import (
 	"github.com/stratumn/go-node/test"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-peer"
+	inet "github.com/libp2p/go-libp2p-net"
 )
 
 func waitUntilNetworkState(t *testing.T, state protectorpb.NetworkState, networkConfig protector.NetworkConfig) {

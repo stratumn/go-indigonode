@@ -28,8 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {

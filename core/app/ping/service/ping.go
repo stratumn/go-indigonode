@@ -24,10 +24,10 @@ import (
 	pb "github.com/stratumn/go-node/core/app/ping/grpc"
 	"google.golang.org/grpc"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	ping "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/ping"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	peer "github.com/libp2p/go-libp2p-peer"
+	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

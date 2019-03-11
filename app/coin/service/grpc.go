@@ -23,7 +23,7 @@ import (
 	"github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // grpcServer is a gRPC server for the coin service.

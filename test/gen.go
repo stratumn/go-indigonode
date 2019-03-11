@@ -14,14 +14,14 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Mocks for libp2p components:
-//go:generate mockgen -package mocks -destination mocks/mockconn.go gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net Conn
-//go:generate mockgen -package mocks -destination mocks/mockhost.go gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host Host
-//go:generate mockgen -package mocks -destination mocks/mocklogger.go gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log EventLogger
-//go:generate mockgen -package mocks -destination mocks/mocknetwork.go gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net Network
-//go:generate mockgen -package mocks -destination mocks/mockpeerstore.go gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore Peerstore
-//go:generate mockgen -package mocks -destination mocks/mockstream.go gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net Stream
-//go:generate mockgen -package mocks -destination mocks/mockstreammuxer.go gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer Transport
-//go:generate mockgen -package mocks -destination mocks/mocktransport.go -mock_names Conn=MockTransportConn gx/ipfs/QmU129xU8dM79BgR97hu4fsiUDkTQrNHbzkiYfyrkNci8o/go-libp2p-transport Conn
+//go:generate mockgen -package mocks -destination mocks/mockconn.go github.com/libp2p/go-libp2p-net Conn
+//go:generate mockgen -package mocks -destination mocks/mockhost.go github.com/libp2p/go-libp2p-host Host
+//go:generate mockgen -package mocks -destination mocks/mocklogger.go github.com/ipfs/go-log EventLogger
+//go:generate mockgen -package mocks -destination mocks/mocknetwork.go github.com/libp2p/go-libp2p-net Network
+//go:generate mockgen -package mocks -destination mocks/mockpeerstore.go github.com/libp2p/go-libp2p-peerstore Peerstore
+//go:generate mockgen -package mocks -destination mocks/mockstream.go github.com/libp2p/go-libp2p-net Stream
+//go:generate mockgen -package mocks -destination mocks/mockstreammuxer.go github.com/libp2p/go-stream-muxer Transport
+//go:generate mockgen -package mocks -destination mocks/mocktransport.go -mock_names Conn=MockTransportConn github.com/libp2p/go-libp2p-transport Conn
 
 // Mocks for opencensus components:
 //go:generate mockgen -package mocks -destination mocks/mockexporter.go go.opencensus.io/stats/view Exporter

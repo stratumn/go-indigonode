@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/go-node/test"
 	"github.com/stratumn/go-node/test/mocks"
 
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	inet "github.com/libp2p/go-libp2p-net"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
 func TestAutoCloseHandler(t *testing.T) {

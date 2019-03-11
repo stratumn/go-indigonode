@@ -21,8 +21,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	ihost "github.com/libp2p/go-libp2p-host"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 var (

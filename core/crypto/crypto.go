@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-node/core/monitoring"
 
-	ic "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	ic "github.com/libp2p/go-libp2p-crypto"
 )
 
 var (

@@ -25,8 +25,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
+	logging "github.com/ipfs/go-log"
+	manet "github.com/multiformats/go-multiaddr-net"
 )
 
 // logRequest is used to log requests.

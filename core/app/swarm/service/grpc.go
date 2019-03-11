@@ -22,9 +22,9 @@ import (
 
 	pb "github.com/stratumn/go-node/core/app/swarm/grpc"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	swarm "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm"
+	peer "github.com/libp2p/go-libp2p-peer"
+	inet "github.com/libp2p/go-libp2p-net"
+	swarm "github.com/libp2p/go-libp2p-swarm"
 )
 
 // grpcServer is a gRPC server for the swarm service.

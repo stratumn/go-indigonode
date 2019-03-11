@@ -25,8 +25,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	smux "gx/ipfs/QmY9JXR3FupnYAYJWK9aMr9bCpqWKcToQ1tz8DVGTrHpHw/go-stream-muxer"
-	yamux "gx/ipfs/QmcsgrV3nCAKjiHKZhKVXWc4oY3WBECJCqahXEMpHeMrev/go-smux-yamux"
+	yamux "github.com/whyrusleeping/go-smux-yamux"
+
+	smux "github.com/libp2p/go-stream-muxer"
 )
 
 func testService(ctx context.Context, t *testing.T) *Service {

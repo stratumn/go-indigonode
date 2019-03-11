@@ -46,7 +46,7 @@ func cliCfgFilename() string {
 
 // requireCoreConfigSet loads the core's configuration file and exits on failure.
 func requireCoreConfigSet() cfg.Set {
-	set := core.NewConfigurableSet(services)
+	set := core.NewConfigurableSet(services, nil)
 
 	if err := core.LoadConfig(set, coreCfgFilename()); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not load the core configuration file %q: %s.\n", coreCfgFilename(), err)

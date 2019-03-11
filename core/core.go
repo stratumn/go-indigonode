@@ -34,8 +34,8 @@ import (
 	"github.com/stratumn/go-node/core/p2p"
 	"github.com/stratumn/go-node/release"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
+	logging "github.com/ipfs/go-log"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 // Set the identify protocol client version.

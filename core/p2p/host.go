@@ -28,18 +28,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-node/core/monitoring"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	mafilter "gx/ipfs/QmSW4uNHbvQia8iZDXzbwjiyHQtnyo9aFqfQAMasj3TJ6Y/go-maddr-filter"
-	bhost "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/host/basic"
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
-	ifconnmgr "gx/ipfs/QmWGGN1nysi1qgqto31bENwESkmZBY4YGK4sZC3qhnqhSv/go-libp2p-interface-connmgr"
-	circuit "gx/ipfs/QmWX6RySJ3yAYmfjLSw1LtRZnDh5oVeA9kM3scNQJkysqa/go-libp2p-circuit"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	msmux "gx/ipfs/QmabLh8TrJ3emfAoQk5AbqbLTbMyj7XqumMFmAFxa9epo8/go-multistream"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	ifconnmgr "github.com/libp2p/go-libp2p-interface-connmgr"
+	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	mafilter "github.com/libp2p/go-maddr-filter"
+	ma "github.com/multiformats/go-multiaddr"
+	madns "github.com/multiformats/go-multiaddr-dns"
+	manet "github.com/multiformats/go-multiaddr-net"
+	msmux "github.com/multiformats/go-multistream"
 )
 
 var (
@@ -600,7 +601,18 @@ func (h *Host) AllAddrs() []ma.Multiaddr {
 
 	var natAddrs []ma.Multiaddr
 	if h.natmgr != nil && h.natmgr.NAT() != nil {
-		natAddrs = h.natmgr.NAT().ExternalAddrs()
+		mappings := h.natmgr.NAT().Mappings()
+		natAddrs = make([]ma.Multiaddr, len(mappings))
+		for i, mapping := range mappings {
+			netAddr, err := mapping.ExternalAddr()
+			if err != nil {
+				span.Annotate(ctx, "addrsError", err.Error())
+			}
+			natAddrs[i], err = manet.FromNetAddr(netAddr)
+			if err != nil {
+				span.Annotate(ctx, "addrsError", err.Error())
+			}
+		}
 	}
 
 	return mergeAddrs(listenAddrs, observedAddrs, natAddrs)

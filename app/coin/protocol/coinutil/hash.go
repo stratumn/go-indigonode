@@ -20,7 +20,7 @@ import (
 	"github.com/stratumn/go-node/app/coin/pb"
 	"github.com/stratumn/merkle"
 
-	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
+	"github.com/multiformats/go-multihash"
 )
 
 // HashHeader computes the hash of a given header.

@@ -25,15 +25,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	testutil "gx/ipfs/QmRNhSdqzMcuRxX9A1egBeQ3BhDTguDV5HPwi8wRykkPU8/go-testutil"
-	identify "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/protocol/identify"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
-	host "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
-	madns "gx/ipfs/QmfXU2MhWoegxHoeMd3A2ytL2P6CY4FfqGWc23LTNWBwZt/go-multiaddr-dns"
+	madns "github.com/multiformats/go-multiaddr-dns"
+
+	host "github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	testutil "github.com/libp2p/go-testutil"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 func TestHostSimple(t *testing.T) {
@@ -332,8 +333,8 @@ func TestAddrResolution(t *testing.T) {
 	sort.Sort(sortedMultiaddrs(addrs))
 
 	require.Equal(t, 2, len(addrs), "len(addrs)")
-	require.Equal(t, addr1, addrs[0], "addrs[0]")
-	require.Equal(t, addr2, addrs[1], "addrs[1]")
+	require.True(t, addrs[0].Equal(addr1), "addrs[0]")
+	require.True(t, addrs[1].Equal(addr2), "addrs[1]")
 }
 
 type sortedMultiaddrs []ma.Multiaddr

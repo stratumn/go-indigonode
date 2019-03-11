@@ -43,7 +43,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // ReflectFieldDesc returns a description a the gRPC field.
@@ -1265,7 +1265,7 @@ func (r ServerReflector) printStream(w io.Writer, ss ServerStream, truncate, bor
 		if truncate {
 			r.printTruncated(w, row)
 		} else {
-			fmt.Fprintf(w, row)
+			fmt.Fprintln(w, row)
 		}
 	}
 

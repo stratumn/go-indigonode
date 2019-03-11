@@ -26,10 +26,10 @@ import (
 	"github.com/stratumn/go-node/app/coin/protocol/coinutil"
 	"github.com/stratumn/go-node/app/coin/protocol/p2p"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
+	cid "github.com/ipfs/go-cid"
+	peer "github.com/libp2p/go-libp2p-peer"
+	logging "github.com/ipfs/go-log"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 var log = logging.Logger("coin.synchronizer")

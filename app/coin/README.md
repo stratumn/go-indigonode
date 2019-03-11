@@ -25,8 +25,8 @@ Only Ed25519 keys are currently supported. Here is how you can generate a key pa
 
 ```go
 import (
-    crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
-    peer "gx/ipfs/Qma7H6RW8wRrfZpNSXwxYGcd1E149s42FpWNpDNieSVrnU/go-libp2p-peer"
+    crypto "github.com/libp2p/go-libp2p-crypto"
+    peer "github.com/libp2p/go-libp2p-peer"
 )
 
 func GenerateKeyPair() error {

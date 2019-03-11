@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-protocol"
 )
 
 func TestNewStream(t *testing.T) {

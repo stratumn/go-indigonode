@@ -35,13 +35,13 @@ import (
 
 	"github.com/pkg/errors"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	kaddht "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht"
-	kaddhtopts "gx/ipfs/QmaXYSwxqJsX3EoGb1ZV2toZ9fXc8hWJPaBW1XAp1h2Tsp/go-libp2p-kad-dht/opts"
-	levelds "gx/ipfs/QmcaNdDGptNd3uaT6HGwPwvPLpVhrnASgqHXkofboDuFjW/go-ds-leveldb"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	levelds "github.com/ipfs/go-ds-leveldb"
+	logging "github.com/ipfs/go-log"
+	ihost "github.com/libp2p/go-libp2p-host"
+	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	kaddhtopts "github.com/libp2p/go-libp2p-kad-dht/opts"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 var (
@@ -295,19 +295,13 @@ func (s *Service) bootstrap(ctx context.Context) error {
 		Timeout: s.bsTimeout,
 	}
 
-	proc, err := s.dht.BootstrapWithConfig(bsConfig)
+	err := s.dht.BootstrapWithConfig(ctx, bsConfig)
 	if err != nil {
+		log.Event(ctx, "bootstrapError", logging.Metadata{
+			"error": err,
+		})
 		return errors.WithStack(err)
 	}
-
-	go func() {
-		<-ctx.Done()
-		if err := proc.Close(); err != nil && err != context.Canceled {
-			log.Event(ctx, "procCloseError", logging.Metadata{
-				"error": err,
-			})
-		}
-	}()
 
 	return nil
 }

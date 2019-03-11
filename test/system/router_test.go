@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // TestRouter_Connect checks that the DHT router is working.

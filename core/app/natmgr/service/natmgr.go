@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	bhost "gx/ipfs/QmUEqyXr97aUbNmQADHYNknjwjjdVpJXEt1UZXmSG81EV4/go-libp2p/p2p/host/basic"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

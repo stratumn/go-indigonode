@@ -41,12 +41,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	cid "gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	bhost "gx/ipfs/QmQ4bjZSEC5drCRqssuXRymCswHPmW3Z46ibgBtg9XGd34/go-libp2p-blankhost"
-	floodsub "gx/ipfs/QmY1L5krVk8dv8d74uESmJTXGpoigVYqBVxXXz1aS8aFSb/go-libp2p-floodsub"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
-	host "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	peer "github.com/libp2p/go-libp2p-peer"
+	floodsub "github.com/libp2p/go-libp2p-pubsub"
+
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+
+	cid "github.com/ipfs/go-cid"
+	host "github.com/libp2p/go-libp2p-host"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 type msg struct {
@@ -150,7 +153,7 @@ func TestGossip(t *testing.T) {
 		err := gg1.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
 		assert.Error(t, err)
 
-		err = gg1.subscribe(topic, func(ctx context.Context, m *floodsub.Message) bool { return true })
+		err = gg1.subscribe(topic, func(ctx context.Context, peerID peer.ID, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 		assert.Len(t, gg1.pubsub.GetTopics(), 1)
 		assert.True(t, gg1.isSubscribed(topic))
@@ -158,7 +161,7 @@ func TestGossip(t *testing.T) {
 		err = gg1.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
 		require.NoError(t, err)
 
-		err = gg2.subscribe(topic, func(ctx context.Context, m *floodsub.Message) bool { return true })
+		err = gg2.subscribe(topic, func(ctx context.Context, peerID peer.ID, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 
 		err = gg2.listen(ctx, topic, func(msg *floodsub.Message) error { return nil })
@@ -342,10 +345,10 @@ func TestGossip(t *testing.T) {
 		g := NewGossipBuilder(h1).Build(ctx, t)
 
 		gg := g.(*gossip)
-		err := gg.subscribe("topic1", func(ctx context.Context, m *floodsub.Message) bool { return true })
+		err := gg.subscribe("topic1", func(ctx context.Context, peerID peer.ID, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 
-		err = gg.subscribe("topic2", func(ctx context.Context, m *floodsub.Message) bool { return true })
+		err = gg.subscribe("topic2", func(ctx context.Context, peerID peer.ID, m *floodsub.Message) bool { return true })
 		require.NoError(t, err)
 
 		assert.Len(t, gg.pubsub.GetTopics(), 2)

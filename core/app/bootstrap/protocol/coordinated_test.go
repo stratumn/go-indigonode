@@ -37,10 +37,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p-peer"
+	inet "github.com/libp2p/go-libp2p-net"
+	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 )
 
 func expectCoordinatedHost(host *mocks.MockHost) {

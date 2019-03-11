@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-node/core/db"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	peer "github.com/libp2p/go-libp2p-peer"
+	logging "github.com/ipfs/go-log"
 )
 
 // log is the logger for the service.

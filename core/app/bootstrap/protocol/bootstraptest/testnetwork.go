@@ -26,13 +26,13 @@ import (
 	"github.com/stratumn/go-node/core/streamutil"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	bhost "gx/ipfs/QmQ4bjZSEC5drCRqssuXRymCswHPmW3Z46ibgBtg9XGd34/go-libp2p-blankhost"
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	"github.com/libp2p/go-libp2p-crypto"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peerstore"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

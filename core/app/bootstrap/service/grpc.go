@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/go-node/core/protector"
 	protectorpb "github.com/stratumn/go-node/core/protector/pb"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peer"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // grpcServer is a gRPC server for the bootstrap service.

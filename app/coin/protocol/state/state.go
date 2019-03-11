@@ -26,8 +26,8 @@ import (
 	"github.com/stratumn/go-node/app/coin/protocol/trie"
 	"github.com/stratumn/go-node/core/db"
 
-	"gx/ipfs/QmPnFwZ2JXKnXgMw8CdBPxn7FWh6LLdjUjxV1fKHuJnkr8/go-multihash"
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
+	"github.com/multiformats/go-multihash"
+	logging "github.com/ipfs/go-log"
 )
 
 var (

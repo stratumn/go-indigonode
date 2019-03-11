@@ -30,10 +30,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	"gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	swarmtesting "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p-peer"
+	ma "github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peerstore"
+	swarmtesting "github.com/libp2p/go-libp2p-swarm/testing"
 )
 
 func testGRPCServer(ctx context.Context, t *testing.T) grpcServer {

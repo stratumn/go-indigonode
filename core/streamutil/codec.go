@@ -16,9 +16,9 @@
 package streamutil
 
 import (
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	"gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec"
-	protobuf "gx/ipfs/QmewJ1Zp9Hwz5HcMd7JYjhLXwvEHTL2UBCCz3oLt1E2N5z/go-multicodec/protobuf"
+	inet "github.com/libp2p/go-libp2p-net"
+	"github.com/multiformats/go-multicodec"
+	protobuf "github.com/multiformats/go-multicodec/protobuf"
 )
 
 // Codec implements an Encoder and a Decoder.

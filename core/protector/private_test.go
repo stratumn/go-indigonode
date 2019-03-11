@@ -28,10 +28,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	manet "gx/ipfs/QmV6FjemM1K8oXjrvuq3wuVWWoU2TLDPmNnKrxHzY3v6Ai/go-multiaddr-net"
-	"gx/ipfs/QmW7Ump7YyBMr712Ta3iEVh3ZYcfVvJaPryfbCnyE826b4/go-libp2p-interface-pnet"
-	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	"github.com/libp2p/go-libp2p-peer"
+	manet "github.com/multiformats/go-multiaddr-net"
+	"github.com/libp2p/go-libp2p-interface-pnet"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // waitUntilAllowed waits until the given peer is found in the allowed list

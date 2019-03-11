@@ -38,8 +38,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	"gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 func TestCoin(t *testing.T) {

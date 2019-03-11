@@ -27,9 +27,10 @@ import (
 	"github.com/stratumn/go-node/app/coin/protocol/state"
 	"github.com/stratumn/go-node/app/coin/protocol/validator"
 
-	logging "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
-	floodsub "gx/ipfs/QmY1L5krVk8dv8d74uESmJTXGpoigVYqBVxXXz1aS8aFSb/go-libp2p-floodsub"
-	host "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	logging "github.com/ipfs/go-log"
+	host "github.com/libp2p/go-libp2p-host"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 const (
@@ -68,7 +69,7 @@ type Gossip interface {
 // Gossip handles the gossiping of blocks and transactions.
 type gossip struct {
 	host      host.Host
-	pubsub    *floodsub.PubSub
+	pubsub    *pubsub.PubSub
 	state     state.Reader
 	chain     chain.Reader
 	validator validator.Validator
@@ -77,13 +78,13 @@ type gossip struct {
 	blockListeners []chan *pb.Header
 
 	mu   sync.RWMutex
-	subs map[string]*floodsub.Subscription
+	subs map[string]*pubsub.Subscription
 }
 
 // NewGossip returns gossip.
 func NewGossip(
 	h host.Host,
-	p *floodsub.PubSub,
+	p *pubsub.PubSub,
 	s state.Reader,
 	c chain.Reader,
 	v validator.Validator,
@@ -94,7 +95,7 @@ func NewGossip(
 		state:     s,
 		chain:     c,
 		validator: v,
-		subs:      make(map[string]*floodsub.Subscription),
+		subs:      make(map[string]*pubsub.Subscription),
 	}
 }
 
@@ -140,7 +141,7 @@ func (g *gossip) ListenTx(ctx context.Context, processTx func(*pb.Transaction) e
 		return err
 	}
 
-	return g.listen(ctx, TxTopicName, func(msg *floodsub.Message) error {
+	return g.listen(ctx, TxTopicName, func(msg *pubsub.Message) error {
 		tx := &pb.Transaction{}
 		if err := tx.Unmarshal(msg.GetData()); err != nil {
 			return err
@@ -158,7 +159,7 @@ func (g *gossip) ListenBlock(ctx context.Context, processBlock func(*pb.Block) e
 		return err
 	}
 
-	return g.listen(ctx, BlockTopicName, func(msg *floodsub.Message) error {
+	return g.listen(ctx, BlockTopicName, func(msg *pubsub.Message) error {
 		block := &pb.Block{}
 		if err := block.Unmarshal(msg.GetData()); err != nil {
 			return err
@@ -214,7 +215,7 @@ func (g *gossip) PublishBlock(block *pb.Block) error {
 
 // subscribeTx subscribes to the transaction topic.
 func (g *gossip) subscribeTx() error {
-	return g.subscribe(TxTopicName, func(ctx context.Context, m *floodsub.Message) bool {
+	return g.subscribe(TxTopicName, func(ctx context.Context, peerID peer.ID, m *pubsub.Message) bool {
 		tx := &pb.Transaction{}
 		if err := tx.Unmarshal(m.GetData()); err != nil {
 			log.Event(ctx, "InvalidTransactionFormat", logging.Metadata{"error": err.Error()})
@@ -235,7 +236,7 @@ func (g *gossip) subscribeTx() error {
 
 // subscribeBlock subscribes to the block topic.
 func (g *gossip) subscribeBlock(sync func([]byte) error) error {
-	return g.subscribe(BlockTopicName, func(ctx context.Context, m *floodsub.Message) bool {
+	return g.subscribe(BlockTopicName, func(ctx context.Context, peerID peer.ID, m *pubsub.Message) bool {
 		block := &pb.Block{}
 		if err := block.Unmarshal(m.GetData()); err != nil {
 			log.Event(ctx, "InvalidBlockFormat", logging.Metadata{"error": err.Error()})
@@ -268,7 +269,7 @@ func (g *gossip) subscribeBlock(sync func([]byte) error) error {
 	})
 }
 
-func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
+func (g *gossip) subscribe(topic string, validator pubsub.Validator) error {
 	if g.isSubscribed(topic) {
 		return nil
 	}
@@ -287,7 +288,7 @@ func (g *gossip) subscribe(topic string, validator floodsub.Validator) error {
 	return nil
 }
 
-func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *floodsub.Message) error) error {
+func (g *gossip) listen(ctx context.Context, topic string, callback func(msg *pubsub.Message) error) error {
 	if !g.isSubscribed(topic) {
 		return errors.Errorf("not subscribed to %v topic", topic)
 	}

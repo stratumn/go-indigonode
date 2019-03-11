@@ -26,8 +26,8 @@ import (
 
 	"google.golang.org/grpc"
 
-	swarm "gx/ipfs/QmeDpqUwwdye8ABKVMPXKuWwPVURFdqTqssbTUB39E2Nwd/go-libp2p-swarm"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 var (

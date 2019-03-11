@@ -49,7 +49,7 @@ const NumSeeds = 5
 
 // SystemCfg returns a base configuration for system testing.
 func SystemCfg() cfg.ConfigSet {
-	conf := core.NewConfigurableSet(core.BuiltinServices()).Configs()
+	conf := core.NewConfigurableSet(core.BuiltinServices(), nil).Configs()
 
 	coreConf := conf["core"].(core.Config)
 	coreConf.EnableBootScreen = false
@@ -83,7 +83,7 @@ func SystemCfg() cfg.ConfigSet {
 
 // BenchmarkCfg returns a base configuration for benchmarking.
 func BenchmarkCfg() cfg.ConfigSet {
-	conf := core.NewConfigurableSet(core.BuiltinServices()).Configs()
+	conf := core.NewConfigurableSet(core.BuiltinServices(), nil).Configs()
 
 	coreConf := conf["core"].(core.Config)
 	coreConf.EnableBootScreen = false

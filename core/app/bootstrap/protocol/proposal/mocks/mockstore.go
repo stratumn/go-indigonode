@@ -7,8 +7,8 @@ package mockproposal
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	go_libp2p_peer "github.com/libp2p/go-libp2p-peer"
 	proposal "github.com/stratumn/go-node/core/app/bootstrap/protocol/proposal"
-	go_libp2p_peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
 	reflect "reflect"
 )
 

@@ -23,9 +23,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	"github.com/libp2p/go-libp2p-peer"
+	inet "github.com/libp2p/go-libp2p-net"
+	ihost "github.com/libp2p/go-libp2p-host"
 )
 
 // WaitUntil waits for duration for the condition function not to return an error

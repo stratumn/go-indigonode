@@ -28,10 +28,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	peer "gx/ipfs/QmQsErDt8Qgw1XrsXf2BpEzDgGWtB1YLsTAARBup5b6B9W/go-libp2p-peer"
-	inet "gx/ipfs/QmZNJyx9GGCX4GeuHnLB8fxaxMLs4MjTjHokxfQcCd6Nve/go-libp2p-net"
-	pstore "gx/ipfs/Qmda4cPRvSRyox3SqgJN6DfSZGU5TtHufPTp9uXjFj71X6/go-libp2p-peerstore"
-	ihost "gx/ipfs/QmeMYW7Nj8jnnEfs9qhm7SxKkoDPUWXu3MsxX6BFwz34tf/go-libp2p-host"
+	ihost "github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
 )
 
 var (

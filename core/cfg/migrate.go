@@ -119,7 +119,7 @@ func Migrate(
 				event.SetError(err)
 				return err
 			}
-			subtree, _ = t.Get(name).(*Tree)
+			subtree = t.Get(name).(*Tree)
 		}
 
 		u, err := subtree.migrate(migrator.Migrations(), migrator.VersionKey())

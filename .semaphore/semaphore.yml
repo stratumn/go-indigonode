@@ -26,7 +26,7 @@ blocks:
             - cache restore "$KEY"
             - cache has_key "$KEY" || go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
             # Cache everything in $GOPATH/bin.
-            - cache store "$KEY" bin
+            - cache store "$KEY" $GOBIN
 
   - name: Warm cache
     task:

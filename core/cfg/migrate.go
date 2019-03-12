@@ -114,7 +114,11 @@ func Migrate(
 		subtree, ok := t.Get(name).(*Tree)
 		if !ok {
 			// If the section does not exist in the config file, create it.
-			t.Set(name, struct{}{})
+			err = t.Set(name, struct{}{})
+			if err != nil {
+				event.SetError(err)
+				return err
+			}
 			subtree, _ = t.Get(name).(*Tree)
 		}
 

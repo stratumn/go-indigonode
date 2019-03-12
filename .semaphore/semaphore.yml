@@ -17,17 +17,13 @@ blocks:
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"
-          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/stratumn/go-node"
-          - mkdir -vp "${SEMAPHORE_GIT_DIR}"
       jobs:
         - name: Install and cache Go tools
           commands:
-            - cd $GOPATH
             # Only update binaries once a month.
             - KEY=gotools-$(date +%Y%m)-v1
             - cache has_key "$KEY" || mkdir -vp "${GOBIN}"
             - cache restore "$KEY"
-            - cache has_key "$KEY" || go get -u github.com/golang/dep/cmd/dep
             - cache has_key "$KEY" || go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
             # Cache everything in $GOPATH/bin.
             - cache store "$KEY" bin
@@ -41,20 +37,16 @@ blocks:
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"
-          - export "SEMAPHORE_GIT_DIR=${GOPATH}/src/github.com/stratumn/go-node"
-          - mkdir -vp "${SEMAPHORE_GIT_DIR}"
           # Load Go tools from cache.
-          - cd $GOPATH
           - cache restore gotools-$(date +%Y%m)-v1
-          - cd $SEMAPHORE_GIT_DIR
           # Git checkout.
           - checkout
       jobs:
         - name: Warm deps
           commands:
-            - export "KEY=deps-$(checksum Gopkg.lock)-v1"
+            - export "KEY=deps-$(checksum go.sum)-v1"
             - cache restore "$KEY"
-            - cache has_key "$KEY" || dep ensure -v
+            - cache has_key "$KEY" || go mod vendor
             - cache store $KEY vendor
 
   - name: Lint and test
@@ -66,19 +58,13 @@ blocks:
           - export "GOPATH=$(go env GOPATH)"
           - export "GOBIN=${GOPATH}/bin"
           - export "PATH=${GOBIN}:${PATH}"
-          - export "SEMAPHORE_GIT_DIR=$GOPATH/src/github.com/stratumn/go-node"
-          - mkdir -vp "${SEMAPHORE_GIT_DIR}"
           # Load Go tools from cache.
-          - cd $GOPATH
           - cache restore gotools-$(date +%Y%m)-v1
-          - cd $SEMAPHORE_GIT_DIR
           # Git checkout.
           - checkout
           # Restore caches.
-          - cache restore deps-$(checksum Gopkg.lock)-v1
-          - cd ${GOPATH}/src
+          - cache restore deps-$(checksum go.sum)-v1
           - cache restore "$KEY"
-          - cd $SEMAPHORE_GIT_DIR
           # Other tasks.
           - make --touch protobuf
       secrets:

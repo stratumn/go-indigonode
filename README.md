@@ -40,12 +40,6 @@ Install Go. On macOS, you can install using `homebrew`:
 brew install go
 ```
 
-Install Go dependencies:
-
-```bash
-make deps
-```
-
 Compile and install `stratumn-node`:
 
 ```bash

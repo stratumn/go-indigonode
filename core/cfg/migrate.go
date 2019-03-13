@@ -113,9 +113,13 @@ func Migrate(
 		// Migrations are namespaced to the configurable.
 		subtree, ok := t.Get(name).(*Tree)
 		if !ok {
-			err = errors.WithStack(ErrInvalidSubtree)
-			event.SetError(err)
-			return err
+			// If the section does not exist in the config file, create it.
+			err = t.Set(name, struct{}{})
+			if err != nil {
+				event.SetError(err)
+				return err
+			}
+			subtree = t.Get(name).(*Tree)
 		}
 
 		u, err := subtree.migrate(migrator.Migrations(), migrator.VersionKey())

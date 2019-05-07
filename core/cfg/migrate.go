@@ -137,6 +137,11 @@ func Migrate(
 		return err
 	}
 
+	if err := set.fromEnv(ctx); err != nil {
+		event.SetError(err)
+		return err
+	}
+
 	if !updated {
 		return nil
 	}

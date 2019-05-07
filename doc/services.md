@@ -109,3 +109,9 @@ pruner   RUNNING  [manager]        false      true      Service Pruner   Prunes 
 signal   RUNNING  [manager]        false      true      Signal Handler   Handles exit signals.
 system   RUNNING  [pruner signal]  false      true      System Services  Starts system services.
 ```
+
+## Configuration
+
+Each service can be configured through the `core` TOML configuration file, therefore the `Config` object of your service must be annotated the "toml" flag.
+
+Configuration variables can be overriden using environment variables. These should be prefixed by the service name and use UPPER_SNAKE_CASE. For instance, if you want to override the variable `custom_setting` of `testservice`, the environment variable `TESTSERVICE_CUSTOM_SETTING=something` should be provided.

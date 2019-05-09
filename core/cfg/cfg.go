@@ -249,17 +249,23 @@ func (s Set) fromEnv(ctx context.Context) error {
 			case reflect.String:
 				newCfgField.Set(reflect.ValueOf(valueFromEnvironment))
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				convertedVal, err := strconv.Atoi(valueFromEnvironment)
+				convertedVal, err := strconv.ParseInt(valueFromEnvironment, 10, 0)
 				if err != nil {
 					return err
 				}
-				newCfgField.SetInt(int64(convertedVal))
+				newCfgField.SetInt(convertedVal)
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				convertedVal, err := strconv.ParseUint(valueFromEnvironment, 10, 0)
 				if err != nil {
 					return err
 				}
-				newCfgField.SetUint(uint64(convertedVal))
+				newCfgField.SetUint(convertedVal)
+			case reflect.Float32, reflect.Float64:
+				convertedVal, err := strconv.ParseFloat(valueFromEnvironment, 0)
+				if err != nil {
+					return err
+				}
+				newCfgField.SetFloat(convertedVal)
 			case reflect.Bool:
 				convertedVal, err := strconv.ParseBool(valueFromEnvironment)
 				if err != nil {

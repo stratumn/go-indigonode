@@ -33,6 +33,7 @@ type testConfig struct {
 	Started     bool     `toml:"started"`
 	Author      string   `toml:"author"`
 	Size        int      `toml:"size"`
+	Ratio       float64  `toml:"ratio"`
 	StringStuff []string `toml:"string_stuff"`
 	IntStuff    []int    `toml:"int_stuff"`
 }
@@ -44,6 +45,7 @@ type testHandler struct {
 	started     bool
 	author      string
 	size        int
+	ratio       float64
 	stringStuff []string
 	intStuff    []int
 }
@@ -57,7 +59,7 @@ func (h *testHandler) Config() interface{} {
 		return *h.config
 	}
 
-	return testConfig{h.name, h.version, h.started, h.author, h.size, h.stringStuff, h.intStuff}
+	return testConfig{h.name, h.version, h.started, h.author, h.size, h.ratio, h.stringStuff, h.intStuff}
 }
 
 func (h *testHandler) SetConfig(config interface{}) error {
@@ -70,6 +72,7 @@ func (h *testHandler) SetConfig(config interface{}) error {
 	h.intStuff = c.IntStuff
 	h.author = c.Author
 	h.size = c.Size
+	h.ratio = c.Ratio
 	return nil
 }
 
@@ -117,12 +120,15 @@ func TestCfg(t *testing.T) {
 			defer os.Unsetenv("ZIP_AUTHOR")
 			os.Setenv("ZIP_SIZE", "28")
 			defer os.Unsetenv("ZIP_SIZE")
+			os.Setenv("ZIP_RATIO", "9.09876")
+			defer os.Unsetenv("ZIP_SIZE")
 
 			err = setLoad.Load(filename)
 			require.NoError(t, err, "Load(filename)")
 			assert.Equal(t, author, zipLoad.author)
 			assert.Equal(t, true, zipLoad.started)
 			assert.Equal(t, 28, zipLoad.size)
+			assert.Equal(t, 9.09876, zipLoad.ratio)
 		})
 
 		t.Run("Fails if type is not supported by env var", func(t *testing.T) {

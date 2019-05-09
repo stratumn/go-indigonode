@@ -218,9 +218,6 @@ func (c *Coin) GetAccountTransactions(peerID []byte) ([]*pb.Transaction, error) 
 			return nil, err
 		}
 		transactions[i] = blk.GetTransactions()[txKey.TxIdx]
-		if err != nil {
-			return nil, err
-		}
 	}
 	return transactions, nil
 }

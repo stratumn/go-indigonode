@@ -1,4 +1,4 @@
-// Copyright © 2017-2018 Stratumn SAS
+  // Copyright © 2017-2018 Stratumn SAS
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -778,10 +778,7 @@ func (r ServerReflector) getServiceDescs(c *grpcreflect.Client, servNames []stri
 
 		d, err := c.ResolveService(name)
 		if err != nil {
-			if err != nil {
-				r.cons.Warningf("Could not get service descriptor for %q: %s\n", name, err)
-				continue
-			}
+			r.cons.Warningf("Could not get service descriptor for %q: %s\n", name, err)
 			continue
 		}
 

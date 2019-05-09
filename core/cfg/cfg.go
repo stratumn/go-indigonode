@@ -36,6 +36,7 @@ import (
 
 	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 
 	logging "github.com/ipfs/go-log"
 )
@@ -98,6 +99,11 @@ func (s Set) Load(filename string) error {
 	}
 
 	if err := s.fromTree(ctx, tree); err != nil {
+		event.SetError(err)
+		return err
+	}
+
+	if err := s.fromEnv(ctx); err != nil {
 		event.SetError(err)
 		return err
 	}
@@ -175,7 +181,7 @@ func (s Set) Set(key string, value string) error {
 	return s.fromTree(context.Background(), tree.tree)
 }
 
-// setValuesFromTree sets the values of a set from a TOML tree.
+// fromTree sets the values of a set from a TOML tree.
 func (s Set) fromTree(ctx context.Context, tree *toml.Tree) error {
 	structuredSet := structuralize(ctx, s.Configs())
 
@@ -194,6 +200,86 @@ func (s Set) fromTree(ctx context.Context, tree *toml.Tree) error {
 		}
 
 		if err := configurable.SetConfig(f); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// fromEnv sets the values of a set from environment variables.
+// Environment variables must use UPPER_SNAKE_CASE and prefixed by the name of the service.
+// It uses the same tag as toml to avoid having multiple tags.
+// eg: in order to set myservice.custom_setting, the env variable MYSERVICE_CUSTOM_SETTING should be provided.
+func (s Set) fromEnv(ctx context.Context) error {
+	v := viper.New()
+	v.AutomaticEnv()
+
+	for id, cfg := range s.Configs() {
+		v.SetEnvPrefix(id)
+
+		// use reflection to introspect the type and the value of the configuration.
+		cfgType := reflect.TypeOf(cfg)
+		currentCfg := reflect.ValueOf(cfg)
+
+		// create a new configuration object.
+		newCfg := reflect.New(cfgType).Elem()
+
+		// iterate over the configuration struct fields.
+		for i := 0; i < cfgType.NumField(); i++ {
+			currentCfgField := currentCfg.Field(i)
+			newCfgField := newCfg.Field(i)
+			envVar := cfgType.Field(i).Tag.Get("toml")
+
+			// if the "toml" tag was not specified on this field, use the current configuration.
+			if envVar == "" {
+				newCfgField.Set(currentCfgField)
+				continue
+			}
+
+			valueFromEnvironment := v.GetString(envVar)
+			// if the environment variable is not set, use the current configuration.
+			if valueFromEnvironment == "" {
+				newCfgField.Set(currentCfgField)
+				continue
+			}
+
+			// convert the environment variable to the correct type.
+			switch t := cfgType.Field(i).Type.Kind(); t {
+			case reflect.String:
+				newCfgField.Set(reflect.ValueOf(valueFromEnvironment))
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				convertedVal, err := strconv.ParseInt(valueFromEnvironment, 10, 0)
+				if err != nil {
+					return err
+				}
+				newCfgField.SetInt(convertedVal)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				convertedVal, err := strconv.ParseUint(valueFromEnvironment, 10, 0)
+				if err != nil {
+					return err
+				}
+				newCfgField.SetUint(convertedVal)
+			case reflect.Float32, reflect.Float64:
+				convertedVal, err := strconv.ParseFloat(valueFromEnvironment, 0)
+				if err != nil {
+					return err
+				}
+				newCfgField.SetFloat(convertedVal)
+			case reflect.Bool:
+				convertedVal, err := strconv.ParseBool(valueFromEnvironment)
+				if err != nil {
+					return err
+				}
+				newCfgField.SetBool(convertedVal)
+			default:
+				return errors.Errorf("could not parse env var %s: unhandled type %s", strings.ToUpper(id+"_"+envVar), t.String())
+			}
+		}
+
+		// set the updated configuration.
+		err := s[id].SetConfig(newCfg.Interface())
+		if err != nil {
 			return err
 		}
 	}

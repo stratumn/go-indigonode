@@ -6,11 +6,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stratumn/go-node/app/raft/pb"
 
-	peer "github.com/libp2p/go-libp2p-peer"
 	logging "github.com/ipfs/go-log"
-	inet "github.com/libp2p/go-libp2p-net"
-	protocol "github.com/libp2p/go-libp2p-protocol"
 	ihost "github.com/libp2p/go-libp2p-host"
+	inet "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 	protobuf "github.com/multiformats/go-multicodec/protobuf"
 )
 
@@ -164,11 +164,6 @@ func (n *netProcess) circleClient(ctx context.Context, msgCircle pb.Internode) {
 	defer n.closeStream(stream)
 
 	enc := protobuf.Multicodec(nil).Encoder(stream)
-	if err != nil {
-		n.errorChan <- errors.WithStack(err)
-		return
-	}
-
 	err = enc.Encode(&msgCircle)
 	if err != nil {
 		n.errorChan <- errors.WithStack(err)

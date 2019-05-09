@@ -118,17 +118,17 @@ func TestCfg(t *testing.T) {
 			defer os.Unsetenv("ZIP_AUTHOR")
 			os.Setenv("ZIP_STARTED", "true")
 			defer os.Unsetenv("ZIP_AUTHOR")
-			os.Setenv("ZIP_SIZE", "28")
+			os.Setenv("TAR_SIZE", "28")
 			defer os.Unsetenv("ZIP_SIZE")
-			os.Setenv("ZIP_RATIO", "9.09876")
+			os.Setenv("TAR_RATIO", "9.09876")
 			defer os.Unsetenv("ZIP_SIZE")
 
 			err = setLoad.Load(filename)
 			require.NoError(t, err, "Load(filename)")
 			assert.Equal(t, author, zipLoad.author)
 			assert.Equal(t, true, zipLoad.started)
-			assert.Equal(t, 28, zipLoad.size)
-			assert.Equal(t, 9.09876, zipLoad.ratio)
+			assert.Equal(t, 28, tarLoad.size)
+			assert.Equal(t, 9.09876, tarLoad.ratio)
 		})
 
 		t.Run("Fails if type is not supported by env var", func(t *testing.T) {
